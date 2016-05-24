@@ -1,0 +1,26 @@
+{
+"project": "TEST1ID",
+"auto_sync": false,
+"projectresources": ["RES1"],
+"subjectresources": ["S1RESOURCE","S2RESOURCE"],
+"subjectassessors": [{
+		       "xsiType":"dpuk:dpukAssessmentData",
+		       "resources":["DPUK1RESOURCE"],		     
+		       "needs_ok_to_sync": false
+		      }],
+"imagingsessions": [{
+		      "xsiType":"xnat:mrSessionData",
+		      "resources":["MR1RESOURCE","MR2RESOURCE"],		     
+		      "scans":[{"type":"T1","resources":["DICOM"]},
+			       {"type":"FLAIR","resources":["SCAN3"]}
+			     ],
+		      "assessors":[{
+		      		    "xsiType":"xnat:qcManualAssessmentData",
+				    "resources":["QC1RESOURCE"],		     
+				    "needs_ok_to_sync": false
+		      		    }],	     
+		      "anonymize": true,
+		      "needs_ok_to_sync": true
+                    }                                 
+                 ]
+}

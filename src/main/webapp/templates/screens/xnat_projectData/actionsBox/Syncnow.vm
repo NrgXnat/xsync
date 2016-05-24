@@ -1,0 +1,39 @@
+<!-- Sequence: 18 -->
+<!-- allowGuest: false -->
+<script type="text/javascript" >
+function syncNow(projectId) {
+	var exporturl = serverRoot + '/data/xsync/projects/'+projectId+'?XNAT_CSRF='+csrfToken ;
+	$.ajax({
+	  url:exporturl,
+	  type:"POST",
+	  success: function(data){
+			  xmodal.alert({
+					title: 'Project Synchronization',
+					content: 'Project ' + projectId + ' synchronization has started. An email notification will be sent once synchronization is complete.',
+					label: 'OK'
+				});
+	  
+	  },
+	  error: ajaxCallFailed
+	});
+};
+
+	function ajaxCallFailed(o) {
+		xmodal.loading.close();
+		if (!window.leaving) {
+			//alert(o.status + " " + o.statusText + " " +  o.responseText);
+			if (o.status == "417") {
+		    		xModalMessage('Unable to initiate project synchronization', 'Project is not configured for synchronization. Please setup synchronization first');
+			}else 
+		    		xModalMessage('Unable to initiate project synchronization', 'Unable to initiate project synchronization');
+		}
+
+	};
+
+</script>
+
+
+<li class="yuimenuitem">
+   <a class="yuimenuitemlabel" href="javascript:syncNow('$!{project.getId()}');">Sync Data</A>
+</li>
+

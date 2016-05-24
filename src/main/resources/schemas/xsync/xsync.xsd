@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema targetNamespace="http://nrg.wustl.edu/xsync"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:xnat="http://nrg.wustl.edu/xnat"
+           xmlns:xsync="http://nrg.wustl.edu/xsync"
+           xmlns:xdat="http://nrg.wustl.edu/xdat" 
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+
+    <xs:import namespace="http://nrg.wustl.edu/xnat" schemaLocation="../xnat/xnat.xsd"/>
+    <xs:import namespace="http://nrg.wustl.edu/xnat" schemaLocation="../xdat/xdat.xsd"/>
+    <!-- This is a data-type schema for org.nrg.xnat-xsync with no defined data types. -->
+
+
+
+    <xs:element name="Synchronization" type="xsync:xsyncProjectData"></xs:element>
+    <xs:complexType name="xsyncAssessorData">
+    		<xs:complexContent>
+    			<xs:extension base="xnat:subjectAssessorData">
+    				<xs:sequence>
+   					<xs:element name="synced_experiment_id" type="xs:string">
+    						<xs:annotation>
+    							<xs:appinfo>
+    								<xdat:field baseElement="xnat:experimentData" baseCol="id" uniqueComposite="OK_SYNC"/>
+    							</xs:appinfo>
+    						</xs:annotation>
+    					</xs:element>
+ 			<xs:element name="okToSync" type="xs:boolean" maxOccurs="1"
+    			minOccurs="1"></xs:element>
+ 			<xs:element name="authorized_by" type="xs:string" maxOccurs="1" minOccurs="1">
+   						<xs:annotation>
+    							<xs:appinfo>
+    								<xdat:field baseElement="xdat:user" baseCol="login" />
+    							</xs:appinfo>
+    						</xs:annotation>
+ 			</xs:element>
+			<xs:element name="authorized_time" type="xs:dateTime" maxOccurs="1" minOccurs="1">
+ 			</xs:element>
+ 			<xs:element name="remote_project_id" type="xs:string" maxOccurs="1"
+    			minOccurs="0"></xs:element>
+ 			<xs:element name="remote_id" type="xs:string" maxOccurs="1"
+    			minOccurs="0"></xs:element>
+  			<xs:element name="remote_url" type="xs:string" maxOccurs="1"
+     			minOccurs="0">
+			<xs:annotation>
+				<xs:appinfo>
+					<xdat:field uniqueComposite="OK_SYNC"/>
+				</xs:appinfo>
+			</xs:annotation>
+     			</xs:element>
+ 		 <xs:element name="sync_time" type="xs:dateTime" maxOccurs="1"
+    			minOccurs="0"></xs:element>
+    		<xs:element name="sync_status" type="xs:string" maxOccurs="1"
+    			minOccurs="0"></xs:element>
+    				</xs:sequence>
+    			</xs:extension>
+    		</xs:complexContent>
+	</xs:complexType>
+ 
+    <xs:complexType name="xsyncProjectData">
+    	<xs:sequence>
+			<xs:element name="syncInfo" type="xsync:xsyncInfoData" minOccurs="1" maxOccurs="1">
+			</xs:element>
+    	</xs:sequence>
+    	<xs:attribute name="project_id" type="xs:string">
+  			<xs:annotation>
+				<xs:appinfo>
+					<xdat:field baseElement="xnat:projectData" baseCol="id" uniqueComposite="PROJ_SYNC">
+						<xdat:sqlField name="project_id"/>
+					</xdat:field>
+				</xs:appinfo>
+			</xs:annotation>
+    	</xs:attribute>
+    	<xs:attribute name="sync_blocked" type="xs:boolean">
+    				<xs:documentation>
+    					If set to true the project sync will be skipped. This may be required in case there is a configuration change.
+    				</xs:documentation>
+    	</xs:attribute>
+    </xs:complexType>
+    <xs:complexType name="xsyncInfoData">
+    	<xs:sequence>
+    		<xs:element name="sync_frequency" maxOccurs="1"
+    			minOccurs="1">
+    			<xs:simpleType>
+    				<xs:restriction base="xs:string">
+    					<xs:enumeration value="daily"></xs:enumeration>
+    					<xs:enumeration value="weekly"></xs:enumeration>
+    					<xs:enumeration value="on demand"></xs:enumeration>
+    					<xs:enumeration value="monthly"></xs:enumeration>
+    				</xs:restriction>
+    			</xs:simpleType>
+    		</xs:element>
+    		<xs:element name="auto_sync" type="xs:boolean">
+    			<xs:annotation>
+    				<xs:documentation>
+    					If set to true the project sync function will
+    					update or delete existing experiment data in the
+    					destination project to match modifications. If set to false, only new additions will be pushed.
+    				</xs:documentation>
+    			</xs:annotation>
+    		</xs:element>
+    		<xs:element name="identifiers">
+    			<xs:simpleType>
+    				<xs:restriction base="xs:string">
+    					<xs:enumeration value="use_local"></xs:enumeration>
+    					<xs:enumeration value="use_remote"></xs:enumeration>
+    					<xs:enumeration value="use_random"></xs:enumeration>
+    					<xs:enumeration value="use_custom_local"></xs:enumeration>
+    				</xs:restriction>
+    			</xs:simpleType>
+    		</xs:element>
+ 			<xs:element name="remote_project_id" type="xs:string" maxOccurs="1"
+    			minOccurs="1"></xs:element>
+       		<xs:element name="sync_start_time" type="xs:dateTime" maxOccurs="1"
+    			minOccurs="0"></xs:element>
+    		<xs:element name="sync_end_time" type="xs:dateTime" maxOccurs="1"
+    			minOccurs="0"></xs:element>
+    		<xs:element name="sync_status" type="xs:string" maxOccurs="1"
+    			minOccurs="0"></xs:element>
+    	</xs:sequence>
+    	<xs:attribute name="remote_url" type="xs:string">
+    		<xs:annotation>
+    			<xs:documentation>
+    				URL of the XNAT Site to Sync To
+    			</xs:documentation>
+    		</xs:annotation>
+    	</xs:attribute>
+    </xs:complexType>
+
+
+ 
+    <xs:complexType name="xsyncRemoteMapData">
+    	<xs:sequence>
+    		<xs:element name="project_id" type="xs:string" maxOccurs="1"
+    			minOccurs="1">
+  			<xs:annotation>
+				<xs:appinfo>
+					<xdat:field baseElement="xsync:xsyncProjectData" baseCol="project_id">
+						<xdat:sqlField name="project_id"/>
+					</xdat:field>
+				</xs:appinfo>
+			</xs:annotation>
+    		</xs:element>
+    		<xs:element name="local_xnat_id" type="xs:string" maxOccurs="1"
+    			minOccurs="1">
+			<xs:annotation>
+				<xs:appinfo>
+					<xdat:field>
+						<xdat:sqlField primaryKey="true"/>
+					</xdat:field>
+				</xs:appinfo>
+			</xs:annotation>
+    		</xs:element>
+    		<xs:element name="xsiType" type="xs:string" maxOccurs="1"
+    			minOccurs="1">
+  			<xs:annotation>
+				<xs:appinfo>
+					<xdat:field baseElement="xdat:xdat_meta_element" baseCol="element_name">
+						<xdat:sqlField name="xsiType"/>
+					</xdat:field>
+				</xs:appinfo>
+			</xs:annotation>
+    		</xs:element>
+    		<xs:element name="remote_xnat_id" type="xs:string"></xs:element>
+    		<xs:element name="sync_status" type="xs:string"></xs:element>
+    	</xs:sequence>
+    </xs:complexType>
+</xs:schema>

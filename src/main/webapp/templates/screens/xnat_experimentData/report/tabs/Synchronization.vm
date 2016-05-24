@@ -1,0 +1,70 @@
+<!-- Sequence: 19 -->
+<!-- allowGuest: false -->
+<script type="text/javascript" >
+function setOkToSync(projectId,xnat_id, exp_label) {
+	var syncChoice = document.getElementById('OkToSync').checked;
+	var exporturl = serverRoot + '/data/xsync/experiments/'+xnat_id+'?okToSync='+syncChoice+'&XNAT_CSRF='+csrfToken ;
+	var text = 'Experiment ' + exp_label + ' has been marked ok to sync. This experiment will be synced in the next synchronization cycle of the project ' + projectId;
+	if (!syncChoice) {
+		text = 'Experiment ' + exp_label + ' has been marked NOT ok to sync. This experiment will be not be synced in the next synchronization cycle of the project ' + projectId;
+	}
+	$.ajax({
+	  url:exporturl,
+	  type:"POST",
+	  success: function(data){
+			  xmodal.alert({
+					title: 'Data Synchronization',
+					content: text ,
+					label: 'OK'
+				});
+	  
+	  },
+	  error: ajaxCallFailed
+	});
+};
+
+	function ajaxCallFailed(o) {
+		xmodal.loading.close();
+		if (!window.leaving) {
+			//alert(o.status + " " + o.statusText + " " +  o.responseText);
+		    	xModalMessage('Unable to mark experiment as Ok to sync', 'Unable to mark experiment as Ok to sync');
+		}
+
+	};
+
+</script>
+
+#set($xsyncAssessorDataType="xsync:xsyncAssessorData")
+#set($syncAssessor = "")
+#foreach ($assessor in 	$om.getSubjectData().getExperiments_experiment($xsyncAssessorDataType))
+  #if($assessor.getSyncedExperimentId().equals($om.getId()))
+	#set($syncAssessor = $assessor)
+  #end	
+#end
+
+#set($checked="")
+#if ($!syncAssessor.getOktosync()) 
+ #set($checked="checked")
+#end
+
+<input type="checkbox" id="OkToSync" name="OkToSync" value="OkToSync" onclick="javascript:setOkToSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');" $checked>Ok To Sync
+<br>
+
+	<table>
+	<tr> 
+	<th align="left">Last Sync Date:</th>
+	<td>$!syncAssessor.getSyncEndTime()</td>
+	</tr>
+	<tr> 
+	<th align="left">Sync Status:</th>
+	<td>$!syncAssessor.getSyncStatus()</td>
+	</tr>
+	<tr> 
+	<th align="left">Authorized By:</th>
+	<td>$!syncAssessor.getAuthorizedBy()</td>
+	</tr>
+	<tr> 
+	<th align="left">Authorized On:</th>
+	<td>$!syncAssessor.getDate()</td>
+	</tr>
+	</table>
