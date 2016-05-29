@@ -8,7 +8,6 @@
            attributeFormDefault="unqualified">
 
     <xs:import namespace="http://nrg.wustl.edu/xnat" schemaLocation="../xnat/xnat.xsd"/>
-    <xs:import namespace="http://nrg.wustl.edu/xnat" schemaLocation="../xdat/xdat.xsd"/>
     <!-- This is a data-type schema for org.nrg.xnat-xsync with no defined data types. -->
 
 
@@ -69,6 +68,15 @@
 						<xdat:sqlField name="project_id"/>
 					</xdat:field>
 				</xs:appinfo>
+			</xs:annotation>
+    	</xs:attribute>
+    	<xs:attribute name="sync_scheduled_by" type="xs:string">
+  			<xs:annotation>
+				<xs:annotation>
+					<xs:appinfo>
+						<xdat:field baseElement="xdat:user" baseCol="login" />
+					</xs:appinfo>
+				</xs:annotation>
 			</xs:annotation>
     	</xs:attribute>
     	<xs:attribute name="sync_blocked" type="xs:boolean">

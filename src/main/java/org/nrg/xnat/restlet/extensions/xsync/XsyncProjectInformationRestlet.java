@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Mohana Ramaratnam
  *
  */
+
 @XnatRestlet({ "/projects/{PROJECT_ID}/information" })
 public class XsyncProjectInformationRestlet extends SecureResource {
     public static final String PARAM_PROJECT_ID = "PROJECT_ID";

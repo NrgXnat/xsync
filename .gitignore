@@ -1,0 +1,6 @@
+src/generated/
+src/beans/
+/.gradle
+/build
+/bin
+

@@ -14,13 +14,13 @@ import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
+import org.nrg.xsync.exception.XsyncRemoteConnectionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -129,11 +129,11 @@ public class IdMapper {
 		return remoteId;
 	}
 	
-	public String getRemoteId(String remoteUrl, String remoteProjectId, String remoteSubjectLabel, String remoteEntityLabel,String xsiType) {
+	public String getRemoteId(String remoteUrl, String remoteProjectId, String remoteSubjectLabel, String remoteEntityLabel,String xsiType) throws XsyncRemoteConnectionException {
 		 String remote_id = null;
 		 String uri = remoteUrl +"/data/archive/projects/" + remoteProjectId +"/subjects/"+ remoteSubjectLabel + "/experiments?format=json&columns=ID,label&xsiType="+xsiType;
 		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
-		 RemoteConnection connection = remoteConnectionManager.getConnection(remoteUrl, remoteProjectId);
+		 RemoteConnection connection = remoteConnectionManager.getConnection(remoteProjectId);
 		 RemoteConnectionResponse connectionResponse = remoteConnectionManager.getResult(connection,uri);
 		 if (connectionResponse.wasSuccessful()) {
 			 //Parse the returned JSON

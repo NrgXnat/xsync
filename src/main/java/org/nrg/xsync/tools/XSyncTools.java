@@ -77,7 +77,9 @@ public class XSyncTools {
 		 return (items_deleted>0?true:false);
 		
 	}	
+
 	
+
 	public boolean hasBeenMarkedOkToSync(String exptId, String remote_url) {
 		boolean okToSync = false;
 		XsyncXsyncassessordata assessor = getXsyncAssessor(exptId,remote_url);

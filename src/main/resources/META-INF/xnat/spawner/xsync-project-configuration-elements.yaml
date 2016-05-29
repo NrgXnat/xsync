@@ -1,0 +1,39 @@
+#################################################
+####  Root Xsync Spawner Config Object  ####
+#################################################
+xsyncConfigPage:
+    kind: tabs
+    name: xsyncConfigPage
+    label: Xsync Configuration
+    meta:
+        tabGroups:
+            remoteInfo: Remote XNAT Site Information
+    contents:
+        remoteSiteSetup:
+            kind: tab
+            name: remoteSiteSetup
+            label: Remote Site Setup
+            group: remoteInfo
+            active: true
+            contents:
+                remoteSiteSetupPanel:
+                    kind: panel.form
+                    name: remoteSiteSetupPanel
+                    label: Remote Site Setup
+                    method: POST
+                    action: ~/rest/url/for/save # url to save data
+                    load: ~/rest/url/for/load   # url to load data - uses GET and expects JSON data to be returned
+                    contentType: json # omit this for standard form submission
+                    contents:
+                        remoteUrl:
+                            kind: panel.input.text
+                            name: remoteUrl
+                            label: Remote Site URL
+                            validation: required url
+                            description: "The remote url to which data will be synced."
+                        remoteProjectId:
+                            kind: panel.input.text
+                            name: remoteProjectId
+                            label: Remote Project ID
+                            validation: required id
+                            description: "The remote project id to which data will be synced."

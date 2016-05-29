@@ -7,6 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.nrg.xdat.XDAT;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
 /**
  * @author Mohana Ramaratnam
  *
@@ -298,6 +303,37 @@ public class QueryResultUtil {
 		query += " and pr.local_xnat_id=:LOCAL_XNAT_ID " ;
 		query += " and pr.xsitype=:XSITYPE " ;
 		return query;
+	}
+
+	public String getProjectsToSync() {
+		String query = "select pr.project_id, pr.sync_blocked, pr.sync_scheduled_by xi.sync_frequency from xsync_xsyncremotemapdata pr  ";
+		query += " LEFT JOIN xsync_xsyncinfodata xi ON xi.xsync_xsyncinfodata_id=pr.syncinfo_xsync_xsyncinfodata_id " ;
+		query += "  where xi.sync_frequency=:SYNC_FREQUENCY ";
+		return query;
+	}
+
+	public List<Map<String,Object>> getProjectsTobeSynced(String frequency) {
+		 String query = getProjectsToSync();
+		 NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
+					new JdbcTemplate(XDAT.getDataSource()));
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue("SYNC_FREQUENCY", frequency);
+		List<Map<String,Object>> projectsToSync = jdbcTemplate.queryForList(query, parameters);
+		return projectsToSync;
+		
+	}	
+	
+	public List<Map<String,Object>> getProjectsTobeSyncedDaily() {
+		return getProjectsTobeSynced("daily");
+	}
+
+	
+	public List<Map<String,Object>> getProjectsTobeSyncedMonthly() {
+		return getProjectsTobeSynced("monthly");
+	}
+
+	public List<Map<String,Object>> getProjectsTobeSyncedWeekly() {
+		return getProjectsTobeSynced("weekly");
 	}
 	
 	public String deleteXsyncRemoteMapQueryString() {

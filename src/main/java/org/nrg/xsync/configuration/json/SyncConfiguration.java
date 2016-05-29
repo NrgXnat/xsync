@@ -14,6 +14,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class SyncConfiguration implements Serializable{
 	
 	String project;
+//	String remoteURL;
+//	String remoteProjectId;
+//	String sync_frequency;
+//	String identifiers;
 	Boolean auto_sync;
 	List<String> projectresources;
 	List<String> subjectresources;

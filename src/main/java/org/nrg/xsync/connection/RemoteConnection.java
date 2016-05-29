@@ -1,49 +1,65 @@
 package org.nrg.xsync.connection;
 
-import java.io.Serializable;
-
-import org.nrg.xdat.entities.AliasToken;
+import java.util.Date;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
-public class RemoteConnection implements Serializable{
+public class RemoteConnection {
 	/**
 	 * 
 	 */
 	String url;
 	String username;
 	String password;
-	String jsessionid;
+	boolean locked = false;
+	Date acquiredTime;
 	
-	
-	
-	public String getJsessionid() {
-		return jsessionid;
-	}
-	public void setJsessionid(String jsessionid) {
-		this.jsessionid = jsessionid;
-	}
+
 	public String getUrl() {
 		return url;
 	}
+
 	public void setUrl(String url) {
 		this.url = url;
 	}
+
 	public String getUsername() {
 		return username;
 	}
+
 	public void setUsername(String username) {
 		this.username = username;
 	}
+
 	public String getPassword() {
 		return password;
 	}
+
 	public void setPassword(String password) {
 		this.password = password;
 	}
 	
+	public void lock() {
+		locked = true;
+	}
+
+	public void unlock() {
+		locked = false;
+	}
+
 	
+	public boolean isLocked() {
+		return locked;
+	}
+	
+	public Date getAcquiredDate() {
+		return acquiredTime;
+	}
+	
+	public void setAcquiredDate() {
+		acquiredTime = new Date();
+	}
 
 }

@@ -1,0 +1,48 @@
+package org.nrg.xsync.services.local.impl;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.nrg.xdat.security.helpers.Users;
+import org.nrg.xft.security.UserI;
+import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
+import org.nrg.xsync.services.local.WeeklySyncService;
+import org.nrg.xsync.utils.QueryResultUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+/**
+ * @author Mohana Ramaratnam
+ *
+ */
+@Service
+public class DefaultWeeklySyncService  implements WeeklySyncService {
+	@Override
+	public void syncWeekly() {
+		logger.info("Weekly Sync Triggered - BEGIN " + new Date());
+		QueryResultUtil queryTools = new QueryResultUtil();
+		List<Map<String,Object>> queryResultsRows = queryTools.getProjectsTobeSyncedWeekly();
+		//TODO
+		//The user who sets up the sync will 
+		//All project access will be done by the admin user
+		if (queryResultsRows != null && queryResultsRows.size() > 0) {
+			for (Map<String,Object> row:queryResultsRows) {
+				String projectId =(String)row.get("project_id");
+				String userId = (String)row.get("sync_scheduled_by");
+				try {
+					UserI user = Users.getUser(userId);
+					ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(""+projectId,user);  	
+			    	projectChange.sync();
+				}catch(Exception e) {
+					logger.debug(e.getMessage());
+				}
+			}
+		}
+		logger.info("Weekly Sync Trigger - END " + new Date());
+	}
+	
+	private final static Logger logger = LoggerFactory.getLogger(DefaultWeeklySyncService.class);
+
+}

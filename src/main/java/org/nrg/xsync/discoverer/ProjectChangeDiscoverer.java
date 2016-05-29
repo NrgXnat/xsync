@@ -9,7 +9,6 @@ import javax.mail.MessagingException;
 
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatAbstractresourceI;
-import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatSubjectdata;
@@ -41,25 +40,25 @@ import org.springframework.scheduling.annotation.Async;
  */
 public class ProjectChangeDiscoverer {
 	private static final Logger _log = LoggerFactory.getLogger(ProjectChangeDiscoverer.class);
-	
-	//When created entry is in MetaData; 
+
+	//When created entry is in MetaData;
 	//status field tells about the status of the entity
 	//When updated entry is in History
 	String _projectId;
 	UserI _user;
 	MapSqlParameterSource parameters;
 	ProjectSyncConfiguration projectSyncConfiguration;
-	
+
 	public ProjectChangeDiscoverer(String projectId, UserI user) throws XsyncNotConfiguredException{
 		_projectId = projectId;
 		_user = user;
 		parameters = new MapSqlParameterSource();
 		parameters.addValue("project", _projectId);
-		projectSyncConfiguration = new ProjectSyncConfiguration(_projectId, _user); 
+		projectSyncConfiguration = new ProjectSyncConfiguration(_projectId, _user);
 	}
 
-	
-	
+
+
 	/**
 	 * @return the _lastSyncStartTime
 	 */
@@ -68,7 +67,7 @@ public class ProjectChangeDiscoverer {
 		return _lastSyncStartTime;
 	}
 
-	
+
 	@Async
 	public void sync() {
 		//Create export Build dir
@@ -79,7 +78,7 @@ public class ProjectChangeDiscoverer {
 		Boolean isSyncBlocked = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncBlocked();
 		if (isSyncBlocked != null && isSyncBlocked) {
 			try {
-				XDAT.getMailService().sendHtmlMessage(AdminUtils.getAdminEmailId(), _user.getEmail(), "Project " + _projectId + " sync skipped ",
+				XDAT.getMailService().sendHtmlMessage(AdminUtils.getAuthorizerEmailId(), _user.getEmail(), "Project " + _projectId + " sync skipped ",
 						"<html><body><p>Project "+ _projectId  + " sync skipped </p></body></html>");
 			} catch (MessagingException me) {
 				_log.error("Failed to send email.", me);
@@ -92,7 +91,7 @@ public class ProjectChangeDiscoverer {
 		XnatProjectdata project = projectSyncConfiguration.getProject();
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 		String remoteHost = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
-		
+
 		SynchronizationManager.BEGIN_SYNC(project.getId(),remoteProjectId, remoteHost, _user);
 		syncProjectResources();
 		List<Map<String,Object>> subjectRows = getSubjectsModifiedSinceLastSync();
@@ -108,7 +107,7 @@ public class ProjectChangeDiscoverer {
 				if (localSubject == null) {
 					//Local Subject has been deleted; Delete the remote subject
 					deleteSubject((String)row.get("id"),(String)row.get("label") );
-				}else 
+				}else
 					syncSubject(localSubject);
 			}else {
 				//If its a new addition, sync it. If its an update or a delete skip it.
@@ -153,9 +152,9 @@ public class ProjectChangeDiscoverer {
 		projectSyncConfiguration.getProjectSyncConfigurationFromDB().setSyncBlocked(new Boolean(false));
 		SynchronizationManager.END_SYNC(project.getId());
 	}
-	
+
 	private void syncProjectResources() {
-		List<Map<String,Object>> resourceRows = getProjectResourcesModifiedSinceLastSync(); 
+		List<Map<String,Object>> resourceRows = getProjectResourcesModifiedSinceLastSync();
 		XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(_projectId, _user, false);
 		String localProjectArchivePath = localProject.getArchiveRootPath();
 		for (Map<String,Object> row:resourceRows) {
@@ -193,14 +192,14 @@ public class ProjectChangeDiscoverer {
 					}
 				}
 			}
-		}		
+		}
 	}
-	
+
 	private void deleteProjectResource(String resourceLabel) {
 		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 try {
 			String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-			RemoteConnectionResponse response =  remoteConnectionManager.deleteProjectResource(remoteConnectionManager.getConnection(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl(), projectSyncConfiguration.getProject().getId()),  remoteProjectId, resourceLabel);
+			RemoteConnectionResponse response =  remoteConnectionManager.deleteProjectResource(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()),  remoteProjectId, resourceLabel);
 			ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId,resourceLabel);
 			if (response.wasSuccessful()) {
 				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
@@ -236,7 +235,7 @@ public class ProjectChangeDiscoverer {
 					if (resourcePath.exists() && resourcePath.isFile()) {
 						resourcePath = resourcePath.getParentFile();
 						File zipFile = new XsyncFileUtils().buildZip(remoteProjectId,resourcePath);
-					    RemoteConnectionResponse response =  remoteConnectionManager.importProjectResource(remoteConnectionManager.getConnection(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl(), projectSyncConfiguration.getProject().getId()),  remoteProjectId, resourceLabel, zipFile);
+					    RemoteConnectionResponse response =  remoteConnectionManager.importProjectResource(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()),  remoteProjectId, resourceLabel, zipFile);
 						if (response.wasSuccessful()) {
 							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
 							resourceSyncItem.setMessage("Project resource " + resourceLabel + " updated ");
@@ -275,7 +274,7 @@ public class ProjectChangeDiscoverer {
 		}
 		return projectResource;
 	}
-	
+
 	private List<Map<String,Object>> getSubjectsModifiedSinceLastSync() {
 		//Any entity  that is derived from the subject or linked to the subject
 		//if modified, would result in an update in the last_modified column
@@ -287,15 +286,15 @@ public class ProjectChangeDiscoverer {
 		 List<Map<String,Object>> results = jdbcTemplate.queryForList(query, parameters);
 		return results;
 	}
-	
+
 	private List<Map<String,Object>> getQueryForFetchingSubjectsWhoseExperimentsMarkedOKSinceLastSync(List<String> excludeIds) {
 		QueryResultUtil queryUtil = new QueryResultUtil();
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("project", _projectId);
 		boolean skipSubjectIdCheck = false;
-		if (excludeIds.size() > 0) { 
+		if (excludeIds.size() > 0) {
 			parameters.addValue(QueryResultUtil.SUBJECT_IDS, excludeIds);
-		}else 
+		}else
 			skipSubjectIdCheck = true;
 		String query = queryUtil.getQueryForFetchingSubjectsWhoseExperimentsMarkedOKSinceLastSync(skipSubjectIdCheck);
 		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
@@ -312,13 +311,13 @@ public class ProjectChangeDiscoverer {
 		 List<Map<String,Object>> results = jdbcTemplate.queryForList(query, parameters);
 		return results;
 	}
-	
+
 	private void syncSubject(XnatSubjectdata localSubject) {
 		_log.debug("Exporting " + localSubject.getId());
 		RemoteSubject remoteSubject = new RemoteSubject(localSubject,projectSyncConfiguration,_user);
 		remoteSubject.sync();
 	}
-	
+
 	private void deleteSubject(String deletedSubjectLocalId, String deletedSubjectLabel) {
 		//Get the remote ID
 		//If it exists; delete the remote subject
@@ -332,7 +331,7 @@ public class ProjectChangeDiscoverer {
 			 _log.debug("Deleting subject " + subject.getId() + " from remote project " + subject.getProject());
 			 try {
 				 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
-				 RemoteConnectionResponse response =  remoteConnectionManager.deleteSubject(remoteConnectionManager.getConnection(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl(), projectSyncConfiguration.getProject().getId()), subject);
+				 RemoteConnectionResponse response =  remoteConnectionManager.deleteSubject(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()), subject);
 				 if (response.wasSuccessful()) {
 					  SubjectSyncItem subjectSyncItem = new SubjectSyncItem(deletedSubjectLocalId,deletedSubjectLabel);
 					  subjectSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
@@ -348,7 +347,6 @@ public class ProjectChangeDiscoverer {
 				  subjectSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 				  subjectSyncItem.setMessage("Subject " + deletedSubjectLocalId + " could not be deleted.");
 				  SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncItem);
-				 throw e;
 			 }
 		}else {
 			_log.info("Appears that " + deletedSubjectLocalId + " has been locally deleted between two syncs. Ignoring");
@@ -357,9 +355,9 @@ public class ProjectChangeDiscoverer {
 			  subjectSyncItem.setMessage("Subject " + deletedSubjectLocalId + " has been skipped as it appeards to have been deleted between two sync events.");
 			  SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncItem);
 		}
-		
+
 	}
-	
-	
+
+
 
 }
