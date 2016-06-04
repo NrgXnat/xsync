@@ -154,7 +154,7 @@ public class XsyncSetupRestlet extends SecureResource {
             	PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, syncProject.getXSIType(),syncProject.getXsyncXsyncprojectdataId()+"",syncProject.getProjectId(), newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.getAddModifyAction(syncProject.getXSIType(), (existing == null))));
             	WorkflowUtils.complete(wrk, c);
             }
-            this.returnString(projectId + "Synchronization setup", (existing == null) ? Status.SUCCESS_CREATED : Status.SUCCESS_OK);
+            this.returnString(projectId + " Xsync Setup complete", (existing == null) ? Status.SUCCESS_CREATED : Status.SUCCESS_OK);
 
 		}catch (Exception  exception) {
 			logger.error("Exception: " + exception.getMessage());
@@ -206,7 +206,8 @@ public class XsyncSetupRestlet extends SecureResource {
 				FileWriter fw = new FileWriter(dest);
 				cat.toXML(fw, true);
 				fw.close();
-				String path = dest_path + File.separator + catEntry.getName() ;
+				String path = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + catEntry.getName();
+
 				Files.write( Paths.get(path), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE);
 
 			} catch (IOException e) {

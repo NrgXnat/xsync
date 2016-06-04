@@ -4,7 +4,9 @@
 "auto_sync":"true",
 "identifiers":"use_local",
 "remote_url":"http://localhost:8080/xnat",
-"remote_project_id":"SyncProjectId"
+"remote_project_id":"SyncProjectId",
+"remote_token":"BLA_TOKEN_CHANGE",
+"remote_secret":"BLA_SECRET",
 "projectresources": ["RES1"],
 "subjectresources": ["S1RESOURCE","S2RESOURCE"],
 "subjectassessors": [{
