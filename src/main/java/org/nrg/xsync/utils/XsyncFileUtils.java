@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  */
 public class XsyncFileUtils {
 	private static final Logger _log = LoggerFactory.getLogger(XsyncFileUtils.class);
-
+	public static final String SYNCHRONIZATION_LABEL = "synchronization";
 	
 	public File buildZip(String remoteProjectId,File pathToFiles) throws Exception {
 		File zipFile = null;

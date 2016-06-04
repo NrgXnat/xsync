@@ -21,6 +21,7 @@ import org.nrg.xsync.configuration.json.ImagingSessionConfiguration;
 import org.nrg.xsync.configuration.json.SubjectAssessorConfiguration;
 import org.nrg.xsync.configuration.json.SyncConfiguration;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
+import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,7 +107,7 @@ public class ProjectSyncConfiguration {
 	}
 	
 	private String getSynchronizationConfigurationFilePath() {
-		String filePath = project.getArchiveRootPath() + File.separator + "resources" + File.separator + "synchronization" + File.separator + "sync_config.json";
+		String filePath = project.getArchiveRootPath() + File.separator + "resources" + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
 		return filePath;
 	}
 

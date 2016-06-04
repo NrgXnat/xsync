@@ -1,8 +1,19 @@
 package org.nrg.xnat.restlet.extensions.xsync;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.List;
 
+import org.nrg.xdat.bean.CatCatalogBean;
+import org.nrg.xdat.bean.CatEntryBean;
+import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatProjectdata;
+import org.nrg.xdat.om.XnatResourcecatalog;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xft.XFTItem;
@@ -12,12 +23,14 @@ import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils.EventRequirementAbsent;
+import org.nrg.xft.utils.FileUtils;
 import org.nrg.xft.utils.SaveItemHelper;
 import org.nrg.xft.utils.ValidationUtils.ValidationResults;
 import org.nrg.xnat.restlet.XnatRestlet;
 import org.nrg.xnat.restlet.resources.SecureResource;
 import org.nrg.xnat.restlet.util.RequestUtil;
 import org.nrg.xnat.utils.WorkflowUtils;
+import org.nrg.xsync.utils.XsyncFileUtils;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
@@ -102,7 +115,6 @@ public class XsyncSetupRestlet extends SecureResource {
 	@Override
 	public void handlePost() {
 		//curl -H "Content-Type: application/json" -X POST -d '{  "project":"TEST1ID",  "sync_frequency":"daily",  "auto_sync":"false",  "identifiers":"use_local",  "remote_url":"http://localhost:8080/xnat",  "remote_project_id":"SyncProjectId"}' -u admin  "http://localhost:8080/xnat/data/xsync/setup?project=TEST1ID"
-		
 		try {
 			if (!((RequestUtil.hasContent(this.getRequest().getEntity())
 					&& RequestUtil.compareMediaType(this.getRequest().getEntity(), MediaType.APPLICATION_JSON)))) {
@@ -128,11 +140,9 @@ public class XsyncSetupRestlet extends SecureResource {
             if (list != null && list.size() > 0) {
             	existing = list.get(0);
             	syncProject.setItem(existing.getItem());
-            }else {
-
             }
             populate(syncProject,synchronizationJson);
-
+            save_resource(project,jsonbody);
             final ValidationResults vr = syncProject.validate();
             if (vr != null && !vr.isValid()) {
                 this.getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST, vr.toFullString());
@@ -151,6 +161,84 @@ public class XsyncSetupRestlet extends SecureResource {
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, exception, exception.getMessage());
 		}
 	}
+	
+	private void save_resource(XnatProjectdata project, String xsyncCfgJSON) {
+		String dest_path = FileUtils.AppendRootPath(project.getRootArchivePath(),
+				"resources/");
+		
+		List<XnatAbstractresourceI> resources = project.getResources_resource();
+		XnatAbstractresourceI synchronizationResource = null;
+		for (XnatAbstractresourceI res: resources) {
+			if (res.getLabel().equalsIgnoreCase(XsyncFileUtils.SYNCHRONIZATION_LABEL)) {
+				//Existing file possibly, update it
+				synchronizationResource = res;
+				break;
+			}
+		}
+		if (synchronizationResource == null) {
+			// Create one
+			//Create a resource and hence a catalog
+			XnatResourcecatalog syncResource = new XnatResourcecatalog();
+			syncResource.setLabel(XsyncFileUtils.SYNCHRONIZATION_LABEL);
+			String resourceFolder=syncResource.getLabel();
+
+
+			CatCatalogBean cat = new CatCatalogBean();
+			cat.setId(XsyncFileUtils.SYNCHRONIZATION_LABEL);
+			CatEntryBean catEntry = new CatEntryBean();
+			catEntry.setContent("JSON");
+			catEntry.setFormat("JSON");
+			catEntry.setName("sync_config.json");
+			catEntry.setUri(catEntry.getName());
+			catEntry.setId(cat.getId()+"/"+catEntry.getName());
+			cat.addEntries_entry(catEntry);
+
+			File dest=null;
+			if(resourceFolder==null){
+				dest = new File(new File(dest_path),cat.getId() + "_catalog.xml");
+			}else{
+				dest = new File(new File(dest_path,resourceFolder),cat.getId() + "_catalog.xml");
+			}
+			dest.getParentFile().mkdirs();
+			
+
+			try {
+				FileWriter fw = new FileWriter(dest);
+				cat.toXML(fw, true);
+				fw.close();
+				String path = dest_path + File.separator + catEntry.getName() ;
+				Files.write( Paths.get(path), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE);
+
+			} catch (IOException e) {
+				logger.error("",e);
+				this.getResponse().setStatus(Status.SERVER_ERROR_INTERNAL,
+						e.getMessage());
+			}
+			syncResource.setUri(dest.getAbsolutePath());
+			try {
+				PersistentWorkflowI wrk=PersistentWorkflowUtils.buildOpenWorkflow(user, project.getItem(), newEventInstance(EventUtils.CATEGORY.DATA,(getAction()!=null)?getAction():EventUtils.CREATE_RESOURCE));
+				EventMetaI ci=wrk.buildEvent();
+				
+				project.setResources_resource(syncResource.getItem());
+				SaveItemHelper.authorizedSave(project,user, false, false,ci);
+			}catch(Exception e) {
+				logger.error("Unable to set resource for the project",e);
+				this.getResponse().setStatus(Status.SERVER_ERROR_INTERNAL,
+						e.getMessage());
+			}
+		}else {
+			//Existing file possibly, update it
+			String jsonPath = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
+			try {
+				Files.write( Paths.get(jsonPath), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE);
+			}catch(IOException e) {
+				logger.error("Unable to overwrite the configuration file",e);
+				this.getResponse().setStatus(Status.SERVER_ERROR_INTERNAL,
+						e.getMessage());
+			}
+		}
+	}
+	
 	
 	private void populate(XsyncXsyncprojectdata syncProject,JsonNode synchronizationJson) throws Exception {
 		//Store
