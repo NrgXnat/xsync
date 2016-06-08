@@ -398,7 +398,7 @@ XSYNC.xsyncconfig.submitConfig = function() {
 	var modalContent = 
 		"<div>" + 
 			'<div class = "credentials-header-div credentials-div">' + 
-			'<h3 style="text-align:center">Enter credentials for XSync to use for transfers</h3>' +
+			'<h3 style="text-align:center">Enter credentials for ' +  $("#xsync-config-remote-url").val() + '</h3>' +
 			'</div>' + 
 			'<div class = "credentials-div">' + 
 			'<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
@@ -411,7 +411,7 @@ XSYNC.xsyncconfig.submitConfig = function() {
 		width: 740,  
 		height: 480,  
 		id: 'xmodal-enter-credentials',  
-		title: "Information required",
+		title: "Credentials required for remote server",
 		content: modalContent,
 		ok: 'show',
 		okLabel: 'Continue',
@@ -492,51 +492,91 @@ XSYNC.xsyncconfig.constructNewJson = function(data) {
 	newJson.remote_secret = data.secret;
 	newJson.projectresources = [];
 	$(".project-resource-input").each(function() {
-		newJson.projectresources.push($(this).val());
+		var newresource = $(this).val();
+		if (typeof newresource == undefined || newresource.length<1) {
+			return true;
+		}
+		newJson.projectresources.push(newresource);
 	});
 	newJson.subjectresources = [];
 	$(".subject-resource-input").each(function() {
-		newJson.subjectresources.push($(this).val());
+		var newresource = $(this).val();
+		if (typeof newresource == undefined || newresource.length<1) {
+			return true;
+		}
+		newJson.subjectresources.push(newresource);
 	});
 	newJson.subjectassessors = [];
 	$(".xsync-subject-assessor-div").each(function() {
+		var checkval = $(this).find(".subject-assessor-xsitype-input").val();
+		if (typeof checkval == undefined || checkval.length<1) {
+			return true;
+		}
 		var subject_assessor = {};
 		subject_assessor.xsiType = $(this).find(".subject-assessor-xsitype-input").val();
 		subject_assessor.needs_ok_to_sync = JSON.parse($(this).find(".subject-assessor-needsok-input").val().toLowerCase());
 		subject_assessor.resources = [];
-		$(".subject-assessor-resource-input").each(function() {
-			subject_assessor.resources.push($(this).val());
+		$(this).find(".subject-assessor-resource-input").each(function() {
+			var newresource = $(this).val();
+			if (typeof newresource == undefined || newresource.length<1) {
+				return true;
+			}
+			subject_assessor.resources.push(newresource);
 		});
 		newJson.subjectassessors.push(subject_assessor);
 	});
 	newJson.imagingsessions = [];
 	$(".xsync-imaging-session-div").each(function() {
+		var checkval = $(this).find(".imaging-session-xsitype-input").val();
+		if (typeof checkval == undefined || checkval.length<1) {
+			return true;
+		}
 		var imaging_session = {};
 		imaging_session.xsiType = $(this).find(".imaging-session-xsitype-input").val();
 		imaging_session.needs_ok_to_sync = JSON.parse($(this).find(".imaging-session-needsok-input").val().toLowerCase());
 		imaging_session.anonymize = JSON.parse($(this).find(".imaging-session-anonymize-input").val().toLowerCase());
 		imaging_session.resources = [];
 		$(this).find(".imaging-session-resource-input").each(function() {
-			imaging_session.resources.push($(this).val());
+			var newresource = $(this).val();
+			if (typeof newresource == undefined || newresource.length<1) {
+				return true;
+			}
+			imaging_session.resources.push(newresource);
 		});
 		imaging_session.scans = [];
 		$(this).find(".xsync-imaging-session-scan-div").each(function() {
+			var checkval = $(this).find(".imaging-session-scan-type-input").val(); 
+			if (typeof checkval == undefined || checkval.length<1) {
+				return true;
+			}
 			var scan = {};
 			scan.type = $(this).find(".imaging-session-scan-type-input").val();
 			scan.resources = [];
 			$(this).find(".imaging-scan-resource-input").each(function() {
-				scan.resources.push($(this).val());
+				var newresource = $(this).val();
+				if (typeof newresource == undefined || newresource.length<1) {
+					return true;
+				}
+				scan.resources.push(newresource);
 			});
 			imaging_session.scans.push(scan);
 		});
 		imaging_session.assessors = [];
 		$(this).find(".xsync-imaging-session-assessor-div").each(function() {
+			var checkval = $(this).find(".imaging-session-assessor-xsitype-input").val();
+			if (typeof checkval == undefined || checkval.length<1) {
+				return true;
+			}
 			var assessor = {};
 			assessor.xsiType = $(this).find(".imaging-session-assessor-xsitype-input").val();
 			assessor.needs_ok_to_sync = JSON.parse($(this).find(".imaging-session-assessor-needsok-input").val().toLowerCase());
 			assessor.resources = [];
 			$(this).find(".imaging-assessor-resource-input").each(function() {
-				assessor.resources.push($(this).val());
+				var newresource = $(this).val();
+				if (typeof newresource == undefined || newresource.length<1) {
+					return true;
+				}
+				assessor.resources.push(newresource);
 			});
 			imaging_session.assessors.push(assessor);
 		});
