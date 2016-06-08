@@ -24,6 +24,16 @@ div.row1 {
 	margin-left:20px;
 }
 
+div.xsync-imaging-session-assessor-div, div.xsync-imaging-session-scan-div {
+	border:1px;
+	background-color:#EEF3FF;
+	border-color:#AAAAAA;
+	border-style:solid;
+	margin-top:5px;
+	margin-left:50px;
+	margin-right:50px;
+}
+
 div.xsync-container-div {
 	margin-left:38px;
 	border:1px;

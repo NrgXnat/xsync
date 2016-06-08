@@ -94,6 +94,13 @@ XSYNC.xsyncconfig.continueInit = function() {
 		'<div>');
 	$("#xsync-config-remote-url").val(XSYNC.xsyncconfig.configuration.remote_url);
 
+
+	$("#xsync-config-div").append('<div class="row1">' + 
+			'<div class="col1">Remote Project:</div><div>  <input type="text" id="xsync-config-remote-project-id" size="30">' +
+			'</div>' +
+		'<div>');
+	$("#xsync-config-remote-project-id").val(XSYNC.xsyncconfig.configuration.remote_project_id);
+
 	$("#xsync-config-div").append('<div class="row1">' + 
 			'<div class="col1">Project Resources:</div><div>' +
 				'<input type="button" class="xsync-button" id="xsync-add-project-resource" value="Add Project Resource">' +
@@ -149,7 +156,7 @@ XSYNC.xsyncconfig.continueInit = function() {
 			'<div class="xsync-subject-assessor-div xsync-container-div">' + 
 				'<div class="col1">XSI Type:</div>' + 
 				'<div>' +
-					'<input type="text" class="subject-assessor-xsitype-input" name="subject-assessor-xsitype-input" size=30>' + 
+					'<input type="text" class="subject-assessor-xsitype-input" name="subject-assessor-xsitype-input" size=40>' + 
 					'<input type="button" class="xsync-button subject-assessors-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeSubjectAssessor(this)">' +
 				'</div>' +
 				'<div class="col1">Requires OK to sync:</div>' +
@@ -183,7 +190,7 @@ XSYNC.xsyncconfig.continueInit = function() {
 			'<div class="xsync-container-div">' + 
 				'<div class="col1">XSI Type:</div>' + 
 				'<div>' +
-					'<input type="text" class="subject-assessor-xsitype-input" name="subject-assessor-xsitype-input" size=30>' + 
+					'<input type="text" class="subject-assessor-xsitype-input" name="subject-assessor-xsitype-input" size=40>' + 
 					'<input type="button" class="xsync-button subject-assessors-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeSubjectAssessor(this)">' +
 				'</div>' +
 				'<div class="col1">Requires OK to sync:</div>' +
@@ -215,12 +222,19 @@ XSYNC.xsyncconfig.continueInit = function() {
 			'<div class="xsync-imaging-session-div xsync-container-div">' + 
 				'<div class="col1">XSI Type:</div>' + 
 				'<div>' +
-					'<input type="text" class="imaging-session-xsitype-input" name="imaging-session-xsitype-input" size=30>' + 
+					'<input type="text" class="imaging-session-xsitype-input" name="imaging-session-xsitype-input" size=40>' + 
 					'<input type="button" class="xsync-button imaging-sessions-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeImagingSession(this)">' +
 				'</div>' +
 				'<div class="col1">Requires OK to sync:</div>' +
 				'<div>' + 
 					'<select class="imaging-session-needsok-input">' +
+						'<option value="true">True</option>' +
+						'<option value="false">False</option>' +
+					'</select>' +
+				'</div>' +
+				'<div class="col1">Anonymize?:</div>' +
+				'<div>' + 
+					'<select class="imaging-session-anonymize-input">' +
 						'<option value="true">True</option>' +
 						'<option value="false">False</option>' +
 					'</select>' +
@@ -244,6 +258,7 @@ XSYNC.xsyncconfig.continueInit = function() {
 			);
 		$($(".xsync-imaging-session-div")[i]).find(".imaging-session-xsitype-input").val(XSYNC.xsyncconfig.configuration.imagingsessions[i].xsiType);
 		$($(".xsync-imaging-session-div")[i]).find(".imaging-session-needsok-input").val(XSYNC.xsyncconfig.configuration.imagingsessions[i].needs_ok_to_sync.toString());
+		$($(".xsync-imaging-session-div")[i]).find(".imaging-session-anonymize-input").val(XSYNC.xsyncconfig.configuration.imagingsessions[i].anonymize.toString());
 		var resourceDiv = $($(".xsync-imaging-session-div")[i]).find(".xsync-imaging-session-resources-div");
 		for (var j=0; j<XSYNC.xsyncconfig.configuration.imagingsessions[i].resources.length; j++) {
 			$(resourceDiv).append(	
@@ -281,7 +296,7 @@ XSYNC.xsyncconfig.continueInit = function() {
 			$(assessorDiv).append(	
 				'<div class="xsync-imaging-session-assessor-div">' + 
 					'<div style="width:90%">' +
-						'<input type="text" class="imaging-session-assessor-xsitype-input" name="imaging-session-assessor-xsitype-input" size=20>' + 
+						'<input type="text" class="imaging-session-assessor-xsitype-input" name="imaging-session-assessor-xsitype-input" size=40>' + 
 						'<input type="button" class="xsync-button imaging-session-assessor-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeScan(this)">' +
 					'</div>' +
 					'<div class="col2">Requires OK to sync:</div>' +
@@ -315,12 +330,19 @@ XSYNC.xsyncconfig.continueInit = function() {
 			'<div class="xsync-container-div">' + 
 				'<div class="col1">XSI Type:</div>' + 
 				'<div>' +
-					'<input type="text" class="imaging-session-xsitype-input" name="imaging-session-xsitype-input" size=30>' + 
+					'<input type="text" class="imaging-session-xsitype-input" name="imaging-session-xsitype-input" size=40>' + 
 					'<input type="button" class="xsync-button imaging-sessions-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeImagingSession(this)">' +
 				'</div>' +
 				'<div class="col1">Requires OK to sync:</div>' +
 				'<div>' + 
 					'<select class="imaging-session-needsok-input">' +
+						'<option value="true">True</option>' +
+						'<option value="false">False</option>' +
+					'</select>' +
+				'</div>' +
+				'<div class="col1">Anonymize?:</div>' +
+				'<div>' + 
+					'<select class="imaging-session-anonymize-input">' +
 						'<option value="true">True</option>' +
 						'<option value="false">False</option>' +
 					'</select>' +
@@ -410,51 +432,117 @@ XSYNC.xsyncconfig.submitConfig = function() {
 
 XSYNC.xsyncconfig.continueConfig = function() {
 
+	var credHost = $("#xsync-config-remote-url").val();
 	var credUser = $("#xsync-credentials-username").val();
 	var credPassword = $("#xsync-credentials-password").val();
-
-
+	var tokenData = { host: credHost, user: credUser, password: credPassword };
 
 	var credentialsAjax = $.ajax({
-		type : "GET",
- 		//url:$("#xsync-config-remote-url").val() + '/data/services/tokens/issue/user/' + credUser,
- 		url:'https://db.humanconnectome.org' + '/data/services/tokens/issue/user/' + credUser,
+		type : "POST",
+ 		url: serverRoot + '/data/xsync/remoteToken?XNAT_CSRF=' + window.csrfToken,
 		cache: false,
 		async: true,
-		dataType: "application/json; charset=utf-8",
-		username: credUser,
-		password: credPassword,
-		processData: false,
-		contentType: "application/json",
-		dataType: 'json'
+		dataType: 'json',
+		data:  JSON.stringify(tokenData),
+		contentType: "application/json; charset=utf-8"
 	 });
 	credentialsAjax.done( function( data, textStatus, jqXHR ) {
 
 		if (typeof data !== 'undefined' && typeof data.secret !== 'undefined') {
-			var tokendata;
-			var newJson = {};
-			newJson.project = XSYNC.xsyncconfig.configuration.project;
-			newJson.remote_token = data.alias;
-			newJson.remote_secret = data.secret;
-			newJson.sync_frequency = $("#xsync-config-sync-frequency").val();
-			alert(JSON.stringify(newJson));
-			
+
+			var newJson = XSYNC.xsyncconfig.constructNewJson(data);
+
+			var xsyncConfigAjax = $.ajax({
+				type : "POST",
+		 		url:serverRoot+'/data/xsync/setup?project=' + XNAT.data.context.project + '&XNAT_CSRF=' + window.csrfToken,
+				cache: false,
+				async: true,
+				data:  JSON.stringify(newJson),
+				contentType: "application/json; charset=utf-8"
+			 });
+			xsyncConfigAjax.done( function( data, textStatus, jqXHR ) {
+				xmodal.message('Saved','The XSync configuration has been saved');
+			});
+			xsyncConfigAjax.fail( function( data, textStatus, error ) {
+				console.log(newJson);
+				console.log(JSON.stringify(newJson));
+				xmodal.message('Error','ERROR:  Configuration was not successfully saved (' + textStatus + ')');
+			});
+
 		} else {
-			xmodal.message('Error','ERROR:  Could not get alias token');
+			xmodal.message('Error','ERROR:  Could not get alias token.  Please check username and password and try again.');
 		}
 		XSYNC.xsyncconfig.continueInit();
 	});
 		credentialsAjax.fail( function( data, textStatus, error ) {
-		xmodal.message('Error','ERROR:  Could not get alias token');
+			xmodal.message('Error','ERROR:  Could not get alias token');
 	});
 
+}
 
-
-
-
-
-
-
+XSYNC.xsyncconfig.constructNewJson = function(data) {
+	var newJson = {};
+	newJson.project = XSYNC.xsyncconfig.configuration.project;
+	newJson.sync_frequency = $("#xsync-config-sync-frequency").val();
+	newJson.auto_sync = $("#xsync-config-auto-sync").val();
+	newJson.identifiers = $("#xsync-config-identifiers").val();
+	newJson.remote_url = $("#xsync-config-remote-url").val();
+	newJson.remote_project_id = $("#xsync-config-remote-project-id").val();
+	newJson.remote_token = data.alias;
+	newJson.remote_secret = data.secret;
+	newJson.projectresources = [];
+	$(".project-resource-input").each(function() {
+		newJson.projectresources.push($(this).val());
+	});
+	newJson.subjectresources = [];
+	$(".subject-resource-input").each(function() {
+		newJson.subjectresources.push($(this).val());
+	});
+	newJson.subjectassessors = [];
+	$(".xsync-subject-assessor-div").each(function() {
+		var subject_assessor = {};
+		subject_assessor.xsiType = $(this).find(".subject-assessor-xsitype-input").val();
+		subject_assessor.needs_ok_to_sync = JSON.parse($(this).find(".subject-assessor-needsok-input").val().toLowerCase());
+		subject_assessor.resources = [];
+		$(".subject-assessor-resource-input").each(function() {
+			subject_assessor.resources.push($(this).val());
+		});
+		newJson.subjectassessors.push(subject_assessor);
+	});
+	newJson.imagingsessions = [];
+	$(".xsync-imaging-session-div").each(function() {
+		var imaging_session = {};
+		imaging_session.xsiType = $(this).find(".imaging-session-xsitype-input").val();
+		imaging_session.needs_ok_to_sync = JSON.parse($(this).find(".imaging-session-needsok-input").val().toLowerCase());
+		imaging_session.anonymize = JSON.parse($(this).find(".imaging-session-anonymize-input").val().toLowerCase());
+		imaging_session.resources = [];
+		$(this).find(".imaging-session-resource-input").each(function() {
+			imaging_session.resources.push($(this).val());
+		});
+		imaging_session.scans = [];
+		$(this).find(".xsync-imaging-session-scan-div").each(function() {
+			var scan = {};
+			scan.type = $(this).find(".imaging-session-scan-type-input").val();
+			scan.resources = [];
+			$(this).find(".imaging-scan-resource-input").each(function() {
+				scan.resources.push($(this).val());
+			});
+			imaging_session.scans.push(scan);
+		});
+		imaging_session.assessors = [];
+		$(this).find(".xsync-imaging-session-assessor-div").each(function() {
+			var assessor = {};
+			assessor.xsiType = $(this).find(".imaging-session-assessor-xsitype-input").val();
+			assessor.needs_ok_to_sync = JSON.parse($(this).find(".imaging-session-assessor-needsok-input").val().toLowerCase());
+			assessor.resources = [];
+			$(this).find(".imaging-assessor-resource-input").each(function() {
+				assessor.resources.push($(this).val());
+			});
+			imaging_session.assessors.push(assessor);
+		});
+		newJson.imagingsessions.push(imaging_session);
+	});
+	return newJson;
 }
 
 XSYNC.xsyncconfig.addSubjectAssessorResource = function(ele) {
@@ -491,7 +579,7 @@ XSYNC.xsyncconfig.addImagingSessionAssessor = function(ele) {
 	$(ele).parent().parent().append(
 				'<div class="xsync-imaging-session-assessor-div">' + 
 					'<div style="width:90%">' +
-					'<input type="text" class="imaging-session-assessor-xsitype-input" name="imaging-session-assessor-xsitype-input" size=20>' + 
+					'<input type="text" class="imaging-session-assessor-xsitype-input" name="imaging-session-assessor-xsitype-input" size=40>' + 
 					'<input type="button" class="xsync-button imaging-session-assessor-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeAssessor(this)">' +
 					'</div>' +
 					'<div class="col2">Requires OK to sync:</div>' +
