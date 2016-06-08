@@ -231,7 +231,7 @@ public class XsyncSetupRestlet extends SecureResource {
 			//Existing file possibly, update it
 			String jsonPath = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
 			try {
-				Files.write( Paths.get(jsonPath), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE);
+				Files.write( Paths.get(jsonPath), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 			}catch(IOException e) {
 				logger.error("Unable to overwrite the configuration file",e);
 				this.getResponse().setStatus(Status.SERVER_ERROR_INTERNAL,
