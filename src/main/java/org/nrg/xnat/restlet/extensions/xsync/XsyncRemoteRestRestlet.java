@@ -62,6 +62,7 @@ public class XsyncRemoteRestRestlet extends SecureResource {
             connection.setRequestProperty  ("Authorization", "Basic " + new String(encoding, "UTF-8"));
             final InputStream content = (InputStream)connection.getInputStream();
             final String results = IOUtils.toString(content, "UTF-8");
+            content.close();
 			getResponse().setEntity(new StringRepresentation(results));
 		}catch (Exception  exception) {
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, exception, exception.getMessage());
