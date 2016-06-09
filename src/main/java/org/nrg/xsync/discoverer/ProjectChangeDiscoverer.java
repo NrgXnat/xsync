@@ -15,6 +15,8 @@ import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
+import org.nrg.xsync.connection.RemoteConnection;
+import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
@@ -199,7 +201,10 @@ public class ProjectChangeDiscoverer {
 		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 try {
 			String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-			RemoteConnectionResponse response =  remoteConnectionManager.deleteProjectResource(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()),  remoteProjectId, resourceLabel);
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnection connection = remoteConnectionHandler.getConnection(_projectId,projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+
+			RemoteConnectionResponse response =  remoteConnectionManager.deleteProjectResource(connection,  remoteProjectId, resourceLabel);
 			ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId,resourceLabel);
 			if (response.wasSuccessful()) {
 				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
@@ -235,7 +240,9 @@ public class ProjectChangeDiscoverer {
 					if (resourcePath.exists() && resourcePath.isFile()) {
 						resourcePath = resourcePath.getParentFile();
 						File zipFile = new XsyncFileUtils().buildZip(remoteProjectId,resourcePath);
-					    RemoteConnectionResponse response =  remoteConnectionManager.importProjectResource(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()),  remoteProjectId, resourceLabel, zipFile);
+						 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+						 RemoteConnection connection = remoteConnectionHandler.getConnection(_projectId,projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+					    RemoteConnectionResponse response =  remoteConnectionManager.importProjectResource(connection,  remoteProjectId, resourceLabel, zipFile);
 						if (response.wasSuccessful()) {
 							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
 							resourceSyncItem.setMessage("Project resource " + resourceLabel + " updated ");
@@ -331,7 +338,9 @@ public class ProjectChangeDiscoverer {
 			 _log.debug("Deleting subject " + subject.getId() + " from remote project " + subject.getProject());
 			 try {
 				 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
-				 RemoteConnectionResponse response =  remoteConnectionManager.deleteSubject(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()), subject);
+				 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+				 RemoteConnection connection = remoteConnectionHandler.getConnection(_projectId,projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+				 RemoteConnectionResponse response =  remoteConnectionManager.deleteSubject(connection, subject);
 				 if (response.wasSuccessful()) {
 					  SubjectSyncItem subjectSyncItem = new SubjectSyncItem(deletedSubjectLocalId,deletedSubjectLabel);
 					  subjectSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);

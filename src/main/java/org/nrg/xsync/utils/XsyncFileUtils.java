@@ -14,13 +14,13 @@ import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXWriter;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnat.restlet.representations.ZipRepresentation;
-import org.nrg.xnat.turbine.utils.ArcSpecManager;
-import org.nrg.xsync.local.RemoteSubject;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.restlet.data.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.nrg.xnat.restlet.representations.ZipRepresentation;
+import org.nrg.xnat.turbine.utils.ArcSpecManager;
+
 
 /**
  * @author Mohana Ramaratnam
@@ -80,7 +80,7 @@ public class XsyncFileUtils {
 
 			List<File> files = (List<File>) FileUtils.listFiles(experimentPath,null,true);
 
-			String expCachePath = ArcSpecManager.GetInstance().getGlobalCachePath() + targetproject + File.separator+ user.getID()+File.separator+orig.getId()+File.separator+(new Date()).getTime();
+			String expCachePath = ArcSpecManager.GetFreshInstance().getGlobalCachePath() + targetproject + File.separator+ user.getID()+File.separator+orig.getId()+File.separator+(new Date()).getTime();
 			new File(expCachePath).mkdirs();
 			File outF = new File(expCachePath, "expt_" + (new Date()).getTime() + ".xml");
 			outF.deleteOnExit();

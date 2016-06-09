@@ -174,12 +174,9 @@ public class SyncManifest{
 	 * Format sync information to requesting user.
 	 *
 	 */
-	@Autowired
 	public Hashtable<String, String> syncInfoAsHTML() {
 		Hashtable<String,String> info = new Hashtable<String,String>();
-		AnnotationConfigApplicationContext ctx = 
-			      new AnnotationConfigApplicationContext(XsyncXnatBridge.class);
-		XsyncXnatInfo xnatInfo = ctx.getBean(XsyncXnatInfo.class);
+		XsyncXnatInfo xnatInfo = new XsyncXnatInfo();
 		String subject="Project " + this.localProjectId +" data synced from "+ xnatInfo.getSiteId()+" to " + this.syncHost;
 		info.put("SUBJECT", subject);
 			StringBuilder sb = new StringBuilder();

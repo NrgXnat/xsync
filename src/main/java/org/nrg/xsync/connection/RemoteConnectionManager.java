@@ -1,85 +1,33 @@
 package org.nrg.xsync.connection;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.nrg.framework.annotations.XnatPlugin;
 import org.nrg.xdat.XDAT;
-import org.nrg.xdat.entities.AliasToken;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
-import org.nrg.xnat.services.xsync.remote.RemoteRESTService;
 import org.nrg.xsync.exception.XsyncRemoteConnectionException;
-import org.springframework.http.HttpEntity;
+import org.nrg.xsync.remote.alias.RemoteAliasEntity;
+import org.nrg.xsync.remote.alias.services.RemoteAliasService;
+import org.nrg.xsync.services.remote.RemoteRESTService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.web.client.RestTemplate;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
+
 public class RemoteConnectionManager {
 	/** The logger. */
 	public static Logger logger = Logger.getLogger(RemoteConnectionManager.class);
 
 	private final RemoteRESTService remoteRESTService = XDAT.getContextService().getBean(RemoteRESTService.class);
-
-	static Hashtable<String,RemoteConnection> remoteConnections = new Hashtable<String, RemoteConnection>();
-
-	
-	public static Hashtable<String,RemoteConnection> GetAllConnections() {
-		return remoteConnections;
-	}
-
-	public static RemoteConnection getConnection(String projectId) throws XsyncRemoteConnectionException{
-		RemoteConnection conn = remoteConnections.get(projectId);
-		if (conn.isLocked()) {
-			//Scheduler may be acquiring a token
-			//Wait for a minute?
-			try {
-			    Thread.sleep(60000);                 //1000 milliseconds is one second.
-			} catch(InterruptedException ex) {
-			    Thread.currentThread().interrupt();
-			}
-		}
-		if (conn.isLocked()) {
-			throw new XsyncRemoteConnectionException("Unable to clear lock for connection " + conn.getUrl() + " Project: " + projectId);
-		}
-		//Hopefully by now the aliasToken has been acquired
-		return conn;
-	}
-
-	public static void setConnection(String projectId, RemoteConnection conn){
-		remoteConnections.put(projectId, conn);
-	}
-
-	public void saveConnection(String projectId, String remoteUrl, String userName, String password) {
-		RemoteConnection conn = new RemoteConnection();
-		conn.setUrl(remoteUrl);
-		try {
-			RemoteConnection tempConn = new RemoteConnection();
-			tempConn.setUsername(userName);
-			tempConn.setPassword(password);
-			HttpEntity<String> request = new HttpEntity<String>(getAuthHeaders(tempConn));
-			SimpleClientHttpRequestFactory requestFactory =new SimpleClientHttpRequestFactory();
-			RestTemplate template = new RestTemplate(requestFactory);
-			ResponseEntity<String> response = template.exchange(conn.getUrl()+"/data/services/tokens/issue", HttpMethod.GET, request, String.class);
-			AliasToken aliasToken = (AliasToken) new ObjectMapper().readValue(response.getBody(), AliasToken.class);		
-			conn.setUsername(aliasToken.getAlias());
-			conn.setPassword(aliasToken.getSecret());
-			conn.setAcquiredDate();
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new RuntimeException("Failed to get remote connection.");
-		}
-	}
 
 
 
@@ -89,7 +37,7 @@ public class RemoteConnectionManager {
 	 * @param connection the connection
 	 * @return the auth headers
 	 */
-	public static HttpHeaders getAuthHeaders(RemoteConnection connection){
+	public static HttpHeaders GetAuthHeaders(RemoteConnection connection){
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Authorization", "Basic " + getBase64Credentials(connection));
 		return headers;

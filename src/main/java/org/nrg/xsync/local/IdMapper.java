@@ -12,6 +12,7 @@ import org.nrg.xft.XFTItem;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
+import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.exception.XsyncRemoteConnectionException;
@@ -133,7 +134,8 @@ public class IdMapper {
 		 String remote_id = null;
 		 String uri = remoteUrl +"/data/archive/projects/" + remoteProjectId +"/subjects/"+ remoteSubjectLabel + "/experiments?format=json&columns=ID,label&xsiType="+xsiType;
 		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
-		 RemoteConnection connection = remoteConnectionManager.getConnection(remoteProjectId);
+		 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+		 RemoteConnection connection = remoteConnectionHandler.getConnection(syncProjectConfiguration.getProject().getId(),syncProjectConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 		 RemoteConnectionResponse connectionResponse = remoteConnectionManager.getResult(connection,uri);
 		 if (connectionResponse.wasSuccessful()) {
 			 //Parse the returned JSON

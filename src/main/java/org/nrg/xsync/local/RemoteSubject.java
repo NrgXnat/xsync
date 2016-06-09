@@ -29,6 +29,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.representations.ZipRepresentation;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
+import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.exception.XsyncRemoteConnectionException;
@@ -124,7 +125,10 @@ public class RemoteSubject {
 	private RemoteConnectionResponse storeSubject(XnatSubjectdataI remoteSubject) throws Exception {
 	 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 	 try {
-		 RemoteConnectionResponse response =  remoteConnectionManager.importSubject(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()), (XnatSubjectdata)remoteSubject);
+		 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+		 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+ 
+		 RemoteConnectionResponse response =  remoteConnectionManager.importSubject(connection, (XnatSubjectdata)remoteSubject);
 		 return response;
 	 }catch(Exception e) {
 		 _log.error(e.toString());
@@ -135,7 +139,9 @@ public class RemoteSubject {
 	private RemoteConnectionResponse deleteSubjectResource(XnatSubjectdataI remoteSubject, String resourceLabel) throws Exception {
 		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 try {
-			 RemoteConnectionResponse response =  remoteConnectionManager.deleteSubjectResource(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()), (XnatSubjectdata)remoteSubject, resourceLabel);
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+			 RemoteConnectionResponse response =  remoteConnectionManager.deleteSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel);
 			 return response;
 		 }catch(Exception e) {
 			 _log.error(e.toString());
@@ -146,7 +152,9 @@ public class RemoteSubject {
 	private RemoteConnectionResponse updateSubjectResource(XnatSubjectdataI remoteSubject, String resourceLabel, File zipFile) throws Exception {
 		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 try {
-			 RemoteConnectionResponse response =  remoteConnectionManager.importSubjectResource(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()), (XnatSubjectdata)remoteSubject, resourceLabel, zipFile);
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+			 RemoteConnectionResponse response =  remoteConnectionManager.importSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel, zipFile);
 			 
 			 return response;
 		 }catch(Exception e) {
@@ -158,7 +166,9 @@ public class RemoteSubject {
 	private RemoteConnectionResponse updateSubjectAssessorResource(XnatSubjectdataI remoteSubject, XnatSubjectassessordata subjectAssessor, String resourceLabel, File zipFile) throws Exception {
 		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 try {
-			 RemoteConnectionResponse response =  remoteConnectionManager.importSubjectAssessorResource(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()), (XnatSubjectdata)remoteSubject, subjectAssessor, resourceLabel, zipFile);
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+			 RemoteConnectionResponse response =  remoteConnectionManager.importSubjectAssessorResource(connection, (XnatSubjectdata)remoteSubject, subjectAssessor, resourceLabel, zipFile);
 			 return response;
 		 }catch(Exception e) {
 			 _log.error(e.toString());
@@ -178,7 +188,9 @@ public class RemoteSubject {
 			experiment.setId(remoteId);
 			RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 			 try {
-				 RemoteConnectionResponse response =  remoteConnectionManager.deleteExperiment(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()), experiment);
+				 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+				 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+				 RemoteConnectionResponse response =  remoteConnectionManager.deleteExperiment(connection, experiment);
 				 if (response.wasSuccessful()) {
 					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + experiment.getLabel() + " deleted. " + response.getResponseBody());
 					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
@@ -369,7 +381,9 @@ public class RemoteSubject {
 		 try {
 			 prepareResourceURI(assessor);
 			 XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
-			 RemoteConnectionResponse connectionResponse =  remoteConnectionManager.importSubjectAssessor(remoteConnectionManager.getConnection(projectSyncConfiguration.getProject().getId()), remotesubject, assessor);
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+			 RemoteConnectionResponse connectionResponse =  remoteConnectionManager.importSubjectAssessor(connection, remotesubject, assessor);
 			 stored = connectionResponse.wasSuccessful();
 			 String remote_id = connectionResponse.getResponseBody();
 			 if (stored) {
@@ -423,7 +437,8 @@ public class RemoteSubject {
 		 boolean stored = false;
 		 String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 		 String remoteProjectId = projectSyncConfiguration.getProject().getId();
-		 RemoteConnection connection = remoteConnectionManager.getConnection(remoteProjectId);
+		 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+		 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 		 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
 		 expSyncItem.setXsiType(orig.getXSIType());
 		 try {

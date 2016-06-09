@@ -1,4 +1,4 @@
-package org.nrg.xnat.services.xsync.remote;
+package org.nrg.xsync.services.remote;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;

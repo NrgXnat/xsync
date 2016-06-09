@@ -344,4 +344,13 @@ public class QueryResultUtil {
 		return query;
 	}
 	
+	public String getAllRemoteConnections() {
+		String query = "select * from xhbm_remote_alias_entity";
+		return query;
+	}
+	public String getRemoteConnectionQuery() {
+		String query = "select * from xhbm_remote_alias_entity where local_project=:LOCAL_PROJECT and remote_host=:REMOTE_HOST";
+		return query;
+	}
+	
 }

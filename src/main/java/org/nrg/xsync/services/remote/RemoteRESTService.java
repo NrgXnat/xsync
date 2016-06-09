@@ -1,4 +1,4 @@
-package org.nrg.xnat.services.xsync.remote;
+package org.nrg.xsync.services.remote;
 
 import java.io.File;
 

@@ -46,7 +46,10 @@ public abstract class AbstractExportAnonymizer implements Callable<java.lang.Voi
 			}
 		} else {
 			throw new ScriptEvaluationException("No anonymization script found");
+			//TODO
 			// this project does not have an anon script
+			//Just copy the files
+			
 		}
 	}
 
