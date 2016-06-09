@@ -187,7 +187,7 @@ XSYNC.xsyncconfig.continueInit = function() {
 	} 
 	$("#xsync-add-subject-assessor").click(function() {  
 		$("#xsync-subject-assessors-div").append(
-			'<div class="xsync-container-div">' + 
+			'<div class="xsync-subject-assessor-div xsync-container-div">' + 
 				'<div class="col1">XSI Type:</div>' + 
 				'<div>' +
 					'<input type="text" class="subject-assessor-xsitype-input" name="subject-assessor-xsitype-input" size=40>' + 
@@ -327,7 +327,7 @@ XSYNC.xsyncconfig.continueInit = function() {
 	} 
 	$("#xsync-add-imaging-session").click(function() {  
 		$("#xsync-imaging-sessions-div").append(
-			'<div class="xsync-container-div">' + 
+			'<div class="xsync-imaging-session-div xsync-container-div">' + 
 				'<div class="col1">XSI Type:</div>' + 
 				'<div>' +
 					'<input type="text" class="imaging-session-xsitype-input" name="imaging-session-xsitype-input" size=40>' + 
@@ -435,11 +435,12 @@ XSYNC.xsyncconfig.continueConfig = function() {
 	var credHost = $("#xsync-config-remote-url").val();
 	var credUser = $("#xsync-credentials-username").val();
 	var credPassword = $("#xsync-credentials-password").val();
-	var tokenData = { host: credHost, user: credUser, password: credPassword };
+	var tokenData = { url:credHost + "/data/services/tokens/issue/user/" + credUser, method: "GET", user: credUser, password: credPassword };
 
 	var credentialsAjax = $.ajax({
 		type : "POST",
- 		url: serverRoot + '/data/xsync/remoteToken?XNAT_CSRF=' + window.csrfToken,
+ 		//url: serverRoot + '/data/xsync/remoteToken?XNAT_CSRF=' + window.csrfToken,
+ 		url: serverRoot + '/data/xsync/remoteREST?XNAT_CSRF=' + window.csrfToken,
 		cache: false,
 		async: true,
 		dataType: 'json',
@@ -472,7 +473,6 @@ XSYNC.xsyncconfig.continueConfig = function() {
 		} else {
 			xmodal.message('Error','ERROR:  Could not get alias token.  Please check username and password and try again.');
 		}
-		XSYNC.xsyncconfig.continueInit();
 	});
 		credentialsAjax.fail( function( data, textStatus, error ) {
 			xmodal.message('Error','ERROR:  Could not get alias token');
