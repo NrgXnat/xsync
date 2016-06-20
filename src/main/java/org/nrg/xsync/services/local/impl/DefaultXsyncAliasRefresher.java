@@ -3,12 +3,15 @@ package org.nrg.xsync.services.local.impl;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.nrg.xdat.entities.AliasToken;
 import org.nrg.xsync.connection.RemoteConnection;
+import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.connection.RemoteConnectionManager;
+import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.services.local.XsyncAliasRefreshService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -34,10 +37,16 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 		//For each of the connections
 		//If they are older than the runtime of current run, refresh them
 		//Acquire the lock before you refresh them
-		Hashtable<String,RemoteConnection> projectConnections = RemoteConnectionManager.GetAllConnections();
-		Collection<RemoteConnection> connections = projectConnections.values();
+		//Hashtable<String,RemoteConnection> projectConnections = RemoteConnectionManager.GetAllConnections();
+		 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+
+		List<RemoteAliasEntity> projectConnections = remoteConnectionHandler.getAllConnections();
 		Date now = new Date();
-		for (RemoteConnection conn:connections) {
+		if (projectConnections == null || projectConnections.size()<1) {
+			return;
+		}
+		for (RemoteAliasEntity connEntity:projectConnections) {
+			RemoteConnection conn = remoteConnectionHandler.toRemoteConnection(connEntity);
 			Date connAcquiredTime = conn.getAcquiredDate();
 			long hours = getDifference(connAcquiredTime,now); 
 			if (hours > TWENTYTHREE_HOURS) {

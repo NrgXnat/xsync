@@ -1,4 +1,4 @@
-package org.nrg.xnat.services.xsync.remote;
+package org.nrg.xsync.services.remote;
 
 
 import java.io.File;
@@ -100,7 +100,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		body.add("import-handler","XAR");
 		body.add("file", new FileSystemResource(xar));
 		
-		HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.getAuthHeaders(connection));
+		HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection));
 		
 		ResponseEntity<String> response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
 		logger.info(response);
@@ -132,7 +132,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		body.add("field", "value");
 		if (zip != null) body.add("file", new FileSystemResource(zip));
 		
-		HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.getAuthHeaders(connection));
+		HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection));
 		
 		ResponseEntity<String> response = getResttemplate().exchange(uri, HttpMethod.PUT, httpEntity, String.class);
 		logger.info(response);
@@ -381,7 +381,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		//MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();     
 		String subjectXml=subject.getItem().toXML_String();
 		
-		HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.getAuthHeaders(connection));
+		HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection));
 		
 		ResponseEntity<String> response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
 		
@@ -451,7 +451,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	private RemoteConnectionResponse importSubjectAssessorWithoutRetry(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ){
 		String assessorXml=assessor.getItem().toXML_String();
 		
-		HttpEntity<?> httpEntity = new HttpEntity<String>(assessorXml, RemoteConnectionManager.getAuthHeaders(connection));
+		HttpEntity<?> httpEntity = new HttpEntity<String>(assessorXml, RemoteConnectionManager.GetAuthHeaders(connection));
 		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<String> response = restTemplate.exchange(connection.getUrl()+"/data/archive/projects/"+assessor.getProject()+"/subjects/"+subject.getLabel()+"/experiments/"+assessor.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
 		//return  ((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;

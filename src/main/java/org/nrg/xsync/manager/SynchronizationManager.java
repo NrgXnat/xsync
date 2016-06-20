@@ -13,13 +13,16 @@ import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.turbine.utils.ArcSpecManager;
+import org.nrg.xsync.component.XsyncXnatBridge;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.nrg.xsync.manifest.SyncManifest;
 import org.nrg.xsync.manifest.SyncedItem;
+import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
  * @author Mohana Ramaratnam
@@ -93,7 +96,7 @@ public class SynchronizationManager {
 	}
 	
 	public static String GET_SYNC_FILE_PATH(String projectId) {
-		String syncPath = ArcSpecManager.GetInstance().getGlobalCachePath();
+		String syncPath = ArcSpecManager.GetFreshInstance().getGlobalCachePath();
 		String timestampFolder = timeToPath(projectSyncStartTime.get(projectId));
 		syncPath += "SYNCHRONIZATION" + File.separator + projectId + File.separator +  timestampFolder + File.separator ; 
 		return syncPath;

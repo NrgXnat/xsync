@@ -6,6 +6,7 @@ import java.util.Date;
  * @author Mohana Ramaratnam
  *
  */
+
 public class RemoteConnection {
 	/**
 	 * 
@@ -60,6 +61,9 @@ public class RemoteConnection {
 	
 	public void setAcquiredDate() {
 		acquiredTime = new Date();
+	}
+	public void setAcquiredDate(Date d) {
+		acquiredTime = d;
 	}
 
 }
