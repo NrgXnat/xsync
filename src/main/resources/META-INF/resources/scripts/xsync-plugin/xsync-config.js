@@ -459,7 +459,7 @@ XSYNC.xsyncconfig.continueConfig = function() {
 
 			var xsyncConfigAjax = $.ajax({
 				type : "POST",
-		 		url:serverRoot+'/data/xsync/projects/' + XNAT.data.context.project + '?XNAT_CSRF=' + window.csrfToken,
+		 		url:serverRoot+'/xapi/xsync/setup/projects/' + XNAT.data.context.project + '?XNAT_CSRF=' + window.csrfToken,
 				cache: false,
 				async: true,
 				data:  JSON.stringify(newJson),
