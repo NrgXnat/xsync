@@ -191,7 +191,7 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 				fw.close();
 				String path = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + catEntry.getName();
 
-				Files.write( Paths.get(path), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE);
+				Files.write( Paths.get(path), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
 			} catch (IOException e) {
 				throw e;
@@ -210,7 +210,7 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 			//Existing file possibly, update it
 			String jsonPath = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
 			try {
-				Files.write( Paths.get(jsonPath), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE);
+				Files.write( Paths.get(jsonPath), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 			}catch(IOException e) {
 				throw e;
 			}
