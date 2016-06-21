@@ -2,6 +2,22 @@
 <div>
     <div id='xsync-config-div'>
     </div>
+		<!--
+    <table id="scan_type_mapping_table">
+    <tr>
+        <td colspan="2" class="highlighted" id="xsync_config_container">
+		<div style="width:90%;margin-top:10px;margin-left:10px;">Use sanity checks for this project: <input type="checkbox" id="CB_useSanityChecks" value="useSanityChecks"></div>
+		<div style="width:90%;margin-top:10px;margin-left:10px;">Sanity checks script: <select id="CB_sanityCheckScript" style="min-width:100px;margin-left:10px;"></select></div>
+		<div style="width:90%;margin-top:10px;margin-left:20px"><small>NOTE:  The sanity checks script will receive the folloing parameters from the script runner: 
+	  		<b>projectId, subjectLbl and experimentLbl</b>.  
+			It should post a sanity checks assessor (<b>val:sanityChecks</b>) to the experiment upon completion.</small></div>
+		<div style="width:90%;margin-top:10px;margin-left:10px;margin-bottom:10px"><input type="button" id="notify_sanitychecksconfig_update" value="Save" onclick="CCF.sanitychecksconfig.updateConfiguration();"</div>
+
+        </td>
+    </tr>
+    </table>
+		-->
+    <link type="text/css" rel="stylesheet" href="$content.getURI("scripts/xsync-plugin/css/xsync-config.css")">
     <script type="text/javascript" src="$content.getURI("scripts/xsync-plugin/xsync-config.js")"></script>
     <script type="text/javascript">
         $.ready(XSYNC.xsyncconfig.initialize());
