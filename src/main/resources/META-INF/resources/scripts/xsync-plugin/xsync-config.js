@@ -297,7 +297,7 @@ XSYNC.xsyncconfig.continueInit = function() {
 				'<div class="xsync-imaging-session-assessor-div">' + 
 					'<div style="width:90%">' +
 						'<input type="text" class="imaging-session-assessor-xsitype-input" name="imaging-session-assessor-xsitype-input" size=40>' + 
-						'<input type="button" class="xsync-button imaging-session-assessor-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeScan(this)">' +
+						'<input type="button" class="xsync-button imaging-session-assessor-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeImagingSessionAssessor(this)">' +
 					'</div>' +
 					'<div class="col2">Requires OK to sync:</div>' +
 					'<div>' + 
@@ -389,6 +389,10 @@ XSYNC.xsyncconfig.removeImagingSession = function(ele) {
 	$(ele).parent().parent().remove();
 }
 
+XSYNC.xsyncconfig.removeImagingSessionAssessor = function(ele) {
+	$(ele).parent().parent().remove();
+}
+
 XSYNC.xsyncconfig.removeResource = function(ele) {
 	$(ele).parent().remove();
 }
@@ -455,7 +459,7 @@ XSYNC.xsyncconfig.continueConfig = function() {
 
 			var xsyncConfigAjax = $.ajax({
 				type : "POST",
-		 		url:serverRoot+'/data/xsync/setup?project=' + XNAT.data.context.project + '&XNAT_CSRF=' + window.csrfToken,
+		 		url:serverRoot+'/data/xsync/projects/' + XNAT.data.context.project + '?XNAT_CSRF=' + window.csrfToken,
 				cache: false,
 				async: true,
 				data:  JSON.stringify(newJson),
@@ -620,7 +624,7 @@ XSYNC.xsyncconfig.addImagingSessionAssessor = function(ele) {
 				'<div class="xsync-imaging-session-assessor-div">' + 
 					'<div style="width:90%">' +
 					'<input type="text" class="imaging-session-assessor-xsitype-input" name="imaging-session-assessor-xsitype-input" size=40>' + 
-					'<input type="button" class="xsync-button imaging-session-assessor-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeAssessor(this)">' +
+					'<input type="button" class="xsync-button imaging-session-assessor-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeImagingSessionAssessor(this)">' +
 					'</div>' +
 					'<div class="col2">Requires OK to sync:</div>' +
 					'<div>' + 
