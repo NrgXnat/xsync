@@ -4,3 +4,8 @@ bin/
 build/
 src/beans
 src/generated
+syntax: glob
+.classpath.old
+.classpath
+.project.old
+.project
