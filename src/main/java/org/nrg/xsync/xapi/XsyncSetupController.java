@@ -85,9 +85,6 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 	        JsonNode remote_token_node = synchronizationJson.get(USER_REMOTE_TOKEN);
 	        JsonNode remote_secret_node = synchronizationJson.get(USER_REMOTE_SECRET);
 	        
-	        /*
-	         * Comment this out for now.  We're passing in a token, which should be saved with the configuration. 
-	         * 
 	        if (remote_token_node == null || remote_secret_node == null) {
 				//Status.CLIENT_ERROR_BAD_REQUEST,"Alias Token or Alias Secret not passed");
 	        	return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -105,8 +102,6 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 	    	remoteAliasEntity.setRemote_alias_password(remote_secret);
 	    	remoteAliasEntity.setRemote_host(remote_host);
     		_remoteAliasService.create(remoteAliasEntity);
- 	       */
-
 	    	
 	        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
             if (project == null) {
