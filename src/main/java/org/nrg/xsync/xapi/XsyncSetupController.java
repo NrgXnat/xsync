@@ -73,7 +73,7 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 	@Autowired
 	private RemoteAliasService _remoteAliasService;
 
-	@RequestMapping(path="/projects/{projectId}", method = RequestMethod.POST, consumes = "application/json")
+	@RequestMapping(path="/setup/projects/{projectId}", method = RequestMethod.POST, consumes = "application/json")
     @ApiOperation(value = "Sets up the Xsync project configuration",  response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "XSync configuration successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	
@@ -106,7 +106,6 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 	    	remoteAliasEntity.setRemote_alias_password(remote_secret);
 	    	remoteAliasEntity.setRemote_host(remote_host);
     		_remoteAliasService.create(remoteAliasEntity);
-
 	    	
 	        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
             if (project == null) {
@@ -184,7 +183,7 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 
 				String path = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
 
-				Files.write( Paths.get(path), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE);
+				Files.write( Paths.get(path), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
 			} catch (IOException e) {
 				throw e;
@@ -203,7 +202,7 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 			//Existing file possibly, update it
 			String jsonPath = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
 			try {
-				Files.write( Paths.get(jsonPath), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE);
+				Files.write( Paths.get(jsonPath), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 			}catch(IOException e) {
 				throw e;
 			}

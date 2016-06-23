@@ -12,7 +12,7 @@
 
 
 
-    <xs:element name="Synchronization" type="xsync:xsyncProjectData"></xs:element>
+    <xs:element name="XsyncAssessorData" type="xsync:xsyncAssessorData"></xs:element>
     <xs:complexType name="xsyncAssessorData">
     		<xs:complexContent>
     			<xs:extension base="xnat:subjectAssessorData">
@@ -56,6 +56,7 @@
     		</xs:complexContent>
 	</xs:complexType>
  
+    <xs:element name="XsyncProjectData" type="xsync:xsyncProjectData"></xs:element>
     <xs:complexType name="xsyncProjectData">
     	<xs:sequence>
 			<xs:element name="syncInfo" type="xsync:xsyncInfoData" minOccurs="1" maxOccurs="1">
@@ -85,6 +86,7 @@
     				</xs:documentation>
     	</xs:attribute>
     </xs:complexType>
+    <xs:element name="XsyncInfoData" type="xsync:xsyncInfoData"></xs:element>
     <xs:complexType name="xsyncInfoData">
     	<xs:sequence>
     		<xs:element name="sync_frequency" maxOccurs="1"
@@ -137,6 +139,7 @@
 
 
  
+    <xs:element name="XsyncRemoteMapData" type="xsync:xsyncRemoteMapData"></xs:element>
     <xs:complexType name="xsyncRemoteMapData">
     	<xs:sequence>
     		<xs:element name="project_id" type="xs:string" maxOccurs="1"
