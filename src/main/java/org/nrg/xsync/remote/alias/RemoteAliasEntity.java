@@ -18,6 +18,10 @@ public class RemoteAliasEntity extends AbstractHibernateEntity {
 	
 	
 	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1022020998456370664L;
+	/**
 	 * @return the remote_alias_token
 	 */
 	public String getRemote_alias_token() {

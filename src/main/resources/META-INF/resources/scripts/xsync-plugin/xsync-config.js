@@ -23,7 +23,7 @@ XSYNC.xsyncconfig.initialize = function() {
 			XSYNC.xsyncconfig.configuration = data;
 		} else {
 			XSYNC.xsyncconfig.beginConfig();
-			
+
 		}
 		XSYNC.xsyncconfig.continueInit();
 	});
@@ -40,7 +40,7 @@ XSYNC.xsyncconfig.beginConfig = function() {
 }
 
 XSYNC.xsyncconfig.useDefaultConfig = function() {
-	XSYNC.xsyncconfig.configuration = {}; 
+	XSYNC.xsyncconfig.configuration = {};
 	XSYNC.xsyncconfig.configuration.project = XNAT.data.context.project;
 	XSYNC.xsyncconfig.configuration.sync_frequency = 'weekly';
 	XSYNC.xsyncconfig.configuration.auto_sync = 'true';
@@ -52,12 +52,12 @@ XSYNC.xsyncconfig.useDefaultConfig = function() {
 	XSYNC.xsyncconfig.configuration.subjectassessors = [];
 	XSYNC.xsyncconfig.configuration.imagingsessions = [];
 	XSYNC.xsyncconfig.continueInit();
-	
+
 }
 
 XSYNC.xsyncconfig.continueInit = function() {
 	$("#xsync-config-div").html('');
-	$("#xsync-config-div").append('<div class="row1">' + 
+	$("#xsync-config-div").append('<div class="row1">' +
 			'<div class="col1">Sync Frequency:</div><div>  <select id="xsync-config-sync-frequency">' +
 				'<option value="daily">Daily</option>' +
 				'<option value="weekly">Weekly</option>' +
@@ -68,7 +68,7 @@ XSYNC.xsyncconfig.continueInit = function() {
 		'<div>');
 	$("#xsync-config-sync-frequency").val(XSYNC.xsyncconfig.configuration.sync_frequency);
 
-	$("#xsync-config-div").append('<div class="row1">' + 
+	$("#xsync-config-div").append('<div class="row1">' +
 			'<div class="col1">Auto-Sync:</div><div>  <select id="xsync-config-auto-sync">' +
 				'<option value="true">True</option>' +
 				'<option value="false">False</option>' +
@@ -77,7 +77,7 @@ XSYNC.xsyncconfig.continueInit = function() {
 		'<div>');
 	$("#xsync-config-auto-sync").val(XSYNC.xsyncconfig.configuration.auto_sync);
 
-	$("#xsync-config-div").append('<div class="row1">' + 
+	$("#xsync-config-div").append('<div class="row1">' +
 			'<div class="col1">Identifiers:</div><div>  <select id="xsync-config-identifiers">' +
 				'<option value="use_local">Use Local</option>' +
 				'<option value="use_remote">Use Remote</option>' +
@@ -88,20 +88,20 @@ XSYNC.xsyncconfig.continueInit = function() {
 		'<div>');
 	$("#xsync-config-identifiers").val(XSYNC.xsyncconfig.configuration.identifiers);
 
-	$("#xsync-config-div").append('<div class="row1">' + 
+	$("#xsync-config-div").append('<div class="row1">' +
 			'<div class="col1">Remote URL:</div><div>  <input type="text" id="xsync-config-remote-url" size="60">' +
 			'</div>' +
 		'<div>');
 	$("#xsync-config-remote-url").val(XSYNC.xsyncconfig.configuration.remote_url);
 
 
-	$("#xsync-config-div").append('<div class="row1">' + 
+	$("#xsync-config-div").append('<div class="row1">' +
 			'<div class="col1">Remote Project:</div><div>  <input type="text" id="xsync-config-remote-project-id" size="30">' +
 			'</div>' +
 		'<div>');
 	$("#xsync-config-remote-project-id").val(XSYNC.xsyncconfig.configuration.remote_project_id);
 
-	$("#xsync-config-div").append('<div class="row1">' + 
+	$("#xsync-config-div").append('<div class="row1">' +
 			'<div class="col1">Project Resources:</div><div>' +
 				'<input type="button" class="xsync-button" id="xsync-add-project-resource" value="Add Project Resource">' +
 			'</div>' +
@@ -109,20 +109,20 @@ XSYNC.xsyncconfig.continueInit = function() {
 			'</div>' +
 		'<div>');
 	for (var i=0; i<XSYNC.xsyncconfig.configuration.projectresources.length; i++) {
-		$("#xsync-project-resources-div").append('<div class="xsync-project-resource-div">' + 
-			'<input type="text" class="project-resource-input" name="project-resource-input" size=20>' + 
+		$("#xsync-project-resources-div").append('<div class="xsync-project-resource-div">' +
+			'<input type="text" class="project-resource-input" name="project-resource-input" size=20>' +
 			'<input type="button" class="xsync-button project-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 			'</div>');
 		$($(".xsync-project-resource-div")[i]).find(".project-resource-input").val(XSYNC.xsyncconfig.configuration.projectresources[i]);
-	} 
-	$("#xsync-add-project-resource").click(function() {  
-		$("#xsync-project-resources-div").append('<div class="xsync-project-resource-div">' + 
-			'<input type="text" class="project-resource-input" name="project-resource-input" size=20>' + 
+	}
+	$("#xsync-add-project-resource").click(function() {
+		$("#xsync-project-resources-div").append('<div class="xsync-project-resource-div">' +
+			'<input type="text" class="project-resource-input" name="project-resource-input" size=20>' +
 			'<input type="button" class="xsync-button project-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 			'</div>');
 	});
 
-	$("#xsync-config-div").append('<div class="row1">' + 
+	$("#xsync-config-div").append('<div class="row1">' +
 			'<div class="col1">Subject Resources:</div><div>' +
 				'<input type="button" class="xsync-button" id="xsync-add-subject-resource" value="Add Subject Resource">' +
 			'</div>' +
@@ -130,21 +130,21 @@ XSYNC.xsyncconfig.continueInit = function() {
 			'</div>' +
 		'<div>');
 	for (var i=0; i<XSYNC.xsyncconfig.configuration.subjectresources.length; i++) {
-		$("#xsync-subject-resources-div").append('<div class="xsync-subject-resource-div">' + 
-			'<input type="text" class="subject-resource-input" name="subject-resource-input" size=20>' + 
+		$("#xsync-subject-resources-div").append('<div class="xsync-subject-resource-div">' +
+			'<input type="text" class="subject-resource-input" name="subject-resource-input" size=20>' +
 			'<input type="button" class="xsync-button subject-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 			'</div>');
 		$($(".xsync-subject-resource-div")[i]).find(".subject-resource-input").val(XSYNC.xsyncconfig.configuration.subjectresources[i]);
-	} 
-	$("#xsync-add-subject-resource").click(function() {  
-		$("#xsync-subject-resources-div").append('<div class="xsync-subject-resource-div">' + 
-			'<input type="text" class="subject-resource-input" name="subject-resource-input" size=20>' + 
+	}
+	$("#xsync-add-subject-resource").click(function() {
+		$("#xsync-subject-resources-div").append('<div class="xsync-subject-resource-div">' +
+			'<input type="text" class="subject-resource-input" name="subject-resource-input" size=20>' +
 			'<input type="button" class="xsync-button subject-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 			'</div>');
 	});
 
 
-	$("#xsync-config-div").append('<div class="row1">' + 
+	$("#xsync-config-div").append('<div class="row1">' +
 			'<div class="col1">Subject Assessors:</div><div>' +
 				'<input type="button" class="xsync-button" id="xsync-add-subject-assessor" value="Add Subject Assessor">' +
 			'</div>' +
@@ -152,21 +152,21 @@ XSYNC.xsyncconfig.continueInit = function() {
 			'</div>' +
 		'<div>');
 	for (var i=0; i<XSYNC.xsyncconfig.configuration.subjectassessors.length; i++) {
-		var eles = $("#xsync-subject-assessors-div").append(	
-			'<div class="xsync-subject-assessor-div xsync-container-div">' + 
-				'<div class="col1">XSI Type:</div>' + 
+		var eles = $("#xsync-subject-assessors-div").append(
+			'<div class="xsync-subject-assessor-div xsync-container-div">' +
+				'<div class="col1">XSI Type:</div>' +
 				'<div>' +
-					'<input type="text" class="subject-assessor-xsitype-input" name="subject-assessor-xsitype-input" size=40>' + 
+					'<input type="text" class="subject-assessor-xsitype-input" name="subject-assessor-xsitype-input" size=40>' +
 					'<input type="button" class="xsync-button subject-assessors-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeSubjectAssessor(this)">' +
 				'</div>' +
 				'<div class="col1">Requires OK to sync:</div>' +
-				'<div>' + 
+				'<div>' +
 					'<select class="subject-assessor-needsok-input">' +
 						'<option value="true">True</option>' +
 						'<option value="false">False</option>' +
 					'</select>' +
 				'</div>' +
-				'<div class="xsync-subject-assessor-resources-div">' + 
+				'<div class="xsync-subject-assessor-resources-div">' +
 					'<div class="col1">Resources:</div><div>' +
 						'<input type="button" class="xsync-button" id="xsync-add-subject-assessor-resource" value="Add Resource" onclick="XSYNC.xsyncconfig.addSubjectAssessorResource(this)">' +
 					'</div>' +
@@ -177,30 +177,30 @@ XSYNC.xsyncconfig.continueInit = function() {
 		$($(".xsync-subject-assessor-div")[i]).find(".subject-assessor-needsok-input").val(XSYNC.xsyncconfig.configuration.subjectassessors[i].needs_ok_to_sync.toString());
 		var resourceDiv = $($(".xsync-subject-assessor-div")[i]).find(".xsync-subject-assessor-resources-div");
 		for (var j=0; j<XSYNC.xsyncconfig.configuration.subjectassessors[i].resources.length; j++) {
-			$(resourceDiv).append(	
-				'<div class="xsync-subject-assessor-resource-div">' + 
-					'<input type="text" class="subject-assessor-resource-input" name="subject-assessor-resource-input" size=20>' + 
+			$(resourceDiv).append(
+				'<div class="xsync-subject-assessor-resource-div">' +
+					'<input type="text" class="subject-assessor-resource-input" name="subject-assessor-resource-input" size=20>' +
 					'<input type="button" class="xsync-button subject-assessor-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 				'</div>');
 			$($(resourceDiv).find('.xsync-subject-assessor-resource-div')[j]).find(".subject-assessor-resource-input").val(XSYNC.xsyncconfig.configuration.subjectassessors[i].resources[j]);
 		}
-	} 
-	$("#xsync-add-subject-assessor").click(function() {  
+	}
+	$("#xsync-add-subject-assessor").click(function() {
 		$("#xsync-subject-assessors-div").append(
-			'<div class="xsync-subject-assessor-div xsync-container-div">' + 
-				'<div class="col1">XSI Type:</div>' + 
+			'<div class="xsync-subject-assessor-div xsync-container-div">' +
+				'<div class="col1">XSI Type:</div>' +
 				'<div>' +
-					'<input type="text" class="subject-assessor-xsitype-input" name="subject-assessor-xsitype-input" size=40>' + 
+					'<input type="text" class="subject-assessor-xsitype-input" name="subject-assessor-xsitype-input" size=40>' +
 					'<input type="button" class="xsync-button subject-assessors-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeSubjectAssessor(this)">' +
 				'</div>' +
 				'<div class="col1">Requires OK to sync:</div>' +
-				'<div>' + 
+				'<div>' +
 					'<select class="subject-assessor-needsok-input">' +
 						'<option value="true">True</option>' +
 						'<option value="false">False</option>' +
 					'</select>' +
 				'</div>' +
-				'<div class="xsync-subject-assessor-resources-div">' + 
+				'<div class="xsync-subject-assessor-resources-div">' +
 					'<div class="col1">Resources:</div><div>' +
 						'<input type="button" class="xsync-button" id="xsync-add-subject-assessor-resource" value="Add Resource" onclick="XSYNC.xsyncconfig.addSubjectAssessorResource(this)">' +
 					'</div>' +
@@ -210,7 +210,7 @@ XSYNC.xsyncconfig.continueInit = function() {
 	});
 
 
-	$("#xsync-config-div").append('<div class="row1">' + 
+	$("#xsync-config-div").append('<div class="row1">' +
 			'<div class="col1">Imaging Sessions:</div><div>' +
 				'<input type="button" class="xsync-button" id="xsync-add-imaging-session" value="Add Imaging Session">' +
 			'</div>' +
@@ -218,38 +218,38 @@ XSYNC.xsyncconfig.continueInit = function() {
 			'</div>' +
 		'<div>');
 	for (var i=0; i<XSYNC.xsyncconfig.configuration.imagingsessions.length; i++) {
-		var eles = $("#xsync-imaging-sessions-div").append(	
-			'<div class="xsync-imaging-session-div xsync-container-div">' + 
-				'<div class="col1">XSI Type:</div>' + 
+		var eles = $("#xsync-imaging-sessions-div").append(
+			'<div class="xsync-imaging-session-div xsync-container-div">' +
+				'<div class="col1">XSI Type:</div>' +
 				'<div>' +
-					'<input type="text" class="imaging-session-xsitype-input" name="imaging-session-xsitype-input" size=40>' + 
+					'<input type="text" class="imaging-session-xsitype-input" name="imaging-session-xsitype-input" size=40>' +
 					'<input type="button" class="xsync-button imaging-sessions-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeImagingSession(this)">' +
 				'</div>' +
 				'<div class="col1">Requires OK to sync:</div>' +
-				'<div>' + 
+				'<div>' +
 					'<select class="imaging-session-needsok-input">' +
 						'<option value="true">True</option>' +
 						'<option value="false">False</option>' +
 					'</select>' +
 				'</div>' +
 				'<div class="col1">Anonymize?:</div>' +
-				'<div>' + 
+				'<div>' +
 					'<select class="imaging-session-anonymize-input">' +
 						'<option value="true">True</option>' +
 						'<option value="false">False</option>' +
 					'</select>' +
 				'</div>' +
-				'<div class="xsync-imaging-session-resources-div">' + 
+				'<div class="xsync-imaging-session-resources-div">' +
 					'<div class="col1">Resources:</div><div>' +
 						'<input type="button" class="xsync-button" id="xsync-add-imaging-session-resource" value="Add Resource" onclick="XSYNC.xsyncconfig.addImagingSessionResource(this)">' +
 					'</div>' +
 				'</div>' +
-				'<div class="xsync-imaging-session-scans-div">' + 
+				'<div class="xsync-imaging-session-scans-div">' +
 					'<div class="col1">Scans:</div><div>' +
 						'<input type="button" class="xsync-button" id="xsync-add-imaging-session-scan" value="Add Scan" onclick="XSYNC.xsyncconfig.addImagingSessionScan(this)">' +
 					'</div>' +
 				'</div>' +
-				'<div class="xsync-imaging-session-assessors-div">' + 
+				'<div class="xsync-imaging-session-assessors-div">' +
 					'<div class="col1">Assessors:</div><div>' +
 						'<input type="button" class="xsync-button" id="xsync-add-imaging-session-assessor" value="Add Assessor" onclick="XSYNC.xsyncconfig.addImagingSessionAssessor(this)">' +
 					'</div>' +
@@ -261,20 +261,20 @@ XSYNC.xsyncconfig.continueInit = function() {
 		$($(".xsync-imaging-session-div")[i]).find(".imaging-session-anonymize-input").val(XSYNC.xsyncconfig.configuration.imagingsessions[i].anonymize.toString());
 		var resourceDiv = $($(".xsync-imaging-session-div")[i]).find(".xsync-imaging-session-resources-div");
 		for (var j=0; j<XSYNC.xsyncconfig.configuration.imagingsessions[i].resources.length; j++) {
-			$(resourceDiv).append(	
-				'<div class="xsync-imaging-session-resource-div">' + 
-					'<input type="text" class="imaging-session-resource-input" name="imaging-session-resource-input" size=20>' + 
+			$(resourceDiv).append(
+				'<div class="xsync-imaging-session-resource-div">' +
+					'<input type="text" class="imaging-session-resource-input" name="imaging-session-resource-input" size=20>' +
 					'<input type="button" class="xsync-button imaging-session-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 				'</div>');
 			$($(resourceDiv).find('.xsync-imaging-session-resource-div')[j]).find(".imaging-session-resource-input").val(XSYNC.xsyncconfig.configuration.imagingsessions[i].resources[j]);
 		}
 		var scanDiv = $($(".xsync-imaging-session-div")[i]).find(".xsync-imaging-session-scans-div");
 		for (var j=0; j<XSYNC.xsyncconfig.configuration.imagingsessions[i].scans.length; j++) {
-			$(scanDiv).append(	
-				'<div class="xsync-imaging-session-scan-div">' + 
-					'<input type="text" class="imaging-session-scan-type-input" name="imaging-session-scan-type-input" size=20>' + 
+			$(scanDiv).append(
+				'<div class="xsync-imaging-session-scan-div">' +
+					'<input type="text" class="imaging-session-scan-type-input" name="imaging-session-scan-type-input" size=20>' +
 					'<input type="button" class="xsync-button imaging-session-scan-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeScan(this)">' +
-					'<div class="xsync-imaging-scan-resources-div">' + 
+					'<div class="xsync-imaging-scan-resources-div">' +
 						'<div class="col2">Resources:</div><div>' +
 							'<input type="button" class="xsync-button" id="xsync-add-imaging-scan-resource" value="Add Resource" onclick="XSYNC.xsyncconfig.addImagingScanResource(this)">' +
 						'</div>' +
@@ -284,8 +284,8 @@ XSYNC.xsyncconfig.continueInit = function() {
 			var scanResDiv = $($(scanDiv).find('.xsync-imaging-session-scan-div')[j]).find(".xsync-imaging-scan-resources-div");
 			for (var k=0; k<XSYNC.xsyncconfig.configuration.imagingsessions[i].scans[j].resources.length; k++) {
 				scanResDiv.append(
-				'<div class="xsync-imaging-scan-resource-div">' + 
-					'<input type="text" class="imaging-scan-resource-input" name="imaging-scan-resource-input" size=20>' + 
+				'<div class="xsync-imaging-scan-resource-div">' +
+					'<input type="text" class="imaging-scan-resource-input" name="imaging-scan-resource-input" size=20>' +
 					'<input type="button" class="xsync-button imaging-scan-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 				'</div>');
 				$($(scanResDiv).find('.xsync-imaging-scan-resource-div')[k]).find(".imaging-scan-resource-input").val(XSYNC.xsyncconfig.configuration.imagingsessions[i].scans[j].resources[k]);
@@ -293,20 +293,20 @@ XSYNC.xsyncconfig.continueInit = function() {
 		}
 		var assessorDiv = $($(".xsync-imaging-session-div")[i]).find(".xsync-imaging-session-assessors-div");
 		for (var j=0; j<XSYNC.xsyncconfig.configuration.imagingsessions[i].assessors.length; j++) {
-			$(assessorDiv).append(	
-				'<div class="xsync-imaging-session-assessor-div">' + 
+			$(assessorDiv).append(
+				'<div class="xsync-imaging-session-assessor-div">' +
 					'<div style="width:90%">' +
-						'<input type="text" class="imaging-session-assessor-xsitype-input" name="imaging-session-assessor-xsitype-input" size=40>' + 
+						'<input type="text" class="imaging-session-assessor-xsitype-input" name="imaging-session-assessor-xsitype-input" size=40>' +
 						'<input type="button" class="xsync-button imaging-session-assessor-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeScan(this)">' +
 					'</div>' +
 					'<div class="col2">Requires OK to sync:</div>' +
-					'<div>' + 
+					'<div>' +
 						'<select class="imaging-session-assessor-needsok-input">' +
 							'<option value="true">True</option>' +
 							'<option value="false">False</option>' +
 						'</select>' +
 					'</div>' +
-					'<div class="xsync-imaging-assessor-resources-div">' + 
+					'<div class="xsync-imaging-assessor-resources-div">' +
 						'<div class="col2">Resources:</div><div>' +
 							'<input type="button" class="xsync-button" id="xsync-add-imaging-assessor-resource" value="Add Resource" onclick="XSYNC.xsyncconfig.addImagingAssessorResource(this)">' +
 						'</div>' +
@@ -317,47 +317,47 @@ XSYNC.xsyncconfig.continueInit = function() {
 			var assessorResDiv = $($(assessorDiv).find('.xsync-imaging-session-assessor-div')[j]).find(".xsync-imaging-assessor-resources-div");
 			for (var k=0; k<XSYNC.xsyncconfig.configuration.imagingsessions[i].assessors[j].resources.length; k++) {
 				assessorResDiv.append(
-				'<div class="xsync-imaging-assessor-resource-div">' + 
-					'<input type="text" class="imaging-assessor-resource-input" name="imaging-assessor-resource-input" size=20>' + 
+				'<div class="xsync-imaging-assessor-resource-div">' +
+					'<input type="text" class="imaging-assessor-resource-input" name="imaging-assessor-resource-input" size=20>' +
 					'<input type="button" class="xsync-button imaging-assessor-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 				'</div>');
 				$($(assessorResDiv).find('.xsync-imaging-assessor-resource-div')[k]).find(".imaging-assessor-resource-input").val(XSYNC.xsyncconfig.configuration.imagingsessions[i].assessors[j].resources[k]);
 			}
 		}
-	} 
-	$("#xsync-add-imaging-session").click(function() {  
+	}
+	$("#xsync-add-imaging-session").click(function() {
 		$("#xsync-imaging-sessions-div").append(
-			'<div class="xsync-imaging-session-div xsync-container-div">' + 
-				'<div class="col1">XSI Type:</div>' + 
+			'<div class="xsync-imaging-session-div xsync-container-div">' +
+				'<div class="col1">XSI Type:</div>' +
 				'<div>' +
-					'<input type="text" class="imaging-session-xsitype-input" name="imaging-session-xsitype-input" size=40>' + 
+					'<input type="text" class="imaging-session-xsitype-input" name="imaging-session-xsitype-input" size=40>' +
 					'<input type="button" class="xsync-button imaging-sessions-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeImagingSession(this)">' +
 				'</div>' +
 				'<div class="col1">Requires OK to sync:</div>' +
-				'<div>' + 
+				'<div>' +
 					'<select class="imaging-session-needsok-input">' +
 						'<option value="true">True</option>' +
 						'<option value="false">False</option>' +
 					'</select>' +
 				'</div>' +
 				'<div class="col1">Anonymize?:</div>' +
-				'<div>' + 
+				'<div>' +
 					'<select class="imaging-session-anonymize-input">' +
 						'<option value="true">True</option>' +
 						'<option value="false">False</option>' +
 					'</select>' +
 				'</div>' +
-				'<div class="xsync-imaging-session-resources-div">' + 
+				'<div class="xsync-imaging-session-resources-div">' +
 					'<div class="col1">Resources:</div><div>' +
 						'<input type="button" class="xsync-button" id="xsync-add-imaging-session-resource" value="Add Resource" onclick="XSYNC.xsyncconfig.addImagingSessionResource(this)">' +
 					'</div>' +
 				'</div>' +
-				'<div class="xsync-imaging-session-scans-div">' + 
+				'<div class="xsync-imaging-session-scans-div">' +
 					'<div class="col1">Scans:</div><div>' +
 						'<input type="button" class="xsync-button" id="xsync-add-imaging-session-scan" value="Add Scan" onclick="XSYNC.xsyncconfig.addImagingSessionScan(this)">' +
 					'</div>' +
 				'</div>' +
-				'<div class="xsync-imaging-session-assessors-div">' + 
+				'<div class="xsync-imaging-session-assessors-div">' +
 					'<div class="col1">Assessors:</div><div>' +
 						'<input type="button" class="xsync-button" id="xsync-add-imaging-session-assessor" value="Add Assessor" onclick="XSYNC.xsyncconfig.addImagingSessionAssessor(this)">' +
 					'</div>' +
@@ -395,27 +395,27 @@ XSYNC.xsyncconfig.removeResource = function(ele) {
 
 XSYNC.xsyncconfig.submitConfig = function() {
 
-	var modalContent = 
-		"<div>" + 
-			'<div class = "credentials-header-div credentials-div">' + 
+	var modalContent =
+		"<div>" +
+			'<div class = "credentials-header-div credentials-div">' +
 			'<h3 style="text-align:center">Enter credentials for ' +  $("#xsync-config-remote-url").val() + '</h3>' +
-			'</div>' + 
-			'<div class = "credentials-div">' + 
+			'</div>' +
+			'<div class = "credentials-div">' +
 			'<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
-			'</div>' + 
-			'<div class = "credentials-div">' + 
+			'</div>' +
+			'<div class = "credentials-div">' +
 			'<div style="width:100px; float:left;">Password: </div><span><input type="password" size=20 id="xsync-credentials-password">' +
-			'</div>' + 
+			'</div>' +
 		"</div>";
 	var pModalOpts = {
-		width: 740,  
-		height: 480,  
-		id: 'xmodal-enter-credentials',  
+		width: 740,
+		height: 480,
+		id: 'xmodal-enter-credentials',
 		title: "Credentials required for remote server",
 		content: modalContent,
 		ok: 'show',
 		okLabel: 'Continue',
-		okAction: function(modl){ 
+		okAction: function(modl){
 					XSYNC.xsyncconfig.continueConfig();
 					modl.close();
 
@@ -455,7 +455,7 @@ XSYNC.xsyncconfig.continueConfig = function() {
 
 			var xsyncConfigAjax = $.ajax({
 				type : "POST",
-		 		url:serverRoot+'/data/xsync/setup?project=' + XNAT.data.context.project + '&XNAT_CSRF=' + window.csrfToken,
+		 		url:serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '&XNAT_CSRF=' + window.csrfToken,
 				cache: false,
 				async: true,
 				data:  JSON.stringify(newJson),
@@ -545,7 +545,7 @@ XSYNC.xsyncconfig.constructNewJson = function(data) {
 		});
 		imaging_session.scans = [];
 		$(this).find(".xsync-imaging-session-scan-div").each(function() {
-			var checkval = $(this).find(".imaging-session-scan-type-input").val(); 
+			var checkval = $(this).find(".imaging-session-scan-type-input").val();
 			if (typeof checkval == undefined || checkval.length<1) {
 				return true;
 			}
@@ -587,26 +587,26 @@ XSYNC.xsyncconfig.constructNewJson = function(data) {
 
 XSYNC.xsyncconfig.addSubjectAssessorResource = function(ele) {
 	$(ele).parent().parent().append(
-				'<div class="xsync-subject-assessor-resource-div">' + 
-					'<input type="text" class="subject-assessor-resource-input" name="subject-assessor-resource-input" size=20>' + 
+				'<div class="xsync-subject-assessor-resource-div">' +
+					'<input type="text" class="subject-assessor-resource-input" name="subject-assessor-resource-input" size=20>' +
 					'<input type="button" class="xsync-button subject-assessor-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 				'</div>');
 }
 
 XSYNC.xsyncconfig.addImagingSessionResource = function(ele) {
 	$(ele).parent().parent().append(
-				'<div class="xsync-imaging-session-resource-div">' + 
-					'<input type="text" class="imaging-session-resource-input" name="imaging-session-resource-input" size=20>' + 
+				'<div class="xsync-imaging-session-resource-div">' +
+					'<input type="text" class="imaging-session-resource-input" name="imaging-session-resource-input" size=20>' +
 					'<input type="button" class="xsync-button imaging-session-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 				'</div>');
 }
 
 XSYNC.xsyncconfig.addImagingSessionScan = function(ele) {
 	$(ele).parent().parent().append(
-				'<div class="xsync-imaging-session-scan-div">' + 
-					'<input type="text" class="imaging-session-scan-type-input" name="imaging-session-scan-type-input" size=20>' + 
+				'<div class="xsync-imaging-session-scan-div">' +
+					'<input type="text" class="imaging-session-scan-type-input" name="imaging-session-scan-type-input" size=20>' +
 					'<input type="button" class="xsync-button imaging-session-scan-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeScan(this)">' +
-					'<div class="xsync-imaging-scan-resources-div">' + 
+					'<div class="xsync-imaging-scan-resources-div">' +
 						'<div class="col2">Resources:</div><div>' +
 							'<input type="button" class="xsync-button" id="xsync-add-imaging-scan-resource" value="Add Resource" onclick="XSYNC.xsyncconfig.addImagingScanResource(this)">' +
 						'</div>' +
@@ -617,19 +617,19 @@ XSYNC.xsyncconfig.addImagingSessionScan = function(ele) {
 
 XSYNC.xsyncconfig.addImagingSessionAssessor = function(ele) {
 	$(ele).parent().parent().append(
-				'<div class="xsync-imaging-session-assessor-div">' + 
+				'<div class="xsync-imaging-session-assessor-div">' +
 					'<div style="width:90%">' +
-					'<input type="text" class="imaging-session-assessor-xsitype-input" name="imaging-session-assessor-xsitype-input" size=40>' + 
+					'<input type="text" class="imaging-session-assessor-xsitype-input" name="imaging-session-assessor-xsitype-input" size=40>' +
 					'<input type="button" class="xsync-button imaging-session-assessor-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeAssessor(this)">' +
 					'</div>' +
 					'<div class="col2">Requires OK to sync:</div>' +
-					'<div>' + 
+					'<div>' +
 						'<select class="imaging-session-assessor-needsok-input">' +
 							'<option value="true">True</option>' +
 							'<option value="false">False</option>' +
 						'</select>' +
 					'</div>' +
-					'<div class="xsync-imaging-assessor-resources-div">' + 
+					'<div class="xsync-imaging-assessor-resources-div">' +
 						'<div class="col2">Resources:</div><div>' +
 							'<input type="button" class="xsync-button" id="xsync-add-imaging-assessor-resource" value="Add Resource" onclick="XSYNC.xsyncconfig.addImagingAssessorResource(this)">' +
 						'</div>' +
@@ -640,16 +640,16 @@ XSYNC.xsyncconfig.addImagingSessionAssessor = function(ele) {
 
 XSYNC.xsyncconfig.addImagingScanResource = function(ele) {
 	$(ele).parent().parent().append(
-				'<div class="xsync-imaging-scan-resource-div">' + 
-					'<input type="text" class="imaging-scan-resource-input" name="imaging-scan-resource-input" size=20>' + 
+				'<div class="xsync-imaging-scan-resource-div">' +
+					'<input type="text" class="imaging-scan-resource-input" name="imaging-scan-resource-input" size=20>' +
 					'<input type="button" class="xsync-button imaging-scan-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 				'</div>');
 }
 
 XSYNC.xsyncconfig.addImagingAssessorResource = function(ele) {
 	$(ele).parent().parent().append(
-				'<div class="xsync-imaging-assessor-resource-div">' + 
-					'<input type="text" class="imaging-assessor-resource-input" name="imaging-assessor-resource-input" size=20>' + 
+				'<div class="xsync-imaging-assessor-resource-div">' +
+					'<input type="text" class="imaging-assessor-resource-input" name="imaging-assessor-resource-input" size=20>' +
 					'<input type="button" class="xsync-button imaging-assessor-resource-remote" value="Remove" onclick="XSYNC.xsyncconfig.removeResource(this)">' +
 				'</div>');
 }

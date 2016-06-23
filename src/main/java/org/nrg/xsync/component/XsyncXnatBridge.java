@@ -9,8 +9,8 @@ import org.springframework.context.annotation.ComponentScan;
  * @author Mohana Ramaratnam
  *
  */
-@XnatPlugin(value="XsyncXnatBridge")
-@ComponentScan(basePackages = "org.nrg.xsync")
+@XnatPlugin(value="XsyncXnatBridge",name="XSync Plugin", entityPackages = "org.nrg.xsync.remote.alias")
+@ComponentScan(basePackages={"org.nrg.xsync"})
 
 public class XsyncXnatBridge {
 	
