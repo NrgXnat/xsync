@@ -2,7 +2,6 @@ package org.nrg.xsync.scheduler;
 
 import javax.inject.Inject;
 
-import org.nrg.framework.annotations.XnatPlugin;
 import org.nrg.xsync.services.local.DailySyncService;
 import org.nrg.xsync.services.local.MonthlySyncService;
 import org.nrg.xsync.services.local.WeeklySyncService;
@@ -12,17 +11,16 @@ import org.nrg.xsync.services.local.impl.MonthlySync;
 import org.nrg.xsync.services.local.impl.WeeklySync;
 import org.nrg.xsync.services.local.impl.XSyncAliasTokenRefresh;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.config.TriggerTask;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.PeriodicTrigger;
+import org.springframework.stereotype.Service;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
-@XnatPlugin(value = "xsyncScheduler")
-@ComponentScan(basePackages="org.nrg.xsync.services.local")
+@Service
 public class XsyncScheduler {
 
 	@Bean

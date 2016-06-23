@@ -13,14 +13,10 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
-import org.nrg.xsync.component.XsyncXnatBridge;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
  * @author Mohana Ramaratnam
@@ -159,7 +155,7 @@ public class SyncManifest{
 
 
 	public void informUser() {
-		Hashtable<String, String> info = syncInfoAsHTML();
+		final Hashtable<String, String> info = syncInfoAsHTML();
 		try {
 			XDAT.getMailService().sendHtmlMessage(AdminUtils.getAuthorizerEmailId(), this.sync_user.getEmail(), info.get("SUBJECT"),
 					info.get("BODY"));
@@ -175,9 +171,9 @@ public class SyncManifest{
 	 *
 	 */
 	public Hashtable<String, String> syncInfoAsHTML() {
-		Hashtable<String,String> info = new Hashtable<String,String>();
-		XsyncXnatInfo xnatInfo = new XsyncXnatInfo();
-		String subject="Project " + this.localProjectId +" data synced from "+ xnatInfo.getSiteId()+" to " + this.syncHost;
+		final Hashtable<String,String> info = new Hashtable<String,String>();
+		final XsyncXnatInfo xnatInfo = XDAT.getContextService().getBean(XsyncXnatInfo.class);
+		final String subject="Project " + this.localProjectId +" data synced from "+ xnatInfo.getSiteId()+" to " + this.syncHost;
 		info.put("SUBJECT", subject);
 			StringBuilder sb = new StringBuilder();
 			sb.append("<html>");
@@ -280,23 +276,21 @@ public class SyncManifest{
 		 *
 		 */
 		public void syncInfoToFile(File file) {
-			Hashtable<String, String> info = syncInfoAsHTML();
+			final Hashtable<String, String> info = syncInfoAsHTML();
 
 			BufferedWriter writer = null;
+		    try {
+		        file.getParentFile().mkdirs();
+		        writer = new BufferedWriter(new FileWriter(file));
+		        writer.write(info.get("BODY"));
+		    } catch (Exception e) {
+		        e.printStackTrace();
+		    } finally {
 		        try {
-		            file.getParentFile().mkdirs();
-		            writer = new BufferedWriter(new FileWriter(file));
-		            writer.write(info.get("BODY"));
-		        } catch (Exception e) {
-		            e.printStackTrace();
-		        } finally {
-		            try {
-		                // Close the writer regardless of what happens...
-		                writer.close();
+		            // Close the writer regardless of what happens...
+		            writer.close();
 		            } catch (Exception e) {
-		            }
 		        }
 		    }
-
-
+		}
 }
