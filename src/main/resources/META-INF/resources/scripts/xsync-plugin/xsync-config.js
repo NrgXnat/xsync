@@ -8,6 +8,28 @@ if (typeof XSYNC.xsyncconfig === 'undefined') {
 }
 
 XSYNC.xsyncconfig.initialize = function() {
+	var dcConfigAjax = $.ajax({
+		type : "GET",
+ 		url:serverRoot+'/data/projects/' + XNAT.data.context.project +'/resources/synchronization/files',
+		cache: false,
+		async: false,
+		context: this,
+		dataType: 'json'
+	 });
+	dcConfigAjax.done( function( data, textStatus, jqXHR ) {
+		XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Add Pre Sync DICOM Anonymization Script';
+		if (typeof data !== 'undefined' && typeof data.ResultSet.Result !== 'undefined') {
+		    $.each(data.ResultSet.Result, function(i, item) {
+			    if (item.Name == "DICOM_anon.das") {
+				    XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Update Pre Sync DICOM Anonymization Script';
+				    return false;
+				}
+			});
+		}
+	});
+	dcConfigAjax.fail( function( data, textStatus, error ) {
+		    XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Add Pre Sync DICOM Anonymization Script';
+	});
 
 	var scConfigAjax = $.ajax({
 		type : "GET",
@@ -18,18 +40,16 @@ XSYNC.xsyncconfig.initialize = function() {
 		dataType: 'json'
 	 });
 	scConfigAjax.done( function( data, textStatus, jqXHR ) {
-
 		if (typeof data !== 'undefined' && typeof data.project !== 'undefined') {
 			XSYNC.xsyncconfig.configuration = data;
+		    XSYNC.xsyncconfig.anonymizationuploadDisabled = '';
 		} else {
 			XSYNC.xsyncconfig.beginConfig();
-
 		}
 		XSYNC.xsyncconfig.continueInit();
 	});
 	scConfigAjax.fail( function( data, textStatus, error ) {
 		XSYNC.xsyncconfig.beginConfig();
-
 	});
 
 }
@@ -51,6 +71,7 @@ XSYNC.xsyncconfig.useDefaultConfig = function() {
 	XSYNC.xsyncconfig.configuration.subjectresources = [];
 	XSYNC.xsyncconfig.configuration.subjectassessors = [];
 	XSYNC.xsyncconfig.configuration.imagingsessions = [];
+	XSYNC.xsyncconfig.anonymizationuploadDisabled = 'disabled';
 	XSYNC.xsyncconfig.continueInit();
 
 }
@@ -366,7 +387,9 @@ XSYNC.xsyncconfig.continueInit = function() {
 		);
 	});
 	$("#xsync-config-div").append('<input type="button" class="xsync-submit-button" id="xsync-submit-config" value="Submit Configuration">');
+	$("#xsync-config-div").append('<input type="button" class="xsync-submit-button" '+ XSYNC.xsyncconfig.anonymizationuploadDisabled  +' id="xsync-annon_add-config" value="' + XSYNC.xsyncconfig.anonymizationuploadBtnText +'">');
 	$("#xsync-submit-config").click(function() { XSYNC.xsyncconfig.submitConfig(); });
+	$("#xsync-annon_add-config").click(function() { XSYNC.xsyncconfig.submitDICOMAnonimization(); });
 }
 
 XSYNC.xsyncconfig.removeResource = function(ele) {
@@ -409,7 +432,7 @@ XSYNC.xsyncconfig.submitConfig = function() {
 		"</div>";
 	var pModalOpts = {
 		width: 740,
-		height: 480,
+		height: 380,
 		id: 'xmodal-enter-credentials',
 		title: "Credentials required for remote server",
 		content: modalContent,
@@ -428,6 +451,56 @@ XSYNC.xsyncconfig.submitConfig = function() {
 	};
 	xmodal.open(pModalOpts);
 	$('#xsync-credentials-username').focus();
+}
+
+XSYNC.xsyncconfig.submitDICOMAnonimization = function() {
+	var modalContent =
+		"<div>" +
+			'<div class = "credentials-header-div credentials-div">' +
+			'<h3 style="text-align:center">Enter Pre-Sync DICOM Anonimization  script ' + '</h3>' +
+			'</div>' +
+			'<div class = "credentials-div">' +
+			'<textarea rows="20" cols="80" id="xsync-dicom-anonymization"></textarea>' +
+			'</div>'
+		"</div>";
+	var pModalOpts = {
+		width: 680,
+		height: 580,
+		id: 'xmodal-enter-dicom-anonymization',
+		title: "DICOM Anonymization script",
+		content: modalContent,
+		ok: 'show',
+		okLabel: 'Save',
+		okAction: function(modl){
+					XSYNC.xsyncconfig.uploadDicomAnonymization();
+					modl.close();
+				 },
+		okClose: false,
+		cancel: 'Cancel',
+		cancelLabel: 'Cancel',
+		cancelAction: function(){ xmodal.close(XNAT.app.abu.abuConfigs.modalOpts.id); },
+		closeBtn: 'hide'
+	};
+	xmodal.open(pModalOpts);
+}
+
+XSYNC.xsyncconfig.uploadDicomAnonymization = function() {
+	var dicomScript = $("#xsync-dicom-anonymization").val();
+	console.log(dicomScript);
+	var uploadDICOMscriptAjax = $.ajax({
+		type : "PUT",
+		url:serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '/presyncanonymization?XNAT_CSRF=' + window.csrfToken,
+		data:  dicomScript
+	 });
+    uploadDICOMscriptAjax.done( function( data, textStatus, jqXHR ) {
+				xmodal.message('Saved','The Pre-Sync DICOM Anonymization has been saved');
+				XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Update Pre Sync DICOM Anonymization Script';
+				$("#xsync-annon_add-config").attr('value', XSYNC.xsyncconfig.anonymizationuploadBtnText);
+
+			});
+	uploadDICOMscriptAjax.fail( function( data, textStatus, error ) {
+				xmodal.message('Error','ERROR:  Pre-Sync DICOM Anonymization was not successfully saved (' + textStatus + ')');
+			});
 }
 
 XSYNC.xsyncconfig.continueConfig = function() {
@@ -455,13 +528,14 @@ XSYNC.xsyncconfig.continueConfig = function() {
 
 			var xsyncConfigAjax = $.ajax({
 				type : "POST",
-		 		url:serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '&XNAT_CSRF=' + window.csrfToken,
+		 		url:serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '?XNAT_CSRF=' + window.csrfToken,
 				cache: false,
 				async: true,
 				data:  JSON.stringify(newJson),
 				contentType: "application/json; charset=utf-8"
 			 });
 			xsyncConfigAjax.done( function( data, textStatus, jqXHR ) {
+				$("#xsync-annon_add-config").attr("disabled", false);
 				xmodal.message('Saved','The XSync configuration has been saved');
 			});
 			xsyncConfigAjax.fail( function( data, textStatus, error ) {
