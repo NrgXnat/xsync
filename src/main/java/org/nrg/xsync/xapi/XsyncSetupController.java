@@ -226,6 +226,7 @@ public class XsyncSetupController extends AbstractXnatRestApi {
     @ApiOperation(value = "Adds Pre-Sync project specific DICOM Anonyzation",  response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	
+	
 	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId,@RequestBody String anonymizationScript) {
 		UserI user = getSessionUser();
         XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
