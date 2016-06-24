@@ -183,7 +183,7 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 
 				String path = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
 
-				Files.write( Paths.get(path), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+				Files.write( Paths.get(path), xsyncCfgJSON.getBytes());
 
 			} catch (IOException e) {
 				throw e;
