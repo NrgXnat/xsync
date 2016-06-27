@@ -73,7 +73,7 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 	@Autowired
 	private RemoteAliasService _remoteAliasService;
 
-	@RequestMapping(path="/setup/projects/{projectId}", method = RequestMethod.POST, consumes = "application/json")
+	@RequestMapping(path="/projects/{projectId}", method = RequestMethod.POST, consumes = "application/json")
     @ApiOperation(value = "Sets up the Xsync project configuration",  response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "XSync configuration successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	

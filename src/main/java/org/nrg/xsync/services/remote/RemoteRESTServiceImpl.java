@@ -79,8 +79,6 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		}
 	}
 	
-	
-	
 	/**
 	 * Import xar without retry.
 	 *
@@ -400,8 +398,8 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	//TODO @Retryable(maxAttempts=5) update to retry when we upgrade spring to 4
 	private RemoteConnectionResponse deleteWithoutRetry(RemoteConnection connection, String uri ){
 		//do we need the assessor data and how.
-		
-		ResponseEntity<String> response = getResttemplate().exchange(uri, HttpMethod.DELETE, null, String.class);
+		HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection));
+		ResponseEntity<String> response = getResttemplate().exchange(uri, HttpMethod.DELETE, httpEntity, String.class);
 		
 		logger.info(response);
 		logger.info(response.getBody());
@@ -458,13 +456,6 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		return new RemoteConnectionResponse(response);
 	}
 	
-	
-	
-	
-	
-	
-
-		
 	/**
 	 * Get URI result.
 	 *
@@ -473,8 +464,8 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @return ResponseEntity wrapper
 	 */
 	public RemoteConnectionResponse getResult(RemoteConnection connection,String uri){
-		//do we need the assessor data and how.
-		ResponseEntity<String> response = getResttemplate().exchange(uri, HttpMethod.GET, null, String.class);
+		HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection));
+		ResponseEntity<String> response = getResttemplate().exchange(uri, HttpMethod.GET, httpEntity, String.class);
 		logger.info(response);
 		logger.info(response.getBody());
 		logger.info(response.getHeaders().get("Set-Cookie"));

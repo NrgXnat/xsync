@@ -433,22 +433,22 @@ public class RemoteSubject {
 	}
 
 	private boolean storeXar( XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor) throws XsyncRemoteConnectionException{
-		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
+		 final RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 boolean stored = false;
-		 String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
-		 String remoteProjectId = projectSyncConfiguration.getProject().getId();
-		 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
-		 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-		 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
+		 final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+		 final String remoteProjectId = targetproject;
+		 final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+		 final RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+		 final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
 		 expSyncItem.setXsiType(orig.getXSIType());
 		 try {
 			 prepareResourceURIForXar(target);
-			 File xar=buildxar( (XnatImagesessiondata) orig,targetproject, targetsubject, target);
-			 RemoteConnectionResponse connectionResponse =  remoteConnectionManager.importXar(connection, xar);
+			 final File xar=buildxar( (XnatImagesessiondata) orig,targetproject, targetsubject, target);
+			 final RemoteConnectionResponse connectionResponse =  remoteConnectionManager.importXar(connection, xar);
 			 stored = connectionResponse.wasSuccessful();
 			 if (stored) {
-				 IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
-				 String remote_id = idMapper.getRemoteId(remoteUrl,remoteProjectId,targetsubject.getLabel(), target.getLabel(), target.getXSIType());
+				 final IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
+				 final String remote_id = idMapper.getRemoteId(remoteUrl,remoteProjectId,targetsubject.getLabel(), target.getLabel(), target.getXSIType());
 				 //String remote_id = connectionResponse.getResponseBody();
 				 if (remote_id == null) {
 					 throw new XsyncStoreException("Could not locate Accession Id for " + target.getLabel() + " in project " + remoteProjectId);
@@ -469,6 +469,7 @@ public class RemoteSubject {
 			 _log.error(e.getMessage());
 			 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
+			 stored = false;
 		 }
 		 subjectSyncInfo.addExperiment(expSyncItem);
 		 return stored;
