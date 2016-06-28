@@ -67,8 +67,16 @@ public class SynchronizationManager {
 			XsyncUtils xsyncUtils = new XsyncUtils(manifest.getSync_user());
 			XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
 			syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
-			syncProjectConfiguration.getSyncinfo().setSyncEndTime(now);
-			syncProjectConfiguration.getSyncinfo().setSyncStatus(manifest.wasSyncSuccessfull()?XsyncUtils.SYNC_STATUS_SYNCED:XsyncUtils.SYNC_STATUS_FAILED);
+			if (manifest.wasSyncSuccessfull()) {
+				syncProjectConfiguration.getSyncinfo().setSyncStatus(xsyncUtils.SYNC_STATUS_SYNCED);
+				syncProjectConfiguration.getSyncinfo().setSyncEndTime(now);
+			} else {
+				syncProjectConfiguration.getSyncinfo().setSyncStatus(xsyncUtils.SYNC_STATUS_FAILED);
+				// Don't update sync end time for failed syncs.  We want the last successful sync.  Only initialize null dates.
+				if (syncProjectConfiguration.getSyncinfo().getSyncEndTime()==null) {
+					syncProjectConfiguration.getSyncinfo().setSyncEndTime(new Date(0));
+				}
+			}
 			try {
 				//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
 				EventMetaI c = EventUtils.DEFAULT_EVENT(manifest.getSync_user(),"ADMIN_EVENT occurred");
