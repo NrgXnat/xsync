@@ -30,9 +30,10 @@ public class SynchronizationManager {
 	private static final Logger _log = LoggerFactory.getLogger(SynchronizationManager.class);
 	
 	private static Map<String, Date> projectSyncStartTime = new HashMap<String,Date>();
-	private static Map<String, Date> projectSyncEndTime = new HashMap<String,Date>();
+//	private static Map<String, Date> projectSyncEndTime = new HashMap<String,Date>();
 
 	private static Map<String, SyncManifest> syncManifests = new HashMap<String,SyncManifest>();
+	private static Map<String, Boolean> configurationChanged = new HashMap<String,Boolean>();
 	
 	public static void BEGIN_SYNC(String projectId, String remoteProjectId, String host, UserI user) {
 		Date now = new Date();
@@ -60,7 +61,7 @@ public class SynchronizationManager {
 	
 	public static void END_SYNC(String projectId) {
 		Date now = new Date();
-		projectSyncEndTime.put(projectId,now);
+//		projectSyncEndTime.put(projectId,now);
 	    SyncManifest manifest = syncManifests.get(projectId);
 	    if (manifest != null) {
 		  manifest.setSync_end_time(now);
@@ -80,8 +81,41 @@ public class SynchronizationManager {
 			manifest.informUser();
 			File syncInfoFilePath = new File(GET_SYNC_FILE_PATH(projectId)+projectId+"_sync.html");
 			manifest.syncInfoToFile(syncInfoFilePath);
+		    if (configurationChanged.containsKey(projectId)) {
+		    	resetSyncStartTime(projectId);
+		    }
+			projectSyncStartTime.remove(projectId);
 	    }
-
+	}
+	
+	private static void resetSyncStartTime(String projectId) {
+	    SyncManifest manifest = syncManifests.get(projectId);
+	    if (manifest != null) {
+			XsyncUtils xsyncUtils = new XsyncUtils(manifest.getSync_user());
+			XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
+			syncProjectConfiguration.getSyncinfo().setSyncStartTime(null);
+			try {
+				//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
+				EventMetaI c = EventUtils.DEFAULT_EVENT(manifest.getSync_user(),"ADMIN_EVENT occurred");
+				syncProjectConfiguration.save(manifest.getSync_user(), false, true,c);
+			}catch(Exception e) {
+				_log.debug("Unable to save synchronization  details for project: " + projectId + " Cause:" + e.getMessage());
+			}
+	    }			
+	    if (configurationChanged.containsKey(projectId)) {
+	    	configurationChanged.remove(projectId);
+	    }
+	}
+	
+	public static void notifySyncConfigurationChange(String projectId) {
+		//Is the sync running? Wait until its over,  when it ends, reset the sync time
+		//If no, reset the sync time so that next time sync starts, syncing
+		//takes place from the very start of project existence. 
+		if (projectSyncStartTime.containsKey(projectId)) { //Sync has been launched
+			configurationChanged.put(projectId, new Boolean(true));
+		}else {
+			resetSyncStartTime(projectId);
+		}
 	}
 
 	private static String timeToPath(Date d) {

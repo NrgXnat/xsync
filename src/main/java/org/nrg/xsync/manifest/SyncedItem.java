@@ -18,20 +18,9 @@ public abstract class SyncedItem  {
 	Date syncTime;
 	
 	
-	ArrayList<SyncedItem> resources;
-	
-	ArrayList<SyncedItem> experiments;
-	
-	ArrayList<SyncedItem> assessors;
-	
-	
-	
 	public SyncedItem(String localId, String localLabel) {
 		this.localId = localId;
 		this.localLabel = localLabel;
-		resources = new ArrayList<SyncedItem>();
-		experiments = new ArrayList<SyncedItem>();
-		assessors = new ArrayList<SyncedItem>();
 	}
 
 	/**
@@ -105,60 +94,8 @@ public abstract class SyncedItem  {
 		this.syncStatus = syncStatus;
 	}
 
-	/**
-	 * @return the resources
-	 */
-	public ArrayList<SyncedItem> getResources() {
-		return resources;
-	}
 
-	public void addResources(SyncedItem resource) {
-		resources.add(resource);
-	}
 
-	/**
-	 * @param resources the resources to set
-	 */
-	public void setResources(ArrayList<SyncedItem> resources) {
-		this.resources = resources;
-	}
-
-	/**
-	 * @return the experiments
-	 */
-	public ArrayList<SyncedItem> getExperiments() {
-		return experiments;
-	}
-
-	public void addExperiment(SyncedItem experiment) {
-		experiments.add(experiment);
-	}
-
-	
-	/**
-	 * @param experiments the experiments to set
-	 */
-	public void setExperiments(ArrayList<SyncedItem> experiments) {
-		this.experiments = experiments;
-	}
-
-	/**
-	 * @return the assessors
-	 */
-	public ArrayList<SyncedItem> getAssessors() {
-		return assessors;
-	}
-
-	public void addAssessor(SyncedItem assessor) {
-		assessors.add(assessor);
-	}
-
-	/**
-	 * @param assessors the assessors to set
-	 */
-	public void setAssessors(ArrayList<SyncedItem> assessors) {
-		this.assessors = assessors;
-	}
 
 	/**
 	 * @return the message

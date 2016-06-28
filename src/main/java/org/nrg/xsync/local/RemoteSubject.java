@@ -441,6 +441,7 @@ public class RemoteSubject {
 		 final RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 		 final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
 		 expSyncItem.setXsiType(orig.getXSIType());
+		 expSyncItem.extractDetails(target);
 		 try {
 			 prepareResourceURIForXar(target);
 			 final File xar=buildxar( (XnatImagesessiondata) orig,targetproject, targetsubject, target);
@@ -455,14 +456,14 @@ public class RemoteSubject {
 				 }else {
 					 expSyncItem.setRemoteId(remote_id);
 					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been synced. Remote Id:" + remote_id);
+					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been synced.");
 //					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been synced. " );
 
 					 if (updateSyncAssessor) {
 						 XSyncTools xsyncTools = new XSyncTools(user);
 						 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
 					 }
-					 saveSyncDetails(orig.getId(),remote_id,orig.getXSIType(),XsyncUtils.SYNC_STATUS_SYNCED);
+					 saveSyncDetails(orig.getId(),remote_id,XsyncUtils.SYNC_STATUS_SYNCED,orig.getXSIType());
 				 }
 			 }
 		 }catch(Exception e) {
@@ -561,10 +562,10 @@ public class RemoteSubject {
 			target.setProject(target.getProject());
 			target.setSubjectId(targetsubject.getLabel());
 			for (XnatImagescandataI scan : target.getScans_scan()) {
-				scan.setImageSessionId("");
+				scan.setImageSessionId(target.getId());
 			}
 			for (XnatImageassessordataI assessor : target.getAssessors_assessor()) {
-				assessor.setImagesessionId("");
+				assessor.setImagesessionId(target.getId());
 			}
 			FileWriter fw = new FileWriter(outF);
 			target.toXML(fw, false);

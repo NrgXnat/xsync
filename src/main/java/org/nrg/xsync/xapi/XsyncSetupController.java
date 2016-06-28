@@ -5,13 +5,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xdat.bean.CatCatalogBean;
-import org.nrg.xdat.bean.CatEntryBean;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatResourcecatalog;
@@ -29,10 +27,11 @@ import org.nrg.xft.utils.FileUtils;
 import org.nrg.xft.utils.SaveItemHelper;
 import org.nrg.xft.utils.ValidationUtils.ValidationResults;
 import org.nrg.xnat.helpers.uri.URIManager;
-import org.nrg.xnat.helpers.uri.UriParserUtils;
 import org.nrg.xnat.helpers.uri.URIManager.ArchiveItemURI;
+import org.nrg.xnat.helpers.uri.UriParserUtils;
 import org.nrg.xnat.utils.ResourceUtils;
 import org.nrg.xnat.utils.WorkflowUtils;
+import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.nrg.xsync.utils.XsyncFileUtils;
@@ -200,12 +199,17 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 			}
 		}else {
 			//Existing file possibly, update it
+			//Possible Configuration Change
+			//Implies all data must be resynced - reset the last sync time
+			//If a sync operation is running - wait for it to complete.
+			//After its done - reset the last sync time.
 			String jsonPath = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
 			try {
-				Files.write( Paths.get(jsonPath), xsyncCfgJSON.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+				Files.write( Paths.get(jsonPath), xsyncCfgJSON.getBytes());
 			}catch(IOException e) {
 				throw e;
 			}
+			SynchronizationManager.notifySyncConfigurationChange(projectId);
 		}
 		refreshCatalog(user);
 	}

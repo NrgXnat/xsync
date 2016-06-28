@@ -14,8 +14,8 @@ import org.springframework.context.annotation.ComponentScan;
 
 public class XsyncXnatBridge {
 	
-    @Bean
-    public XsyncXnatInfo getXsyncXnatInfo() {
-       return new XsyncXnatInfo();
-    }
+ //   @Bean
+ //   public XsyncXnatInfo getXsyncXnatInfo() {
+ //      return new XsyncXnatInfo();
+ //   }
 }

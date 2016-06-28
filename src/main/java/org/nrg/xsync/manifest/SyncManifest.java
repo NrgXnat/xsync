@@ -227,6 +227,7 @@ public class SyncManifest{
 				sb.append("<table>");
 				sb.append("<tr>");
 				sb.append("<th> Subject Label </th>");
+				sb.append("<th> Remote ID </th>");
 				sb.append("<th> Status </th>");
 				sb.append("<th> Message </th>");
 				sb.append("</tr>");
@@ -234,6 +235,7 @@ public class SyncManifest{
 				for (SubjectSyncItem sub : subjects) {
 					 sb.append("<tr>");
 					 sb.append("<td> " + sub.localLabel + " </td>");
+					 sb.append("<td> " + sub.getRemoteId() + " </td>");
 					 sb.append("<td> " + sub.getSyncStatus() + " </td>");
 					 sb.append("<td> " + (sub.getMessage()==null?"":sub.getMessage()) + " </td>");
 					 sb.append("</tr>");
@@ -244,19 +246,25 @@ public class SyncManifest{
 				sb.append("<table>");
 				sb.append("<tr>");
 				sb.append("<th> Experiment Label </th>");
+				sb.append("<th> Experiment Remote ID </th>");
 				sb.append("<th> Experiment Type </th>");
 				sb.append("<th> Status </th>");
 				sb.append("<th> Message </th>");
+				sb.append("<td>  Total Files  </td>");
+				sb.append("<td>  Total File Size </td>");
 				sb.append("</tr>");
 
 				for (SubjectSyncItem sub : subjects) {
-					ArrayList<SyncedItem> exps = sub.getExperiments();
-					for (SyncedItem exp: exps) {
+					ArrayList<ExperimentSyncItem> exps = sub.getExperiments();
+					for (ExperimentSyncItem exp: exps) {
 						 sb.append("<tr>");
-						 sb.append("<td> " + exp.localLabel + " </td>");
+						 sb.append("<td> " + exp.getLocalLabel() + " </td>");
+						 sb.append("<td> " + exp.getRemoteId() + " </td>");
 						 sb.append("<td> " + exp.getXsiType() + " </td>");
 						 sb.append("<td> " + exp.getSyncStatus() + " </td>");
 						 sb.append("<td> " + (exp.getMessage()==null?"":exp.getMessage()) + " </td>");
+						 sb.append("<td> " + exp.getTotalSyncedFileCount() + " </td>");
+						 sb.append("<td> " + exp.getTotalSyncedFileSize() + " </td>");
 						 sb.append("</tr>");
 					}
 				}
