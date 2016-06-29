@@ -6,6 +6,8 @@ import java.io.IOException;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.nrg.action.ClientException;
+import org.nrg.action.ServerException;
 import org.nrg.xdat.entities.AliasToken;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
@@ -13,6 +15,7 @@ import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
+import org.springframework.core.NestedRuntimeException;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -24,6 +27,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 
@@ -64,7 +69,6 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		int count = 0;
 		while(true) {
 		    try {
-		    	 
 		         return this.importXarWithoutRetry(connection, xar);
 		    } catch (RuntimeException e) {
 		    	try {
@@ -92,24 +96,41 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	//TODO update to retry when we upgrade spring to 4
 	private RemoteConnectionResponse importXarWithoutRetry(RemoteConnection connection,  File xar) throws RuntimeException{
 		//this.setAliasToken(connection);
-		
-		MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();     
+		final MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();     
 		body.add("field", "value");
 		body.add("import-handler","XAR");
 		body.add("file", new FileSystemResource(xar));
 		
-		HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection));
-		
-		ResponseEntity<String> response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
-		logger.info(response);
-		logger.info(response.getBody());
-		logger.info(response.getHeaders().get("Set-Cookie"));
-		boolean status= ((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
-		logger.warn("importXar"+xar.getName());
-		if(!status){
-			throw new RuntimeException("importXar request failed. Retrying...");
-		}else{
-			return new RemoteConnectionResponse(response);
+		final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection));
+		ResponseEntity<String> response;
+		try {
+			response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
+			logger.info(response);
+			logger.info(response.getBody());
+			logger.info(response.getHeaders().get("Set-Cookie"));
+			boolean status= ((response.getStatusCode().value()==HttpStatus.OK.value()) || 
+						 (response.getStatusCode().value()==HttpStatus.CREATED.value()) ||
+						 // Let's not keep trying these error types either.  They will be thrown by invalid XAR requests, and we don't want a
+						 // long wait with retry for errors returned by the XarImporter class.
+						 (response.getStatusCode().value()==HttpStatus.INTERNAL_SERVER_ERROR.value()) || 
+						 (response.getStatusCode().value()==HttpStatus.BAD_REQUEST.value())
+						 )?true:false;
+			logger.warn("importXar"+xar.getName());
+			if(!status){
+				throw new RuntimeException("importXar request failed. Retrying...");
+			}else{
+				return new RemoteConnectionResponse(response);
+			}
+		} catch (RuntimeException e) {
+			if (e instanceof NestedRuntimeException) {
+				final Throwable specCause = ((NestedRuntimeException)e).getMostSpecificCause(); 
+				// Let's not keep trying these error types either.  They will be thrown by invalid XAR requests, and we don't want a
+				// long wait with retry for errors returned by the XarImporter class.
+				if (specCause instanceof HttpServerErrorException) {
+					return new RemoteConnectionResponse(new ResponseEntity<String>(HttpStatus.INTERNAL_SERVER_ERROR));
+				}
+			}
+			throw(e);
 		}
 	}
 	

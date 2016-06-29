@@ -65,19 +65,19 @@ public class SynchronizationManager {
 	    SyncManifest manifest = syncManifests.get(projectId);
 	    if (manifest != null) {
 		  manifest.setSync_end_time(now);
-		  boolean syncSuccess = manifest.wasSyncSuccessfull();
-		  XsyncUtils xsyncUtils = new XsyncUtils(manifest.getSync_user());
-		  XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
-
-		  if (syncSuccess) {
-				syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
+			XsyncUtils xsyncUtils = new XsyncUtils(manifest.getSync_user());
+			XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
+			syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
+			if (manifest.wasSyncSuccessfull()) {
+				syncProjectConfiguration.getSyncinfo().setSyncStatus(xsyncUtils.SYNC_STATUS_SYNCED);
 				syncProjectConfiguration.getSyncinfo().setSyncEndTime(now);
-				syncProjectConfiguration.getSyncinfo().setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-		  }else {
-				//syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
-				syncProjectConfiguration.getSyncinfo().setSyncEndTime(now);
-				syncProjectConfiguration.getSyncinfo().setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-		  }
+			} else {
+				syncProjectConfiguration.getSyncinfo().setSyncStatus(xsyncUtils.SYNC_STATUS_FAILED);
+				// Don't update sync end time for failed syncs.  We want the last successful sync.  Only initialize null dates.
+				if (syncProjectConfiguration.getSyncinfo().getSyncEndTime()==null) {
+					syncProjectConfiguration.getSyncinfo().setSyncEndTime(new Date(0));
+				}
+			}
 			try {
 				//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
 				EventMetaI c = EventUtils.DEFAULT_EVENT(manifest.getSync_user(),"ADMIN_EVENT occurred");
@@ -89,10 +89,6 @@ public class SynchronizationManager {
 			manifest.informUser();
 			File syncInfoFilePath = new File(GET_SYNC_FILE_PATH(projectId)+projectId+"_sync.html");
 			manifest.syncInfoToFile(syncInfoFilePath);
-		    if (configurationChanged.containsKey(projectId)) {
-		    	resetSyncStartTime(projectId);
-		    }
-			projectSyncStartTime.remove(projectId);
 	    }
 	}
 	
