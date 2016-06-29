@@ -65,11 +65,19 @@ public class SynchronizationManager {
 	    SyncManifest manifest = syncManifests.get(projectId);
 	    if (manifest != null) {
 		  manifest.setSync_end_time(now);
-			XsyncUtils xsyncUtils = new XsyncUtils(manifest.getSync_user());
-			XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
-			syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
-			syncProjectConfiguration.getSyncinfo().setSyncEndTime(now);
-			syncProjectConfiguration.getSyncinfo().setSyncStatus(manifest.wasSyncSuccessfull()?XsyncUtils.SYNC_STATUS_SYNCED:XsyncUtils.SYNC_STATUS_FAILED);
+		  boolean syncSuccess = manifest.wasSyncSuccessfull();
+		  XsyncUtils xsyncUtils = new XsyncUtils(manifest.getSync_user());
+		  XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
+
+		  if (syncSuccess) {
+				syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
+				syncProjectConfiguration.getSyncinfo().setSyncEndTime(now);
+				syncProjectConfiguration.getSyncinfo().setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+		  }else {
+				//syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
+				syncProjectConfiguration.getSyncinfo().setSyncEndTime(now);
+				syncProjectConfiguration.getSyncinfo().setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+		  }
 			try {
 				//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
 				EventMetaI c = EventUtils.DEFAULT_EVENT(manifest.getSync_user(),"ADMIN_EVENT occurred");

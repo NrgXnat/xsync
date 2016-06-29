@@ -13,6 +13,8 @@ import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.turbine.utils.AdminUtils;
+import org.nrg.xft.event.EventMetaI;
+import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
@@ -89,7 +91,7 @@ public class ProjectChangeDiscoverer {
 			}
 			return;
 		}
-		projectSyncConfiguration.getProjectSyncConfigurationFromDB().setSyncBlocked(new Boolean(true));
+		saveSyncBlockStatus(new Boolean(true));
 		XnatProjectdata project = projectSyncConfiguration.getProject();
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 		String remoteHost = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
@@ -151,10 +153,22 @@ public class ProjectChangeDiscoverer {
 		}
 		//Save into the DB the starttime and end-time
 		//Clear the time logs
-		projectSyncConfiguration.getProjectSyncConfigurationFromDB().setSyncBlocked(new Boolean(false));
+		saveSyncBlockStatus(new Boolean(false));
 		SynchronizationManager.END_SYNC(project.getId());
 	}
 
+	private void saveSyncBlockStatus(Boolean status) {
+		try {
+			projectSyncConfiguration.getProjectSyncConfigurationFromDB().setSyncBlocked(status);
+			//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
+			EventMetaI c = EventUtils.DEFAULT_EVENT(_user,"ADMIN_EVENT occurred");
+			projectSyncConfiguration.getProjectSyncConfigurationFromDB().save(_user, false, true,c);
+		}catch(Exception e) {
+			_log.debug("Unable to save synchronization  details for project: " + _projectId + " Cause:" + e.getMessage());
+			
+		}
+	}
+	
 	private void syncProjectResources() {
 		List<Map<String,Object>> resourceRows = getProjectResourcesModifiedSinceLastSync();
 		XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(_projectId, _user, false);

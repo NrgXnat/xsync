@@ -448,9 +448,12 @@ public class RemoteSubject {
 			 final RemoteConnectionResponse connectionResponse =  remoteConnectionManager.importXar(connection, xar);
 			 stored = connectionResponse.wasSuccessful();
 			 if (stored) {
-				 final IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
-				 final String remote_id = idMapper.getRemoteId(remoteUrl,remoteProjectId,targetsubject.getLabel(), target.getLabel(), target.getXSIType());
-				 //String remote_id = connectionResponse.getResponseBody();
+				 //final IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
+				 //final String remote_id = idMapper.getRemoteId(remoteUrl,remoteProjectId,targetsubject.getLabel(), target.getLabel(), target.getXSIType());
+				 String remote_id_with_line_breaks = connectionResponse.getResponseBody();
+				 remote_id_with_line_breaks = remote_id_with_line_breaks.replaceAll("\\r\\n|\\r|\\n", "");
+				 String remote_id_parts[] = remote_id_with_line_breaks.split("/");
+				 String remote_id = remote_id_parts[remote_id_parts.length-1];
 				 if (remote_id == null) {
 					 throw new XsyncStoreException("Could not locate Accession Id for " + target.getLabel() + " in project " + remoteProjectId);
 				 }else {
@@ -558,7 +561,7 @@ public class RemoteSubject {
 //			writer.setLocation(expCachePath);
 //			writer.setRelativizePath(((XnatSubjectassessordata) target).getArchiveDirectoryName() + "/");
 			
-			target.setId("");
+			//target.setId("");
 			target.setProject(target.getProject());
 			target.setSubjectId(targetsubject.getLabel());
 			for (XnatImagescandataI scan : target.getScans_scan()) {
