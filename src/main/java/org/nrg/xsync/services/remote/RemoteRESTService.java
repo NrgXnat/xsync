@@ -13,19 +13,19 @@ import org.nrg.xsync.connection.RemoteConnectionResponse;
  *
  */
 public interface RemoteRESTService {
-	public RemoteConnectionResponse deleteProjectResource(RemoteConnection connection, String projectId, String resourceLabel);
-	public RemoteConnectionResponse importProjectResource(RemoteConnection connection, String projectId, String resourceLabel, File zipFile);
+	public RemoteConnectionResponse deleteProjectResource(RemoteConnection connection, String projectId, String resourceLabel) throws Exception;
+	public RemoteConnectionResponse importProjectResource(RemoteConnection connection, String projectId, String resourceLabel, File zipFile) throws Exception;
 	
-	public RemoteConnectionResponse importSubject(RemoteConnection connection, XnatSubjectdata subject);
-	public RemoteConnectionResponse deleteSubject(RemoteConnection connection, XnatSubjectdata subject);
-	public RemoteConnectionResponse deleteSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel);
-	public RemoteConnectionResponse importSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel, File zipFile);
+	public RemoteConnectionResponse importSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception;
+	public RemoteConnectionResponse deleteSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception;
+	public RemoteConnectionResponse deleteSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel) throws Exception;
+	public RemoteConnectionResponse importSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel, File zipFile) throws Exception;
 
-	public RemoteConnectionResponse deleteExperiment(RemoteConnection connection, XnatExperimentdata experiment);
-	public RemoteConnectionResponse importSubjectAssessor(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor );
-	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile );
+	public RemoteConnectionResponse deleteExperiment(RemoteConnection connection, XnatExperimentdata experiment) throws Exception;
+	public RemoteConnectionResponse importSubjectAssessor(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ) throws Exception;
+	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile ) throws Exception;
 
-	public RemoteConnectionResponse importXar(RemoteConnection connection,File xar);
-    public RemoteConnectionResponse getResult(RemoteConnection connection, String uri);
+	public RemoteConnectionResponse importXar(RemoteConnection connection,File xar) throws Exception;
+    public RemoteConnectionResponse getResult(RemoteConnection connection, String uri) throws Exception;
 
 }

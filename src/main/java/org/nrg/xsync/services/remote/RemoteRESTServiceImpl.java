@@ -2,13 +2,8 @@ package org.nrg.xsync.services.remote;
 
 
 import java.io.File;
-import java.io.IOException;
 
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.nrg.action.ClientException;
-import org.nrg.action.ServerException;
-import org.nrg.xdat.entities.AliasToken;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
@@ -27,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
@@ -174,7 +168,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param subject the subject
 	 * @return response
 	 */
-	public RemoteConnectionResponse importSubject(RemoteConnection connection,XnatSubjectdata subject ){
+	public RemoteConnectionResponse importSubject(RemoteConnection connection,XnatSubjectdata subject ) throws Exception{
 		int count = 0;
 		while(true) {
 		    try {
@@ -199,7 +193,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param subjectId the subject ID
 	 * @return response
 	 */
-	public RemoteConnectionResponse deleteSubject(RemoteConnection connection,XnatSubjectdata subject ){
+	public RemoteConnectionResponse deleteSubject(RemoteConnection connection,XnatSubjectdata subject ) throws Exception{
 		int count = 0;
 		while(true) {
 		    try {
@@ -226,7 +220,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @return response
 	 *  
 	 */
-	public RemoteConnectionResponse deleteExperiment(RemoteConnection connection,XnatExperimentdata experiment ) {
+	public RemoteConnectionResponse deleteExperiment(RemoteConnection connection,XnatExperimentdata experiment ) throws Exception {
 		int count = 0;
 		while(true) {
 		    try {
@@ -260,7 +254,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param subjectId the subject ID
 	 * @return response
 	 */
-	public RemoteConnectionResponse deleteSubjectResource(RemoteConnection connection,XnatSubjectdata subject, String resourceLabel ){
+	public RemoteConnectionResponse deleteSubjectResource(RemoteConnection connection,XnatSubjectdata subject, String resourceLabel ) throws Exception{
 		int count = 0;
 		while(true) {
 		    try {
@@ -286,7 +280,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param projectId the Project Accession ID
 	 * @return response
 	 */
-	public RemoteConnectionResponse deleteProjectResource(RemoteConnection connection,String projectId, String resourceLabel ){
+	public RemoteConnectionResponse deleteProjectResource(RemoteConnection connection,String projectId, String resourceLabel ) throws Exception{
 		int count = 0;
 		while(true) {
 		    try {
@@ -339,7 +333,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param projectId the Project ID
 	 * @return response
 	 */
-	public RemoteConnectionResponse importProjectResource(RemoteConnection connection,String projectId, String resourceLabel, File zipFile ){
+	public RemoteConnectionResponse importProjectResource(RemoteConnection connection,String projectId, String resourceLabel, File zipFile ) throws Exception{
 		int count = 0;
 		while(true) {
 		    try {
@@ -366,7 +360,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param subjectId the subject ID
 	 * @return response
 	 */
-	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile ){
+	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile ) throws Exception{
 		int count = 0;
 		while(true) {
 		    try {
@@ -395,7 +389,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @return true, if successful
 	 */
 	//TODO @Retryable(maxAttempts=5) update to retry when we upgrade spring to 4
-	private RemoteConnectionResponse importSubjectWithoutRetry(RemoteConnection connection,XnatSubjectdata subject ){
+	private RemoteConnectionResponse importSubjectWithoutRetry(RemoteConnection connection,XnatSubjectdata subject ) throws Exception{
 		//do we need the assessor data and how.
 		//MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();     
 		String subjectXml=subject.getItem().toXML_String();
@@ -417,7 +411,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @return response
 	 */
 	//TODO @Retryable(maxAttempts=5) update to retry when we upgrade spring to 4
-	private RemoteConnectionResponse deleteWithoutRetry(RemoteConnection connection, String uri ){
+	private RemoteConnectionResponse deleteWithoutRetry(RemoteConnection connection, String uri ) throws Exception{
 		//do we need the assessor data and how.
 		HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection));
 		ResponseEntity<String> response = getResttemplate().exchange(uri, HttpMethod.DELETE, httpEntity, String.class);
@@ -425,7 +419,6 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		logger.info(response);
 		logger.info(response.getBody());
 		logger.info(response.getHeaders().get("Set-Cookie"));
-		//return 	((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
 		return new RemoteConnectionResponse(response);
 	}
 	
@@ -439,7 +432,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param assessor the assessor
 	 * @return true, if successful
 	 */
-	public RemoteConnectionResponse importSubjectAssessor(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ){
+	public RemoteConnectionResponse importSubjectAssessor(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ) throws Exception{
 		int count = 0;
 			while(true) {
 			    try {
@@ -467,7 +460,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param assessor the assessor
 	 * @return true, if successful
 	 */
-	private RemoteConnectionResponse importSubjectAssessorWithoutRetry(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ){
+	private RemoteConnectionResponse importSubjectAssessorWithoutRetry(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ) throws Exception{
 		String assessorXml=assessor.getItem().toXML_String();
 		
 		HttpEntity<?> httpEntity = new HttpEntity<String>(assessorXml, RemoteConnectionManager.GetAuthHeaders(connection));
@@ -484,7 +477,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param uri the uri
 	 * @return ResponseEntity wrapper
 	 */
-	public RemoteConnectionResponse getResult(RemoteConnection connection,String uri){
+	public RemoteConnectionResponse getResult(RemoteConnection connection,String uri) throws Exception{
 		HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection));
 		ResponseEntity<String> response = getResttemplate().exchange(uri, HttpMethod.GET, httpEntity, String.class);
 		logger.info(response);

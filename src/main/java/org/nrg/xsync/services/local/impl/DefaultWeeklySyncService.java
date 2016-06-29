@@ -3,6 +3,8 @@ package org.nrg.xsync.services.local.impl;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xft.security.UserI;
@@ -33,8 +35,10 @@ public class DefaultWeeklySyncService  implements WeeklySyncService {
 				String userId = (String)row.get("sync_scheduled_by");
 				try {
 					UserI user = Users.getUser(userId);
+					ExecutorService es = Executors.newSingleThreadExecutor();
 					ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(""+projectId,user);  	
-			    	projectChange.sync();
+					es.submit(projectChange);
+					es.shutdown();
 				}catch(Exception e) {
 					logger.debug(e.getMessage());
 				}

@@ -1,6 +1,7 @@
 package org.nrg.xsync.manager;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -20,6 +21,8 @@ import org.nrg.xsync.manifest.SyncedItem;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.swagger.models.Path;
 
 /**
  * @author Mohana Ramaratnam
@@ -89,7 +92,22 @@ public class SynchronizationManager {
 			manifest.informUser();
 			File syncInfoFilePath = new File(GET_SYNC_FILE_PATH(projectId)+projectId+"_sync.html");
 			manifest.syncInfoToFile(syncInfoFilePath);
+			//Clean up the cache path contents
+			cleanUp(projectId);
 	    }
+	}
+	
+	private static void cleanUp(String projectId) {
+		File folder = new File(GET_SYNC_FILE_PATH(projectId));
+		//Delete all the subfolders
+		 if (folder.isDirectory() && folder.exists()) {
+	          File[] list = folder.listFiles();
+	          for (File f:list) {
+	        	  if (f.isDirectory()) {
+	        		  f.delete();
+	        	  }
+	          }
+		 }
 	}
 	
 	private static void resetSyncStartTime(String projectId) {

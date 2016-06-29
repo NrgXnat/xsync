@@ -2,8 +2,11 @@ package org.nrg.xsync.discoverer;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 import javax.mail.MessagingException;
 
@@ -36,13 +39,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.scheduling.annotation.Async;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
-public class ProjectChangeDiscoverer {
+
+public class ProjectChangeDiscoverer implements Callable<java.lang.Void>{
 	private static final Logger _log = LoggerFactory.getLogger(ProjectChangeDiscoverer.class);
 
 	//When created entry is in MetaData;
@@ -71,19 +74,23 @@ public class ProjectChangeDiscoverer {
 		return _lastSyncStartTime;
 	}
 
-
-	@Async
-	public void sync() {
+	public java.lang.Void call() throws Exception {
+		this.sync();
+		return null;
+	}
+	private synchronized  void sync() {
 		//Create export Build dir
 		//Write all the files
 		//Upload the XAR
 		//_log.debug(projectSyncConfiguration.toString());
-		System.out.println("Invoked Project Sync " + _projectId);
+
 		Boolean isSyncBlocked = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncBlocked();
 		if (isSyncBlocked != null && isSyncBlocked) {
 			try {
+				System.out.println("Sync is blocked ");
 				XDAT.getMailService().sendHtmlMessage(AdminUtils.getAuthorizerEmailId(), _user.getEmail(), "Project " + _projectId + " sync skipped ",
 						"<html><body><p>Project "+ _projectId  + " sync skipped </p></body></html>");
+				_log.debug("Sync Blocked");
 			} catch (MessagingException me) {
 				_log.error("Failed to send email.", me);
 			} catch (Exception e) {
@@ -92,6 +99,9 @@ public class ProjectChangeDiscoverer {
 			return;
 		}
 		saveSyncBlockStatus(new Boolean(true));
+		//try {
+		//	Thread.sleep(120000);
+		//}catch(Exception e){}
 		XnatProjectdata project = projectSyncConfiguration.getProject();
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 		String remoteHost = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
@@ -113,10 +123,10 @@ public class ProjectChangeDiscoverer {
 					deleteSubject((String)row.get("id"),(String)row.get("label") );
 				}else
 					syncSubject(localSubject);
-			}else {
+			}else { 
 				//If its a new addition, sync it. If its an update or a delete skip it.
 				if (localSubject == null ) {
-					 //Was it already synced? If yes, mark the status as skipped. If no, do nothing as it appears that the subject is a between sync delete case.
+					 //Was it already synced? If yes, mark the status as skipped. If not, do nothing as it appears that the subject is a between sync delete case.
 					XSyncTools xsyncTools = new XSyncTools(_user);
 					if (xsyncTools.hasBeenSyncedAlready(_projectId, localSubject.getId(),localSubject.getXSIType())) {
 					  SubjectSyncItem subjectSyncItem = new SubjectSyncItem((String)row.get("id"),(String)row.get("label"));
@@ -144,6 +154,7 @@ public class ProjectChangeDiscoverer {
 				}
 			}
 		}
+		//The subjects for whom the 
 		if (subjectsWithExperimentsMarkedAsOKRows != null && subjectsWithExperimentsMarkedAsOKRows.size() > 0) {
 			for (Map<String,Object> row:subjectsWithExperimentsMarkedAsOKRows) {
 				_log.debug("Subject " + row.get("id") + " has a  OK To Sync Experiment " + this.getLastSyncStartTime());
@@ -258,6 +269,7 @@ public class ProjectChangeDiscoverer {
 						 RemoteConnection connection = remoteConnectionHandler.getConnection(_projectId,projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 					    RemoteConnectionResponse response =  remoteConnectionManager.importProjectResource(connection,  remoteProjectId, resourceLabel, zipFile);
 						if (response.wasSuccessful()) {
+							if(zipFile.exists()) zipFile.delete();
 							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
 							resourceSyncItem.setMessage("Project resource " + resourceLabel + " updated ");
 							XSyncTools xsyncTools = new XSyncTools(_user);

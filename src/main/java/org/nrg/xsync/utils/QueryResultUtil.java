@@ -56,7 +56,6 @@ public class QueryResultUtil {
 		query += " where project=:"+ PROJECT_QUERY_PARAMETER_NAME+" and  xok.sync_status is NULL and xok.oktosync=1 and xok.authorized_time > xsi.sync_end_time  ";
 		if (!skipSubjectIdCheck)
 			query +=  " and s.id NOT in (:"+SUBJECT_IDS+") ";
-		System.out.println(query);
 		return query;
 	}
 

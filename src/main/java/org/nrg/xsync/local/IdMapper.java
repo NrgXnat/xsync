@@ -130,7 +130,7 @@ public class IdMapper {
 		return remoteId;
 	}
 	
-	public String getRemoteId(String remoteUrl, String remoteProjectId, String remoteSubjectLabel, String remoteEntityLabel,String xsiType) throws XsyncRemoteConnectionException {
+	public String getRemoteId(String remoteUrl, String remoteProjectId, String remoteSubjectLabel, String remoteEntityLabel,String xsiType) throws XsyncRemoteConnectionException, Exception{
 		 String remote_id = null;
 		 String uri = remoteUrl +"/data/archive/projects/" + remoteProjectId +"/subjects/"+ remoteSubjectLabel + "/experiments?format=json&columns=ID,label&xsiType="+xsiType;
 		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();

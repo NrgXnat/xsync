@@ -3,6 +3,7 @@ package org.nrg.xsync.configuration;
 import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -34,7 +35,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class ProjectSyncConfiguration {
 	private static final Logger _log = LoggerFactory.getLogger(ProjectSyncConfiguration.class);
-
+	private static final int  OLDYEAR = 1970;
+	
 	XnatProjectdata project;
 	SyncConfiguration syncConfiguration = null;
 	XsyncXsyncprojectdata syncProjectConfiguration;
@@ -57,30 +59,49 @@ public class ProjectSyncConfiguration {
 		if (syncProjectConfiguration == null) {
 			_log.error("Could not find sync data for project " + project.getId());
 			throw new XsyncNotConfiguredException();
-		} 
-		if (syncProjectConfiguration.getSyncinfo().getSyncStartTime() == null) {
+		}
+		boolean save = false;
 			//No sync has been done so far. Set a dummy date and then start
 			//If this is the first time that the sync is taking place
-				int year = 1970;
-			    int month = 0;
-			    int day = 1;
-			    String date = year + "/" + month + "/" + day;
-			    try {
-			        SimpleDateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
-			        Date oldDate = formatter.parse(date);
-					syncProjectConfiguration.getSyncinfo().setSyncStartTime(oldDate);
-					try {
-						//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
-						EventMetaI c = EventUtils.DEFAULT_EVENT(_user,"ADMIN_EVENT occurred");
-						syncProjectConfiguration.save(_user, false, true,c);
-					}catch(Exception e) {
-						_log.debug("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
-						
+		       try {
+		    	   Date oldDate = getAnOldDate();
+		    	   if (syncProjectConfiguration.getSyncinfo().getSyncStartTime() == null) {
+		    		   syncProjectConfiguration.getSyncinfo().setSyncStartTime(oldDate);
+		    		   save = true;
+		    	   }
+			   		if (syncProjectConfiguration.getSyncinfo().getSyncEndTime() == null) {
+						syncProjectConfiguration.getSyncinfo().setSyncEndTime(oldDate);
+						save = true;
 					}
-			    } catch (ParseException e) {
-			        _log.debug("Could not set the sync start time " + e.getMessage());
-			    }
-		}
+		       }catch(ParseException e) {
+					throw new XsyncNotConfiguredException();
+		       }
+				if (save) {
+						try {
+							//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
+							EventMetaI c = EventUtils.DEFAULT_EVENT(_user,"ADMIN_EVENT occurred");
+							syncProjectConfiguration.save(_user, false, true,c);
+						}catch(Exception e) {
+							_log.debug("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
+							throw new XsyncNotConfiguredException();
+						}
+				}
+	}
+	
+	private Date getAnOldDate() throws ParseException{
+		//int year = 1970;
+	    int month = 0;
+	    int day = 1;
+	    String date = this.OLDYEAR + "/" + month + "/" + day;
+	    Date oldDate = null;
+	    try {
+	        SimpleDateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
+	        oldDate = formatter.parse(date);
+	        return oldDate;
+	    }catch(ParseException e) {
+	        _log.debug("Could not create an old dtae " + e.getMessage());
+	        throw e;
+	    }
 	}
 
 	public XsyncXsyncprojectdata getProjectSyncConfigurationFromDB() {
@@ -265,11 +286,19 @@ public class ProjectSyncConfiguration {
 		return this.getSynchronizationConfiguration().getAuto_sync().booleanValue();
 	}
 	
+	@SuppressWarnings("deprecation")
 	public boolean isThisProjectBeingSyncedForTheFirstTime() {
 		boolean beingSyncedForTheFirstTime = false;
 		XsyncXsyncinfodata syncInfo = getProjectSyncConfigurationFromDB().getSyncinfo();
 		if (syncInfo.getSyncEndTime() == null && syncInfo.getSyncStatus() == null ) {
 			beingSyncedForTheFirstTime = true;
+		}else {
+			Object date = syncInfo.getSyncEndTime();
+			if (date != null) {
+				if ((((Date)date).getYear() == OLDYEAR) && syncInfo.getSyncStatus() == null) {
+					beingSyncedForTheFirstTime = true;		
+				}
+			}
 		}
 		return beingSyncedForTheFirstTime;
 	}
@@ -282,6 +311,7 @@ public class ProjectSyncConfiguration {
 			self += " DB SyncInfo:  " +"\n";
 			self += "Remote Project: " + syncProjectConfiguration.getSyncinfo().getRemoteProjectId() + "\n"; 
 			self += "Remote URL: " + syncProjectConfiguration.getSyncinfo().getRemoteUrl();
+			self += "Sync_Blocked: " + syncProjectConfiguration.getSyncBlocked();
 			return self;		
 		}
 

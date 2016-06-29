@@ -450,6 +450,7 @@ public class RemoteSubject {
 			 if (stored) {
 				 //final IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
 				 //final String remote_id = idMapper.getRemoteId(remoteUrl,remoteProjectId,targetsubject.getLabel(), target.getLabel(), target.getXSIType());
+				 xar.delete();
 				 String remote_id_with_line_breaks = connectionResponse.getResponseBody();
 				 remote_id_with_line_breaks = remote_id_with_line_breaks.replaceAll("\\r\\n|\\r|\\n", "");
 				 String remote_id_parts[] = remote_id_with_line_breaks.split("/");
@@ -555,11 +556,6 @@ public class RemoteSubject {
 			File outF = new File(expCachePath, "expt_" + (new Date()).getTime() + ".xml");
 
 			outF.deleteOnExit();
-//			FileOutputStream fos = new FileOutputStream(outF);
-//			SAXWriter writer = new SAXWriter(fos, true);
-//			writer.setAllowSchemaLocation(true);
-//			writer.setLocation(expCachePath);
-//			writer.setRelativizePath(((XnatSubjectassessordata) target).getArchiveDirectoryName() + "/");
 			
 			//target.setId("");
 			target.setProject(target.getProject());
@@ -573,7 +569,6 @@ public class RemoteSubject {
 			FileWriter fw = new FileWriter(outF);
 			target.toXML(fw, false);
 			fw.close();
-//			writer.write(target.getItem());
 			
 			rep.addEntry(((XnatSubjectassessordata)target).getLabel() + ".xml",outF);
 			rep.addAll(files);

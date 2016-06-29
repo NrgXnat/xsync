@@ -118,7 +118,7 @@ public class XsyncUtils {
 
 	public 	XsyncXsyncprojectdata getSyncDetailsForProject(String projectId){
 		XsyncXsyncprojectdata syncData = null; 
-		ArrayList<XsyncXsyncprojectdata> results = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/project_id",projectId,_user,true);
+		ArrayList<XsyncXsyncprojectdata> results = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/project_id",projectId,_user,false);
 		if (results != null && results.size() == 1) {
 			syncData = results.get(0);
 		}else {

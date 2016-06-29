@@ -59,44 +59,44 @@ public class RemoteConnectionManager {
 	}
 
 
-	public RemoteConnectionResponse importSubject(RemoteConnection connection, XnatSubjectdata subject) {
+	public RemoteConnectionResponse importSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception {
 		return remoteRESTService.importSubject(connection, subject);
 	}
 
-	public RemoteConnectionResponse deleteSubject(RemoteConnection connection, XnatSubjectdata subject) {
+	public RemoteConnectionResponse deleteSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception {
 		return remoteRESTService.deleteSubject(connection, subject);
 	}
 
-	public RemoteConnectionResponse deleteSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel) {
+	public RemoteConnectionResponse deleteSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel) throws Exception{
 		return remoteRESTService.deleteSubjectResource(connection, subject, resourceLabel);
 	}
-	public RemoteConnectionResponse deleteProjectResource(RemoteConnection connection, String projectId, String resourceLabel) {
+	public RemoteConnectionResponse deleteProjectResource(RemoteConnection connection, String projectId, String resourceLabel) throws Exception{
 		return remoteRESTService.deleteProjectResource(connection, projectId, resourceLabel);
 	}
-	public RemoteConnectionResponse importProjectResource(RemoteConnection connection, String projectId, String resourceLabel, File zipFile) {
+	public RemoteConnectionResponse importProjectResource(RemoteConnection connection, String projectId, String resourceLabel, File zipFile) throws Exception {
 		return remoteRESTService.importProjectResource(connection, projectId, resourceLabel, zipFile);
 	}
 
-	public RemoteConnectionResponse importSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel, File zipFile) {
+	public RemoteConnectionResponse importSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel, File zipFile) throws Exception{
 		return remoteRESTService.importSubjectResource(connection, subject, resourceLabel, zipFile);
 	}
 
-	public RemoteConnectionResponse deleteExperiment(RemoteConnection connection, XnatExperimentdata experiment) {
+	public RemoteConnectionResponse deleteExperiment(RemoteConnection connection, XnatExperimentdata experiment) throws Exception {
 		return remoteRESTService.deleteExperiment(connection, experiment);
 	}
 
-	public RemoteConnectionResponse importSubjectAssessor(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ) {
+	public RemoteConnectionResponse importSubjectAssessor(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ) throws Exception{
 		return remoteRESTService.importSubjectAssessor(connection, subject,assessor);
 	}
-	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile ) {
+	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile ) throws Exception {
 		return remoteRESTService.importSubjectAssessorResource(connection, subject,assessor, resourceLabel, zipFile);
 	}
 
-	public RemoteConnectionResponse importXar(RemoteConnection connection,File xar) {
+	public RemoteConnectionResponse importXar(RemoteConnection connection,File xar) throws Exception{
 		return remoteRESTService.importXar(connection, xar);
 	}
 
-	public RemoteConnectionResponse getResult(RemoteConnection connection,String uri) {
+	public RemoteConnectionResponse getResult(RemoteConnection connection,String uri) throws Exception{
 		return remoteRESTService.getResult(connection,uri);
 	}
 
