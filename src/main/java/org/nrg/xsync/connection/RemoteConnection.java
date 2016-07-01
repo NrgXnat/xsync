@@ -14,6 +14,7 @@ public class RemoteConnection {
 	String url;
 	String username;
 	String password;
+	String localProject;
 	boolean locked = false;
 	Date acquiredTime;
 	
@@ -40,6 +41,14 @@ public class RemoteConnection {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+	
+	public String getLocalProject() {
+		return localProject;
+	}
+
+	public void setLocalProject(String localProject) {
+		this.localProject = localProject;
 	}
 	
 	public void lock() {

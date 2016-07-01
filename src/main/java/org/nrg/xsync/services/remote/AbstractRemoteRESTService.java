@@ -1,12 +1,6 @@
 package org.nrg.xsync.services.remote;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
-import org.nrg.xsync.connection.RemoteConnection;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
@@ -15,11 +9,9 @@ import org.springframework.web.client.RestTemplate;
  *
  */
 public abstract class AbstractRemoteRESTService {
-	//@Autowired
-		//SimpleClientHttpRequestFactory requestFactory;
 
 		/** The logger. */
-		public static Logger logger = Logger.getLogger(AbstractRemoteRESTService.class);
+		public static final Logger logger = Logger.getLogger(AbstractRemoteRESTService.class);
 
 		/**
 		 * Gets the resttemplate.
@@ -27,10 +19,10 @@ public abstract class AbstractRemoteRESTService {
 		 * @return the resttemplate
 		 */
 		public RestTemplate getResttemplate(){
-			SimpleClientHttpRequestFactory requestFactory =new SimpleClientHttpRequestFactory();
-			//requestFactory.setBufferRequestBody(false);
-			return new RestTemplate(requestFactory);
+			final SimpleClientHttpRequestFactory requestFactory =new SimpleClientHttpRequestFactory();
+			final RestTemplate template = new RestTemplate(requestFactory); 
+			template.setErrorHandler(new XsyncResponseErrorHandler());
+			return template;
 		}
-
-
+		
 }

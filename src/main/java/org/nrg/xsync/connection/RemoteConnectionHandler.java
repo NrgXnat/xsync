@@ -64,6 +64,7 @@ public class RemoteConnectionHandler {
 		conn.setUrl(remoteAliasEntity.getRemote_host());
 		conn.setUsername(remoteAliasEntity.getRemote_alias_token());
 		conn.setPassword(remoteAliasEntity.getRemote_alias_password());
+		conn.setLocalProject(remoteAliasEntity.getLocal_project());
 		conn.getAcquiredDate();
 		return conn;
 	}
@@ -74,6 +75,7 @@ public class RemoteConnectionHandler {
 		conn.setUsername(remoteAliasEntity.getRemote_alias_token());
 		conn.setPassword(remoteAliasEntity.getRemote_alias_password());
 		conn.setAcquiredDate(remoteAliasEntity.getAcquiredTime());
+		conn.setLocalProject(remoteAliasEntity.getLocal_project());
 		return conn;
 	}
 	

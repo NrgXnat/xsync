@@ -16,9 +16,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-//import org.springframework.retry.annotation.EnableRetry;
-//import org.springframework.retry.annotation.Retryable;
-//import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -26,7 +23,6 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 
-// TODO: Auto-generated Javadoc
 /**
  * The Class RemoteRESTServiceImpl.
  */
@@ -95,14 +91,19 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		body.add("import-handler","XAR");
 		body.add("file", new FileSystemResource(xar));
 		
-		final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection));
 		ResponseEntity<String> response;
 		try {
-			response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
+			try {
+				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection, true));
+				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
+			} catch (XsyncHttpAuthenticationException authex) {
+				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
+				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
+			}
 			logger.info(response);
 			logger.info(response.getBody());
 			logger.info(response.getHeaders().get("Set-Cookie"));
-			boolean status= ((response.getStatusCode().value()==HttpStatus.OK.value()) || 
+			final boolean status= ((response.getStatusCode().value()==HttpStatus.OK.value()) || 
 						 (response.getStatusCode().value()==HttpStatus.CREATED.value()) ||
 						 // Let's not keep trying these error types either.  They will be thrown by invalid XAR requests, and we don't want a
 						 // long wait with retry for errors returned by the XarImporter class.
@@ -141,13 +142,18 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	private RemoteConnectionResponse importZipWithoutRetry(RemoteConnection connection,  String uri, File zip) throws RuntimeException{
 		//this.setAliasToken(connection);
 		
-		MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();     
+		final MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();     
 		body.add("field", "value");
 		if (zip != null) body.add("file", new FileSystemResource(zip));
 		
-		HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection));
-		
-		ResponseEntity<String> response = getResttemplate().exchange(uri, HttpMethod.PUT, httpEntity, String.class);
+		ResponseEntity<String> response;
+		try {
+			final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection, true));
+			response = getResttemplate().exchange(uri, HttpMethod.PUT, httpEntity, String.class);
+		} catch (XsyncHttpAuthenticationException authex) {
+			final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
+			response = getResttemplate().exchange(uri, HttpMethod.PUT, httpEntity, String.class);
+		}
 		logger.info(response);
 		logger.info(response.getBody());
 		logger.info(response.getHeaders().get("Set-Cookie"));
@@ -392,11 +398,16 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	private RemoteConnectionResponse importSubjectWithoutRetry(RemoteConnection connection,XnatSubjectdata subject ) throws Exception{
 		//do we need the assessor data and how.
 		//MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();     
-		String subjectXml=subject.getItem().toXML_String();
+		final String subjectXml=subject.getItem().toXML_String();
 		
-		HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection));
-		
-		ResponseEntity<String> response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+		ResponseEntity<String> response;
+		try {
+			final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
+			response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+		} catch (XsyncHttpAuthenticationException authex) {
+			final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
+			response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+		}
 		
 		logger.info(response);
 		//return 	((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
@@ -413,9 +424,14 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	//TODO @Retryable(maxAttempts=5) update to retry when we upgrade spring to 4
 	private RemoteConnectionResponse deleteWithoutRetry(RemoteConnection connection, String uri ) throws Exception{
 		//do we need the assessor data and how.
-		HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection));
-		ResponseEntity<String> response = getResttemplate().exchange(uri, HttpMethod.DELETE, httpEntity, String.class);
-		
+		ResponseEntity<String> response;
+		try {
+			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, true));
+			response = getResttemplate().exchange(uri, HttpMethod.DELETE, httpEntity, String.class);
+		} catch (XsyncHttpAuthenticationException authex) {
+			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, false, true));
+			response = getResttemplate().exchange(uri, HttpMethod.DELETE, httpEntity, String.class);
+		}
 		logger.info(response);
 		logger.info(response.getBody());
 		logger.info(response.getHeaders().get("Set-Cookie"));
@@ -463,9 +479,18 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	private RemoteConnectionResponse importSubjectAssessorWithoutRetry(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ) throws Exception{
 		String assessorXml=assessor.getItem().toXML_String();
 		
-		HttpEntity<?> httpEntity = new HttpEntity<String>(assessorXml, RemoteConnectionManager.GetAuthHeaders(connection));
-		RestTemplate restTemplate = new RestTemplate();
-		ResponseEntity<String> response = restTemplate.exchange(connection.getUrl()+"/data/archive/projects/"+assessor.getProject()+"/subjects/"+subject.getLabel()+"/experiments/"+assessor.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+		ResponseEntity<String> response;
+		try {
+			final HttpEntity<?> httpEntity = new HttpEntity<String>(assessorXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
+			final RestTemplate restTemplate = new RestTemplate();
+			restTemplate.setErrorHandler(new XsyncResponseErrorHandler());
+			response = restTemplate.exchange(connection.getUrl()+"/data/archive/projects/"+assessor.getProject()+"/subjects/"+subject.getLabel()+"/experiments/"+assessor.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+		} catch (XsyncHttpAuthenticationException e) {
+			final HttpEntity<?> httpEntity = new HttpEntity<String>(assessorXml, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
+			final RestTemplate restTemplate = new RestTemplate();
+			restTemplate.setErrorHandler(new XsyncResponseErrorHandler());
+			response = restTemplate.exchange(connection.getUrl()+"/data/archive/projects/"+assessor.getProject()+"/subjects/"+subject.getLabel()+"/experiments/"+assessor.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+		} 
 		//return  ((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
 		return new RemoteConnectionResponse(response);
 	}
@@ -478,13 +503,18 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @return ResponseEntity wrapper
 	 */
 	public RemoteConnectionResponse getResult(RemoteConnection connection,String uri) throws Exception{
-		HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection));
-		ResponseEntity<String> response = getResttemplate().exchange(uri, HttpMethod.GET, httpEntity, String.class);
+		ResponseEntity<String> response;
+		try {
+			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, true));
+			response = getResttemplate().exchange(uri, HttpMethod.GET, httpEntity, String.class);
+		} catch (XsyncHttpAuthenticationException e) {
+			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, false, true));
+			response = getResttemplate().exchange(uri, HttpMethod.GET, httpEntity, String.class);
+		}
 		logger.info(response);
 		logger.info(response.getBody());
 		logger.info(response.getHeaders().get("Set-Cookie"));
 		return new RemoteConnectionResponse(response);
 	}	
 		
-	
 }
