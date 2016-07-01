@@ -165,7 +165,6 @@ dependencies {
         exclude group: '*'
     }
     compile "org.nrg.xdat:tasks:${vXnat}"
-    compile "org.nrg.xdat:beans:${vXnat}"
 
     compile("org.nrg.xdat:core:${vXnat}") {
         exclude group: '*'

@@ -1,87 +1,82 @@
 package org.nrg.xsync.services.local.impl;
 
-import java.util.Collection;
-import java.util.Date;
-import java.util.Hashtable;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.nrg.xdat.entities.AliasToken;
+import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
-import org.nrg.xsync.connection.RemoteConnectionManager;
+import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
+import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.nrg.xsync.services.local.XsyncAliasRefreshService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.nrg.xsync.services.remote.RemoteRESTService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+
 
 /**
- * @author Mohana Ramaratnam
+ * The Class DefaultXsyncAliasRefresher.
  *
+ * @author Mohana Ramaratnam, Mike Hodge
  */
 @Service
 public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
-	private static final long TWENTYTHREE_HOURS = 23; 
+	
+	/** The logger. */
 	public static Logger logger = Logger.getLogger(DefaultXsyncAliasRefresher.class);
+	
+	/** The _alias service. */
+	@Autowired
+	RemoteAliasService _aliasService;
+	
+	/** The _rest service. */
+	@Autowired
+	RemoteRESTService _restService;
+	
 
 	/* (non-Javadoc)
 	 * @see java.lang.Runnable#run()
 	 */
-	
 	@Override
 	public void refreshToken() {
 		//Get all the connection information from the RemoteConnectionManager
 		//For each of the connections
-		//If they are older than the runtime of current run, refresh them
 		//Acquire the lock before you refresh them
 		//Hashtable<String,RemoteConnection> projectConnections = RemoteConnectionManager.GetAllConnections();
-		 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
-
-		List<RemoteAliasEntity> projectConnections = remoteConnectionHandler.getAllConnections();
-		Date now = new Date();
-		if (projectConnections == null || projectConnections.size()<1) {
+		final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+		final List<RemoteAliasEntity> remoteAliasEntities = _aliasService.getAll();
+		if (remoteAliasEntities == null || remoteAliasEntities.size()<1) {
 			return;
 		}
-		for (RemoteAliasEntity connEntity:projectConnections) {
-			RemoteConnection conn = remoteConnectionHandler.toRemoteConnection(connEntity);
-			Date connAcquiredTime = conn.getAcquiredDate();
-			long hours = getDifference(connAcquiredTime,now); 
-			if (hours > TWENTYTHREE_HOURS) {
-				logger.info("Refreshing Alias for " + conn.getUrl());
-				conn.lock();
-				//Refresh the token
-				SimpleClientHttpRequestFactory requestFactory =new SimpleClientHttpRequestFactory();
-				RestTemplate template = new RestTemplate(requestFactory);
-				ResponseEntity<String> response = template.getForEntity(conn.getUrl()+"/data/services/tokens/issue/"+conn.getUsername()+"/"+conn.getPassword(),String.class);
-				try {
-					AliasToken aliasToken = (AliasToken) new ObjectMapper().readValue(response.getBody(), AliasToken.class);	
-					conn.setUsername(aliasToken.getAlias());
-					conn.setPassword(aliasToken.getSecret());
-				}catch(Exception e) {
-					logger.debug(e);
+		for (final RemoteAliasEntity connEntity:remoteAliasEntities) {
+			final RemoteConnection conn = remoteConnectionHandler.toRemoteConnection(connEntity);
+			logger.info("Refreshing Alias for " + conn.getUrl());
+			conn.lock();
+			//Refresh the token
+			try {
+				final RemoteConnectionResponse remoteResponse = _restService.getResult(conn,
+						conn.getUrl() + "/data/services/tokens/issue/" + conn.getUsername() + "/" + conn.getPassword());
+				if (!remoteResponse.wasSuccessful()) {
+					AdminUtils.sendAdminEmail("XSync token refresh failure", "XSync token refresh failure for local project  " +
+							connEntity.getLocal_project() + ", host " + conn.getUrl() + 
+							".  New credentials may need to be provided.  (HTTP Status=" + remoteResponse.getResponse().getStatusCode() + ")");
 				}
-				conn.unlock();
+				final AliasToken aliasToken = (AliasToken) new ObjectMapper().readValue(remoteResponse.getResponse().getBody(), AliasToken.class);	
+				conn.setUsername(aliasToken.getAlias());
+				conn.setPassword(aliasToken.getSecret());
+				connEntity.setRemote_alias_token(aliasToken.getAlias());
+				connEntity.setRemote_alias_password(aliasToken.getSecret());
+				_aliasService.update(connEntity);
+			}catch(Exception e) {
+				logger.error(e);
+				AdminUtils.sendAdminEmail("XSync token refresh failure", "XSync token refresh failure for local project  " +
+						connEntity.getLocal_project() + ", host " + conn.getUrl() + 
+						".  New credentials may need to be provided.  (Exception=" + e.toString() + ")");
 			}
+			conn.unlock();
 		}
 	}
-	
-	private long getDifference(Date date1, Date date2) {
-		long diffHours = 25;
-		try {
-			//in milliseconds
-			Long diff = date2.getTime() - date1.getTime();
-
-			//long diffSeconds = diff / 1000 % 60;
-			//long diffMinutes = diff / (60 * 1000) % 60;
-			diffHours = diff / (60 * 60 * 1000) % 24;
-			//long diffDays = diff / (24 * 60 * 60 * 1000);
-		} catch (Exception e) {
-			logger.debug(e);
-		}
-		return diffHours;
-	}
-
 }

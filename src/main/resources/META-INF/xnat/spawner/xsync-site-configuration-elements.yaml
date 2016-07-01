@@ -1,0 +1,36 @@
+############################################
+####  Root Xsync Spawner Config Object  ####
+############################################
+xsyncConfigPage:
+    kind: tabs
+    name: xsyncConfigPage
+    label: Xsync Configuration
+    meta:
+        tabGroups:
+            siteConfig: XSync Site Level Configuration
+    contents:
+        remoteTokenRefresh:
+            kind: tab
+            name: remoteTokenRefresh
+            label: Remote Site Token Refresh
+            group: siteConfig
+            active: true
+            contents:
+                remoteTokenRefreshPanel:
+                    kind: panel.form
+                    name: remoteTokenRefreshPanel
+                    label: Remote Token Refresh Interval
+                    method: POST
+                    action: /xapi/xsyncSitePreferences # url to save data
+                    contentType: json # omit this for standard form submission
+                    load: /xapi/xsyncSitePreferences   # url to load data - uses GET and expects JSON data to be returned
+                    refresh: /xapi/xsyncSitePreferences   # url to load data - uses GET and expects JSON data to be returned
+                    contents:
+                        tokenRefreshInterval:
+                            kind: panel.input.text
+                            name: tokenRefreshInterval
+                            label: Token Refresh Interval
+                            description: Interval for running token refresh service specified in hours or minutes.  Must be 5 minutes or greater.  Uses
+                                 <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
+                                 <b>NOTE&#58;  This setting requires Tomcat restart to take effect.</b>
+

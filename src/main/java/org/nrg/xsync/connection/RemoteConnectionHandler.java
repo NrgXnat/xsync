@@ -19,14 +19,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  */
 public class RemoteConnectionHandler {
 
-	
-	
-	public List<RemoteAliasEntity> getAllConnections() {
-		List<RemoteAliasEntity> connections = new ArrayList<RemoteAliasEntity>();
-		
-		return connections;
-	}
-	
 	private List<RemoteAliasEntity> rowsToObject(List<Map<String,Object>> rows) {
 		List<RemoteAliasEntity> rowsAsList = new ArrayList<RemoteAliasEntity>();
 		for (Map<String,Object> row:rows) {
@@ -102,6 +94,5 @@ public class RemoteConnectionHandler {
 		//Hopefully by now the aliasToken has been acquired
 		return conn;
 	}
-
 
 }
