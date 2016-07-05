@@ -85,26 +85,6 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 			ObjectMapper objectMapper = new ObjectMapper();
 			synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
 	        projectId = synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText();
-	        JsonNode remote_token_node = synchronizationJson.get(USER_REMOTE_TOKEN);
-	        JsonNode remote_secret_node = synchronizationJson.get(USER_REMOTE_SECRET);
-	        
-	        if (remote_token_node == null || remote_secret_node == null) {
-				//Status.CLIENT_ERROR_BAD_REQUEST,"Alias Token or Alias Secret not passed");
-	        	return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-	        }
-	        String remote_token = synchronizationJson.get(USER_REMOTE_TOKEN).asText();
-	    	String remote_secret = synchronizationJson.get(USER_REMOTE_SECRET).asText();
-	    	String remote_host = synchronizationJson.get(REMOTE_HOST_URL).asText();
-	    	RemoteAliasEntity remoteAlias = _remoteAliasService.getRemoteAliasEntity(projectId, remote_host);
-	    	if (remoteAlias != null) {
-	    		_remoteAliasService.delete(remoteAlias);
-	    	}
-	    	RemoteAliasEntity remoteAliasEntity = new RemoteAliasEntity();
-	    	remoteAliasEntity.setLocal_project(projectId);
-	    	remoteAliasEntity.setRemote_alias_token(remote_token);
-	    	remoteAliasEntity.setRemote_alias_password(remote_secret);
-	    	remoteAliasEntity.setRemote_host(remote_host);
-    		_remoteAliasService.create(remoteAliasEntity);
 	    	
 	        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
             if (project == null) {
