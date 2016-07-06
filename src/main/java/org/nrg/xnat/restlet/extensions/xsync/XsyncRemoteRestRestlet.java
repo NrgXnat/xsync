@@ -7,6 +7,7 @@ import java.net.URL;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
 import org.nrg.xnat.restlet.XnatRestlet;
 import org.nrg.xnat.restlet.resources.SecureResource;
 import org.restlet.Context;
@@ -31,6 +32,7 @@ public class XsyncRemoteRestRestlet extends SecureResource {
 	static final String JSON_METHOD = "method"; 
 	static final String JSON_USER = "user"; 
 	static final String JSON_PASSWORD = "password"; 
+	static final Logger logger = Logger.getLogger(XsyncRemoteRestRestlet.class);
 	
 	public XsyncRemoteRestRestlet(Context context, Request request, Response response) throws ResourceException {
 		super(context, request, response);
@@ -64,8 +66,12 @@ public class XsyncRemoteRestRestlet extends SecureResource {
             final String results = IOUtils.toString(content, "UTF-8");
             content.close();
 			getResponse().setEntity(new StringRepresentation(results));
+			
 		}catch (Exception  exception) {
+			
+			logger.error("XSync remote REST exception:  " + exception.getMessage());
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, exception, exception.getMessage());
+			
 		}
 	}
 	
