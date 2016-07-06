@@ -33,7 +33,7 @@ XSYNC.credentialsconfig.initialize = function() {
 }
 
 XSYNC.credentialsconfig.beginConfig = function() {
-	$("#xsync-credentials-div").html('<input type="button" id="xsync-begin-credentials" value="Enter Remote Site Credentials">');
+	$("#xsync-credentials-div").html('<input type="button" id="xsync-begin-credentials" value="Enter or Update Remote Site Credentials">');
 	$("#xsync-begin-credentials").click(function() { XSYNC.credentialsconfig.enterCredentials(); });
 }
 
@@ -542,6 +542,13 @@ XSYNC.xsyncconfig.removeResource = function(ele) {
 
 XSYNC.xsyncconfig.submitConfig = function() {
 
+	if (XSYNC.xsyncconfig.checkCredentials()) {
+
+		XSYNC.xsyncconfig.saveConfig();
+		return;
+
+	}
+
 	var modalContent =
 		"<div>" +
 			'<div class = "credentials-header-div credentials-div">' +
@@ -563,7 +570,7 @@ XSYNC.xsyncconfig.submitConfig = function() {
 		ok: 'show',
 		okLabel: 'Continue',
 		okAction: function(modl){
-					XSYNC.xsyncconfig.continueConfig();
+					XSYNC.xsyncconfig.updateCredentialsAndSaveConfig();
 					modl.close();
 
 				 },
@@ -575,6 +582,29 @@ XSYNC.xsyncconfig.submitConfig = function() {
 	};
 	xmodal.open(pModalOpts);
 	$('#xsync-credentials-username').focus();
+}
+
+XSYNC.xsyncconfig.checkCredentials = function() {
+
+		this.checkCredentialsResult = false;
+		var formData = {
+			host: $("#xsync-config-remote-url").val(),
+			localProject: XNAT.data.context.project,
+		};
+		var saveCredentials = $.ajax({
+			type : "POST",
+	 		url: serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '/checkRemoteCredentials?XNAT_CSRF=' + window.csrfToken,
+			cache: false,
+			async: false,
+			dataType: 'text',
+			data:  JSON.stringify(formData),
+			contentType: "application/json; charset=utf-8"
+		 });
+		saveCredentials.done( function( data, textStatus, jqXHR ) {
+			XSYNC.xsyncconfig.checkCredentialsResult = true;
+		});
+		return this.checkCredentialsResult;
+
 }
 
 XSYNC.xsyncconfig.submitDICOMAnonimization = function() {
@@ -627,7 +657,28 @@ XSYNC.xsyncconfig.uploadDicomAnonymization = function() {
 			});
 }
 
-XSYNC.xsyncconfig.continueConfig = function() {
+XSYNC.xsyncconfig.saveConfig = function() {
+	var newJson = XSYNC.xsyncconfig.constructNewJson();
+	var xsyncConfigAjax = $.ajax({
+		type : "POST",
+ 		url:serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '?XNAT_CSRF=' + window.csrfToken,
+		cache: false,
+		async: true,
+		data:  JSON.stringify(newJson),
+		contentType: "application/json; charset=utf-8"
+	 });
+	xsyncConfigAjax.done( function( data, textStatus, jqXHR ) {
+		$("#xsync-annon_add-config").attr("disabled", false);
+		xmodal.message('Saved','The XSync configuration has been saved');
+	});
+	xsyncConfigAjax.fail( function( data, textStatus, error ) {
+		console.log(newJson);
+		console.log(JSON.stringify(newJson));
+		xmodal.message('Error','ERROR:  Configuration was not successfully saved (' + textStatus + ')');
+	});
+}
+
+XSYNC.xsyncconfig.updateCredentialsAndSaveConfig = function() {
 
 	var credHost = $("#xsync-config-remote-url").val();
 	var credUser = $("#xsync-credentials-username").val();
@@ -647,8 +698,6 @@ XSYNC.xsyncconfig.continueConfig = function() {
 
 		if (typeof data !== 'undefined' && typeof data.secret !== 'undefined') {
 
-			var newJson = XSYNC.xsyncconfig.constructNewJson(data);
-
 			var formData = {
 				host: $("#xsync-config-remote-url").val(),
 				localProject: XNAT.data.context.project,
@@ -665,23 +714,7 @@ XSYNC.xsyncconfig.continueConfig = function() {
 				contentType: "application/json; charset=utf-8"
 			 });
 			saveCredentials.done( function( data, textStatus, jqXHR ) {
-					var xsyncConfigAjax = $.ajax({
-						type : "POST",
-				 		url:serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '?XNAT_CSRF=' + window.csrfToken,
-						cache: false,
-						async: true,
-						data:  JSON.stringify(newJson),
-						contentType: "application/json; charset=utf-8"
-					 });
-					xsyncConfigAjax.done( function( data, textStatus, jqXHR ) {
-						$("#xsync-annon_add-config").attr("disabled", false);
-						xmodal.message('Saved','The XSync configuration has been saved');
-					});
-					xsyncConfigAjax.fail( function( data, textStatus, error ) {
-						console.log(newJson);
-						console.log(JSON.stringify(newJson));
-						xmodal.message('Error','ERROR:  Configuration was not successfully saved (' + textStatus + ')');
-					});
+					XSYNC.xsyncconfig.saveConfig();
 			});
 			saveCredentials.fail( function( data, textStatus, jqXHR ) {
 							xmodal.message('Error','Could not save credentials for remote server ' + $("#xsync-config-remote-url").val());
@@ -699,7 +732,7 @@ XSYNC.xsyncconfig.continueConfig = function() {
 
 }
 
-XSYNC.xsyncconfig.constructNewJson = function(data) {
+XSYNC.xsyncconfig.constructNewJson = function() {
 	var newJson = {};
 	newJson.project = XSYNC.xsyncconfig.configuration.project;
 	newJson.sync_frequency = $("#xsync-config-sync-frequency").val();
