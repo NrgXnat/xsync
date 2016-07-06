@@ -62,11 +62,11 @@
 			<xs:element name="syncInfo" type="xsync:xsyncInfoData" minOccurs="1" maxOccurs="1">
 			</xs:element>
     	</xs:sequence>
-    	<xs:attribute name="project_id" type="xs:string">
+    	<xs:attribute name="source_project_id" type="xs:string">
   			<xs:annotation>
 				<xs:appinfo>
 					<xdat:field baseElement="xnat:projectData" baseCol="id" uniqueComposite="PROJ_SYNC">
-						<xdat:sqlField name="project_id"/>
+						<xdat:sqlField name="source_project_id"/>
 					</xdat:field>
 				</xs:appinfo>
 			</xs:annotation>
@@ -82,7 +82,12 @@
     	</xs:attribute>
     	<xs:attribute name="sync_blocked" type="xs:boolean">
     				<xs:documentation>
-    					If set to true the project sync will be skipped. This may be required in case there is a configuration change.
+    					If set to true the project sync will be skipped. This may be required in case there is sync still running while another sync is attempted.
+    				</xs:documentation>
+    	</xs:attribute>
+    	<xs:attribute name="sync_enabled" type="xs:boolean">
+    				<xs:documentation>
+    					If set to true the project sync will take place. Project owner will set this option.
     				</xs:documentation>
     	</xs:attribute>
     </xs:complexType>
@@ -100,7 +105,7 @@
     				</xs:restriction>
     			</xs:simpleType>
     		</xs:element>
-    		<xs:element name="auto_sync" type="xs:boolean">
+    		<xs:element name="sync_new_only" type="xs:boolean">
     			<xs:annotation>
     				<xs:documentation>
     					If set to true the project sync function will
@@ -142,12 +147,12 @@
     <xs:element name="XsyncRemoteMapData" type="xsync:xsyncRemoteMapData"></xs:element>
     <xs:complexType name="xsyncRemoteMapData">
     	<xs:sequence>
-    		<xs:element name="project_id" type="xs:string" maxOccurs="1"
+    		<xs:element name="source_project_id" type="xs:string" maxOccurs="1"
     			minOccurs="1">
   			<xs:annotation>
 				<xs:appinfo>
-					<xdat:field baseElement="xsync:xsyncProjectData" baseCol="project_id">
-						<xdat:sqlField name="project_id"/>
+					<xdat:field baseElement="xsync:xsyncProjectData" baseCol="source_project_id">
+						<xdat:sqlField name="source_project_id"/>
 					</xdat:field>
 				</xs:appinfo>
 			</xs:annotation>

@@ -1,19 +1,33 @@
 package org.nrg.xsync.utils;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.nrg.xdat.XDAT;
-import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xdat.om.XsyncXsyncremotemapdata;
+import org.nrg.xft.XFTItem;
+import org.nrg.xft.event.EventDetails;
+import org.nrg.xft.event.EventMetaI;
+import org.nrg.xft.event.EventUtils;
+import org.nrg.xft.event.persist.PersistentWorkflowI;
+import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xft.utils.SaveItemHelper;
+import org.nrg.xft.utils.ValidationUtils.ValidationResults;
+import org.nrg.xnat.utils.WorkflowUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Mohana Ramaratnam
@@ -34,6 +48,15 @@ public class XsyncUtils {
 	public static final String SYNC_STATUS_CONNECTION_FAILED = "CONNECTION FAILED";
 	public static final String SYNC_STATUS_DELETED = "DELETED";
 	
+	public static final String SYNC_TYPE_ALL = "all";
+	public static final String SYNC_TYPE_NONE = "none";
+	public static final String SYNC_TYPE_INCLUDE = "include";
+	public static final String SYNC_TYPE_EXCLUDE = "exclude";
+
+	public static final String PROJECT_ELEMENT_JSON_NAME = "source_project_id"; 
+	public static final String REMOTE_HOST_URL = "remote_url";
+
+	
 	
 	UserI _user;
 	private static final Logger _log = LoggerFactory.getLogger(XsyncUtils.class);
@@ -41,6 +64,48 @@ public class XsyncUtils {
 	
 	public XsyncUtils(UserI user) {
 		_user = user;
+	}
+	
+	public synchronized void loadConfigurationToDB(File jsonFile) throws Exception{
+		ObjectMapper objectMapper = new ObjectMapper();
+		JsonNode synchronizationJson = objectMapper.readValue(jsonFile, JsonNode.class);
+		loadConfigurationToDB(synchronizationJson);
+		return;
+	}	
+	
+	public synchronized  void loadConfigurationToDB(JsonNode synchronizationJson) throws Exception{
+        String sourceProjectId = synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText();
+		XFTItem item = XFTItem.NewItem(XsyncXsyncprojectdata.SCHEMA_ELEMENT_NAME, _user);
+        XsyncXsyncprojectdata syncProject = new XsyncXsyncprojectdata(item);
+        XsyncXsyncprojectdata existing = null;
+        ArrayList<XsyncXsyncprojectdata> list = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField(XsyncXsyncprojectdata.SCHEMA_ELEMENT_NAME+"/source_project_id", sourceProjectId, _user, true);
+        if (list != null && list.size() > 0) {
+        	existing = list.get(0);
+        	syncProject.setItem(existing.getItem());
+        }
+		syncProject.setSourceProjectId(synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText());
+		syncProject.setSyncEnabled(new Boolean(synchronizationJson.get("enabled").asBoolean()));
+		item = XFTItem.NewItem(XsyncXsyncinfodata.SCHEMA_ELEMENT_NAME, _user);
+		XsyncXsyncinfodata syncinfo = new XsyncXsyncinfodata(item);
+        syncinfo.setSyncFrequency(synchronizationJson.get("sync_frequency").asText());
+		syncinfo.setSyncNewOnly(new Boolean(synchronizationJson.get("sync_new_only").asBoolean()));
+		syncinfo.setIdentifiers(synchronizationJson.get("identifiers").asText());
+		syncinfo.setRemoteUrl(synchronizationJson.get("remote_url").asText());
+		syncinfo.setRemoteProjectId(synchronizationJson.get("remote_project_id").asText());
+		syncProject.setSyncinfo(syncinfo.getItem());
+        final ValidationResults vr = syncProject.validate();
+        if (vr != null && !vr.isValid()) {
+        	throw new Exception(sourceProjectId + " Xsync Setup failed. Invalid JSON: " + vr.isValid());
+        }
+        String msg = (existing==null)?"Added Synchronization":"Updated Synchronization";
+        EventMetaI c = EventUtils.DEFAULT_EVENT(_user, msg);
+        
+        if (SaveItemHelper.authorizedSave(syncProject, _user, false, true, c)) {
+            EventDetails details = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,  EventUtils.getAddModifyAction(syncProject.getXSIType(), (existing == null)), "", "");
+        	PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(_user, syncProject.getXSIType(),syncProject.getXsyncXsyncprojectdataId()+"",syncProject.getSourceProjectId(), details);
+        	WorkflowUtils.complete(wrk, c);
+        }
+        return;
 	}
 	
 	public List<XsyncXsyncprojectdata> getAllProjectsSetToBeSynced() {
@@ -118,7 +183,7 @@ public class XsyncUtils {
 
 	public 	XsyncXsyncprojectdata getSyncDetailsForProject(String projectId){
 		XsyncXsyncprojectdata syncData = null; 
-		ArrayList<XsyncXsyncprojectdata> results = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/project_id",projectId,_user,false);
+		ArrayList<XsyncXsyncprojectdata> results = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/source_project_id",projectId,_user,false);
 		if (results != null && results.size() == 1) {
 			syncData = results.get(0);
 		}else {

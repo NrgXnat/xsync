@@ -3,13 +3,15 @@ package org.nrg.xsync.local;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatReconstructedimagedataI;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xft.exception.FieldNotFoundException;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
-import org.nrg.xsync.configuration.json.ImagingScanConfiguration;
-import org.nrg.xsync.configuration.json.ImagingSessionConfiguration;
+import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionAdvancedOption;
+import org.nrg.xsync.configuration.json.SyncConfigurationScanTypes;
+import org.nrg.xsync.utils.XsyncUtils;
 
 /**
  * @author Mohana Ramaratnam
@@ -33,13 +35,18 @@ public class ReconstructionFilter {
 
 
 	public void filter(XnatExperimentdata exp, ProjectSyncConfiguration projectSyncConfiguration) throws Exception {
-		ImagingSessionConfiguration session = projectSyncConfiguration.getImagingSessionConfiguration(exp.getXSIType());
-	    List<ImagingScanConfiguration> scanConfigurations = session.getScans();
-	    List<String> scanTypes = new ArrayList<String>();
-	    for (ImagingScanConfiguration scan : scanConfigurations) {
-	    	scanTypes.add(scan.getType());
-	    }
-	    filterRecons(exp,scanTypes);
+		if (exp instanceof XnatImagesessiondata) {
+			SyncConfigurationImagingSessionAdvancedOption sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
+			List<XnatImagescandataI> scans = ((XnatImagesessiondata) exp).getScans_scan();
+			ArrayList<String> scanTypes = new ArrayList<String>();
+			for (int i = 0; i < scans.size(); i++) {
+				if (sessionOption.isAllowedToSyncScan(scans.get(i).getType())) {
+					scanTypes.add(scans.get(i).getType());
+				}
+			}
+
+			filterRecons(exp,scanTypes);
+		}
 	}
 	
 	/**

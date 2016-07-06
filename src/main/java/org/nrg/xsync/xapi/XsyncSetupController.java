@@ -5,7 +5,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.nrg.framework.annotations.XapiRestController;
@@ -13,10 +12,8 @@ import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatResourcecatalog;
-import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xdat.rest.AbstractXnatRestApi;
-import org.nrg.xft.XFTItem;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
@@ -25,16 +22,13 @@ import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xft.utils.FileUtils;
 import org.nrg.xft.utils.SaveItemHelper;
-import org.nrg.xft.utils.ValidationUtils.ValidationResults;
 import org.nrg.xnat.helpers.uri.URIManager;
 import org.nrg.xnat.helpers.uri.URIManager.ArchiveItemURI;
 import org.nrg.xnat.helpers.uri.UriParserUtils;
 import org.nrg.xnat.utils.ResourceUtils;
-import org.nrg.xnat.utils.WorkflowUtils;
-import org.nrg.xsync.manager.SynchronizationManager;
-import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.nrg.xsync.utils.XsyncFileUtils;
+import org.nrg.xsync.utils.XsyncUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -64,10 +58,6 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 	XsyncXsyncprojectdata existing = null;
 	String projectId = null;
 	JsonNode synchronizationJson = null;
-	static final String PROJECT_ELEMENT_JSON_NAME = "project"; 
-	static final String REMOTE_HOST_URL = "remote_url";
-	static final String USER_REMOTE_TOKEN = "remote_token"; 
-	static final String USER_REMOTE_SECRET = "remote_secret"; 
 
 	@Autowired
 	private RemoteAliasService _remoteAliasService;
@@ -84,7 +74,7 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 			//Store the JSON to the Synchronization table
 			ObjectMapper objectMapper = new ObjectMapper();
 			synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
-	        projectId = synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText();
+	        projectId = synchronizationJson.get(XsyncUtils.PROJECT_ELEMENT_JSON_NAME).asText();
 	    	
 	        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
             if (project == null) {
@@ -93,28 +83,9 @@ public class XsyncSetupController extends AbstractXnatRestApi {
             }else {
             	projectId = project.getId();
             }
-            
-			XFTItem item = XFTItem.NewItem(XsyncXsyncprojectdata.SCHEMA_ELEMENT_NAME, user);
-            XsyncXsyncprojectdata syncProject = new XsyncXsyncprojectdata(item);
-
-            ArrayList<XsyncXsyncprojectdata> list = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField(XsyncXsyncprojectdata.SCHEMA_ELEMENT_NAME+"/project_id", projectId, user, true);
-            if (list != null && list.size() > 0) {
-            	existing = list.get(0);
-            	syncProject.setItem(existing.getItem());
-            }
-            populate(syncProject,synchronizationJson);
+            XsyncUtils xsyncUtils = new XsyncUtils(user);
+            xsyncUtils.loadConfigurationToDB(synchronizationJson);
             save_resource(project,jsonbody);
-            final ValidationResults vr = syncProject.validate();
-            if (vr != null && !vr.isValid()) {
-	        	return new ResponseEntity<>(projectId + " Xsync Setup failed. Invalid JSON: " + vr.isValid(),HttpStatus.BAD_REQUEST);
-            }
-            EventMetaI c = EventUtils.DEFAULT_EVENT(user, "Added Synchronization");
-            
-            if (SaveItemHelper.authorizedSave(syncProject, user, false, true, c)) {
-                EventDetails details = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,  EventUtils.getAddModifyAction(syncProject.getXSIType(), (existing == null)), "", "");
-            	PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, syncProject.getXSIType(),syncProject.getXsyncXsyncprojectdataId()+"",syncProject.getProjectId(), details);
-            	WorkflowUtils.complete(wrk, c);
-            }
         	return new ResponseEntity<>(projectId + " Xsync Setup complete", (existing == null) ? HttpStatus.CREATED : HttpStatus.OK);
 
 		}catch (Exception  exception) {
@@ -180,16 +151,12 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 		}else {
 			//Existing file possibly, update it
 			//Possible Configuration Change
-			//Implies all data must be resynced - reset the last sync time
-			//If a sync operation is running - wait for it to complete.
-			//After its done - reset the last sync time.
 			String jsonPath = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
 			try {
 				Files.write( Paths.get(jsonPath), xsyncCfgJSON.getBytes());
 			}catch(IOException e) {
 				throw e;
 			}
-			SynchronizationManager.notifySyncConfigurationChange(projectId);
 		}
 		refreshCatalog(user);
 	}
@@ -242,29 +209,6 @@ public class XsyncSetupController extends AbstractXnatRestApi {
 	}
 	
 	
-	private void populate(XsyncXsyncprojectdata syncProject,JsonNode synchronizationJson) throws Exception {
-		//Store
-		/*{
-			  project:"",
-			  sync_frequency:"",
-			  need_flag_to_synchronize:"",
-			  auto_sync:"",
-			  apply_anonymization:"",
-			  identifiers:"",
-			  remote_url:""
-			}*/
-		UserI user = getSessionUser();
-
-		syncProject.setProjectId(synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText());
-        XFTItem item = XFTItem.NewItem(XsyncXsyncinfodata.SCHEMA_ELEMENT_NAME, user);
-        XsyncXsyncinfodata syncinfo = new XsyncXsyncinfodata(item);
-        syncinfo.setSyncFrequency(synchronizationJson.get("sync_frequency").asText());
-		syncinfo.setAutoSync(new Boolean(synchronizationJson.get("auto_sync").asBoolean()));
-		syncinfo.setIdentifiers(synchronizationJson.get("identifiers").asText());
-		syncinfo.setRemoteUrl(synchronizationJson.get("remote_url").asText());
-		syncinfo.setRemoteProjectId(synchronizationJson.get("remote_project_id").asText());
-		syncProject.setSyncinfo(syncinfo.getItem());
-	}
 
 
 }

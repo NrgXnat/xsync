@@ -26,20 +26,23 @@ public class QueryResultUtil {
 	
 	public static final String DELETE_STATUS = "deleted" ;
 	public static final String ACTIVE_STATUS = "active" ;
+	public static final String NEW_STATUS = "new" ;
+	public static final String OK_TO_SYNC_STATUS = "ok_to_sync";
+	
 	
 	
 	public String getQueryForFetchingSubjectsModifiedSinceLastSync() {
 		String query = "select s.id, s.label,s.project, sm.status, sm.last_modified,xsi.sync_end_time from xnat_subjectdata_meta_data sm ";
 		query += " left join xnat_subjectdata s ON s.subjectdata_info = sm.meta_data_id ";
 		query += " left join xnat_projectdata p ON s.project=p.id ";
-		query += " left join xsync_xsyncprojectdata xp ON xp.project_id=p.id ";
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
 		query += " where project=:"+ PROJECT_QUERY_PARAMETER_NAME+" and (sm.last_modified > xsi.sync_end_time or sm.row_last_modified > xsi.sync_end_time) ";
 		query += " UNION ";
 		query += "select sh.id, sh.label,sh.project, sm.status, sm.last_modified,xsi.sync_end_time from xnat_subjectdata_meta_data sm ";
 		query += " left join xnat_subjectdata_history sh ON sh.change_date=sm.row_last_modified ";
 		query += " left join xnat_projectdata p ON sh.project=p.id ";
-		query += " left join xsync_xsyncprojectdata xp ON xp.project_id=p.id ";
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
 		query += " where sm.status='"+ DELETE_STATUS + "' and sh.project=:" + PROJECT_QUERY_PARAMETER_NAME +" and (sm.last_modified > xsi.sync_end_time or sm.row_last_modified > xsi.sync_end_time) "; 
 		return query;
@@ -51,7 +54,7 @@ public class QueryResultUtil {
 		query += "  left join xnat_subjectassessordata sa ON sa.subject_id=s.id  ";
 		query += " right join xsync_xsyncassessordata xok ON xok.synced_experiment_id =sa.id ";
 		query += " left join xnat_projectdata p ON s.project=p.id ";
-		query += " left join xsync_xsyncprojectdata xp ON xp.project_id=p.id ";
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
 		query += " where project=:"+ PROJECT_QUERY_PARAMETER_NAME+" and  xok.sync_status is NULL and xok.oktosync=1 and xok.authorized_time > xsi.sync_end_time  ";
 		if (!skipSubjectIdCheck)
@@ -61,19 +64,19 @@ public class QueryResultUtil {
 
 	
 	public String getQueryForFetchingProjectResourcesModifiedSinceLastSync() {
-		String query = "select  a.label, p.id, am.status, am.last_modified,xsi.sync_end_time from xnat_abstractresource a ";
+		String query = "select  a.label, p.id, am.status, am.last_modified,xsi.sync_end_time, am.insert_date from xnat_abstractresource a ";
 		query += " left join xnat_abstractresource_meta_data am ON a.abstractresource_info = am.meta_data_id ";
 		query += " left join xnat_projectdata_resource pr ON a.xnat_abstractresource_id = pr.xnat_abstractresource_xnat_abstractresource_id  ";
 		query += " left join xnat_projectdata p ON pr.xnat_projectdata_id=p.id  ";
-		query += " left join xsync_xsyncprojectdata xp ON xp.project_id=p.id ";
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id  ";
 		query += " where p.id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time  ";
 		query += " UNION "; 
-		query += " select ah.label, p.id, am.status, am.last_modified,xsi.sync_end_time from xnat_abstractresource_meta_data am  ";
+		query += " select ah.label, p.id, am.status, am.last_modified,xsi.sync_end_time, am.insert_date from xnat_abstractresource_meta_data am  ";
 		query += " left join xnat_abstractresource_history ah ON ah.abstractresource_info=am.meta_data_id  ";
 		query += " left join xnat_projectdata_resource_history  prh ON prh.xnat_abstractresource_xnat_abstractresource_id = ah.xnat_abstractresource_id ";
 		query += " left join xnat_projectdata p ON  prh.xnat_projectdata_id = p.id ";
-		query += " left join xsync_xsyncprojectdata xp ON xp.project_id=p.id  ";
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id  ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
 		query += "  where am.status='"+ DELETE_STATUS + "' and prh.xnat_projectdata_id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time "; 
 		return query;
@@ -86,24 +89,24 @@ public class QueryResultUtil {
 		return query + " UNION " + deletedQuery ;
 	}
 	public String getQueryForFetchingSubjectResourcesModifiedSinceLastSync() {
-		String query = "select  a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_end_time from xnat_abstractresource a ";
+		String query = "select  a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date from xnat_abstractresource a ";
 		query += " left join xnat_abstractresource_meta_data am ON a.abstractresource_info = am.meta_data_id ";
 		query += " left join xnat_subjectdata_resource sr ON a.xnat_abstractresource_id = sr.xnat_abstractresource_xnat_abstractresource_id   ";
 		query += " left join xnat_subjectdata s on sr.xnat_subjectdata_id=s.id ";
 		query += " left join xnat_projectdata p ON s.project=p.id   ";
-		query += " left join xsync_xsyncprojectdata xp ON xp.project_id=p.id ";
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id   ";
 		query += " where s.id=:"+ this.SUBJECT_QUERY_PARAMETER_NAME + " and p.id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time ";  
 		return query ;
 	}
 
 	public String getQueryForFetchingSubjectResourcesDeletedSinceLastSync() {
-		String query = " select ah.xnat_abstractresource_id,ah.label, p.id, am.status, am.last_modified,xsi.sync_end_time from xnat_abstractresource_meta_data am  "; 
+		String query = " select ah.xnat_abstractresource_id,ah.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date from xnat_abstractresource_meta_data am  "; 
 		query += " left join xnat_abstractresource_history ah ON ah.abstractresource_info=am.meta_data_id   ";
 		query += " left join xnat_subjectdata_resource_history  srh ON srh.xnat_abstractresource_xnat_abstractresource_id = ah.xnat_abstractresource_id ";
 		query += " left join xnat_subjectdata s on srh.xnat_subjectdata_id=s.id ";
 		query += " left join xnat_projectdata p ON s.project=p.id   ";
-		query += " left join xsync_xsyncprojectdata xp ON xp.project_id=p.id ";  
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";  
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id "; 
 		query += "  where s.id=:" + this.SUBJECT_QUERY_PARAMETER_NAME + " and am.status='"+ DELETE_STATUS + "' and p.id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time ";
 		return query;
@@ -122,25 +125,25 @@ public class QueryResultUtil {
 	}
 
 	public String getQueryForFetchingSubjectExperimentsModifiedSinceLastSync() {
-		String query = "select e.id,e.label,xdme.element_name,e.project,em.status,em.last_modified, xsi.sync_end_time from xnat_experimentdata e ";
+		String query = "select e.id,e.label,xdme.element_name,e.project,em.status,em.last_modified, xsi.sync_end_time,em.insert_date from xnat_experimentdata e ";
 		query += " left join xnat_experimentdata_meta_data em ON e.experimentdata_info = em.meta_data_id ";
 		query += " left join xdat_meta_element xdme ON e.extension = xdme.xdat_meta_element_id ";
 		query += " left join xnat_projectdata p ON e.project=p.id ";
 		query += " left join xnat_subjectassessordata sa ON sa.id=e.id "; 
-		query += " left join xsync_xsyncprojectdata xp ON xp.project_id=p.id ";
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";  
 		query += " where sa.subject_id=:" +  this.SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +  " and em.row_last_modified > xsi.sync_end_time and e.id in (:"+EXPERIMENT_IDS+") ";
 		return query;
 	}
 	
 	public String getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync() {
-		String query = "select e.id,e.label,xdme.element_name,e.project,em.status,em.last_modified, xsi.sync_end_time from xnat_experimentdata e ";
+		String query = "select e.id,e.label,xdme.element_name,e.project,em.status,em.last_modified, xsi.sync_end_time,em.insert_date from xnat_experimentdata e ";
 		query += " right join xsync_xsyncassessordata xok ON xok.synced_experiment_id =e.id ";  
 		query += " left join xnat_experimentdata_meta_data em ON e.experimentdata_info = em.meta_data_id ";
 		query += " left join xdat_meta_element xdme ON e.extension = xdme.xdat_meta_element_id ";
 		query += " left join xnat_projectdata p ON e.project=p.id ";
 		query += " left join xnat_subjectassessordata sa ON sa.id=e.id "; 
-		query += " left join xsync_xsyncprojectdata xp ON xp.project_id=p.id ";
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";  
 		query += " where sa.subject_id=:" +  this.SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME + " and xok.sync_status is  NULL and xok.oktosync=1 "  + " and e.id in (:"+EXPERIMENT_IDS+") ";
 		return query;
@@ -149,12 +152,12 @@ public class QueryResultUtil {
 	
 	public String getQueryForFetchingSubjectExperimentsDeletedSinceLastSync() {
 		//Has two identical rows
-		String query = "select eh.id,eh.label,xdme.element_name,eh.project,em.status,em.last_modified, xsi.sync_end_time from xnat_experimentdata_meta_data em ";
+		String query = "select eh.id,eh.label,xdme.element_name,eh.project,em.status,em.last_modified, xsi.sync_end_time,em.insert_date from xnat_experimentdata_meta_data em ";
 		query += " left join xnat_experimentdata_history eh ON eh.experimentdata_info = em.meta_data_id ";
 		query += " left join xdat_meta_element xdme ON eh.extension = xdme.xdat_meta_element_id ";
 		query += " left join xnat_projectdata p ON eh.project=p.id ";
 		query += " left join xnat_subjectassessordata_history sa ON sa.id=eh.id "; 
-		query += " left join xsync_xsyncprojectdata xp ON xp.project_id=p.id ";
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";  
 		query += " where sa.subject_id=:" + this.SUBJECT_QUERY_PARAMETER_NAME +  " and p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +  " and  em.status='"+ DELETE_STATUS + "' and em.row_last_modified > xsi.sync_end_time  ";
 		return query;

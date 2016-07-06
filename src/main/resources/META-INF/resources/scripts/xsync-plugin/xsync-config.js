@@ -21,7 +21,8 @@ XSYNC.credentialsconfig.initialize = function() {
 		dataType: 'json'
 	 });
 	scConfigAjax.done( function( data, textStatus, jqXHR ) {
-		if (typeof data !== 'undefined' && typeof data.project !== 'undefined') {
+		if (typeof data !== 'undefined' && typeof data.source_project_id !== 'undefined') {
+			XSYNC.credentialsconfig.remoteHost = data.remote_url;
 			XSYNC.credentialsconfig.beginConfig();
 		} else {
 			$("#xsync-credentials-div").html(MUST_BE_CONFIGURED);
@@ -42,9 +43,9 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 	var modalContent =
 		"<div>" +
 			'<div class = "credentials-header-div credentials-div">' +
-			'<h3 style="text-align:center">Enter credentials for ' +  $("#xsync-config-remote-url").val() + '</h3>' +
+			'<h3 style="text-align:center">Enter credentials for ' + XSYNC.credentialsconfig.remoteHost + '</h3>' +
 			'</div>' +
-			'<input id="xsync-credentials-host" type="hidden" value="' + $("#xsync-config-remote-url").val() + '">' +
+			'<input id="xsync-credentials-host" type="hidden" value="' + XSYNC.credentialsconfig.remoteHost + '">' +
 			'<div class = "credentials-div">' +
 			'<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
 			'</div>' +
@@ -63,11 +64,11 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 		okAction: function(modl){
 
 
-			var credHost = $("#xsync-config-remote-url").val();
+			var credHost = $("#xsync-credentials-host").val();
 			var credUser = $("#xsync-credentials-username").val();
 			var credPassword = $("#xsync-credentials-password").val();
 			var tokenData = { url:credHost + "/data/services/tokens/issue/user/" + credUser, method: "GET", user: credUser, password: credPassword };
-		
+			alert(credHost);
 			var credentialsAjax = $.ajax({
 				type : "POST",
 		 		url: serverRoot + '/data/xsync/remoteREST?XNAT_CSRF=' + window.csrfToken,
@@ -78,14 +79,14 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 				contentType: "application/json; charset=utf-8"
 			 });
 			credentialsAjax.done( function( data, textStatus, jqXHR ) {
-		
+
 				if (typeof data !== 'undefined' && typeof data.secret !== 'undefined') {
-		
+
 					var formData = {
 						host: $("#xsync-credentials-host").val(),
 						localProject: XNAT.data.context.project,
 						alias: data.alias,
-						secret: data.secret 
+						secret: data.secret
 					};
 					var saveCredentials = $.ajax({
 						type : "POST",
@@ -104,7 +105,7 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 									xmodal.message('Error','Could not save credentials for remote server ' + $("#xsync-credentials-host").val());
 									modl.close();
 								});
-		
+
 				} else {
 					xmodal.message('Error','ERROR:  Could not get alias token.  Please check username and password and try again.');
 				}
@@ -702,7 +703,7 @@ XSYNC.xsyncconfig.updateCredentialsAndSaveConfig = function() {
 				host: $("#xsync-config-remote-url").val(),
 				localProject: XNAT.data.context.project,
 				alias: data.alias,
-				secret: data.secret 
+				secret: data.secret
 			};
 			var saveCredentials = $.ajax({
 				type : "POST",

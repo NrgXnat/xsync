@@ -12,6 +12,7 @@ import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -32,7 +33,7 @@ public class XSyncTools {
 	}
 	public void saveSyncDetails(String localProjectId, String local_id,String remote_id, String syncStatus, String xsiType) {
 		XsyncXsyncremotemapdata subjectRemoteMap = new XsyncXsyncremotemapdata();
-		subjectRemoteMap.setProjectId(localProjectId);
+		subjectRemoteMap.setSourceProjectId(localProjectId);
 		subjectRemoteMap.setLocalXnatId(local_id);
 		subjectRemoteMap.setXsitype(xsiType);
 		subjectRemoteMap.setRemoteXnatId(remote_id);
@@ -80,11 +81,14 @@ public class XSyncTools {
 
 	
 
-	public boolean hasBeenMarkedOkToSync(String exptId, String remote_url) {
+	public boolean hasBeenMarkedOkToSyncAndNotSyncedYet(String exptId, String remote_url) {
 		boolean okToSync = false;
 		XsyncXsyncassessordata assessor = getXsyncAssessor(exptId,remote_url);
 		if (assessor != null) {
 			okToSync = assessor.getOktosync().booleanValue();
+			if (okToSync) {
+				okToSync = XsyncUtils.SYNC_STATUS_SYNCED.equals(assessor.getSyncStatus())?false:true;
+			}
 		}
 		return okToSync;
 	}

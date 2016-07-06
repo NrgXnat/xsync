@@ -54,22 +54,23 @@ import org.slf4j.LoggerFactory;
 public class RemoteSubject {
 	private static final Logger _log = LoggerFactory.getLogger(RemoteSubject.class);
 
-
+	boolean syncAllStates;
 	XnatSubjectdataI localSubject;
 	ProjectSyncConfiguration projectSyncConfiguration;
 	UserI user;
 	SubjectSyncItem subjectSyncInfo ;
 
 	
-	public RemoteSubject(XnatSubjectdataI localSubject,ProjectSyncConfiguration projectSyncConfiguration,UserI user) {
+	public RemoteSubject(XnatSubjectdataI localSubject,ProjectSyncConfiguration projectSyncConfiguration,UserI user, boolean syncAll) {
 		this.localSubject = localSubject;
 		this.user = user;
 		this.projectSyncConfiguration = projectSyncConfiguration; 
+		this.syncAllStates = syncAll;
 		subjectSyncInfo = new SubjectSyncItem(localSubject.getId(), localSubject.getLabel());
 	}
 	
 	
-	public void sync() {
+	public void sync() throws Exception{
 		_log.debug("Syncing subject BEGIN: " + localSubject.getLabel());
 		XFTItem item = ((XnatSubjectdata)localSubject).getItem().copy();
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
@@ -93,11 +94,8 @@ public class RemoteSubject {
 			//Get its remote id
 			//Store the remote id
 
-			RemoteConnectionResponse response=storeSubject(newSubject);
-			if (response.wasSuccessful()) {
-				//Get the response body. This is the remote XNAT ID assigned
-				String subject_remote_id = response.getResponseBody();
-				
+			String subject_remote_id=storeSubject(newSubject);
+			if (subject_remote_id != null) {
 				newSubject.setId(subject_remote_id);
 				saveSyncDetails(localSubject.getId(),subject_remote_id,newSubject.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED,localSubject.getXSIType());
 				//Now among the ones which are configured and not deleted
@@ -109,33 +107,50 @@ public class RemoteSubject {
 				//   Anonymize the resources
 				syncResources(newSubject,resourcesToBeSynced);
 				syncExperiments(newSubject,experimentsToBeSynced);
-			}else {
-				XSyncFailureHandler.handle(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getProjectId(),localSubject.getId(),localSubject.getXSIType(),idMapper.getRemoteAccessionId(this.localSubject.getId()), subjectSyncInfo, response);
-			}
+			}	
 		}catch(Exception e) {
-			_log.error("Could not correct subject ID and Label " + e.getMessage());
-			e.printStackTrace();
+			_log.error("Error syncing subject " + newSubject.getLabel() + "  " + e.getMessage());
 			XSyncFailureHandler.handle(localSubject.getProject(),localSubject.getId(),localSubject.getXSIType(),idMapper.getRemoteAccessionId(this.localSubject.getId()), subjectSyncInfo, e);
+			throw e;
 		}
 		SynchronizationManager.UPDATE_MANIFEST(localSubject.getProject(), subjectSyncInfo);
 		_log.debug("Syncing subject END: " + localSubject.getLabel());
 	}
 
 
-	private RemoteConnectionResponse storeSubject(XnatSubjectdataI remoteSubject) throws Exception {
-	 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
-	 try {
-		 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
-		 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
- 
-		 RemoteConnectionResponse response =  remoteConnectionManager.importSubject(connection, (XnatSubjectdata)remoteSubject);
-		 return response;
-	 }catch(Exception e) {
-		 _log.error(e.toString());
-		 throw e;
-	 }
+	private String storeSubject(XnatSubjectdataI remoteSubject) throws Exception {
+		 String subject_remote_id  = null;
+		 if (syncAllStates) { //We know that the flag syncOnlyNew implies that the subject has already been pushed
+			 IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
+			 subject_remote_id = idMapper.getRemoteAccessionId(localSubject.getId());
+			 if (subject_remote_id == null) {
+				 //Subject has not been synced yet. Sync it now.
+				 subject_remote_id=syncSubjectMetaData(remoteSubject);
+			 }
+		 }else {
+			 subject_remote_id=syncSubjectMetaData(remoteSubject);
+		 }
+		 return subject_remote_id;
 	}
 
+	private String syncSubjectMetaData(XnatSubjectdataI remoteSubject) throws Exception {
+		RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
+		String subject_remote_id  = null;
+		try {
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+			 RemoteConnectionResponse response =  remoteConnectionManager.importSubject(connection, (XnatSubjectdata)remoteSubject);
+			 if (response.wasSuccessful()) 
+				 subject_remote_id = response.getResponseBody();
+			 else 
+				 XSyncFailureHandler.handle(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(),localSubject.getId(),localSubject.getXSIType(),null, subjectSyncInfo, response);
+			 return subject_remote_id;
+		 }catch(Exception e) {
+			 _log.error(e.toString());
+			 throw e;
+		 }
+		
+	}
 	private RemoteConnectionResponse deleteSubjectResource(XnatSubjectdataI remoteSubject, String resourceLabel) throws Exception {
 		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 try {
@@ -220,156 +235,236 @@ public class RemoteSubject {
 		subjectSyncInfo.setRemoteLabel(remote_label);
 
 		XSyncTools xsyncTools = new XSyncTools(user);
-		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getProjectId(), local_id, remote_id,syncStatus,xsiType);
+		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType);
 	}
 
 	private void saveSyncDetails(String local_id, String remote_id,  String syncStatus, String xsiType) {
 		XSyncTools xsyncTools = new XSyncTools(user);
-		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getProjectId(), local_id, remote_id,syncStatus,xsiType);
+		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType);
 	}
 
 	
 	private void syncResources(XnatSubjectdataI remoteSubject,Map<String,List<XnatAbstractresourceI>> resourcesToBeSynced) throws Exception{
 		List<XnatAbstractresourceI> deletedResources = resourcesToBeSynced.get(QueryResultUtil.DELETE_STATUS);
-		List<XnatAbstractresourceI> activeResources = resourcesToBeSynced.get(QueryResultUtil.ACTIVE_STATUS);
+		List<XnatAbstractresourceI> updatedResources = resourcesToBeSynced.get(QueryResultUtil.ACTIVE_STATUS);
+		List<XnatAbstractresourceI> newResources = resourcesToBeSynced.get(QueryResultUtil.NEW_STATUS);
 		if (deletedResources != null && deletedResources.size() > 0) {
 			//Remove each of these resources from the Remote site
-			for (XnatAbstractresourceI resource:deletedResources) {
-				try {
-					RemoteConnectionResponse deleteResponse = this.deleteSubjectResource(remoteSubject,resource.getLabel());
-					ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
-					if (deleteResponse.wasSuccessful()) {
-						resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
-						resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " deleted ");
-						XSyncTools xsyncTools = new XSyncTools(user);
-						xsyncTools.deleteXsyncRemoteEntry(localSubject.getId(), resource.getLabel());
-					}else {
+			if (syncAllStates) {
+				for (XnatAbstractresourceI resource:deletedResources) {
+					try {
+						RemoteConnectionResponse deleteResponse = this.deleteSubjectResource(remoteSubject,resource.getLabel());
+						ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
+						if (deleteResponse.wasSuccessful()) {
+							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
+							resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " deleted ");
+							XSyncTools xsyncTools = new XSyncTools(user);
+							xsyncTools.deleteXsyncRemoteEntry(localSubject.getId(), resource.getLabel());
+						}else {
+							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+							resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be deleted. " + deleteResponse.getResponseBody());
+						}
+						subjectSyncInfo.addResources(resourceSyncItem);
+					}catch(Exception e) {
+						_log.error("Could not delete resource " + resource.getLabel() + " for subject " + remoteSubject.getId());
+						ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
 						resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-						resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be deleted. " + deleteResponse.getResponseBody());
+						resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be deleted. " + e.getMessage());
+						subjectSyncInfo.addResources(resourceSyncItem);
 					}
-					subjectSyncInfo.addResources(resourceSyncItem);
-				}catch(Exception e) {
-					_log.error("Could not delete resource " + resource.getLabel() + " for subject " + remoteSubject.getId());
+				}
+			}else {
+				for (XnatAbstractresourceI resource:deletedResources) {
 					ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
-					resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-					resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be deleted. " + e.getMessage());
+					resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+					resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " deleted locally, however, not deleted from remote site. ");
 					subjectSyncInfo.addResources(resourceSyncItem);
 				}
 			}
 		}
-		//Store the active resources
+		//Store the updated or the new resources
+		if (syncAllStates){
+			for (XnatAbstractresourceI resource:updatedResources) {
+				pushResource(remoteSubject,resource);
+			}
+			for (XnatAbstractresourceI resource:newResources) {
+				pushResource(remoteSubject,resource);
+			}
+		}else { //Only New
+			for (XnatAbstractresourceI resource:newResources) {
+				pushResource(remoteSubject,resource);
+			}
+		}
+	}
+
+	private void pushResource(XnatSubjectdataI remoteSubject,XnatAbstractresourceI resource) {
 		XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
 		String localProjectArchivePath = localProject.getArchiveRootPath();
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-
-		if (activeResources != null && activeResources.size() > 0) {
-			for (XnatAbstractresourceI resource:activeResources) {
-				ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
-				resourceSyncItem.setFileCount(resource.getFileCount());
-				resourceSyncItem.setFileSize(resource.getFileSize());
-				try {
-					String archiveDirectory = ((XnatAbstractresource)resource).getFullPath(localProjectArchivePath);
-					File resourcePath = new File(archiveDirectory);
-					if (resourcePath.exists() && resourcePath.isFile()) {
-						resourcePath = resourcePath.getParentFile();
-					}
-					File zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
-					RemoteConnectionResponse updateResponse = this.updateSubjectResource(remoteSubject,resource.getLabel(), zipFile);
-					if (updateResponse.wasSuccessful()) {
-						resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-						resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " updated. " );
-					}else {
-						resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-						resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be updated. " + updateResponse.getResponseBody() );
-					}
-					subjectSyncInfo.addResources(resourceSyncItem);
-				}catch(Exception e) {
-					_log.error("Could not update resource " + resource.getLabel() + " for subject " + remoteSubject.getId());
-					resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-					resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be updated. " + e.getMessage() );
-					subjectSyncInfo.addResources(resourceSyncItem);
-				}
+		ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
+		resourceSyncItem.setFileCount(resource.getFileCount());
+		resourceSyncItem.setFileSize(resource.getFileSize());
+		try {
+			String archiveDirectory = ((XnatAbstractresource)resource).getFullPath(localProjectArchivePath);
+			File resourcePath = new File(archiveDirectory);
+			if (resourcePath.exists() && resourcePath.isFile()) {
+				resourcePath = resourcePath.getParentFile();
 			}
-		}	
+			File zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
+			RemoteConnectionResponse updateResponse = this.updateSubjectResource(remoteSubject,resource.getLabel(), zipFile);
+			if (updateResponse.wasSuccessful()) {
+				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " updated. " );
+			}else {
+				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be updated. " + updateResponse.getResponseBody() );
+			}
+			subjectSyncInfo.addResources(resourceSyncItem);
+		}catch(Exception e) {
+			_log.error("Could not update resource " + resource.getLabel() + " for subject " + remoteSubject.getId());
+			resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+			resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be updated. " + e.getMessage() );
+			subjectSyncInfo.addResources(resourceSyncItem);
+		}
 	}
 	
 	private void syncExperiments(XnatSubjectdataI remoteSubject,Map<String,List<XnatExperimentdataI>> experimentsToBeSynced) throws Exception{
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 		List<XnatExperimentdataI> deletedExperiments = experimentsToBeSynced.get(QueryResultUtil.DELETE_STATUS);
-		List<XnatExperimentdataI> activeExperiments = experimentsToBeSynced.get(QueryResultUtil.ACTIVE_STATUS);
-		if (deletedExperiments != null && deletedExperiments.size() > 0) {
-			//Remove each of these resources from the Remote site
-			for (XnatExperimentdataI experiment:deletedExperiments) {
-				try {
-					XnatExperimentdata exp = (XnatExperimentdata)experiment;
-					exp.setProject(remoteProjectId);
-					exp.getItem().setProperty("subject_ID", remoteSubject.getId());
-					this.deleteExperiment(exp);
-				}catch(Exception e) {
-					_log.error("Could not delete experiment " + experiment.getId() + " for subject " + remoteSubject.getId() + " " + e.getMessage());
+		List<XnatExperimentdataI> updatedExperiments = experimentsToBeSynced.get(QueryResultUtil.ACTIVE_STATUS);
+		List<XnatExperimentdataI> newExperiments = experimentsToBeSynced.get(QueryResultUtil.NEW_STATUS);
+		List<XnatExperimentdataI> okToSyncExperiments = experimentsToBeSynced.get(QueryResultUtil.OK_TO_SYNC_STATUS);
+
+		if (syncAllStates) {
+			//Delete experiments
+			if (deletedExperiments != null && deletedExperiments.size() > 0) {
+				//Remove each of these resources from the Remote site
+				for (XnatExperimentdataI experiment:deletedExperiments) {
+					try {
+						XnatExperimentdata exp = (XnatExperimentdata)experiment;
+						exp.setProject(remoteProjectId);
+						exp.getItem().setProperty("subject_ID", remoteSubject.getId());
+						this.deleteExperiment(exp);
+					}catch(Exception e) {
+						_log.error("Could not delete experiment " + experiment.getId() + " for subject " + remoteSubject.getId() + " " + e.getMessage());
+					}
+				}
+			}
+			//Update the modified experiments
+			if (updatedExperiments != null && updatedExperiments.size() > 0) {
+				for (XnatExperimentdataI experiment:updatedExperiments) {
+					pushExperiment(experiment,remoteSubject);
+				}
+			}
+			//Push the new experiments
+			if (newExperiments != null && newExperiments.size() > 0) {
+				for (XnatExperimentdataI experiment:newExperiments) {
+					pushExperiment(experiment,remoteSubject);
+				}
+			}
+			//Push the OK to Sync Experiments
+		}else {
+			//Only the new experiments
+			//OR
+			//Those that have been marked OK to Sync and not Pushed yet
+			//Push the new experiments
+			if (newExperiments != null && newExperiments.size() > 0) {
+				for (XnatExperimentdataI experiment:newExperiments) {
+					pushExperiment(experiment,remoteSubject);
 				}
 			}
 		}
+		//Irrespective of the syncOnlyNwew Flag, the OK to Sync experiments must be pushed
+		if (okToSyncExperiments != null && okToSyncExperiments.size() > 0) {
+			for (XnatExperimentdataI experiment:okToSyncExperiments) {
+				pushExperiment(experiment,remoteSubject);
+			}
+		}
+	}
+	
+	private void pushExperiment(XnatExperimentdataI assess, XnatSubjectdataI remoteSubject) throws Exception {
+		String origId = assess.getId();
 		ExperimentFilter experimentFilter = new ExperimentFilter(user, projectSyncConfiguration);
-		XSyncTools xsyncTools = new XSyncTools(user);
-		boolean updateSyncAssessor = false;
-		for (XnatExperimentdataI assess : activeExperiments) {
-			// filter experiment stuff
-			String origId = assess.getId();
-			if (assess instanceof XnatImagesessiondata) {
-				XnatImagesessiondata orig = (XnatImagesessiondata) XnatImagesessiondata.getXnatImagesessiondatasById(origId, user, true);
-				updateSyncAssessor = false;
-				if (projectSyncConfiguration.isImagingSessionToBeSynced(orig.getXSIType())) {
-					//Does the imaging session have to be checked whether Ok To Sync has been set or not? 
-					if (projectSyncConfiguration.getSynchronizationConfiguration().checkImagingSessionOkToSync(orig.getXSIType())) {
-						if (xsyncTools.hasBeenMarkedOkToSync(origId, projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl())) {
-							updateSyncAssessor = true;
-							XnatImagesessiondata cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata)remoteSubject,orig);
-							cleaned_assessor.setProject(remoteSubject.getProject());
-							storeXar((XnatImagesessiondata) orig,remoteSubject.getProject(), (XnatSubjectdata)remoteSubject, cleaned_assessor, updateSyncAssessor);
-						}else {//Else skip it - it cannt be synced
-							 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
-							 expSyncItem.setXsiType(orig.getXSIType());
-							 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
-							 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been skipped as it has not been marked ok to sync");
-							 subjectSyncInfo.addExperiment(expSyncItem);
-						}
-					}else {
-						updateSyncAssessor = false; //No SyncAssessor exists in this case
+		if (assess instanceof XnatImagesessiondata) {
+			XnatImagesessiondata orig = (XnatImagesessiondata) XnatImagesessiondata.getXnatImagesessiondatasById(origId, user, true);
+			if (isImagingSessionConfiguredToBeSyned(orig.getXSIType())) {
+				if (imagingSessionNeedsOkToSync(orig.getXSIType())) {
+					boolean updateOkToSyncAssessorStatus = true;
+					if (hasBeenMarkedOkToSyncAndNotSyncedYet(orig.getId())) {
 						XnatImagesessiondata cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata)remoteSubject,orig);
 						cleaned_assessor.setProject(remoteSubject.getProject());
-						storeXar((XnatImagesessiondata) orig,remoteSubject.getProject(), (XnatSubjectdata)remoteSubject, cleaned_assessor, updateSyncAssessor);
+						boolean stored = storeXar((XnatImagesessiondata) orig,remoteSubject.getProject(), (XnatSubjectdata)remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
+						if (!stored)
+							throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
+					}else { //Needs OKToSync which has not been marked yet. So Skip
+						 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
+						 expSyncItem.setXsiType(orig.getXSIType());
+						 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+						 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been skipped as it has not been marked ok to sync");
+						 subjectSyncInfo.addExperiment(expSyncItem);
 					}
+				}else { //Does not need an OK to Sync - so Push it. 
+					boolean updateOkToSyncAssessorStatus = false; //No SyncAssessor exists in this case
+					XnatImagesessiondata cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata)remoteSubject,orig);
+					cleaned_assessor.setProject(remoteSubject.getProject());
+					boolean stored = storeXar((XnatImagesessiondata) orig,remoteSubject.getProject(), (XnatSubjectdata)remoteSubject, cleaned_assessor,updateOkToSyncAssessorStatus);
+					if (!stored)
+						throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
 				}
-			} else { //Its a Subject Assessor
-				XnatSubjectassessordata orig = (XnatSubjectassessordata) XnatSubjectassessordata.getXnatSubjectassessordatasById(origId, user, true);
-				if (projectSyncConfiguration.isSubjectAssessorToBeSynced(orig.getXSIType())) {
-					if (projectSyncConfiguration.getSynchronizationConfiguration().checkSubjectAssessorOkToSync(orig.getXSIType())) {
-						//Check if the Subject Assessor is marked for Ok to Sync
-						//If yes, go ahead and store it
-						if (xsyncTools.hasBeenMarkedOkToSync(origId, projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl())) {
-							updateSyncAssessor = true;
-							XnatSubjectassessordata cleaned_assessor = (XnatSubjectassessordata)experimentFilter.prepareSubjectAssessorToSync((XnatSubjectdata)localSubject,(XnatSubjectdata)remoteSubject, orig);
-							cleaned_assessor.setProject(remoteSubject.getProject());
-							storeAssessor(origId, orig, (XnatSubjectdata)remoteSubject, cleaned_assessor, updateSyncAssessor);
-						}else {
-							//If not skip it
-							 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
-							 expSyncItem.setXsiType(orig.getXSIType());
-							 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
-							 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been skipped as it has not been marked ok to sync");
-							 subjectSyncInfo.addExperiment(expSyncItem);
-						}
-					}else {
-						updateSyncAssessor = false;
+			}
+		} else { //Its a Subject Assessor
+			XnatSubjectassessordata orig = (XnatSubjectassessordata) XnatSubjectassessordata.getXnatSubjectassessordatasById(origId, user, true);
+			if (isSubjectAssessorConfiguredToBeSyned(orig.getXSIType())) {
+				if (subjectAssessorNeedsOkToSync(orig.getXSIType())) {
+					if (hasBeenMarkedOkToSyncAndNotSyncedYet(orig.getId())) {
+						boolean updateOkToSyncAssessorStatus = true;
 						XnatSubjectassessordata cleaned_assessor = (XnatSubjectassessordata)experimentFilter.prepareSubjectAssessorToSync((XnatSubjectdata)localSubject,(XnatSubjectdata)remoteSubject, orig);
 						cleaned_assessor.setProject(remoteSubject.getProject());
-						storeAssessor(origId, orig, (XnatSubjectdata)remoteSubject, cleaned_assessor, updateSyncAssessor);
-					}
-					
+						boolean stored = storeAssessor(origId, orig, (XnatSubjectdata)remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
+						if (!stored)
+							throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
+					}else {
+						//Not marked OK to Sync - skip it
+						 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
+						 expSyncItem.setXsiType(orig.getXSIType());
+						 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+						 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been skipped as it has not been marked ok to sync");
+						 subjectSyncInfo.addExperiment(expSyncItem);
+					}					
+				}else { // NO OKs required, sync it
+					boolean updateOkToSyncAssessorStatus = false;
+					XnatSubjectassessordata cleaned_assessor = (XnatSubjectassessordata)experimentFilter.prepareSubjectAssessorToSync((XnatSubjectdata)localSubject,(XnatSubjectdata)remoteSubject, orig);
+					cleaned_assessor.setProject(remoteSubject.getProject());
+					boolean stored = storeAssessor(origId, orig, (XnatSubjectdata)remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
+					if (!stored)
+						throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
 				}
 			}
 		}
+	}
+	
+	private boolean isImagingSessionConfiguredToBeSyned(String xsiType) {
+		return projectSyncConfiguration.isImagingSessionToBeSynced(xsiType);
+	}
+	private boolean isSubjectAssessorConfiguredToBeSyned(String xsiType) {
+		return projectSyncConfiguration.isSubjectAssessorToBeSynced(xsiType);
+	}
+	
+	private boolean imagingSessionNeedsOkToSync(String xsiType) {
+		//return projectSyncConfiguration.getSynchronizationConfiguration().checkImagingSessionOkToSync(xsiType);
+		return projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(xsiType).getNeeds_ok_to_sync().booleanValue();
+
+	}
+	
+	private boolean subjectAssessorNeedsOkToSync(String xsiType) {
+		//return projectSyncConfiguration.getSynchronizationConfiguration().checkSubjectAssessorOkToSync(xsiType);
+		return projectSyncConfiguration.getSynchronizationConfiguration().getSubjectAssessorAdvancedOptions(xsiType).getNeeds_ok_to_sync().booleanValue();
+	}
+	
+	
+	private boolean hasBeenMarkedOkToSyncAndNotSyncedYet(String expId) {
+		XSyncTools xsyncTools = new XSyncTools(user);
+		return xsyncTools.hasBeenMarkedOkToSyncAndNotSyncedYet(expId, projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 	}
 	
 	private boolean storeAssessor(String origId, XnatSubjectassessordata orig, XnatSubjectdata remotesubject, XnatSubjectassessordata assessor, boolean updateSyncAssessor) {

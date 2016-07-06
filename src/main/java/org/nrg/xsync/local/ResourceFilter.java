@@ -1,6 +1,7 @@
 package org.nrg.xsync.local;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
+import org.nrg.xsync.configuration.json.SyncConfigurationResource;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +41,9 @@ public class ResourceFilter {
 
 		List<XnatAbstractresourceI> resourcesModified = new ArrayList<XnatAbstractresourceI>();
 		List<XnatAbstractresourceI> resourcesDeleted = new ArrayList<XnatAbstractresourceI>();
-		Map<String,List<XnatAbstractresourceI>> fileteredResources = new HashMap<String,List<XnatAbstractresourceI>>();
+		List<XnatAbstractresourceI> resourcesAdded = new ArrayList<XnatAbstractresourceI>();
+		
+		Map<String,List<XnatAbstractresourceI>> filteredResources = new HashMap<String,List<XnatAbstractresourceI>>();
 		int total_resources = resources.size();
 		int i = 0;
 		while(total_resources > 0) {
@@ -52,45 +56,50 @@ public class ResourceFilter {
 			total_resources = project.getResources_resource().size();
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
-		parameters.addValue(QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME, projectSyncConfiguration.getSynchronizationConfiguration().getProject());
+		parameters.addValue(QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME, projectSyncConfiguration.getSynchronizationConfiguration().getSource_project_id());
 		QueryResultUtil queryUtil = new QueryResultUtil();
 		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
 				new JdbcTemplate(XDAT.getDataSource()));
 		String query = queryUtil.getQueryForFetchingProjectResourcesModifiedSinceLastSync();
-		List<String> resourceLabels = projectSyncConfiguration.getSynchronizationConfiguration().getProjectresources();
-		if (resourceLabels.size() > 0 ) { 
-			parameters.addValue("resources", resourceLabels);
-		}
+//		List<String> resourceLabels = projectSyncConfiguration.getSynchronizationConfiguration().getProjectresources();
 		List<Map<String,Object>> changedResources = null;
 		if (resourcesToBeSynced.size() > 0) {
 			//Have these resources been modified
+			List<String> resourceLabels = new ArrayList<String>();
+			for (XnatAbstractresourceI rsc:resourcesToBeSynced) {
+				resourceLabels.add(rsc.getLabel());
+			}
+			if (resourceLabels.size() > 0 ) { 
+				parameters.addValue("resources", resourceLabels);
+			}
 			if (resourceLabels.size() > 0 ) { 
 				query += " where label in (:resources)";
 				//Columns
 				//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_start_time
 				changedResources = jdbcTemplate.queryForList(query, parameters);
-				resourcesDeleted = getAbstractResourceItems(changedResources,QueryResultUtil.DELETE_STATUS);
 			}
 		}else {
 			//There are no project resources which are present for the project
 			//which have been configured to be synced.
 			//Look for any of the project resources which are configured to be synced
 			//Which have been deleted.
-			if (resourceLabels.size() > 0 ) { 
-				query = queryUtil.getParametrizedQueryForFetchingConfiguredSubjectResourcesDeletedSinceLastSync();
-				query += " where label in (:resources)";
-				//Columns
-				//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_start_time
-				changedResources = jdbcTemplate.queryForList(query, parameters);
-			}
+			query = queryUtil.getParametrizedQueryForFetchingConfiguredSubjectResourcesDeletedSinceLastSync();
+			//Columns
+			//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_start_time
+			changedResources = jdbcTemplate.queryForList(query, parameters);
 		}
 		if (changedResources!=null) {
-			resourcesModified = getAbstractResourceItems(changedResources,QueryResultUtil.ACTIVE_STATUS);
-			resourcesDeleted = getAbstractResourceItems(changedResources,QueryResultUtil.DELETE_STATUS);
+			Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
+			SyncConfigurationResource resource = projectSyncConfiguration.getSynchronizationConfiguration().getProject_resources();
+			resourcesAdded = getAbstractResourceItems(changedResources,QueryResultUtil.NEW_STATUS,syncEndDate,resource);
+			resourcesModified = getAbstractResourceItems(changedResources,QueryResultUtil.ACTIVE_STATUS, syncEndDate,resource);
+			resourcesDeleted = getAbstractResourceItems(changedResources,QueryResultUtil.DELETE_STATUS, syncEndDate,resource);
 		}
-		fileteredResources.put(QueryResultUtil.ACTIVE_STATUS,resourcesModified);
-		fileteredResources.put(QueryResultUtil.DELETE_STATUS,resourcesDeleted);
-		return fileteredResources;
+		filteredResources.put(QueryResultUtil.ACTIVE_STATUS,resourcesModified);
+		filteredResources.put(QueryResultUtil.DELETE_STATUS,resourcesDeleted);
+		filteredResources.put(QueryResultUtil.NEW_STATUS,resourcesAdded);
+		
+		return filteredResources;
 	}
 
 	
@@ -100,7 +109,9 @@ public class ResourceFilter {
 
 		List<XnatAbstractresourceI> resourcesModified = new ArrayList<XnatAbstractresourceI>();
 		List<XnatAbstractresourceI> resourcesDeleted = new ArrayList<XnatAbstractresourceI>();
-		Map<String,List<XnatAbstractresourceI>> fileteredResources = new HashMap<String,List<XnatAbstractresourceI>>();
+		List<XnatAbstractresourceI> resourcesAdded = new ArrayList<XnatAbstractresourceI>();
+
+		Map<String,List<XnatAbstractresourceI>> filteredResources = new HashMap<String,List<XnatAbstractresourceI>>();
 		int total_resources = resources.size();
 		int i = 0;
 		while(total_resources > 0) {
@@ -113,55 +124,70 @@ public class ResourceFilter {
 			total_resources = subject.getResources_resource().size();
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
-		parameters.addValue(QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME, projectSyncConfiguration.getSynchronizationConfiguration().getProject());
+		parameters.addValue(QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME, projectSyncConfiguration.getSynchronizationConfiguration().getSource_project_id());
 		parameters.addValue(QueryResultUtil.SUBJECT_QUERY_PARAMETER_NAME, localSubjectId);
 		QueryResultUtil queryUtil = new QueryResultUtil();
 		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
 				new JdbcTemplate(XDAT.getDataSource()));
 		String query = queryUtil.getParametrizedQueryForFetchingConfiguredSubjectResourcesChangedSinceLastSync();
-		List<String> resourceLabels = projectSyncConfiguration.getSynchronizationConfiguration().getSubjectresources();
-		if (resourceLabels.size() > 0 ) { 
-			parameters.addValue("resources", resourceLabels);
-		}
 		List<Map<String,Object>> changedResources = null;
 		if (resourcesToBeSynced.size() > 0) {
 			//Have these resources been modified
+			List<String> resourceLabels = new ArrayList<String>();
+			for (XnatAbstractresourceI rsc:resourcesToBeSynced) {
+				resourceLabels.add(rsc.getLabel());
+			}
+			if (resourceLabels.size() > 0 ) { 
+				parameters.addValue("resources", resourceLabels);
+			}
 			if (resourceLabels.size() > 0 ) { 
 				query += " where label in (:resources)";
 				//Columns
-				//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_start_time
+				//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date
 				changedResources = jdbcTemplate.queryForList(query, parameters);
-				resourcesDeleted = getAbstractResourceItems(changedResources,QueryResultUtil.DELETE_STATUS);
 			}
 		}else {
 			//There are no subject resources which are present for the subject
 			//which have been configured to be synced.
 			//Look for any of the subject resources which are configured to be synced
 			//Which have been deleted.
-			if (resourceLabels.size() > 0 ) { 
-				query = queryUtil.getParametrizedQueryForFetchingConfiguredSubjectResourcesDeletedSinceLastSync();
-				query += " where label in (:resources)";
-				//Columns
-				//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_start_time
-				changedResources = jdbcTemplate.queryForList(query, parameters);
-			}
+			query = queryUtil.getParametrizedQueryForFetchingConfiguredSubjectResourcesDeletedSinceLastSync();
+			//Columns
+			//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date
+			changedResources = jdbcTemplate.queryForList(query, parameters);
 		}
 		if (changedResources!=null) {
-			resourcesModified = getAbstractResourceItems(changedResources,QueryResultUtil.ACTIVE_STATUS);
-			resourcesDeleted = getAbstractResourceItems(changedResources,QueryResultUtil.DELETE_STATUS);
+			Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
+			SyncConfigurationResource resource = projectSyncConfiguration.getSynchronizationConfiguration().getSubject_resources();
+			resourcesAdded = getAbstractResourceItems(changedResources,QueryResultUtil.NEW_STATUS,syncEndDate, resource);
+			resourcesModified = getAbstractResourceItems(changedResources,QueryResultUtil.ACTIVE_STATUS,syncEndDate, resource);
+			resourcesDeleted = getAbstractResourceItems(changedResources,QueryResultUtil.DELETE_STATUS,syncEndDate, resource);
 		}
-		fileteredResources.put(QueryResultUtil.ACTIVE_STATUS,resourcesModified);
-		fileteredResources.put(QueryResultUtil.DELETE_STATUS,resourcesDeleted);
-		return fileteredResources;
+		filteredResources.put(QueryResultUtil.ACTIVE_STATUS,resourcesModified);
+		filteredResources.put(QueryResultUtil.DELETE_STATUS,resourcesDeleted);
+		filteredResources.put(QueryResultUtil.NEW_STATUS,resourcesAdded);
+		return filteredResources;
 	}
 	
-	private List<XnatAbstractresourceI> getAbstractResourceItems(List<Map<String,Object>> rows, String status) {
+	private List<XnatAbstractresourceI> getAbstractResourceItems(List<Map<String,Object>> rows, String status, Date syncEndDate,SyncConfigurationResource resource) {
 		List<XnatAbstractresourceI> absResources = new ArrayList<XnatAbstractresourceI>();
 		if (rows != null) {
-			for (Map<String,Object> row: rows) {
-				if (row.get("status").equals(status)) {
-					XnatAbstractresource aRsc = XnatAbstractresource.getXnatAbstractresourcesByXnatAbstractresourceId(row.get("xnat_abstractresource_id"), _user, true);
-					absResources.add(aRsc);
+			if (QueryResultUtil.NEW_STATUS.equals(status)) {
+				//Look only for resources added since last sync (end_time)
+				for (Map<String,Object> row: rows) {
+					Date insertDate = (Date)row.get("insert_date");
+					int dateComparison = insertDate.compareTo(syncEndDate);
+					if (dateComparison >= 0 && resource.isAllowedToSync((String)row.get("label"))) { //Inserted at endTime or After endTime
+						XnatAbstractresource aRsc = XnatAbstractresource.getXnatAbstractresourcesByXnatAbstractresourceId(row.get("xnat_abstractresource_id"), _user, true);
+						absResources.add(aRsc);
+					}
+				}
+			}else {
+				for (Map<String,Object> row: rows) {
+					if (row.get("status").equals(status) && resource.isAllowedToSync((String)row.get("label"))) {
+						XnatAbstractresource aRsc = XnatAbstractresource.getXnatAbstractresourcesByXnatAbstractresourceId(row.get("xnat_abstractresource_id"), _user, true);
+						absResources.add(aRsc);
+					}
 				}
 			}
 		}
