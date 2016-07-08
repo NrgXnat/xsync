@@ -52,10 +52,6 @@ function setOkToSync(projectId,xnat_id, exp_label) {
 
 	<table>
 	<tr> 
-	<th align="left">Last Sync Date:</th>
-	<td>$!syncAssessor.getSyncEndTime()</td>
-	</tr>
-	<tr> 
 	<th align="left">Sync Status:</th>
 	<td>$!syncAssessor.getSyncStatus()</td>
 	</tr>
@@ -66,5 +62,9 @@ function setOkToSync(projectId,xnat_id, exp_label) {
 	<tr> 
 	<th align="left">Authorized On:</th>
 	<td>$!syncAssessor.getDate()</td>
+	</tr>
+	<tr> 
+	<th align="left">Remote Session report:</th>
+	<td><a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a></td>
 	</tr>
 	</table>
