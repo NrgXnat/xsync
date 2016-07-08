@@ -68,6 +68,7 @@ public class XSyncFailureHandler {
 		sb.append("</body>");
         sb.append("</html>");
 		info.put("BODY", sb.toString());
+		SynchronizationManager.END_ERROR_FAILURE_SYNC(project);
 		try {
 			XDAT.getMailService().sendHtmlMessage(AdminUtils.getAuthorizerEmailId(),AdminUtils.getAuthorizerEmailId(), info.get("SUBJECT"),
 					info.get("BODY"));

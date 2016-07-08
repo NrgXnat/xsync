@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 
 import org.nrg.xdat.om.XnatExperimentdata;
@@ -58,6 +59,15 @@ public class SynchronizationManager {
 					}
 				}
 		  }
+	}
+	
+	public static void END_ERROR_FAILURE_SYNC(String projectId) {
+	    SyncManifest manifest = syncManifests.get(projectId);
+	    if (manifest != null) {
+			manifest.informUser();
+			File syncInfoFilePath = new File(GET_SYNC_FILE_PATH(projectId)+projectId+"_sync.html");
+			manifest.syncInfoToFile(syncInfoFilePath);
+	    }		
 	}
 	
 	public static void END_SYNC(String projectId) {
