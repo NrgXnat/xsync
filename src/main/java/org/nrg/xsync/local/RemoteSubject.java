@@ -3,6 +3,7 @@ package org.nrg.xsync.local;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -197,6 +198,7 @@ public class RemoteSubject {
 		//If not, the experiment was never synced. So ignore.
 		IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
 		String remoteId = idMapper.getRemoteAccessionId(experiment.getId());
+		String localId = experiment.getId();
 		 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(experiment.getId(),experiment.getLabel());
 		 expSyncItem.setRemoteId(remoteId);
 		if (remoteId != null)  {
@@ -210,7 +212,7 @@ public class RemoteSubject {
 					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + experiment.getLabel() + " deleted. " + response.getResponseBody());
 					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
 					 XSyncTools xsyncTools = new XSyncTools(user);
-					 xsyncTools.deleteXsyncRemoteEntry(experiment.getId(), experiment.getLabel());
+					 xsyncTools.deleteXsyncRemoteEntry(this.localSubject.getProject(), localId);
 				 }else {
 					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + experiment.getLabel() + " could not be deleted. " + response.getResponseBody());
 					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
@@ -356,22 +358,11 @@ public class RemoteSubject {
 					pushExperiment(experiment,remoteSubject);
 				}
 			}
-			//Push the new experiments
-			if (newExperiments != null && newExperiments.size() > 0) {
-				for (XnatExperimentdataI experiment:newExperiments) {
-					pushExperiment(experiment,remoteSubject);
-				}
-			}
-			//Push the OK to Sync Experiments
-		}else {
-			//Only the new experiments
-			//OR
-			//Those that have been marked OK to Sync and not Pushed yet
-			//Push the new experiments
-			if (newExperiments != null && newExperiments.size() > 0) {
-				for (XnatExperimentdataI experiment:newExperiments) {
-					pushExperiment(experiment,remoteSubject);
-				}
+		}
+		//Push the new experiments
+		if (newExperiments != null && newExperiments.size() > 0) {
+			for (XnatExperimentdataI experiment:newExperiments) {
+				pushExperiment(experiment,remoteSubject);
 			}
 		}
 		//Irrespective of the syncOnlyNwew Flag, the OK to Sync experiments must be pushed
@@ -643,8 +634,9 @@ public class RemoteSubject {
 			File experimentPath = new File(anonymizedSessionPath);
 
 			ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,(orig).getArchiveDirectoryName(),0);
-
-			List<File> files = (List<File>) FileUtils.listFiles(experimentPath,null,true);
+			List<File> files = new ArrayList<File>();
+			if (experimentPath.exists())
+				files = (List<File>) FileUtils.listFiles(experimentPath,null,true);
 		
 			String expCachePath = SynchronizationManager.GET_SYNC_XAR_PATH(targetproject,orig);
 			new File(expCachePath).mkdirs();
@@ -655,18 +647,23 @@ public class RemoteSubject {
 			//target.setId("");
 			target.setProject(target.getProject());
 			target.setSubjectId(targetsubject.getLabel());
-			for (XnatImagescandataI scan : target.getScans_scan()) {
-				scan.setImageSessionId(target.getId());
+			if (target.getScans_scan() != null && target.getScans_scan().size() > 0) {
+				for (XnatImagescandataI scan : target.getScans_scan()) {
+					scan.setImageSessionId(target.getId());
+				}
 			}
-			for (XnatImageassessordataI assessor : target.getAssessors_assessor()) {
-				assessor.setImagesessionId(target.getId());
+			if (target.getAssessors_assessor() != null && target.getAssessors_assessor().size() > 0) {
+				for (XnatImageassessordataI assessor : target.getAssessors_assessor()) {
+					assessor.setImagesessionId(target.getId());
+				}
 			}
 			FileWriter fw = new FileWriter(outF);
 			target.toXML(fw, false);
 			fw.close();
 			
 			rep.addEntry(((XnatSubjectassessordata)target).getLabel() + ".xml",outF);
-			rep.addAll(files);
+			if (files.size() > 0) 
+				rep.addAll(files);
 			
 			rep.setDownloadName(target.getLabel()+".xar");
 			xarFile = new File(expCachePath, (new Date()).getTime()+".xar");

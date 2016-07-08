@@ -127,25 +127,28 @@ public class ExperimentFilter {
 			if (checkExistenceOfOkToSync) {
 				List<String> experimentIds = new ArrayList<String>();
 				for (XnatExperimentdataI experiment:experimentsConfiguredToBeSynced) {
-					experimentIds.add(experiment.getId());
-				}
-				parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, experimentIds);
-
-				//Look for experiments which may have been marked ok to sync
-				 String query = queryUtil.getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync();
-					//Columns
-					// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
-				//_log.debug("Query is " + query);
-				 List<Map<String,Object>> experiments = jdbcTemplate.queryForList(query, parameters);
-				if (experiments != null && experiments.size()>0) {
-					for (Map<String,Object> row:experiments) {
-						if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
-							_log.debug("Experiment Marked OK to Sync: " + (String)row.get("id"));
-							experimentsMarkedOkToSync.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
-						}
+					if (!hasAlreadyBeenSelected(experimentsModified,experiment) && !hasAlreadyBeenSelected(experimentsAdded,experiment)) {
+						experimentIds.add(experiment.getId());
 					}
-				}else 
-				 _log.debug("None of the configured experiments have changed for subject " + subject.getId());
+				}
+				if (experimentIds.size() > 0) { 
+					parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, experimentIds);
+					//Look for experiments which may have been marked ok to sync
+					 String query = queryUtil.getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync();
+						//Columns
+						// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
+					//_log.debug("Query is " + query);
+					 List<Map<String,Object>> experiments = jdbcTemplate.queryForList(query, parameters);
+					if (experiments != null && experiments.size()>0) {
+						for (Map<String,Object> row:experiments) {
+							if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
+								_log.debug("Experiment Marked OK to Sync: " + (String)row.get("id"));
+								experimentsMarkedOkToSync.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
+							}
+						}
+					}else 
+					 _log.debug("None of the configured experiments have changed for subject " + subject.getId());
+				}
 			}
 		}
 		// Subject has no experiments which are configured to be synced. Have any been deleted?
@@ -175,6 +178,19 @@ public class ExperimentFilter {
 		filteredResults.put(QueryResultUtil.NEW_STATUS, experimentsAdded);
 		filteredResults.put(QueryResultUtil.OK_TO_SYNC_STATUS, experimentsMarkedOkToSync);
 		return filteredResults;
+	}
+	
+	private boolean hasAlreadyBeenSelected(List<XnatExperimentdataI> experiments, XnatExperimentdataI exp) {
+		boolean hasAlreadyBeenSelected = false;
+		if (experiments != null && experiments.size() > 0) {
+			for (XnatExperimentdataI e:experiments) {
+				if (e.getId().equals(exp.getId())) {
+					hasAlreadyBeenSelected = true;
+					break;
+				}
+			}
+		}
+		return hasAlreadyBeenSelected;
 	}
 	
 	private XnatExperimentdataI getExperiment(String id, List<XnatExperimentdataI> experiments) {
@@ -472,16 +488,18 @@ public class ExperimentFilter {
 	
 	
 	private void anonymize(XnatImagesessiondata exp, String destProject) {
-		try {
-		File sessionDir = exp.getSessionDir();
-		if (sessionDir != null) {
-			AnonymizerI simpleExportAnonymizer = new XsyncAnonymizer();
-			simpleExportAnonymizer.anonymize((XnatImagesessiondata) exp, destProject);
-		}else {
-			_log.debug("There are no files to anonymize");
-		}
-		}catch(Exception e) {
-			_log.error(e.getMessage());
+		if (exp.getScans_scan() != null && exp.getScans_scan().size() > 0) {
+			try {
+				File sessionDir = exp.getSessionDir();
+				if (sessionDir != null) {
+					AnonymizerI simpleExportAnonymizer = new XsyncAnonymizer();
+					simpleExportAnonymizer.anonymize((XnatImagesessiondata) exp, destProject);
+				}else {
+					_log.debug("There are no files to anonymize");
+				}
+			}catch(Exception e) {
+				_log.error(e.getMessage());
+			}
 		}
 	}
 	

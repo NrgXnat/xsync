@@ -86,9 +86,9 @@ public class XSyncTools {
 		XsyncXsyncassessordata assessor = getXsyncAssessor(exptId,remote_url);
 		if (assessor != null) {
 			okToSync = assessor.getOktosync().booleanValue();
-			if (okToSync) {
-				okToSync = XsyncUtils.SYNC_STATUS_SYNCED.equals(assessor.getSyncStatus())?false:true;
-			}
+			//if (okToSync) {
+			//	okToSync = XsyncUtils.SYNC_STATUS_SYNCED.equals(assessor.getSyncStatus())?false:true;
+			//}
 		}
 		return okToSync;
 	}

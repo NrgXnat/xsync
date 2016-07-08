@@ -32,6 +32,7 @@ import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.XSyncFailureHandler;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
@@ -134,8 +135,9 @@ public class ProjectChangeDiscoverer implements Callable<java.lang.Void>{
 			SynchronizationManager.END_SYNC(project.getId());
 		}catch(Exception e) {
 			//Roll back the syncBlocked flag
-			e.printStackTrace();
+			_log.debug(e.getLocalizedMessage());
 			saveSyncBlockStatus(new Boolean(false));
+			XSyncFailureHandler.handle(_projectId, e, "Sync failed");
 		}
 	}
 

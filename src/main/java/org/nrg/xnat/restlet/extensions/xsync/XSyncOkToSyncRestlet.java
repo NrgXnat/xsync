@@ -92,7 +92,10 @@ public class XSyncOkToSyncRestlet extends SecureResource{
 	        if (okToSyncData != null) {
     			//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
     			EventMetaI c = EventUtils.DEFAULT_EVENT(user,"ADMIN_EVENT occurred");
-    			okToSyncData.save(user, false, true,c);
+    			boolean saved = okToSyncData.save(user, false, true,c);
+    			if (!saved) {
+    		        this.returnString("Unable to save the Ok To Sync Information", Status.SERVER_ERROR_INTERNAL);
+    			}
 	        }
 	        this.returnString(_exptId + " has been marked "+ (_okToSync?"OK":"Not OK") +" to sync", Status.SUCCESS_OK);
         }catch(Exception e) {

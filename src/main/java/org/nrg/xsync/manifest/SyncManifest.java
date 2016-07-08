@@ -235,7 +235,7 @@ public class SyncManifest{
 				for (SubjectSyncItem sub : subjects) {
 					 sb.append("<tr>");
 					 sb.append("<td> " + sub.localLabel + " </td>");
-					 sb.append("<td> " + sub.getRemoteId() + " </td>");
+					 sb.append("<td> " + (sub.getRemoteId()==null?"":sub.getRemoteId()) + " </td>");
 					 sb.append("<td> " + sub.getSyncStatus() + " </td>");
 					 sb.append("<td> " + (sub.getMessage()==null?"":sub.getMessage()) + " </td>");
 					 sb.append("</tr>");
@@ -259,7 +259,7 @@ public class SyncManifest{
 					for (ExperimentSyncItem exp: exps) {
 						 sb.append("<tr>");
 						 sb.append("<td> " + exp.getLocalLabel() + " </td>");
-						 sb.append("<td> " + exp.getRemoteId() + " </td>");
+						 sb.append("<td> " + (exp.getRemoteId()==null?"":exp.getRemoteId()) + " </td>");
 						 sb.append("<td> " + exp.getXsiType() + " </td>");
 						 sb.append("<td> " + exp.getSyncStatus() + " </td>");
 						 sb.append("<td> " + (exp.getMessage()==null?"":exp.getMessage()) + " </td>");
