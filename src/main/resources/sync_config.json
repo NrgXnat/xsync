@@ -1,32 +1,67 @@
 {
-"project": "TEST1ID",
-"sync_frequency":"daily",
-"auto_sync":"true",
-"identifiers":"use_local",
-"remote_url":"http://localhost:8080/xnat",
-"remote_project_id":"SyncProjectId",
-"remote_token":"BLA_TOKEN_CHANGE",
-"remote_secret":"BLA_SECRET",
-"projectresources": ["RES1"],
-"subjectresources": ["S1RESOURCE","S2RESOURCE"],
-"subjectassessors": [{
-		       "xsiType":"dpuk:dpukAssessmentData",
-		       "resources":["DPUK1RESOURCE"],		     
-		       "needs_ok_to_sync": false
-		      }],
-"imagingsessions": [{
-		      "xsiType":"xnat:mrSessionData",
-		      "resources":["MR1RESOURCE","MR2RESOURCE"],		     
-		      "scans":[{"type":"T1","resources":["DICOM"]},
-			       {"type":"FLAIR","resources":["SCAN3"]}
-			     ],
-		      "assessors":[{
-		      		    "xsiType":"xnat:qcManualAssessmentData",
-				    "resources":["QC1RESOURCE"],		     
-				    "needs_ok_to_sync": false
-		      		    }],	     
-		      "anonymize": true,
-		      "needs_ok_to_sync": true
-                    }                                 
-                 ]
+  "enabled": true, 
+  "sync_frequency": "daily",
+  "sync_new_only": false, 
+  "source_project_id": "SOURCE", 
+  "remote_project_id": "DESTINATION",
+  "remote_url": "http://localhost:8080/xnat",
+  "identifiers": "use_local",
+  "project_resources": {
+    "sync_type": "include",
+    "resource_list": ["RES1"]
+  },
+  "subject_resources": {
+    "sync_type": "include",
+    "resource_list": ["S1RESOURCE"]
+  },
+   "subject_assessors": {
+      "xsi_types": {
+        "sync_type": "include",
+        "types_list": ["dpuk:dpukAssessmentData", "hcp:subjectMetaData"]
+      },
+      "advanced_options": [
+        {
+          "xsi_type": "dpuk:dpukAssessmentData",
+          "needs_ok_to_sync": false,
+  
+          "resources": {
+            "sync_type": "include",
+            "resource_list": ["DPUK1RESOURCE"]
+          }
+        },
+        {
+          "xsi_type": "hcp:subjectMetaData",
+          "needs_ok_to_sync": false,
+  
+          "resources" : {
+            "sync_type": "none"
+          }
+        }
+      ]
+  },
+  "imaging_sessions": {
+    "xsi_types": {
+      "sync_type": "include",
+      "types_list": ["xnat:mrSessionData", "xnat:petSessiondata"]
+    },
+    "advanced_options": [
+      {
+        "xsi_type": "xnat:mrSessionData",
+        "anonymize": false,
+        "needs_ok_to_sync": true,
+        "resources": {
+          "sync_type": "exclude",
+          "resource_list": ["MR1RESOURCE"]
+        },
+        "scan_types": {
+          "sync_type": "include",
+          "scan_type_list": ["T1w", "T2w"]
+        },
+        "scan_resources": {
+          "sync_type": "include",
+          "resource_list": ["DICOM","JUNK"]
+        }
+      }
+    ]
+  }
 }
