@@ -390,6 +390,8 @@ XSYNC.xsyncconfig.continueInit = function() {
 	$("#xsync-config-div").append('<input type="button" class="xsync-submit-button" '+ XSYNC.xsyncconfig.anonymizationuploadDisabled  +' id="xsync-annon_add-config" value="' + XSYNC.xsyncconfig.anonymizationuploadBtnText +'">');
 	$("#xsync-submit-config").click(function() { XSYNC.xsyncconfig.submitConfig(); });
 	$("#xsync-annon_add-config").click(function() { XSYNC.xsyncconfig.submitDICOMAnonimization(); });
+
+	XSYNC.xsyncconfig.showHistoryTable();
 }
 
 XSYNC.xsyncconfig.removeResource = function(ele) {
@@ -419,6 +421,8 @@ XSYNC.xsyncconfig.removeImagingSessionAssessor = function(ele) {
 XSYNC.xsyncconfig.removeResource = function(ele) {
 	$(ele).parent().remove();
 }
+
+
 
 XSYNC.xsyncconfig.submitConfig = function() {
 
@@ -732,3 +736,113 @@ XSYNC.xsyncconfig.addImagingAssessorResource = function(ele) {
 				'</div>');
 }
 
+XSYNC.xsyncconfig.showHistoryTable = function() {
+	// Displays overview of history in table format
+	var xsyncHistory = XNAT.table({ className: 'xnat-table sortable' });
+	xsyncHistory.tr();
+	xsyncHistory.th('Date').th('Status').th('Subjects').th('Experiments').th('Assessments').th('Resources').th('Total Data');
+
+	var getSyncHistory = $.ajax({
+		type: 'GET',
+		url: '/xapi/xsync/manifest',
+		dataType: 'json'
+	});
+
+	getSyncHistory.done(function(data) {
+		var allHistory = [];
+
+		for(var i = 0; i < data.length; i++) {
+			var date = new Date(data[i].startDate);
+			var historyUri = '/xapi/xsync/manifest/'+data[i].id;
+			var row = [
+				'<a onclick=XSYNC.xsyncconfig.showHistoryDetailsModal("'+ historyUri +'")>'+ date.toDateString() +'</a>',
+				data[i].syncStatus,
+				data[i].subjectCount,
+				0,
+				data[i].assessorsCount,
+				data[i].resourcesCount,
+				data[i].totalDataSynced
+			];
+			allHistory.push(row);
+		}
+		xsyncHistory.rows(allHistory);
+	});
+
+	var xsyncConfigDiv = $("#xsync-config-div");
+	xsyncConfigDiv.append("<h2>Sync History</h2>");
+	xsyncConfigDiv.append(xsyncHistory.table);
+};
+
+XSYNC.xsyncconfig.showHistoryDetailsModal = function(uri) {
+	// Displays the details of a particular sync
+	var detailsStyle = {
+		border: '0px'
+	};
+
+	var detailsTable = XNAT.table({ className: 'xnat-table xsync-details-table', style: detailsStyle });
+	detailsTable.tr();
+
+	var getHistory = $.ajax({
+		type: 'GET',
+		url: uri,
+		dataType: 'json'
+	});
+
+	getHistory.done( function(history) {
+		var startDate = new Date(history.startDate);
+		var completeDate = new Date(history.completeDate);
+
+		// Collect all the data
+		detailsTable.rows([
+			['<b>Started</b>', startDate.toLocaleDateString() + ' ' + startDate.toLocaleTimeString()],
+			['<b>Completed</b>', completeDate.toLocaleDateString() + ' ' + completeDate.toLocaleTimeString()],
+			['<b>Destination XNAT</b>', history.remoteHost],
+			['<b>Destination Project</b>', history.remoteProject],
+			['<b>Subjects Synced</b>', history.subjectCount],
+			['<b>Assessors Synced</b>', history.assessorsCount],
+			['<b>Resources Synced</b>', history.resourcesCount],
+			['<b>Total Data</b>', history.totalDataSynced],
+			['<b>Sync Status</b>', history.syncStatus]
+		]);
+
+		var subjectRows = [];
+		for (var i = 100000; i < 100100; i++) {
+			subjectRows.push([i, 'STATUS']);
+		}
+
+		// Create the modal
+		xmodal.open({
+			title:
+				'Xsync History for '+ XSYNC.xsyncconfig.configuration.project +
+				' on '+ startDate.toLocaleDateString() + ' ' + startDate.toLocaleTimeString(),
+			width: 800,
+			height: '95%',
+			overflow: 'auto',
+			content:
+				'<h3 class=xsync-history-header>Details</h3><div id="xsync-details" class="xsync-history-container xsync-history-table"></div>' +
+				'<h3 class=xsync-history-header>Subjects Synced</h3><div id="xsync-subject-details" class="xsync-history-container xsync-history-scroll"></div>' +
+				'<h3 class=xsync-history-header>Assessors Synced</h3><div id="xsync-assessor-details" class="xsync-history-container xsync-history-scroll"></div>' +
+				'<h3 class=xsync-history-header>Resources Synced</h3><div id="xsync-resource-details" class="xsync-history-container xsync-history-scroll"></div>',
+			buttons: {
+				close: {
+					label: 'Close'
+				}
+			}
+		});
+
+		// Render content into modal
+		var detailsDiv = $("#xsync-details");
+		detailsTable.render(detailsDiv);
+		renderXsyncHistoryDiv($('#xsync-subject-details'), subjectRows);
+		renderXsyncHistoryDiv($('#xsync-assessor-details'), subjectRows);
+		renderXsyncHistoryDiv($('#xsync-resource-details'), subjectRows);
+	});
+};
+
+function renderXsyncHistoryDiv(element, data) {
+	for (var i = 0; i < data.length; i++) {
+		element.append(
+			'<div class="col1">'+data[i][0]+'</div><div>'+data[i][1]+'</div>'
+		)
+	}
+}

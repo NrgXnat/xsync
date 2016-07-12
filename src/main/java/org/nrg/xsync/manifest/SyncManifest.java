@@ -9,14 +9,19 @@ import java.util.Hashtable;
 
 import javax.mail.MessagingException;
 
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xsync.services.local.SyncManifestService;
+import org.nrg.xsync.services.local.impl.HibernateSyncManifestService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Mohana Ramaratnam
@@ -300,5 +305,29 @@ public class SyncManifest{
 		            } catch (Exception e) {
 		        }
 		    }
+		}
+
+		public void syncInfoToDatabase() {
+			final HibernateSyncManifestService service =
+					XDAT.getContextService().getBean(HibernateSyncManifestService.class);
+
+			SyncManifestHistory syncRecord = new SyncManifestHistory();
+
+			String syncStatus = "Complete";
+			if (!wasSyncSuccessfull()) {
+				syncStatus = "Fail";
+			}
+
+			syncRecord.setStartDate(this.getSync_start_time());
+			syncRecord.setCompleteDate(this.getSync_end_time());
+			syncRecord.setRemoteHost(this.syncHost);
+			syncRecord.setRemoteProject(this.remoteProjectId);
+			syncRecord.setSubjectCount(this.getSubjects().size());
+			syncRecord.setAssessorsCount(999);
+			syncRecord.setResourcesCount(this.getResources().size());
+			syncRecord.setSyncStatus(syncStatus);
+			syncRecord.setTotalDataSynced("XX GB");
+
+			service.create(syncRecord);
 		}
 }
