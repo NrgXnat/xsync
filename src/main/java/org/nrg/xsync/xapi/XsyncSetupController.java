@@ -13,7 +13,7 @@ import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatResourcecatalog;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
-import org.nrg.xdat.rest.AbstractXnatRestApi;
+import org.nrg.xdat.rest.AbstractXapiRestController;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
@@ -54,7 +54,7 @@ import io.swagger.annotations.ApiResponses;
 @RequestMapping(value = "/xsync")
 @Api(description = "XSync Management API")
 
-public class XsyncSetupController extends AbstractXnatRestApi {
+public class XsyncSetupController extends AbstractXapiRestController {
 	XsyncXsyncprojectdata existing = null;
 	String projectId = null;
 	JsonNode synchronizationJson = null;

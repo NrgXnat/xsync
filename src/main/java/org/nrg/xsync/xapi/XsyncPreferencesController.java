@@ -2,7 +2,7 @@ package org.nrg.xsync.xapi;
 
 import org.json.JSONObject;
 import org.nrg.framework.annotations.XapiRestController;
-import org.nrg.xdat.rest.AbstractXnatRestApi;
+import org.nrg.xdat.rest.AbstractXapiRestController;
 import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,7 +29,7 @@ import io.swagger.annotations.ApiResponses;
 @XapiRestController
 @RequestMapping(value = "/xsyncSitePreferences")
 @Api(description = "XSync Preferences API")
-public class XsyncPreferencesController extends AbstractXnatRestApi {
+public class XsyncPreferencesController extends AbstractXapiRestController {
 	
 	/** The _prefs. */
 	@Autowired

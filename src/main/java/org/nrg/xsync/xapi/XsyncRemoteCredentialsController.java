@@ -8,7 +8,7 @@ import java.util.Date;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.nrg.framework.annotations.XapiRestController;
-import org.nrg.xdat.rest.AbstractXnatRestApi;
+import org.nrg.xdat.rest.AbstractXapiRestController;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.restlet.resource.StringRepresentation;
@@ -37,7 +37,7 @@ import io.swagger.annotations.ApiResponses;
 @XapiRestController
 @RequestMapping(value = "/xsync")
 @Api(description = "XSync Credentials API")
-public class XsyncRemoteCredentialsController extends AbstractXnatRestApi {
+public class XsyncRemoteCredentialsController extends AbstractXapiRestController {
 	
 	@Autowired
 	private RemoteAliasService _remoteAliasService;
