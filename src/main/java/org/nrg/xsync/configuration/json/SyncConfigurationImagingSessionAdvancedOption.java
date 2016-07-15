@@ -92,5 +92,5 @@ public class SyncConfigurationImagingSessionAdvancedOption extends SyncConfigura
 		}
 		return isAllowed;
 	}
-	
+
 }

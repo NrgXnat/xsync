@@ -28,24 +28,30 @@ public class ExperimentSyncItem extends SyncedItem {
 	
 	public Integer getTotalSyncedFileCount() {
 		int count = 0;
-		for (ResourceSyncItem r: resources) {
-			count += r.getFileCount().intValue();
-		}
+		try {
+			for (ResourceSyncItem r: resources) {
+				count += r.getFileCount().intValue();
+			}
+		}catch(NullPointerException npe) {}
 		return new Integer(count);
 	}
 
 	public Long getTotalSyncedFileSize() {
 		long size = 0;
-		for (ResourceSyncItem r: resources) {
-			size += (Long)r.getFileSize();
-		}
-		for (ScanSyncItem s:scans) {
-			for (ResourceSyncItem r: s.getResources()) {
+		try {
+			for (ResourceSyncItem r: resources) {
 				size += (Long)r.getFileSize();
 			}
-		}
-		for (ExperimentSyncItem s:assessors) {
-				size += (Long)s.getTotalSyncedFileSize();
+			for (ScanSyncItem s:scans) {
+				for (ResourceSyncItem r: s.getResources()) {
+					size += (Long)r.getFileSize();
+				}
+			}
+			for (ExperimentSyncItem s:assessors) {
+					size += (Long)s.getTotalSyncedFileSize();
+			}
+		}catch(NullPointerException npe) {
+			
 		}
 		return new Long(size);
 	}

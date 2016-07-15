@@ -93,6 +93,7 @@ public class XsyncUtils {
 		syncinfo.setRemoteUrl(synchronizationJson.get("remote_url").asText());
 		syncinfo.setRemoteProjectId(synchronizationJson.get("remote_project_id").asText());
 		syncProject.setSyncinfo(syncinfo.getItem());
+		syncProject.setSyncScheduledBy(_user.getLogin());
         final ValidationResults vr = syncProject.validate();
         if (vr != null && !vr.isValid()) {
         	throw new Exception(sourceProjectId + " Xsync Setup failed. Invalid JSON: " + vr.isValid());

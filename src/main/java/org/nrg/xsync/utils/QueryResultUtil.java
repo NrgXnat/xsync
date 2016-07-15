@@ -308,7 +308,7 @@ public class QueryResultUtil {
 	}
 
 	public String getProjectsToSync() {
-		String query = "select pr.project_id, pr.sync_blocked, pr.sync_scheduled_by xi.sync_frequency from xsync_xsyncremotemapdata pr  ";
+		String query = "select pr.source_project_id, pr.sync_blocked, pr.sync_scheduled_by, xi.sync_frequency from xsync_xsyncprojectdata pr  ";
 		query += " LEFT JOIN xsync_xsyncinfodata xi ON xi.xsync_xsyncinfodata_id=pr.syncinfo_xsync_xsyncinfodata_id " ;
 		query += "  where xi.sync_frequency=:SYNC_FREQUENCY ";
 		return query;

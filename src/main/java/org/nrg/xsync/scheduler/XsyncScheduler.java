@@ -1,7 +1,6 @@
 package org.nrg.xsync.scheduler;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 
 import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
 import org.nrg.xsync.services.local.DailySyncService;
@@ -44,7 +43,7 @@ public class XsyncScheduler {
 	}
 
 	@Bean 
-	//Run every month on 1st of the month at 01:00 hours
+	//Run every SAT of the week  at 01:00 hours
 	public TriggerTask syncProjectsMarkedAsWeeklySync() {
 	    return new TriggerTask(new WeeklySync(_weeklyService), new CronTrigger("0 0 1 ? * SAT"));
 	}
@@ -57,16 +56,16 @@ public class XsyncScheduler {
 	}
 
 
-	@Inject
+	@Autowired
 	private  DailySyncService _dailyService;
 
-	@Inject
+	@Autowired
 	private  XsyncAliasRefreshService _aliasService;
 
-	@Inject
+	@Autowired
 	private  WeeklySyncService _weeklyService;
 	
-	@Inject
+	@Autowired
 	private  MonthlySyncService _monthlyService;
 	
 	@Autowired

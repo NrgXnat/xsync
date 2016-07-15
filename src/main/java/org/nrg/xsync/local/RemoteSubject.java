@@ -458,7 +458,7 @@ public class RemoteSubject {
 	
 	private boolean subjectAssessorNeedsOkToSync(String xsiType) {
 		//return projectSyncConfiguration.getSynchronizationConfiguration().checkSubjectAssessorOkToSync(xsiType);
-		return projectSyncConfiguration.getSynchronizationConfiguration().getSubjectAssessorAdvancedOptions(xsiType).getNeeds_ok_to_sync().booleanValue();
+		return projectSyncConfiguration.subjectAssessorNeedsOkToSync(xsiType);
 	}
 	
 	

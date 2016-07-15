@@ -1,5 +1,7 @@
 package org.nrg.xsync.configuration.json;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
@@ -10,19 +12,19 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 public class SyncConfigurationSessionAssessor extends SyncConfigurationXsiType  {
 	SyncConfigurationXsiType xsi_types;
-	SyncConfigurationAdvancedOption advanced_options;
+	List<SyncConfigurationAdvancedOption> advanced_options;
 
 	/**
 	 * @return the advanced_options
 	 */
-	public SyncConfigurationAdvancedOption getAdvanced_options() {
+	public List<SyncConfigurationAdvancedOption> getAdvanced_options() {
 		return advanced_options;
 	}
 
 	/**
 	 * @param advanced_options the advanced_options to set
 	 */
-	public void setAdvanced_options(SyncConfigurationAdvancedOption advanced_options) {
+	public void setAdvanced_options(List<SyncConfigurationAdvancedOption> advanced_options) {
 		this.advanced_options = advanced_options;
 	}
 
@@ -40,5 +42,16 @@ public class SyncConfigurationSessionAssessor extends SyncConfigurationXsiType  
 		this.xsi_types = xsi_types;
 	}
 	
+	public SyncConfigurationAdvancedOption getAdvancedOption(String asessorXsiType) {
+		SyncConfigurationAdvancedOption advOption = null;
+		List<SyncConfigurationAdvancedOption> advOptions = getAdvanced_options();
+		for (SyncConfigurationAdvancedOption aOption : advOptions) {
+			if (aOption.getXsi_type().equals(asessorXsiType)) {
+				advOption = aOption;
+				break;
+			}
+		}
+		return advOption;
+	}
 	
 }

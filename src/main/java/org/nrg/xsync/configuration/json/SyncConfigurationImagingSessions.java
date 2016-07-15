@@ -1,6 +1,7 @@
 package org.nrg.xsync.configuration.json;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Mohana Ramaratnam
@@ -8,11 +9,11 @@ import java.util.ArrayList;
  */
 public class SyncConfigurationImagingSessions {
 	SyncConfigurationXsiType xsi_types;
-	ArrayList<SyncConfigurationImagingSessionAdvancedOption> advanced_options;
+	List<SyncConfigurationImagingSessionAdvancedOption> advanced_options;
 	/**
 	 * @return the advanced_options
 	 */
-	public ArrayList<SyncConfigurationImagingSessionAdvancedOption> getAdvanced_options() {
+	public List<SyncConfigurationImagingSessionAdvancedOption> getAdvanced_options() {
 		return advanced_options;
 	}
 	/**

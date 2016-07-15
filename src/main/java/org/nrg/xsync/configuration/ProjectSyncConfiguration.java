@@ -177,6 +177,35 @@ public class ProjectSyncConfiguration {
 		}
 	}
 
+	public boolean subjectAssessorNeedsOkToSync(String assessorXsiType) {
+		if (syncConfiguration.hasSubjectAssessorConfigurationDefinition()) {
+			SyncConfigurationAdvancedOption advOption = syncConfiguration.getSubjectAssessorAdvancedOptions(assessorXsiType);
+			return advOption.getNeeds_ok_to_sync();
+		}else 
+			return false;
+	}
+
+	public boolean imagingSessionNeedsOkToSync(String xsiType) {
+		if (syncConfiguration.hasImagingSessionConfigurationDefinition()) {
+			SyncConfigurationImagingSessionAdvancedOption advOption = syncConfiguration.getImagingSessionAdvancedOptions(xsiType);
+			return advOption.getNeeds_ok_to_sync();
+		}else 
+			return false;
+	}
+
+	public boolean imagingAssessorNeedsOkToSync(String xsiType, String assessorXsiType) {
+		if (syncConfiguration.hasImagingSessionConfigurationDefinition()) {
+			SyncConfigurationImagingSessionAdvancedOption advOption = syncConfiguration.getImagingSessionAdvancedOptions(xsiType);
+			try {
+				SyncConfigurationAdvancedOption advSessionAssessorOption = advOption.getSession_assessors().getAdvancedOption(assessorXsiType);
+				return advSessionAssessorOption.getNeeds_ok_to_sync();
+			}catch(NullPointerException npe) {
+				return false; // Not present defaults to ok not required
+			}
+		}else 
+			return false;
+	}
+
 	
 	public boolean isOnlyASubjectAssessor(XnatSubjectassessordataI experiment) {
 		boolean isOnlyASubjectAssessor = true;

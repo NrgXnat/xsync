@@ -32,6 +32,7 @@ import org.nrg.xft.XFTItem;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.FieldNotFoundException;
 import org.nrg.xft.exception.XFTInitException;
+import org.nrg.xft.search.ItemSearch;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.exceptions.InvalidArchiveStructure;
 import org.nrg.xnat.xsync.anonymize.AnonymizerI;
@@ -69,19 +70,34 @@ public class ExperimentFilter {
 		List<XnatExperimentdataI> experimentsMarkedOkToSync = new ArrayList<XnatExperimentdataI>();
 
 		List<XnatExperimentdataI> experimentsConfiguredToBeSynced = new ArrayList<XnatExperimentdataI>();
-
+		Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
+		
 		List<XnatSubjectassessordataI> existingExperiments = subject.getExperiments_experiment();
 		int total_experiments = existingExperiments.size();
 		_log.debug("Existing experiments " + total_experiments);
 		int i = 0;
+		boolean checkExistenceOfOkToSync = false;
 		while(total_experiments > 0) {
 			XnatSubjectassessordataI subjectAssessor = existingExperiments.get(i);
 			if (projectSyncConfiguration.isSubjectAssessorToBeSynced(subjectAssessor.getXSIType()) || projectSyncConfiguration.isImagingSessionToBeSynced(subjectAssessor.getXSIType())) {
 				   experimentsConfiguredToBeSynced.add(subjectAssessor);	
 			}
+			if (!checkExistenceOfOkToSync) { //Once true is enough
+				if (projectSyncConfiguration.subjectAssessorNeedsOkToSync(subjectAssessor.getXSIType()) || projectSyncConfiguration.imagingSessionNeedsOkToSync(subjectAssessor.getXSIType())) {
+					checkExistenceOfOkToSync = true;
+				}
+			}
+
 			subject.removeExperiments_experiment(i);
 			existingExperiments = subject.getExperiments_experiment();
 			total_experiments = subject.getExperiments_experiment().size();
+		}
+		List<Map<String,Object>> experimentDetails = new ArrayList<Map<String,Object>>();
+		if (experimentsConfiguredToBeSynced.size() > 0) {
+			for (XnatExperimentdataI exp:experimentsConfiguredToBeSynced) {
+				Map<String,Object> expTimeLineDetails = getExperimentTimeLineDetails((XnatExperimentdata)exp,syncEndDate);
+				experimentDetails.add(expTimeLineDetails);
+			}
 		}
 		//Find the experiments which have been deleted
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
@@ -92,21 +108,8 @@ public class ExperimentFilter {
 		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
 				new JdbcTemplate(XDAT.getDataSource()));
 		if (experimentsConfiguredToBeSynced.size() > 0) {
-			List<String> experimentIds = new ArrayList<String>();
-			for (XnatExperimentdataI experiment:experimentsConfiguredToBeSynced) {
-				experimentIds.add(experiment.getId());
-			}
-			parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, experimentIds);
-
-			String query = queryUtil.getQueryForFetchingSubjectExperimentsSinceLastSync();
-			//Columns
-			// id,label,element_name,project,status,last_modified, sync_start_time 		
-			_log.debug("Query is " + query);
-			List<Map<String,Object>> experiments = jdbcTemplate.queryForList(query, parameters);
-			
-			if (experiments != null && experiments.size()>0) {
-				Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
-				for (Map<String,Object> row:experiments) {
+			if (experimentDetails.size()>0) {
+				for (Map<String,Object> row:experimentDetails) {
 					if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
 						//Is this new or updated?
 						Date experimentInsertDate = (Date)row.get("insert_date");
@@ -118,56 +121,59 @@ public class ExperimentFilter {
 							_log.debug("Experiment Modified: " + (String)row.get("id"));
 							experimentsModified.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
 						}
-					}else if (row.get("status").equals(QueryResultUtil.DELETE_STATUS)) {
-						_log.debug("Experiment Deleted: " + (String)row.get("id"));
-						experimentsDeleted.add(createNew((String)row.get("id"), subject,(String)row.get("element_name")));
 					}
 				}
-			}else {
+			}
+			if (checkExistenceOfOkToSync) {
+				List<String> experimentIds = new ArrayList<String>();
+				for (XnatExperimentdataI experiment:experimentsConfiguredToBeSynced) {
+					experimentIds.add(experiment.getId());
+				}
+				parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, experimentIds);
+
 				//Look for experiments which may have been marked ok to sync
-				 query = queryUtil.getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync();
+				 String query = queryUtil.getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync();
 					//Columns
 					// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
 				//_log.debug("Query is " + query);
-				experiments = jdbcTemplate.queryForList(query, parameters);
+				 List<Map<String,Object>> experiments = jdbcTemplate.queryForList(query, parameters);
 				if (experiments != null && experiments.size()>0) {
 					for (Map<String,Object> row:experiments) {
 						if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
 							_log.debug("Experiment Marked OK to Sync: " + (String)row.get("id"));
-							//experimentsModified.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
 							experimentsMarkedOkToSync.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
 						}
 					}
 				}else 
 				 _log.debug("None of the configured experiments have changed for subject " + subject.getId());
 			}
-		}else { // Subject has no experiments which are configured to be synced. Have any been deleted?
-			String query = queryUtil.getQueryForFetchingSubjectExperimentsDeletedSinceLastSync();
-			//Columns
-			// id,label,element_name,project,status,last_modified, sync_start_time 		
-			_log.debug("Query is " + query);
-			List<Map<String,Object>> experiments = jdbcTemplate.queryForList(query, parameters);
-			
-			if (experiments != null && experiments.size()>0) {
-				for (Map<String,Object> row:experiments) {
-					if (projectSyncConfiguration.isSubjectAssessorToBeSynced((String)row.get("element_name")) || projectSyncConfiguration.isImagingSessionToBeSynced((String)row.get("element_name"))) {
-						if (row.get("status").equals("deleted")) {
-							_log.debug("Experiment Deleted: " + (String)row.get("id"));
-							experimentsDeleted.add(createNew((String)row.get("id"),subject,(String)row.get("element_name")));
-						}
+		}
+		// Subject has no experiments which are configured to be synced. Have any been deleted?
+		String query = queryUtil.getQueryForFetchingSubjectExperimentsDeletedSinceLastSync();
+		//Columns
+		// id,label,element_name,project,status,last_modified, sync_start_time 		
+		_log.debug("Query is " + query);
+		List<Map<String,Object>> experiments = jdbcTemplate.queryForList(query, parameters);
+		
+		if (experiments != null && experiments.size()>0) {
+			for (Map<String,Object> row:experiments) {
+				if (projectSyncConfiguration.isSubjectAssessorToBeSynced((String)row.get("element_name")) || projectSyncConfiguration.isImagingSessionToBeSynced((String)row.get("element_name"))) {
+					if (row.get("status").equals("deleted")) {
+						_log.debug("Experiment Deleted: " + (String)row.get("id"));
+						experimentsDeleted.add(createNew((String)row.get("id"),subject,(String)row.get("element_name")));
 					}
 				}
-			}else {
-				_log.debug("Nothing has changed for subject");
 			}
+		}else {
+			_log.debug("Nothing has changed for subject");
 		}
+		
 		
 		Map<String,List<XnatExperimentdataI>> filteredResults = new HashMap<String,List<XnatExperimentdataI>>();
 		filteredResults.put(QueryResultUtil.ACTIVE_STATUS, experimentsModified);
 		filteredResults.put(QueryResultUtil.DELETE_STATUS, experimentsDeleted);
 		filteredResults.put(QueryResultUtil.NEW_STATUS, experimentsAdded);
 		filteredResults.put(QueryResultUtil.OK_TO_SYNC_STATUS, experimentsMarkedOkToSync);
-		
 		return filteredResults;
 	}
 	
@@ -180,6 +186,26 @@ public class ExperimentFilter {
 			}
 		}
 		return exp;
+	}
+	
+	private Map<String,Object> getExperimentTimeLineDetails(XnatExperimentdata exp, Object sync_end_time) throws Exception {
+		// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
+		Map<String,Object> info = new HashMap<String, Object>();
+		XFTItem item = exp.getCurrentDBVersion(); // exp.getItem does not contain the meta fields
+		//ItemI itemMeta = item.getMeta(); was returning null
+		String metaFieldName = item.getGenericSchemaElement().getMetaDataFieldName();
+        Object v = item.getProperty(metaFieldName);
+        XFTItem itemMeta = ItemSearch.GetItem(item.getXSIType() + "_meta_data/meta_data_id",v,null,false);
+
+		info.put("id", exp.getId());
+		info.put("label", exp.getLabel());
+		info.put("element_name", "");
+		info.put("project", exp.getProject());
+		info.put("status", itemMeta.getProperty("status"));
+		info.put("last_modified", itemMeta.getProperty("last_modified"));
+		info.put("insert_date", itemMeta.getProperty("insert_date"));
+		info.put("sync_end_time", sync_end_time);
+		return info;
 	}
 	
 	private XnatExperimentdataI createNew(String id, XnatSubjectdata subject,String xsiType) {

@@ -263,8 +263,12 @@ public class SyncManifest{
 						 sb.append("<td> " + exp.getXsiType() + " </td>");
 						 sb.append("<td> " + exp.getSyncStatus() + " </td>");
 						 sb.append("<td> " + (exp.getMessage()==null?"":exp.getMessage()) + " </td>");
-						 sb.append("<td> " + exp.getTotalSyncedFileCount() + " </td>");
-						 sb.append("<td> " + exp.getTotalSyncedFileSize() + " </td>");
+						 Integer fileCnt = exp.getTotalSyncedFileCount();
+						 String fileCntStr = fileCnt == 0?"NA":fileCnt.toString();
+						 sb.append("<td> " + fileCntStr + " </td>");
+						 Long fileSize = exp.getTotalSyncedFileSize();
+						 String fileSizeStr = fileCnt == 0?"NA":fileSize.toString();
+						 sb.append("<td> " + fileSizeStr + " </td>");
 						 sb.append("</tr>");
 					}
 				}
