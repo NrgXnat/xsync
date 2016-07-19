@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
  * Created by Michael Hileman on 2016/07/07.
  */
 @Repository
-public class SyncManifestRepository extends AbstractHibernateDAO<SyncManifestHistory> {
+public class SyncManifestRepository extends AbstractHibernateDAO<XsyncProjectHistory> {
 }

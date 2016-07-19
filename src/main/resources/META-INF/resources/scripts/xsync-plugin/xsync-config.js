@@ -736,15 +736,19 @@ XSYNC.xsyncconfig.addImagingAssessorResource = function(ele) {
 				'</div>');
 }
 
+/////////////////////
+// Xsync reporting //
+/////////////////////
+
 XSYNC.xsyncconfig.showHistoryTable = function() {
-	// Displays overview of history in table format
+	// Displays overview of sync history in table format
 	var xsyncHistory = XNAT.table({ className: 'xnat-table sortable' });
 	xsyncHistory.tr();
 	xsyncHistory.th('Date').th('Status').th('Subjects').th('Experiments').th('Assessments').th('Resources').th('Total Data');
 
 	var getSyncHistory = $.ajax({
 		type: 'GET',
-		url: '/xapi/xsync/manifest',
+		url: '/xapi/xsync/history',
 		dataType: 'json'
 	});
 
@@ -753,14 +757,14 @@ XSYNC.xsyncconfig.showHistoryTable = function() {
 
 		for(var i = 0; i < data.length; i++) {
 			var date = new Date(data[i].startDate);
-			var historyUri = '/xapi/xsync/manifest/'+data[i].id;
+			var historyUri = '/xapi/xsync/history/'+data[i].id;
 			var row = [
-				'<a onclick=XSYNC.xsyncconfig.showHistoryDetailsModal("'+ historyUri +'")>'+ date.toDateString() +'</a>',
+				'<a onclick=XSYNC.xsyncconfig.showHistoryDetailsModal("'+ historyUri +'")>'+ date.toLocaleDateString() + ' ' + date.toLocaleTimeString() +'</a>',
 				data[i].syncStatus,
-				data[i].subjectCount,
-				0,
-				data[i].assessorsCount,
-				data[i].resourcesCount,
+				data[i].totalSubjects.toString(),
+				data[i].totalExperiments.toString(),
+				data[i].totalAssessors.toString(),
+				data[i].totalResources.toString(),
 				data[i].totalDataSynced
 			];
 			allHistory.push(row);
@@ -770,47 +774,20 @@ XSYNC.xsyncconfig.showHistoryTable = function() {
 
 	var xsyncConfigDiv = $("#xsync-config-div");
 	xsyncConfigDiv.append("<h2>Sync History</h2>");
+	xsyncConfigDiv.append('<a onclick=showTabModal()>Tab Modal</a>');
 	xsyncConfigDiv.append(xsyncHistory.table);
 };
 
 XSYNC.xsyncconfig.showHistoryDetailsModal = function(uri) {
-	// Displays the details of a particular sync
-	var detailsStyle = {
-		border: '0px'
-	};
-
-	var detailsTable = XNAT.table({ className: 'xnat-table xsync-details-table', style: detailsStyle });
-	detailsTable.tr();
-
-	var getHistory = $.ajax({
+	$.ajax({
 		type: 'GET',
 		url: uri,
 		dataType: 'json'
-	});
-
-	getHistory.done( function(history) {
-		var startDate = new Date(history.startDate);
-		var completeDate = new Date(history.completeDate);
-
-		// Collect all the data
-		detailsTable.rows([
-			['<b>Started</b>', startDate.toLocaleDateString() + ' ' + startDate.toLocaleTimeString()],
-			['<b>Completed</b>', completeDate.toLocaleDateString() + ' ' + completeDate.toLocaleTimeString()],
-			['<b>Destination XNAT</b>', history.remoteHost],
-			['<b>Destination Project</b>', history.remoteProject],
-			['<b>Subjects Synced</b>', history.subjectCount],
-			['<b>Assessors Synced</b>', history.assessorsCount],
-			['<b>Resources Synced</b>', history.resourcesCount],
-			['<b>Total Data</b>', history.totalDataSynced],
-			['<b>Sync Status</b>', history.syncStatus]
-		]);
-
-		var subjectRows = [];
-		for (var i = 100000; i < 100100; i++) {
-			subjectRows.push([i, 'STATUS']);
-		}
+	}).done( function(history) {
 
 		// Create the modal
+		var startDate = new Date(history.startDate);
+
 		xmodal.open({
 			title:
 				'Xsync History for '+ XSYNC.xsyncconfig.configuration.project +
@@ -818,11 +795,7 @@ XSYNC.xsyncconfig.showHistoryDetailsModal = function(uri) {
 			width: 800,
 			height: '95%',
 			overflow: 'auto',
-			content:
-				'<h3 class=xsync-history-header>Details</h3><div id="xsync-details" class="xsync-history-container xsync-history-table"></div>' +
-				'<h3 class=xsync-history-header>Subjects Synced</h3><div id="xsync-subject-details" class="xsync-history-container xsync-history-scroll"></div>' +
-				'<h3 class=xsync-history-header>Assessors Synced</h3><div id="xsync-assessor-details" class="xsync-history-container xsync-history-scroll"></div>' +
-				'<h3 class=xsync-history-header>Resources Synced</h3><div id="xsync-resource-details" class="xsync-history-container xsync-history-scroll"></div>',
+			content: '<div id="xsync-details-modal"></div>',
 			buttons: {
 				close: {
 					label: 'Close'
@@ -831,18 +804,252 @@ XSYNC.xsyncconfig.showHistoryDetailsModal = function(uri) {
 		});
 
 		// Render content into modal
-		var detailsDiv = $("#xsync-details");
-		detailsTable.render(detailsDiv);
-		renderXsyncHistoryDiv($('#xsync-subject-details'), subjectRows);
-		renderXsyncHistoryDiv($('#xsync-assessor-details'), subjectRows);
-		renderXsyncHistoryDiv($('#xsync-resource-details'), subjectRows);
+		spawnXsyncHistoryTabs(history);
+
+		// var detailsDiv = $("#xsync-details-modal");
+// 		detailsTable.render(detailsDiv);
+		// renderXsyncHistoryDiv($('#xsync-subject-details'), subjectRows);
+		// renderXsyncHistoryDiv($('#xsync-experiment-details'), experimentRows);
+		// renderXsyncHistoryDiv($('#xsync-assessor-details'), assessorRows);
+		// renderXsyncHistoryDiv($('#xsync-resource-details'), resourceRows);
 	});
 };
 
-function renderXsyncHistoryDiv(element, data) {
-	for (var i = 0; i < data.length; i++) {
-		element.append(
-			'<div class="col1">'+data[i][0]+'</div><div>'+data[i][1]+'</div>'
-		)
-	}
+function spawnXsyncHistoryTabs(history) {
+
+	var startDate = new Date(history.startDate);
+	var completeDate = new Date(history.completeDate);
+
+	var overviewTable = XNAT.table({
+		className: 'xnat-table xsync-details-table',
+		style: {'border': 'none'}
+	});
+	overviewTable.tr();
+
+	// Collect all the data
+	overviewTable.rows([
+		['<b>Started</b>', startDate.toLocaleDateString() + ' ' + startDate.toLocaleTimeString()],
+		['<b>Completed</b>', completeDate.toLocaleDateString() + ' ' + completeDate.toLocaleTimeString()],
+		['<b>Destination XNAT</b>', history.remoteHost],
+		['<b>Destination Project</b>', history.remoteProject],
+		['<b>Subjects Synced</b>', history.totalSubjects.toString()],
+		['<b>Experiments Synced</b>', history.totalExperiments.toString()],
+		['<b>Assessors Synced</b>', history.totalAssessors.toString()],
+		['<b>Resources Synced</b>', history.totalResources.toString()],
+		['<b>Total Data</b>', history.totalDataSynced],
+		['<b>Sync User</b>', history.syncUser],
+		['<b>Sync Status</b>', history.syncStatus]
+	]);
+
+	var overviewTab = {
+		kind: 'tab',
+		name: 'overviewTab',
+		label: 'Overview',
+		group: 'xsyncGroup',
+		active: 'true',
+		contents: {
+			overview: {
+				kind: 'panel',
+				contents: {
+					syncStatus: {
+						kind: 'panel.element',
+						label: 'Status',
+						contents: history.syncStatus
+					},
+					started: {
+						kind: 'panel.element',
+						label: 'Started',
+						contents: startDate.toLocaleDateString()+ ' ' + startDate.toLocaleTimeString()
+					},
+					completed: {
+						kind: 'panel.element',
+						label: 'Completed',
+						contents: completeDate.toLocaleDateString()+ ' ' + completeDate.toLocaleTimeString()
+					},
+					destinationXnat: {
+						kind: 'panel.element',
+						label: 'Destination XNAT',
+						contents: history.remoteHost
+					},
+					remoteProject: {
+						kind: 'panel.element',
+						label: 'Destination Project',
+						contents: history.remoteProject
+					},
+					totalSubjects: {
+						kind: 'panel.element',
+						label: 'Total Subjects Synced',
+						contents: history.totalSubjects.toString()
+					},
+					totalExperiments: {
+						kind: 'panel.element',
+						label: 'Total Experiments Synced',
+						contents: history.totalExperiments.toString()
+					},
+					totalAssessors: {
+						kind: 'panel.element',
+						label: 'Total Assessors Synced',
+						contents: history.totalAssessors.toString()
+					},
+					totalResources: {
+						kind: 'panel.element',
+						label: 'Total Resources Synced',
+						contents: history.totalResources.toString()
+					},
+					totalDataSynced: {
+						kind: 'panel.element',
+						label: 'Total Data',
+						contents: history.totalDataSynced
+					},
+					syncUser: {
+						kind: 'panel.element',
+						label: 'Sync User',
+						contents: history.syncUser
+					},
+				}
+			}
+		}
+	};
+
+	// var subjectRows = getHistoryList(history.subjectHistories);
+	// var experimentRows = getHistoryList(history.experimentHistories);
+	// var assessorRows = getHistoryList(history.assessorHistories);
+	// var resourceRows = getHistoryList(history.resourceHistories);
+
+	var subjectRows = [
+		{first: "First", second: "First2"},
+		{first: "Second", second: "stuff"}
+	];
+
+	var subjectTab = {
+		kind: 'tab',
+		name: 'subjectTab',
+		label: 'Subjects',
+		contents: {
+			subjectTable: {
+				kind: 'panel.dataTable',
+				name: 'subjectTable',
+				label: 'Subject Sync Details',
+				data: subjectRows,
+				// load: '/data/projects',
+				sortable: true,
+				id: 'subject-table',
+				items: {
+					first: "FIRST",
+					second: "SEC"
+				}
+			}
+		}
+	};
+
+	var experimentTab = {
+		kind: 'tab',
+		label: 'Experiments',
+	};
+	var assessorTab = {
+		kind: 'tab',
+		label: 'Assessors',
+	};
+	var resourceTab = {
+		kind: 'tab',
+		label: 'Resources',
+	};
+
+	XNAT.tabs.container = "#xsync-details-modal";
+
+	XNAT.spawner.spawn({
+		myTabs: {
+			kind: 'tabs',
+			contains: 'tabs',
+			label: 'Xsync History Detail',
+			layout: 'left',
+			name: 'xsyncHistoryTabs',
+			tabs: {
+				overview: overviewTab,
+				subjects: subjectTab,
+				experiments: experimentTab,
+				assessors: assessorTab,
+				resources: resourceTab
+			}
+		}
+	}).render('#xsync-details-modal', true)
 }
+
+
+// function getHistoryList(data) {
+// 	var records = [];
+// 	for (var i = 0; i < data.length; i++) {
+// 		var elem = data[i];
+// 		records.push([elem.localLabel, elem.syncStatus])
+// 	}
+// 	return records;
+// }
+
+// function renderXsyncHistoryDiv(element, data) {
+// 	if (data.length === 0) {
+// 		element.append('<div class="col1">None</div>');
+// 		return;
+// 	}
+// 	for (var i = 0; i < data.length; i++) {
+// 		element.append(
+// 			'<div class="col1">'+data[i][0]+'</div><div>'+data[i][1]+'</div>'
+// 		)
+// 	}
+// }
+
+
+
+
+// function showTabModal() {
+// 	xmodal.open({
+// 		title: "modal tab demo",
+// 		width: 600,
+// 		height: 400,
+// 		overflow: 'auto',
+// 		content: '<div id="modal-tab"></div>',
+// 		buttons: {
+// 			close: {
+// 				label: 'Close'
+// 			}
+// 		}
+// 	});
+//
+// 	XNAT.tabs.container = "#modal-tab";
+//
+// 	var tab1 = {
+// 		kind: 'tab',
+// 		name: 'atab',
+// 		label: 'A Tab',
+// 		group: 'tabGroup1',
+// 		active: true,
+// 		contents: '<div>Hi</div>'
+// 	};
+// 	var tab2 = {
+// 		kind: 'tab',
+// 		name: 'anothertab',
+// 		label: 'A Tab',
+// 		group: 'tabGroup1',
+// 		active: true,
+// 		contents: '<div>Hi yourself</div>'
+// 	};
+//
+// 	XNAT.spawner.spawn({
+// 		myTabs: {
+// 			kind: 'tabs',
+// 			contains: 'tabs',
+// 			label: 'My Tabs',
+// 			layout: 'top',
+// 			meta: {
+// 				tabGroups: {
+// 					tabGroup1: 'Group One',
+// 					tabGroup2: 'Group Two'
+// 				}
+// 			},
+// 			name: 'myTabs',
+// 			tabs: {
+// 				myTab: tab1,
+// 				otherTab: tab2
+// 			}
+// 		}
+// 	}).render('#modal-tab', true)
+// }
