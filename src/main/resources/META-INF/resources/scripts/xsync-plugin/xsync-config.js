@@ -67,7 +67,7 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 			var credHost = $("#xsync-credentials-host").val();
 			var credUser = $("#xsync-credentials-username").val();
 			var credPassword = $("#xsync-credentials-password").val();
-			var tokenData = { url:credHost + "/data/services/tokens/issue/user/" + credUser, method: "GET", user: credUser, password: credPassword };
+			var tokenData = { url:credHost + "/data/services/tokens/issue", method: "GET", user: credUser, password: credPassword };
 			var credentialsAjax = $.ajax({
 				type : "POST",
 		 		url: serverRoot + '/data/xsync/remoteREST?XNAT_CSRF=' + window.csrfToken,
