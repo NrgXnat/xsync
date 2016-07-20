@@ -32,6 +32,14 @@ public class ExperimentSyncItem extends SyncedItem {
 			for (ResourceSyncItem r: resources) {
 				count += r.getFileCount().intValue();
 			}
+			for (ScanSyncItem s:scans) {
+				for (ResourceSyncItem r: s.getResources()) {
+					count += r.getFileCount().intValue();
+				}
+			}
+			for (ExperimentSyncItem s:assessors) {
+					count += s.getTotalSyncedFileCount();
+			}
 		}catch(NullPointerException npe) {}
 		return new Integer(count);
 	}

@@ -1,5 +1,3 @@
-
-
 if (typeof XSYNC === 'undefined') {
 	XSYNC = {};
 }
@@ -160,13 +158,13 @@ XSYNC.xsyncconfig.initialize = function() {
 		dataType: 'json'
 	 });
 	scConfigAjax.done( function( data, textStatus, jqXHR ) {
-		if (typeof data !== 'undefined' && typeof data.project !== 'undefined') {
+		if (typeof data !== 'undefined' && typeof data.source_project_id !== 'undefined') {
 			XSYNC.xsyncconfig.configuration = data;
 		    XSYNC.xsyncconfig.anonymizationuploadDisabled = '';
 		} else {
 			XSYNC.xsyncconfig.beginConfig();
 		}
-		XSYNC.xsyncconfig.continueInit();
+		XSYNC.xsyncconfig.continueInitNew();
 	});
 	scConfigAjax.fail( function( data, textStatus, error ) {
 		XSYNC.xsyncconfig.beginConfig();
@@ -196,8 +194,16 @@ XSYNC.xsyncconfig.useDefaultConfig = function() {
 
 }
 
-XSYNC.xsyncconfig.continueInit = function() {
+XSYNC.xsyncconfig.continueInitNew = function() {
 	$("#xsync-config-div").html('');
+
+	XSYNC.xsyncconfig.showHistoryTable();
+
+}
+
+XSYNC.xsyncconfig.continueInit = function() {
+
+
 	$("#xsync-config-div").append('<div class="row1">' +
 			'<div class="col1">Sync Frequency:</div><div>  <select id="xsync-config-sync-frequency">' +
 				'<option value="daily">Daily</option>' +
@@ -511,7 +517,6 @@ XSYNC.xsyncconfig.continueInit = function() {
 	$("#xsync-submit-config").click(function() { XSYNC.xsyncconfig.submitConfig(); });
 	$("#xsync-annon_add-config").click(function() { XSYNC.xsyncconfig.submitDICOMAnonimization(); });
 
-	XSYNC.xsyncconfig.showHistoryTable();
 }
 
 XSYNC.xsyncconfig.removeResource = function(ele) {
@@ -920,16 +925,17 @@ XSYNC.xsyncconfig.showHistoryTable = function() {
 
 	var getSyncHistory = $.ajax({
 		type: 'GET',
-		url: '/xapi/xsync/history',
+		url: serverRoot + '/xapi/xsync/history',
 		dataType: 'json'
 	});
 
 	getSyncHistory.done(function(data) {
+		console.log('Got data ' + data.length);
 		var allHistory = [];
 
 		for(var i = 0; i < data.length; i++) {
 			var date = new Date(data[i].startDate);
-			var historyUri = '/xapi/xsync/history/'+data[i].id;
+			var historyUri = serverRoot + '/xapi/xsync/history/'+data[i].id;
 			var row = [
 				'<a onclick=XSYNC.xsyncconfig.showHistoryDetailsModal("'+ historyUri +'")>'+ date.toLocaleDateString() + ' ' + date.toLocaleTimeString() +'</a>',
 				data[i].syncStatus,
@@ -962,7 +968,7 @@ XSYNC.xsyncconfig.showHistoryDetailsModal = function(uri) {
 
 		xmodal.open({
 			title:
-				'Xsync History for '+ XSYNC.xsyncconfig.configuration.project +
+				'Xsync History for '+ XSYNC.xsyncconfig.configuration.source_project_id +
 				' on '+ startDate.toLocaleDateString() + ' ' + startDate.toLocaleTimeString(),
 			width: 800,
 			height: '95%',
