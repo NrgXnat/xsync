@@ -1,6 +1,7 @@
 <link type="text/css" rel="stylesheet" href="$content.getURI("scripts/xsync-plugin/css/xsync-config.css")">
 <script type="text/javascript" src="$content.getURI("scripts/xsync-plugin/xsync-config.js")"></script>
-<h3>XSync Plugin Configuration</h3>
+<script type="text/javascript" src="$content.getURI("scripts/xsync-plugin/xsync-reporting.js")"></script>
+<h3>XSync Configuration</h3>
 <div>
     <div id='xsync-config-div'>
     </div>
