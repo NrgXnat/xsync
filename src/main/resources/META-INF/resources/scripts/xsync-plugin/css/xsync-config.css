@@ -69,3 +69,25 @@ input.imaging-assessor-resource-input {
 	margin-left:150px;
 }
 
+.xsync-history-container {
+	border:1px;
+	background-color:#FFFFFF;
+	border-color:#AAAAAA;
+	border-style:solid;
+	width:98%;
+	margin:5px;
+	padding:5px;
+}
+
+.xsync-history-table td {
+	border: none;
+}
+
+.xsync-history-scroll {
+	max-height: 150px;
+	overflow-y: scroll;
+}
+
+.xsync-history-header {
+	padding-top: 10px;
+}

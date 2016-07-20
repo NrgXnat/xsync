@@ -29,14 +29,15 @@ import org.springframework.context.annotation.ComponentScan;
 									plural = "XSync Project Data"
 									)
 			},
-			entityPackages = "org.nrg.xsync.remote.alias")
+			entityPackages = {"org.nrg.xsync.remote.alias", "org.nrg.xsync.manifest"})
 @ComponentScan({
 	"org.nrg.xsync.component",
 	"org.nrg.xsync.scheduler",
 	"org.nrg.xsync.services",
 	"org.nrg.xsync.tools",
 	"org.nrg.xsync.remote",
-	"org.nrg.xsync.xapi"
+	"org.nrg.xsync.xapi",
+	"org.nrg.xsync.manifest"
 	/*
 	"org.nrg.xsync.services.remote",
 	"org.nrg.xsync.services.local.impl",

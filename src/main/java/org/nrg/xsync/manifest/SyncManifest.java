@@ -3,9 +3,7 @@ package org.nrg.xsync.manifest;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Hashtable;
+import java.util.*;
 
 import javax.mail.MessagingException;
 
@@ -13,6 +11,7 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xsync.services.local.impl.HibernateSyncHistoryService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
@@ -153,6 +152,13 @@ public class SyncManifest{
 		return wasSuccessful;
 	}
 
+	public String getSyncHost() {
+		return syncHost;
+	}
+
+	public String getRemoteProjectId() {
+		return remoteProjectId;
+	}
 
 	public void informUser() {
 		final Hashtable<String, String> info = syncInfoAsHTML();
@@ -304,5 +310,11 @@ public class SyncManifest{
 		            } catch (Exception e) {
 		        }
 		    }
+		}
+
+		public synchronized void syncInfoToDatabase() {
+			final HibernateSyncHistoryService service =
+					XDAT.getContextService().getBean(HibernateSyncHistoryService.class);
+			service.saveHistoryToDatabase(this);
 		}
 }
