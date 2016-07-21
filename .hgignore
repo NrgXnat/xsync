@@ -10,3 +10,4 @@ syntax: glob
 .project.old
 .project
 .idea
+.metadata
