@@ -8,6 +8,10 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 	XSYNC.credentialsconfig = {};
 }
 
+/*
+	Initialization
+ */
+
 XSYNC.credentialsconfig.initialize = function() {
 	var MUST_BE_CONFIGURED = "<h3>XSync has not been configured.  Please select the <b>XSync Configuration</b> tab.</h3>"
 	var scConfigAjax = $.ajax({
@@ -31,9 +35,118 @@ XSYNC.credentialsconfig.initialize = function() {
 	});
 }
 
+XSYNC.xsyncconfig.initialize = function() {
+	var dcConfigAjax = $.ajax({
+		type : "GET",
+		url:serverRoot+'/data/projects/' + XNAT.data.context.project +'/resources/synchronization/files',
+		cache: false,
+		async: false,
+		context: this,
+		dataType: 'json'
+	});
+	dcConfigAjax.done( function( data, textStatus, jqXHR ) {
+		XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Add Pre Sync DICOM Anonymization Script';
+		if (typeof data !== 'undefined' && typeof data.ResultSet.Result !== 'undefined') {
+			$.each(data.ResultSet.Result, function(i, item) {
+				if (item.Name == "DICOM_anon.das") {
+					XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Update Pre Sync DICOM Anonymization Script';
+					return false;
+				}
+			});
+		}
+	});
+	dcConfigAjax.fail( function( data, textStatus, error ) {
+		XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Add Pre Sync DICOM Anonymization Script';
+	});
+
+	var scConfigAjax = $.ajax({
+		type : "GET",
+		url:serverRoot+'/data/projects/' + XNAT.data.context.project +'/resources/synchronization/files/sync_config.json',
+		cache: false,
+		async: false,
+		context: this,
+		dataType: 'json'
+	});
+
+	scConfigAjax.done( function( data, textStatus, jqXHR ) {
+		if (typeof data !== 'undefined' && typeof data.source_project_id !== 'undefined') {
+			XSYNC.xsyncconfig.configuration = data;
+			XSYNC.xsyncconfig.anonymizationuploadDisabled = '';
+		} else {
+			XSYNC.xsyncconfig.beginConfig();
+		}
+		XSYNC.xsyncconfig.showConfigPanel();
+	});
+
+	scConfigAjax.fail( function( data, textStatus, error ) {
+		XSYNC.xsyncconfig.beginConfig();
+	});
+}
+
+XSYNC.xsyncconfig.beginConfig = function() {
+	$("#xsync-config-div").html(
+		'<input type="button" id="xsync-begin-config" value="Begin Configuration">'
+	);
+	$("#xsync-begin-config").click(function() {
+		XSYNC.xsyncconfig.useDefaultConfig();
+		XSYNC.xsyncconfig.initialize();
+	});
+}
+
+XSYNC.xsyncconfig.useDefaultConfig = function() {
+	XSYNC.xsyncconfig.configuration = {};
+	XSYNC.xsyncconfig.configuration.source_project_id = XNAT.data.context.project;
+	XSYNC.xsyncconfig.configuration.sync_frequency = 'weekly';
+	XSYNC.xsyncconfig.configuration.sync_new_only = 'true';
+	XSYNC.xsyncconfig.configuration.identifiers = 'use_local';
+	XSYNC.xsyncconfig.configuration.remote_url = 'http://';
+	XSYNC.xsyncconfig.configuration.remote_project_id = '';
+	XSYNC.xsyncconfig.configuration.projectresources = [];
+	XSYNC.xsyncconfig.configuration.subjectresources = [];
+	XSYNC.xsyncconfig.configuration.subjectassessors = [];
+	XSYNC.xsyncconfig.configuration.imagingsessions = [];
+	XSYNC.xsyncconfig.anonymizationuploadDisabled = 'disabled';
+	// Use the defaults to set up config and then open dialog to edit
+	XSYNC.xsyncconfig.submitConfig();
+	XSYNC.xsyncconfig.editConfig();
+}
+
+XSYNC.xsyncconfig.showConfigPanel = function() {
+	var xsyncConfigDiv = $("#xsync-config-div");
+
+	xsyncConfigDiv.append(
+		'<div>' +
+			'<input type="button" class="btn1 xsync-submit-button" id="xsync-edit-config" value="Edit Configuration">' +
+			'<input type="button" class="btn1 xsync-submit-button" id="xsync-credentials" value="Remote Credentials">' +
+			'<input type="button" class="btn1 xsync-submit-button" id="xsync-upload-anonymization" value="Configure Anonymization">' +
+		'</div> ' +
+		'<br>'
+	);
+
+	$("#xsync-edit-config").click( function() {
+		XSYNC.xsyncconfig.editConfig();
+	});
+	$("#xsync-credentials").click( function() {
+		XSYNC.credentialsconfig.enterCredentials();
+	});
+	$("#xsync-upload-anonymization").click( function() {
+		XSYNC.xsyncconfig.submitDICOMAnonymization();
+	});
+
+	XSYNC.reporting.showHistoryTable();
+}
+
+/*
+	Remote Authentication
+ */
+
 XSYNC.credentialsconfig.beginConfig = function() {
-	$("#xsync-credentials-div").html('<input type="button" id="xsync-begin-credentials" value="Enter or Update Remote Site Credentials">');
-	$("#xsync-begin-credentials").click(function() { XSYNC.credentialsconfig.enterCredentials(); });
+	$("#xsync-credentials-div").html(
+		'<input type="button" id="xsync-begin-credentials" value="Enter or Update Remote Site Credentials">'
+	);
+	$("#xsync-begin-credentials").click(function() {
+		XSYNC.credentialsconfig.enterCredentials();
+	});
 }
 
 XSYNC.credentialsconfig.enterCredentials = function() {
@@ -41,18 +154,19 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 	var modalContent =
 		"<div>" +
 			'<div class = "credentials-header-div credentials-div">' +
-			'<h3 style="text-align:center">Enter credentials for ' + XSYNC.credentialsconfig.remoteHost + '</h3>' +
+				'<h3 style="text-align:center">Enter credentials for ' + XSYNC.xsyncconfig.configuration.remote_url + '</h3>' +
 			'</div>' +
-			'<input id="xsync-credentials-host" type="hidden" value="' + XSYNC.credentialsconfig.remoteHost + '">' +
+			'<input id="xsync-credentials-host" type="hidden" value="' + XSYNC.xsyncconfig.configuration.remote_url + '">' +
 			'<div class = "credentials-div">' +
-			'<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
+				'<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
 			'</div>' +
 			'<div class = "credentials-div">' +
-			'<div style="width:100px; float:left;">Password: </div><span><input type="password" size=20 id="xsync-credentials-password">' +
+			'	<div style="width:100px; float:left;">Password: </div><span><input type="password" size=20 id="xsync-credentials-password">' +
 			'</div>' +
 		"</div>";
+
 	var pModalOpts = {
-		width: 740,
+		width: 600,
 		height: 380,
 		id: 'xmodal-enter-credentials',
 		title: "Enter credentials to be used for XSync transfers for this project",
@@ -60,11 +174,16 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 		ok: 'show',
 		okLabel: 'Continue',
 		okAction: function(modl){
-
 			var credHost = $("#xsync-credentials-host").val();
 			var credUser = $("#xsync-credentials-username").val();
 			var credPassword = $("#xsync-credentials-password").val();
-			var tokenData = { url:credHost + "/data/services/tokens/issue", method: "GET", user: credUser, password: credPassword };
+			var tokenData = {
+				url: credHost + "/data/services/tokens/issue",
+				method: "GET",
+				user: credUser,
+				password: credPassword
+			};
+
 			var credentialsAjax = $.ajax({
 				type : "POST",
 		 		url: serverRoot + '/data/xsync/remoteREST?XNAT_CSRF=' + window.csrfToken,
@@ -74,6 +193,7 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 				data:  JSON.stringify(tokenData),
 				contentType: "application/json; charset=utf-8"
 			 });
+
 			credentialsAjax.done( function( data, textStatus, jqXHR ) {
 
 				if (typeof data !== 'undefined' && typeof data.secret !== 'undefined') {
@@ -94,20 +214,28 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 						contentType: "application/json; charset=utf-8"
 					 });
 					saveCredentials.done( function( data, textStatus, jqXHR ) {
-									xmodal.message('Credentials saved','Successfully saved credentials for remote server ' + $("#xsync-credentials-host").val());
-									modl.close();
-								});
+						xmodal.message(
+							'Credentials saved','Successfully saved credentials for remote server ' +
+							$("#xsync-credentials-host").val()
+						);
+						modl.close();
+					});
 					saveCredentials.fail( function( data, textStatus, jqXHR ) {
-									xmodal.message('Error','Could not save credentials for remote server ' + $("#xsync-credentials-host").val());
-									modl.close();
-								});
+						xmodal.message(
+							'Error','Could not save credentials for remote server ' +
+							$("#xsync-credentials-host").val()
+						);
+						modl.close();
+					});
 
 				} else {
+					console.log(serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '/saveRemoteCredentials?XNAT_CSRF=' + window.csrfToken)
 					xmodal.message('Error','ERROR:  Could not get alias token.  Please check username and password and try again.');
 				}
 
 			});
 				credentialsAjax.fail( function( data, textStatus, error ) {
+					console.log(serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '/saveRemoteCredentials?XNAT_CSRF=' + window.csrfToken)
 					xmodal.message('Error','ERROR:  Could not get alias token.  Please check username and password and try again.');
 			});
 
@@ -115,103 +243,45 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 		okClose: false,
 		cancel: 'Cancel',
 		cancelLabel: 'Cancel',
-		cancelAction: function(){ xmodal.close(XNAT.app.abu.abuConfigs.modalOpts.id); },
+		cancelAction: function() {
+		 	xmodal.close(XNAT.app.abu.abuConfigs.modalOpts.id);
+		 },
 		closeBtn: 'hide'
 	};
 	xmodal.open(pModalOpts);
 	$('#xsync-credentials-username').focus();
-
 }
 
+XSYNC.xsyncconfig.checkCredentials = function() {
 
-XSYNC.xsyncconfig.initialize = function() {
-	var dcConfigAjax = $.ajax({
-		type : "GET",
- 		url:serverRoot+'/data/projects/' + XNAT.data.context.project +'/resources/synchronization/files',
+	this.checkCredentialsResult = false;
+	var formData = {
+		host: $("#xsync-config-remote-url").val(),
+		localProject: XNAT.data.context.project,
+	};
+	var saveCredentials = $.ajax({
+		type : "POST",
+		url: serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '/checkRemoteCredentials?XNAT_CSRF=' + window.csrfToken,
 		cache: false,
 		async: false,
-		context: this,
-		dataType: 'json'
-	 });
-	dcConfigAjax.done( function( data, textStatus, jqXHR ) {
-		XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Add Pre Sync DICOM Anonymization Script';
-		if (typeof data !== 'undefined' && typeof data.ResultSet.Result !== 'undefined') {
-		    $.each(data.ResultSet.Result, function(i, item) {
-			    if (item.Name == "DICOM_anon.das") {
-				    XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Update Pre Sync DICOM Anonymization Script';
-				    return false;
-				}
-			});
-		}
+		dataType: 'text',
+		data:  JSON.stringify(formData),
+		contentType: "application/json; charset=utf-8"
 	});
-	dcConfigAjax.fail( function( data, textStatus, error ) {
-		    XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Add Pre Sync DICOM Anonymization Script';
+	saveCredentials.done( function( data, textStatus, jqXHR ) {
+		XSYNC.xsyncconfig.checkCredentialsResult = true;
 	});
-
-	var scConfigAjax = $.ajax({
-		type : "GET",
- 		url:serverRoot+'/data/projects/' + XNAT.data.context.project +'/resources/synchronization/files/sync_config.json',
-		cache: false,
-		async: false,
-		context: this,
-		dataType: 'json'
-	 });
-	scConfigAjax.done( function( data, textStatus, jqXHR ) {
-		if (typeof data !== 'undefined' && typeof data.source_project_id !== 'undefined') {
-			XSYNC.xsyncconfig.configuration = data;
-		    XSYNC.xsyncconfig.anonymizationuploadDisabled = '';
-		} else {
-			XSYNC.xsyncconfig.beginConfig();
-		}
-		XSYNC.xsyncconfig.continueInitNew();
-	});
-	scConfigAjax.fail( function( data, textStatus, error ) {
-		XSYNC.xsyncconfig.beginConfig();
-	});
-
+	return this.checkCredentialsResult;
 }
 
-XSYNC.xsyncconfig.beginConfig = function() {
-	$("#xsync-config-div").html('<input type="button" id="xsync-begin-config" value="Begin Configuration">');
-	$("#xsync-begin-config").click(function() { XSYNC.xsyncconfig.useDefaultConfig(); });
-}
-
-XSYNC.xsyncconfig.useDefaultConfig = function() {
-	XSYNC.xsyncconfig.configuration = {};
-	XSYNC.xsyncconfig.configuration.project = XNAT.data.context.project;
-	XSYNC.xsyncconfig.configuration.sync_frequency = 'weekly';
-	XSYNC.xsyncconfig.configuration.auto_sync = 'true';
-	XSYNC.xsyncconfig.configuration.identifiers = 'use_local';
-	XSYNC.xsyncconfig.configuration.remote_url = 'http://';
-	XSYNC.xsyncconfig.configuration.remote_project_id = '';
-	XSYNC.xsyncconfig.configuration.projectresources = [];
-	XSYNC.xsyncconfig.configuration.subjectresources = [];
-	XSYNC.xsyncconfig.configuration.subjectassessors = [];
-	XSYNC.xsyncconfig.configuration.imagingsessions = [];
-	XSYNC.xsyncconfig.anonymizationuploadDisabled = 'disabled';
-	//XSYNC.xsyncconfig.continueInit();
-
-}
-
-XSYNC.xsyncconfig.continueInitNew = function() {
-	$("#xsync-config-div").append(
-		'<input type="button" class="xsync-submit-button" id="xsync-edit-config" value="Edit Configuration">'
-	);
-	$("#xsync-edit-config").click( function() {
-		XSYNC.xsyncconfig.editConfig();
-	});
-	$("#xsync-config-div").append(
-		'<input type="button" id="xsync-begin-credentials" value="Remote Credentials"> <br>'
-	);
-
-	XSYNC.reporting.showHistoryTable();
-}
-
+/*
+	Configuration Settings
+ */
 
 XSYNC.xsyncconfig.editConfig = function() {
 
 	XSYNC.xsyncconfig.modal = xmodal.open({
-		title: "Xsync Configuration for " + XNAT.data.context.project,
+		title: "Project Sync Settings for " + XNAT.data.context.project,
 		content: '<div id="xsync-config-dialog"></div>',
 		height: 800,
 		buttons: {
@@ -238,16 +308,7 @@ function spawnConfig() {
 	function configPanel(contents) {
 		return {
 			kind: 'panel',
-			// kind: 'panel.form',
-			// contentType: 'json',
-			// action: '/xapi/xsync/projects/' + XNAT.data.context.project,
-
-			// action: function() {
-			// 	XSYNC.xsyncconfig.submitConfig()
-			// },
-
 			action: "#",
-
 			buttons: {
 				submit: {
 					label: "Submit",
@@ -259,7 +320,6 @@ function spawnConfig() {
 					label: "Cancel"
 				}
 			},
-
 			contents: {
 				"Enabled": enabled(),
 				"New Data Only": syncNewOnly(),
@@ -376,7 +436,6 @@ function spawnConfig() {
 		}
 	}
 
-
 	function frequency() {
 		return {
 			kind: 'panel.element',
@@ -471,23 +530,25 @@ XSYNC.xsyncconfig.submitConfig = function() {
 	XSYNC.xsyncconfig.saveConfig();
 	return;
 
-	if (XSYNC.xsyncconfig.checkCredentials()) {
+	////////////////////////////////////////////
+	// TODO
+	////////////////////////////////////////////
 
+	if (XSYNC.xsyncconfig.checkCredentials()) {
 		XSYNC.xsyncconfig.saveConfig();
 		return;
-
 	}
 
 	var modalContent =
 		"<div>" +
 			'<div class = "credentials-header-div credentials-div">' +
-			'<h3 style="text-align:center">Enter credentials for ' +  $("#xsync-config-remote-url").val() + '</h3>' +
+				'<h3 style="text-align:center">Enter credentials for ' +  XSYNC.xsyncconfig.configuration.remote_url + '</h3>' +
 			'</div>' +
 			'<div class = "credentials-div">' +
-			'<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
+				'<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
 			'</div>' +
 			'<div class = "credentials-div">' +
-			'<div style="width:100px; float:left;">Password: </div><span><input type="password" size=20 id="xsync-credentials-password">' +
+				'<div style="width:100px; float:left;">Password: </div><span><input type="password" size=20 id="xsync-credentials-password">' +
 			'</div>' +
 		"</div>";
 	var pModalOpts = {
@@ -499,10 +560,9 @@ XSYNC.xsyncconfig.submitConfig = function() {
 		ok: 'show',
 		okLabel: 'Continue',
 		okAction: function(modl){
-					XSYNC.xsyncconfig.updateCredentialsAndSaveConfig();
-					modl.close();
-
-				 },
+			XSYNC.xsyncconfig.updateCredentialsAndSaveConfig();
+			modl.close();
+		 },
 		okClose: false,
 		cancel: 'Cancel',
 		cancelLabel: 'Cancel',
@@ -511,79 +571,6 @@ XSYNC.xsyncconfig.submitConfig = function() {
 	};
 	xmodal.open(pModalOpts);
 	$('#xsync-credentials-username').focus();
-}
-
-XSYNC.xsyncconfig.checkCredentials = function() {
-
-		this.checkCredentialsResult = false;
-		var formData = {
-			host: $("#xsync-config-remote-url").val(),
-			localProject: XNAT.data.context.project,
-		};
-		var saveCredentials = $.ajax({
-			type : "POST",
-	 		url: serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '/checkRemoteCredentials?XNAT_CSRF=' + window.csrfToken,
-			cache: false,
-			async: false,
-			dataType: 'text',
-			data:  JSON.stringify(formData),
-			contentType: "application/json; charset=utf-8"
-		 });
-		saveCredentials.done( function( data, textStatus, jqXHR ) {
-			XSYNC.xsyncconfig.checkCredentialsResult = true;
-		});
-		return this.checkCredentialsResult;
-
-}
-
-XSYNC.xsyncconfig.submitDICOMAnonimization = function() {
-	var modalContent =
-		"<div>" +
-			'<div class = "credentials-header-div credentials-div">' +
-			'<h3 style="text-align:center">Enter Pre-Sync DICOM Anonimization  script ' + '</h3>' +
-			'</div>' +
-			'<div class = "credentials-div">' +
-			'<textarea rows="20" cols="80" id="xsync-dicom-anonymization"></textarea>' +
-			'</div>' +
-		"</div>";
-	var pModalOpts = {
-		width: 680,
-		height: 580,
-		id: 'xmodal-enter-dicom-anonymization',
-		title: "DICOM Anonymization script",
-		content: modalContent,
-		ok: 'show',
-		okLabel: 'Save',
-		okAction: function(modl){
-					XSYNC.xsyncconfig.uploadDicomAnonymization();
-					modl.close();
-				 },
-		okClose: false,
-		cancel: 'Cancel',
-		cancelLabel: 'Cancel',
-		cancelAction: function(){ xmodal.close(XNAT.app.abu.abuConfigs.modalOpts.id); },
-		closeBtn: 'hide'
-	};
-	xmodal.open(pModalOpts);
-}
-
-XSYNC.xsyncconfig.uploadDicomAnonymization = function() {
-	var dicomScript = $("#xsync-dicom-anonymization").val();
-	console.log(dicomScript);
-	var uploadDICOMscriptAjax = $.ajax({
-		type : "PUT",
-		url:serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '/presyncanonymization?XNAT_CSRF=' + window.csrfToken,
-		data:  dicomScript
-	 });
-    uploadDICOMscriptAjax.done( function( data, textStatus, jqXHR ) {
-				xmodal.message('Saved','The Pre-Sync DICOM Anonymization has been saved');
-				XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Update Pre Sync DICOM Anonymization Script';
-				$("#xsync-annon_add-config").attr('value', XSYNC.xsyncconfig.anonymizationuploadBtnText);
-
-			});
-	uploadDICOMscriptAjax.fail( function( data, textStatus, error ) {
-				xmodal.message('Error','ERROR:  Pre-Sync DICOM Anonymization was not successfully saved (' + textStatus + ')');
-			});
 }
 
 XSYNC.xsyncconfig.saveConfig = function() {
@@ -663,7 +650,6 @@ XSYNC.xsyncconfig.updateCredentialsAndSaveConfig = function() {
 		credentialsAjax.fail( function( data, textStatus, error ) {
 			xmodal.message('Error','ERROR:  Could not get alias token');
 	});
-
 }
 
 XSYNC.xsyncconfig.constructNewJson = function() {
@@ -680,12 +666,13 @@ XSYNC.xsyncconfig.constructNewJson = function() {
 
 	return newJson;
 
-	/////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////
+	// TODO
+	////////////////////////////////////////////
 
 	newJson.projectresources = $(".project-resource-input").map(function(){
 		return this.value;
 	});
-
 
 	newJson.projectresources = [];
 	$(".project-resource-input").each(function() {
@@ -780,4 +767,62 @@ XSYNC.xsyncconfig.constructNewJson = function() {
 		newJson.imagingsessions.push(imaging_session);
 	});
 	return newJson;
+}
+
+/*
+	DICOM Anonymization
+ */
+
+XSYNC.xsyncconfig.submitDICOMAnonymization = function() {
+	var modalContent =
+		"<div>" +
+		'<div class = "credentials-header-div credentials-div">' +
+		'<h3 style="text-align:center">Enter Pre-Sync DICOM Anonymization  script ' + '</h3>' +
+		'</div>' +
+		'<div class = "credentials-div">' +
+		'<textarea rows="20" cols="80" id="xsync-dicom-anonymization"></textarea>' +
+		'</div>' +
+		"</div>";
+	var pModalOpts = {
+		width: 680,
+		height: 580,
+		id: 'xmodal-enter-dicom-anonymization',
+		title: "DICOM Anonymization script",
+		content: modalContent,
+		ok: 'show',
+		okLabel: 'Save',
+		okAction: function(modl){
+			XSYNC.xsyncconfig.uploadDicomAnonymization();
+			modl.close();
+		},
+		okClose: false,
+		cancel: 'Cancel',
+		cancelLabel: 'Cancel',
+		cancelAction: function(){
+			xmodal.close(XNAT.app.abu.abuConfigs.modalOpts.id);
+		},
+		closeBtn: 'hide'
+	};
+	xmodal.open(pModalOpts);
+}
+
+XSYNC.xsyncconfig.uploadDicomAnonymization = function() {
+	var dicomScript = $("#xsync-dicom-anonymization").val();
+	console.log(dicomScript);
+
+	var uploadDICOMscriptAjax = $.ajax({
+		type : "PUT",
+		url:serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '/presyncanonymization?XNAT_CSRF=' + window.csrfToken,
+		data:  dicomScript
+	});
+
+	uploadDICOMscriptAjax.done( function( data, textStatus, jqXHR ) {
+		xmodal.message('Saved','The Pre-Sync DICOM Anonymization has been saved');
+		XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Update Pre Sync DICOM Anonymization Script';
+		$("#xsync-annon_add-config").attr('value', XSYNC.xsyncconfig.anonymizationuploadBtnText);
+	});
+
+	uploadDICOMscriptAjax.fail( function( data, textStatus, error ) {
+		xmodal.message('Error','ERROR:  Pre-Sync DICOM Anonymization was not successfully saved (' + textStatus + ')');
+	});
 }

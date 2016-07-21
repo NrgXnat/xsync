@@ -13,7 +13,7 @@ XSYNC.reporting.showHistoryTable = function() {
 
 	var getSyncHistory = $.ajax({
 		type: 'GET',
-		url: '/xapi/xsync/history/project/' + XNAT.data.context.project,
+		url: serverRoot + '/xapi/xsync/history/project/' + XNAT.data.context.project,
 		dataType: 'json'
 	});
 
@@ -22,7 +22,7 @@ XSYNC.reporting.showHistoryTable = function() {
 
 		for(var i = 0; i < data.length; i++) {
 			var date = new Date(data[i].startDate);
-			var historyUri = '/xapi/xsync/history/'+data[i].id;
+			var historyUri = serverRoot + '/xapi/xsync/history/'+data[i].id;
 			var row = [
 				'<a onclick=XSYNC.reporting.showHistoryDetailsModal("'+ historyUri +'")>'+ date.toLocaleDateString() + ' ' + date.toLocaleTimeString() +'</a>',
 				data[i].syncStatus,
@@ -38,8 +38,10 @@ XSYNC.reporting.showHistoryTable = function() {
 	});
 
 	var xsyncConfigDiv = $("#xsync-config-div");
+	// xsyncConfigDiv.append('<div class="xsync-history-container">');
 	xsyncConfigDiv.append("<h4>Sync History</h4>");
 	xsyncConfigDiv.append(xsyncHistory.table);
+	// xsyncConfigDiv.append('</div>');
 };
 
 XSYNC.reporting.showHistoryDetailsModal = function(uri) {
@@ -170,8 +172,6 @@ function generateOverviewTab(history) {
 
 // String tomfoolery to generate similarly formatted tabs
 function generateHistoryTab(tabType, data) {
-	var tableContent = "No " + tabType.toLowerCase() + " data synced";
-
 	if (data.length > 0) {
 		tableContent = {
 			kind: 'panel.dataTable',
@@ -186,6 +186,19 @@ function generateHistoryTab(tabType, data) {
 				syncMessage: "Message"
 			}
 		}
+	} else { // No data to show, put a friendly message in the table
+		data = [{'message': "Nothing synced"}];
+
+		var tableContent = {
+			kind: 'panel.dataTable',
+			name: tabType.toLowerCase() + 'Table',
+			label: tabType + ' Sync Details',
+			data: data,
+			id: tabType.toLowerCase() + '-table',
+			items: {
+				message: tabType + " Data"
+			}
+		};
 	}
 
 	return {
