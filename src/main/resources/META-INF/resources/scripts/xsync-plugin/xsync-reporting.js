@@ -38,7 +38,7 @@ XSYNC.reporting.showHistoryTable = function() {
 	});
 
 	var xsyncConfigDiv = $("#xsync-config-div");
-	xsyncConfigDiv.append("<h3>Sync History</h3>");
+	xsyncConfigDiv.append("<h4>Sync History</h4>");
 	xsyncConfigDiv.append(xsyncHistory.table);
 };
 
@@ -178,7 +178,7 @@ function generateHistoryTab(tabType, data) {
 			name: tabType.toLowerCase() + 'Table',
 			label: tabType + ' Sync Details',
 			data: data,
-			sortable: true,
+			// sortable: true,
 			id: tabType.toLowerCase() + '-table',
 			items: {
 				localLabel: tabType + " Label",

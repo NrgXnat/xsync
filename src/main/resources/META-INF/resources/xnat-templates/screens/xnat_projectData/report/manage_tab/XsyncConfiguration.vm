@@ -9,11 +9,11 @@
         $.ready(XSYNC.xsyncconfig.initialize());
     </script>
 </div>
-<h3>XSync Credentials</h3>
-<div>
-    <div id='xsync-credentials-div'>
-    </div>
-    <script type="text/javascript">
-        $.ready(XSYNC.credentialsconfig.initialize());
-    </script>
-</div>
+##<h3>XSync Credentials</h3>
+##<div>
+##    <div id='xsync-credentials-div'>
+##    </div>
+##    <script type="text/javascript">
+##        $.ready(XSYNC.credentialsconfig.initialize());
+##    </script>
+##</div>
