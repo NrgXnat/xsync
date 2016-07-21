@@ -9,6 +9,8 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xdat.rest.AbstractXapiRestController;
+import org.nrg.xdat.security.services.RoleHolder;
+import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.restlet.resource.StringRepresentation;
@@ -39,9 +41,15 @@ import io.swagger.annotations.ApiResponses;
 @Api(description = "XSync Credentials API")
 public class XsyncRemoteCredentialsController extends AbstractXapiRestController {
 	
-	@Autowired
-	private RemoteAliasService _remoteAliasService;
+	private final RemoteAliasService _remoteAliasService;
 
+	@Autowired
+	public XsyncRemoteCredentialsController(final RemoteAliasService remoteAliasService, final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
+        super(userManagementService, roleHolder);
+        _remoteAliasService = remoteAliasService;
+	}
+
+	
 	/**
 	 * Saves the remote credentials
 	 *

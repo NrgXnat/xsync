@@ -3,6 +3,8 @@ package org.nrg.xsync.xapi;
 import org.json.JSONObject;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xdat.rest.AbstractXapiRestController;
+import org.nrg.xdat.security.services.RoleHolder;
+import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -32,8 +34,13 @@ import io.swagger.annotations.ApiResponses;
 public class XsyncPreferencesController extends AbstractXapiRestController {
 	
 	/** The _prefs. */
+	private final XsyncSitePreferencesBean _prefs;
+
 	@Autowired
-	private XsyncSitePreferencesBean _prefs;
+	public XsyncPreferencesController(final  XsyncSitePreferencesBean prefs,final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
+        super(userManagementService, roleHolder);
+        _prefs = prefs;
+	}
 
 	/**
 	 * Sets the preferences.
