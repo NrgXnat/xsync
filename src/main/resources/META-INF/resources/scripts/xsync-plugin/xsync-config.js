@@ -189,7 +189,7 @@ XSYNC.xsyncconfig.useDefaultConfig = function() {
 	XSYNC.xsyncconfig.configuration.subjectassessors = [];
 	XSYNC.xsyncconfig.configuration.imagingsessions = [];
 	XSYNC.xsyncconfig.anonymizationuploadDisabled = 'disabled';
-	XSYNC.xsyncconfig.continueInit();
+	//XSYNC.xsyncconfig.continueInit();
 
 }
 

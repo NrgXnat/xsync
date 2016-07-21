@@ -14,6 +14,8 @@ import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatResourcecatalog;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xdat.rest.AbstractXapiRestController;
+import org.nrg.xdat.security.services.RoleHolder;
+import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
@@ -53,14 +55,16 @@ import io.swagger.annotations.ApiResponses;
 @XapiRestController
 @RequestMapping(value = "/xsync")
 @Api(description = "XSync Management API")
-
 public class XsyncSetupController extends AbstractXapiRestController {
 	XsyncXsyncprojectdata existing = null;
 	String projectId = null;
 	JsonNode synchronizationJson = null;
 
+	
 	@Autowired
-	private RemoteAliasService _remoteAliasService;
+	public XsyncSetupController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
+        super(userManagementService, roleHolder);
+	}
 
 	@RequestMapping(path="/projects/{projectId}", method = RequestMethod.POST, consumes = "application/json")
     @ApiOperation(value = "Sets up the Xsync project configuration",  response = String.class)

@@ -7,6 +7,8 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xdat.rest.AbstractXapiRestController;
+import org.nrg.xdat.security.services.RoleHolder;
+import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.manifest.XsyncProjectHistory;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,13 @@ import java.util.List;
 @JsonIgnoreProperties(value = { "created" })
 public class XsyncHistoryController extends AbstractXapiRestController {
 
+	@Autowired
+	public XsyncHistoryController(final SyncManifestService service, final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
+        super(userManagementService, roleHolder);
+        _service = service;
+	}
+
+	
     @ApiOperation(value="History of Xsync transactions", response=String.class)
     @ApiResponses({
             @ApiResponse(code=200, message="OK"),
@@ -62,6 +71,5 @@ public class XsyncHistoryController extends AbstractXapiRestController {
         return new ResponseEntity<>(filteredHistory, HttpStatus.OK);
     }
 
-    @Autowired
-    public SyncManifestService _service;
+    private final SyncManifestService _service;
 }
