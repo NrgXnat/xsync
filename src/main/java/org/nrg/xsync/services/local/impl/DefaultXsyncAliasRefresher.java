@@ -59,6 +59,9 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 			try {
 				final RemoteConnectionResponse remoteResponse = _restService.getResult(conn,
 						conn.getUrl() + "/data/services/tokens/issue/" + conn.getUsername() + "/" + conn.getPassword());
+//				final RemoteConnectionResponse remoteResponse = _restService.getResult(conn,
+//						conn.getUrl() + "/data/services/tokens/issue/" + conn.getUsername() + "/" + conn.getPassword());
+
 				if (!remoteResponse.wasSuccessful()) {
 					AdminUtils.sendAdminEmail("XSync token refresh failure", "XSync token refresh failure for local project  " +
 							connEntity.getLocal_project() + ", host " + conn.getUrl() + 
