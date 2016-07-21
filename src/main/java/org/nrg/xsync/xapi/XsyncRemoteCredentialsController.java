@@ -1,10 +1,11 @@
 package org.nrg.xsync.xapi;
 
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Date;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.nrg.framework.annotations.XapiRestController;
@@ -13,7 +14,6 @@ import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
-import org.restlet.resource.StringRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,13 +22,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Date;
 
 /**
  * The Class XsyncPreferencesController.
@@ -57,7 +54,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	 * @return the response entity
 	 */
 	@RequestMapping(path="/projects/{projectId}/saveRemoteCredentials", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "Sets remote crecentials for XSync")
+    @ApiOperation(value = "Sets remote credentials for XSync")
     @ApiResponses({@ApiResponse(code = 200, message = "XSync remote credentials set."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	public synchronized ResponseEntity<String> saveRemoteCredentials(@RequestBody String jsonbody) {
 		try {
@@ -117,21 +114,20 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	        	final URL url = new URL (host + "/data/JSESSIONID");
 	        	final byte[] encoding = Base64.encodeBase64((remoteAliasEntity.getRemote_alias_token() + ":" + remoteAliasEntity.getRemote_alias_password()).getBytes());
 	        	final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-	        	String method;
-	        	connection.setRequestMethod("GET");
+				connection.setRequestMethod("GET");
 	        	connection.setDoOutput(true);
 	        	connection.setRequestProperty  ("Authorization", "Basic " + new String(encoding, "UTF-8"));
-	        	final InputStream content = (InputStream)connection.getInputStream();
-	        	final String results = IOUtils.toString(content, "UTF-8");
-	        	content.close();
+	        	try (final InputStream content = connection.getInputStream()) {
+					final String results = IOUtils.toString(content, "UTF-8");
+					return new ResponseEntity<>(results, HttpStatus.OK);
+				}
 	        } catch (Exception e) {
 	        	return new ResponseEntity<>("Could not connect", HttpStatus.BAD_REQUEST);
 	        }
 	        
-		}catch (Exception  exception) {
+		}catch (Exception exception) {
         	return new ResponseEntity<>("Could not connect", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
-       	return new ResponseEntity<>("Connected to remote host", HttpStatus.OK );
 	}
 
 }
