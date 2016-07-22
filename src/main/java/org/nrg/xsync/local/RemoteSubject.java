@@ -655,6 +655,7 @@ public class RemoteSubject {
 			if (target.getAssessors_assessor() != null && target.getAssessors_assessor().size() > 0) {
 				for (XnatImageassessordataI assessor : target.getAssessors_assessor()) {
 					assessor.setImagesessionId(target.getId());
+					assessor.setProject(target.getProject());
 				}
 			}
 			FileWriter fw = new FileWriter(outF);

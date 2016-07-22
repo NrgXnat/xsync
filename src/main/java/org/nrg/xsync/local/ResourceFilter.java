@@ -177,16 +177,21 @@ public class ResourceFilter {
 				for (Map<String,Object> row: rows) {
 					Date insertDate = (Date)row.get("insert_date");
 					int dateComparison = insertDate.compareTo(syncEndDate);
-					if (dateComparison >= 0 && resource.isAllowedToSync((String)row.get("label"))) { //Inserted at endTime or After endTime
-						XnatAbstractresource aRsc = XnatAbstractresource.getXnatAbstractresourcesByXnatAbstractresourceId(row.get("xnat_abstractresource_id"), _user, true);
-						absResources.add(aRsc);
+					if (dateComparison >= 0 ) {
+						//If no resource rule is specified, defaults to push all
+						if (resource == null || resource.isAllowedToSync((String)row.get("label"))) { //Inserted at endTime or After endTime
+							XnatAbstractresource aRsc = XnatAbstractresource.getXnatAbstractresourcesByXnatAbstractresourceId(row.get("xnat_abstractresource_id"), _user, true);
+							absResources.add(aRsc);
+						}
 					}
 				}
 			}else {
 				for (Map<String,Object> row: rows) {
-					if (row.get("status").equals(status) && resource.isAllowedToSync((String)row.get("label"))) {
-						XnatAbstractresource aRsc = XnatAbstractresource.getXnatAbstractresourcesByXnatAbstractresourceId(row.get("xnat_abstractresource_id"), _user, true);
-						absResources.add(aRsc);
+					if (row.get("status").equals(status)) {
+						if(resource == null ||  resource.isAllowedToSync((String)row.get("label"))) {
+							XnatAbstractresource aRsc = XnatAbstractresource.getXnatAbstractresourcesByXnatAbstractresourceId(row.get("xnat_abstractresource_id"), _user, true);
+							absResources.add(aRsc);
+						}
 					}
 				}
 			}
