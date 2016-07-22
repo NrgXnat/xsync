@@ -163,7 +163,7 @@ public class ExperimentFilter {
 				if (projectSyncConfiguration.isSubjectAssessorToBeSynced((String)row.get("element_name")) || projectSyncConfiguration.isImagingSessionToBeSynced((String)row.get("element_name"))) {
 					if (row.get("status").equals("deleted")) {
 						_log.debug("Experiment Deleted: " + (String)row.get("id"));
-						experimentsDeleted.add(createNew((String)row.get("id"),subject,(String)row.get("element_name")));
+						experimentsDeleted.add(createNew((String)row.get("id"),(String)row.get("label"),subject,(String)row.get("element_name")));
 					}
 				}
 			}
@@ -224,12 +224,13 @@ public class ExperimentFilter {
 		return info;
 	}
 	
-	private XnatExperimentdataI createNew(String id, XnatSubjectdata subject,String xsiType) {
+	private XnatExperimentdataI createNew(String id, String label, XnatSubjectdata subject,String xsiType) {
 		Class c = BaseElement.GetGeneratedClass(xsiType);
 		ItemI o = null;
 		try {
             o = (ItemI) c.newInstance();
             o.setProperty("id", id);
+            o.setProperty("label", label);        
             o.setProperty("project", subject.getProject());
             o.setProperty("subject_ID", subject.getId());
         }catch(Exception e) {

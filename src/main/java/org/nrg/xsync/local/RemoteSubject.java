@@ -199,6 +199,7 @@ public class RemoteSubject {
 		IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
 		String remoteId = idMapper.getRemoteAccessionId(experiment.getId());
 		String localId = experiment.getId();
+		String localLabel = experiment.getLabel();
 		 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(experiment.getId(),experiment.getLabel());
 		 expSyncItem.setRemoteId(remoteId);
 		if (remoteId != null)  {
@@ -209,19 +210,19 @@ public class RemoteSubject {
 				 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 				 RemoteConnectionResponse response =  remoteConnectionManager.deleteExperiment(connection, experiment);
 				 if (response.wasSuccessful()) {
-					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + experiment.getLabel() + " deleted. " + response.getResponseBody());
+					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + localLabel + " deleted. " );
 					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
 					 XSyncTools xsyncTools = new XSyncTools(user);
 					 xsyncTools.deleteXsyncRemoteEntry(this.localSubject.getProject(), localId);
 				 }else {
-					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + experiment.getLabel() + " could not be deleted. " + response.getResponseBody());
+					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + localLabel + " could not be deleted. " + response.getResponseBody());
 					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 				 }
 				 subjectSyncInfo.addExperiment(expSyncItem);
 				 return response;
 			 }catch(Exception e) {
 				 _log.error(e.toString());
-				 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + experiment.getLabel() + " could not be deleted. " + e.getMessage());
+				 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + localLabel + " could not be deleted. " + e.getMessage());
 				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 				 subjectSyncInfo.addExperiment(expSyncItem);
 				 throw e;

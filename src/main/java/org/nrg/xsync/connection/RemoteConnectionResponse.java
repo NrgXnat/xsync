@@ -15,7 +15,6 @@ public class RemoteConnectionResponse {
 	
 	public RemoteConnectionResponse(ResponseEntity<String> response) {
 		_response = response;
-		System.out.println("Response Body " + response.getBody());
 	}
 	
 	public boolean wasSuccessful() {
