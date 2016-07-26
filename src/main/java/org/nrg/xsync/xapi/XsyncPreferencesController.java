@@ -1,5 +1,11 @@
 package org.nrg.xsync.xapi;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.json.JSONObject;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xdat.rest.AbstractXapiRestController;
@@ -14,14 +20,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-
 /**
  * The Class XsyncPreferencesController.
  *
@@ -32,10 +30,6 @@ import io.swagger.annotations.ApiResponses;
 @RequestMapping(value = "/xsyncSitePreferences")
 @Api(description = "XSync Preferences API")
 public class XsyncPreferencesController extends AbstractXapiRestController {
-	
-	/** The _prefs. */
-	private final XsyncSitePreferencesBean _prefs;
-
 	@Autowired
 	public XsyncPreferencesController(final  XsyncSitePreferencesBean prefs,final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
         super(userManagementService, roleHolder);
@@ -50,7 +44,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	 */
 	@RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Sets the XSync site preferences")
-    @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences set."),  @ApiResponse(code = 500, message = "Unexpected error")})
+    @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences set."), @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> setPreferences(@RequestBody String jsonbody) {
 		try {
 			//Store the JSON to the Synchronization table
@@ -71,7 +65,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	 */
 	@RequestMapping(method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
     @ApiOperation(value = "Gets the XSync site preferences")
-    @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences retreived."),  @ApiResponse(code = 500, message = "Unexpected error")})
+    @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences retrieved."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> getPreferences() {
 		try {
 			final JSONObject prefsJson = new JSONObject();
@@ -81,5 +75,6 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
         	return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
 	}
-	
+
+	private final XsyncSitePreferencesBean _prefs;
 }

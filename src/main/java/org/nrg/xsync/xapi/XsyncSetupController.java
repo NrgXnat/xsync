@@ -1,12 +1,11 @@
 package org.nrg.xsync.xapi;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.XnatAbstractresourceI;
@@ -28,7 +27,6 @@ import org.nrg.xnat.helpers.uri.URIManager;
 import org.nrg.xnat.helpers.uri.URIManager.ArchiveItemURI;
 import org.nrg.xnat.helpers.uri.UriParserUtils;
 import org.nrg.xnat.utils.ResourceUtils;
-import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,13 +37,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * @author Mohana Ramaratnam
@@ -56,11 +53,6 @@ import io.swagger.annotations.ApiResponses;
 @RequestMapping(value = "/xsync")
 @Api(description = "XSync Management API")
 public class XsyncSetupController extends AbstractXapiRestController {
-	XsyncXsyncprojectdata existing = null;
-	String projectId = null;
-	JsonNode synchronizationJson = null;
-
-	
 	@Autowired
 	public XsyncSetupController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
         super(userManagementService, roleHolder);
@@ -77,7 +69,7 @@ public class XsyncSetupController extends AbstractXapiRestController {
 			this.projectId = projectId;
 			//Store the JSON to the Synchronization table
 			ObjectMapper objectMapper = new ObjectMapper();
-			synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
+			final JsonNode synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
 	        projectId = synchronizationJson.get(XsyncUtils.PROJECT_ELEMENT_JSON_NAME).asText();
 	    	
 	        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
@@ -211,8 +203,7 @@ public class XsyncSetupController extends AbstractXapiRestController {
     	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved", (existing == null) ? HttpStatus.CREATED : HttpStatus.OK);
 		
 	}
-	
-	
 
-
+	private XsyncXsyncprojectdata existing            = null;
+	private String                projectId           = null;
 }

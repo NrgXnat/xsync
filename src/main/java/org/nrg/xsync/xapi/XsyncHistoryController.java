@@ -14,8 +14,10 @@ import org.nrg.xsync.services.local.SyncManifestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +33,6 @@ import java.util.List;
 @RequestMapping(value="/xsync/history")
 @JsonIgnoreProperties(value = { "created" })
 public class XsyncHistoryController extends AbstractXapiRestController {
-
 	@Autowired
 	public XsyncHistoryController(final SyncManifestService service, final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
         super(userManagementService, roleHolder);
@@ -57,7 +58,7 @@ public class XsyncHistoryController extends AbstractXapiRestController {
         return new ResponseEntity<>(_service.retrieve(id), HttpStatus.OK);
     }
 
-    @RequestMapping(path="/project/{projectId}", method=RequestMethod.GET)
+    @RequestMapping(value="/project/{projectId}", method=RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<List<XsyncProjectHistory>> getSyncHistoryByProject(@PathVariable("projectId") String projectId) {
         List<XsyncProjectHistory> allHistory = _service.getAll();
