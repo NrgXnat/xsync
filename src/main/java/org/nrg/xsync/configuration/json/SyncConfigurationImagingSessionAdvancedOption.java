@@ -93,4 +93,14 @@ public class SyncConfigurationImagingSessionAdvancedOption extends SyncConfigura
 		return isAllowed;
 	}
 
+	public boolean isAllowedToSyncAssessor(String assessorXsiType) {
+		boolean isAllowed = false;
+		if (session_assessors == null) {
+				isAllowed = true;
+		}else {
+			isAllowed = session_assessors.isAllowedToSync(assessorXsiType);
+		}
+		return isAllowed;
+	}
+
 }

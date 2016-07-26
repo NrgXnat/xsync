@@ -21,6 +21,7 @@ import org.nrg.xdat.model.XnatSubjectassessordataI;
 import org.nrg.xdat.model.XnatSubjectdataI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
+import org.nrg.xdat.om.XnatImageassessordata;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatResourceseries;
@@ -38,8 +39,10 @@ import org.nrg.xnat.exceptions.InvalidArchiveStructure;
 import org.nrg.xnat.xsync.anonymize.AnonymizerI;
 import org.nrg.xnat.xsync.anonymize.XsyncAnonymizer;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
+import org.nrg.xsync.configuration.json.SyncConfigurationAdvancedOption;
 import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionAdvancedOption;
 import org.nrg.xsync.configuration.json.SyncConfigurationResource;
+import org.nrg.xsync.configuration.json.SyncConfigurationSessionAssessor;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.slf4j.Logger;
@@ -448,7 +451,7 @@ public class ExperimentFilter {
 							modifyExptResource((XnatAbstractresource) res, orig, exp);
 						}
 					}
-
+					filterAssessors(orig, exp);
 					for (final XnatImageassessordataI assess : ((XnatImagesessiondata) exp).getAssessors_assessor()) {
 						assess.setImagesessionId(exp.getLabel());
 						for (XnatExperimentdataShareI share : assess.getSharing_share()) {
@@ -511,8 +514,6 @@ public class ExperimentFilter {
 	 *            the orig
 	 * @param exp
 	 *            the exp
-	 * @param payload
-	 *            the payload
 	 * @throws IndexOutOfBoundsException
 	 *             the index out of bounds exception
 	 * @throws FieldNotFoundException
@@ -547,6 +548,32 @@ public class ExperimentFilter {
 		}
 		return found;
 	}
+
+	/**
+	 * Find and remove experiment resources.
+	 *
+	 * @param exp
+	 *            the exp
+	 * @param resourceType
+	 *            the resource type
+	 * @return true, if successful
+	 */
+	private boolean findAndRemoveAssessorResources(XnatImageassessordataI ass, SyncConfigurationResource resourcesCfg) {
+		boolean found = false;
+		if (resourcesCfg == null) {
+			return found;
+		}
+		List<XnatAbstractresourceI> resource = ass.getResources_resource();
+		for (int i = 0; i < resource.size(); i++) {
+			if (!resourcesCfg.isAllowedToSync(resource.get(i).getLabel())) {
+				((XnatImageassessordata)ass).removeResources_resource(i);
+				found = true;
+				break;
+			}
+		}
+		return found;
+	}
+
 	
 	/**
 	 * Filter scantypes.
@@ -569,7 +596,59 @@ public class ExperimentFilter {
 			;
 		return;
 	}
+	
+	/**
+	 * Filter Assessors.
+	 *
+	 * @param orig
+	 *            the orig
+	 * @param exp
+	 *            the exp
+	 * @throws IndexOutOfBoundsException
+	 *             the index out of bounds exception
+	 * @throws FieldNotFoundException
+	 *             the field not found exception
+	 */
+	private void filterAssessors(XnatExperimentdata orig, XnatExperimentdata exp)
+			throws IndexOutOfBoundsException, FieldNotFoundException {
+		SyncConfigurationImagingSessionAdvancedOption sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
+		while (findAndRemoveAssessors(orig, exp, sessionOption))
+			;
+		//Now for each assessor, look at the resources which are configured to be synced
+		filterAssessorResources(exp,sessionOption);
+		return;
+	}
+	
+	/**
+	 * Filter experiment resources.
+	 *
+	 * @param orig
+	 *            the orig
+	 * @param exp
+	 *            the exp
+	 * @throws IndexOutOfBoundsException
+	 *             the index out of bounds exception
+	 * @throws FieldNotFoundException
+	 *             the field not found exception
+	 */
+	public void filterAssessorResources(XnatExperimentdata exp,SyncConfigurationImagingSessionAdvancedOption sessionOption)
+			throws IndexOutOfBoundsException, FieldNotFoundException {
+		SyncConfigurationSessionAssessor assessorOption = sessionOption.getSession_assessors();
+		List<XnatImageassessordataI> assessors = ((XnatImagesessiondata)exp).getAssessors_assessor();
+		for (XnatImageassessordataI ass:assessors) {
+			SyncConfigurationAdvancedOption assessorAdvOption = assessorOption.getAdvancedOption(ass.getXSIType());
+			if (assessorAdvOption != null) {
+				while (findAndRemoveAssessorResources(ass, assessorAdvOption.getResources()))
+					;
 
+			}
+		}
+		return;
+	}
+
+
+	
+	
 	
 	/**
 	 * Find and remove scantypes.
@@ -586,6 +665,30 @@ public class ExperimentFilter {
 		for (int i = 0; i < scans.size(); i++) {
 			if (!sessionOption.isAllowedToSyncScan(scans.get(i).getType())) {
 				((XnatImagesessiondata) exp).removeScans_scan(i);
+				found = true;
+				return true;
+			}
+		}
+		return found;
+	}
+
+	
+	/**
+	 * Find and remove assessors.
+	 *
+	 * @param exp
+	 *            the exp
+	 * @return true, if successful
+	 */
+	private boolean findAndRemoveAssessors(XnatExperimentdata orig, XnatExperimentdata exp, SyncConfigurationImagingSessionAdvancedOption sessionOption) {
+		boolean found = false;
+		if (sessionOption == null) {
+			return false;
+		}
+		List<XnatImageassessordataI> assessors = ((XnatImagesessiondata) exp).getAssessors_assessor();
+		for (int i = 0; i < assessors.size(); i++) {
+			if (!sessionOption.isAllowedToSyncAssessor(assessors.get(i).getXSIType())) {
+				((XnatImagesessiondata) exp).removeAssessors_assessor(i);
 				found = true;
 				return true;
 			}
