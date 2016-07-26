@@ -16,7 +16,7 @@ XSYNC.credentialsconfig.initialize = function() {
 	var MUST_BE_CONFIGURED = "<h3>XSync has not been configured.  Please select the <b>XSync Configuration</b> tab.</h3>"
 	var scConfigAjax = $.ajax({
 		type : "GET",
- 		url:serverRoot+'/data/projects/' + XNAT.data.context.project +'/resources/synchronization/files/sync_config.json',
+		url: serverRoot+'/data/projects/'+XNAT.data.context.project+'/config/xsync/json?contents=true',
 		cache: false,
 		async: false,
 		context: this,
@@ -61,7 +61,7 @@ XSYNC.xsyncconfig.initialize = function() {
 
 	var scConfigAjax = $.ajax({
 		type : "GET",
-		url:serverRoot+'/data/projects/' + XNAT.data.context.project +'/resources/synchronization/files/sync_config.json',
+		url: serverRoot+'/data/projects/'+XNAT.data.context.project+'/config/xsync/json?contents=true',
 		cache: false,
 		async: false,
 		context: this,
@@ -85,7 +85,7 @@ XSYNC.xsyncconfig.initialize = function() {
 
 XSYNC.xsyncconfig.beginConfig = function() {
 	$("#xsync-config-div").html(
-		'<input type="button" id="xsync-begin-config" value="Begin Configuration">'
+		'<input type="button" class="btn1" id="xsync-begin-config" value="Begin Configuration">'
 	);
 	$("#xsync-begin-config").click(function() {
 		XSYNC.xsyncconfig.useDefaultConfig();
@@ -94,6 +94,7 @@ XSYNC.xsyncconfig.beginConfig = function() {
 }
 
 XSYNC.xsyncconfig.useDefaultConfig = function() {
+	// Use the defaults to populate config dialog
 	XSYNC.xsyncconfig.configuration = {};
 	XSYNC.xsyncconfig.configuration.source_project_id = XNAT.data.context.project;
 	XSYNC.xsyncconfig.configuration.sync_frequency = 'weekly';
@@ -106,8 +107,7 @@ XSYNC.xsyncconfig.useDefaultConfig = function() {
 	XSYNC.xsyncconfig.configuration.subjectassessors = [];
 	XSYNC.xsyncconfig.configuration.imagingsessions = [];
 	XSYNC.xsyncconfig.anonymizationuploadDisabled = 'disabled';
-	// Use the defaults to set up config and then open dialog to edit
-	XSYNC.xsyncconfig.submitConfig();
+	// XSYNC.xsyncconfig.submitConfig();
 	XSYNC.xsyncconfig.editConfig();
 }
 
@@ -279,11 +279,10 @@ XSYNC.xsyncconfig.checkCredentials = function() {
  */
 
 XSYNC.xsyncconfig.editConfig = function() {
-
 	XSYNC.xsyncconfig.modal = xmodal.open({
 		title: "Project Sync Settings for " + XNAT.data.context.project,
 		content: '<div id="xsync-config-dialog"></div>',
-		height: 800,
+		height: 400,
 		buttons: {
 			submit: {
 				label: "Submit",
@@ -302,24 +301,10 @@ XSYNC.xsyncconfig.editConfig = function() {
 		}
 	});
 };
-
 function spawnConfig() {
-
 	function configPanel(contents) {
 		return {
 			kind: 'panel',
-			action: "#",
-			buttons: {
-				submit: {
-					label: "Submit",
-					action: function() {
-						XSYNC.xsyncconfig.submitConfig()
-					}
-				},
-				close: {
-					label: "Cancel"
-				}
-			},
 			contents: {
 				"Enabled": enabled(),
 				"New Data Only": syncNewOnly(),
@@ -330,24 +315,10 @@ function spawnConfig() {
 			}
 		}
 	}
-
 	function enabled() {
 		return {
-			kind: 'panel.element',
-			element: {
-				className: '',
-				id: 'xsync-enebled-checkbox'
-			},
-			contents: {
-				"enabled-checkbox": enabledElement()
-			}
-		}
-	}
-
-	function enabledElement() {
-		return {
 			id: 'xsync-config-enabled',
-			kind: 'input.checkbox',
+			kind: 'panel.input.checkbox',
 			name: 'enabled-switch',
 			label: 'Enabled',
 			checked: true,
@@ -358,48 +329,21 @@ function spawnConfig() {
 			}
 		}
 	}
-
 	function syncNewOnly() {
 		return {
-			kind: 'panel.element',
-			element: {
-				className: '',
-				id: 'xsync-newonly-checkbox'
-			},
-			contents: {
-				"enabled-checkbox": syncNewOnlyElement()
-			}
-		}
-	}
-
-	function syncNewOnlyElement() {
-		return {
 			id: 'xsync-config-newonly',
-			kind: 'input.checkbox',
+			kind: 'panel.input.checkbox',
 			name: 'new-only-switch',
 			label: 'New Data Only',
 			checked: true
 		}
 	}
-
 	function remoteUrl() {
 		return {
-			kind: 'panel.element',
-			// label: 'Destination XNAT',
-			element: {
-				className: '',
-				id: 'xsync-remote-url-textbox'
-			},
-			contents: {
-				"Destination XNAT": remoteUrlElement()
-			}
-		}
-	}
-
-	function remoteUrlElement() {
-		return {
-			kind: 'input.text',
+			kind: 'panel.input.text',
 			id: 'xsync-config-remote-url',
+			//name: '',
+			label: 'Destination XNAT',
 			value: XSYNC.xsyncconfig.configuration.remote_url,
 			element: {
 				onchange: function(){
@@ -408,25 +352,12 @@ function spawnConfig() {
 			}
 		}
 	}
-
 	function remoteProject() {
 		return {
-			kind: 'panel.element',
-			// label: 'Destination XNAT',
-			element: {
-				className: '',
-				id: 'xsync-remote-project'
-			},
-			contents: {
-				"Destination Project": remoteProjectElement()
-			}
-		}
-	}
-
-	function remoteProjectElement() {
-		return {
-			kind: 'input.text',
+			kind: 'panel.input.text',
 			id: 'xsync-config-remote-project',
+			//name: '',
+			label: 'Destination Project',
 			value: XSYNC.xsyncconfig.configuration.remote_project_id,
 			element: {
 				onchange: function(){
@@ -435,83 +366,36 @@ function spawnConfig() {
 			}
 		}
 	}
-
 	function frequency() {
 		return {
-			kind: 'panel.element',
-			label: 'Sync Frequency',
-			element: {
-				className: '',
-				id: randomID('x', false)
-			},
-			contents: {
-				frequency: frequencyElement()
-			}
-		}
-	}
-
-	function frequencyElement() {
-		return {
-			kind: 'select.menu',
+			kind: 'panel.select.menu',
 			id: 'xsync-config-frequency',
+			// name: '',
+			label: 'Sync Frequency',
 			value: XSYNC.xsyncconfig.configuration.sync_frequency,
-			options: [
-				{
-					value: 'daily',
-					text: 'Daily',
-					selected: true
-				},
-				{
-					value: 'weekly',
-					text: 'Weekly'
-				},
-				{
-					value: 'monthly',
-					text: 'Monthly'
-				}
-			],
+			options: {
+				daily: 'Daily',
+				weekly: 'Weekly',
+				monthly: 'Monthly'
+			},
 			element: {
 				onchange: function(){
 					// alert(this.value)
 				}
 			}
-		}
-	}
-
+		}    }
 	function identifiers() {
 		return {
-			kind: 'panel.element',
-			label: 'Use Identifiers',
-			element: {
-				className: '',
-				id: 'xsync-identifiers'
-			},
-			contents: {
-				ids: identifiersElement()
-			}
-		}
-	}
-
-	function identifiersElement() {
-		return {
-			kind: 'select.menu',
+			kind: 'panel.select.menu',
+			// name: '',
 			id: 'xsync-config-identifiers',
+			label: 'Use Identifiers',
 			value: XSYNC.xsyncconfig.configuration.identifiers,
-			options: [
-				{
-					value: 'use_local',
-					text: 'Local',
-					selected: true
-				},
-				{
-					value: 'use_remote',
-					text: 'Remote'
-				},
-				{
-					value: 'use_random',
-					text: 'Random'
-				}
-			],
+			options: {
+				use_local: 'Local',
+				use_remote: 'Remote',
+				use_random: 'Random'
+			},
 			element: {
 				onchange: function(){
 					// alert(this.value)
@@ -519,7 +403,6 @@ function spawnConfig() {
 			}
 		}
 	}
-
 	return {
 		root: configPanel()
 	};

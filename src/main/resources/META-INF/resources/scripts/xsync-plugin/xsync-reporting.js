@@ -38,10 +38,8 @@ XSYNC.reporting.showHistoryTable = function() {
 	});
 
 	var xsyncConfigDiv = $("#xsync-config-div");
-	// xsyncConfigDiv.append('<div class="xsync-history-container">');
 	xsyncConfigDiv.append("<h4>Sync History</h4>");
 	xsyncConfigDiv.append(xsyncHistory.table);
-	// xsyncConfigDiv.append('</div>');
 };
 
 XSYNC.reporting.showHistoryDetailsModal = function(uri) {
@@ -136,22 +134,22 @@ function generateOverviewTab(history) {
 					},
 					totalSubjects: {
 						kind: 'panel.element',
-						label: 'Total Subjects Synced',
+						label: 'Total Subjects',
 						contents: history.totalSubjects.toString()
 					},
 					totalExperiments: {
 						kind: 'panel.element',
-						label: 'Total Experiments Synced',
+						label: 'Total Experiments',
 						contents: history.totalExperiments.toString()
 					},
 					totalAssessors: {
 						kind: 'panel.element',
-						label: 'Total Assessors Synced',
+						label: 'Total Assessors',
 						contents: history.totalAssessors.toString()
 					},
 					totalResources: {
 						kind: 'panel.element',
-						label: 'Total Resources Synced',
+						label: 'Total Resources',
 						contents: history.totalResources.toString()
 					},
 					totalDataSynced: {

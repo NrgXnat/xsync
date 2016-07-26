@@ -6,6 +6,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+import org.codehaus.jackson.map.DeserializerFactory;
+import org.nrg.config.entities.Configuration;
+import org.nrg.config.services.ConfigService;
+import org.nrg.framework.constants.Scope;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatImagesessiondataI;
 import org.nrg.xdat.model.XnatSubjectassessordataI;
 import org.nrg.xdat.om.XnatImagesessiondata;
@@ -27,6 +32,8 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import javax.inject.Inject;
+
 /**
  * @author Mohana Ramaratnam
  *
@@ -39,11 +46,14 @@ public class ProjectSyncConfiguration {
 	SyncConfiguration syncConfiguration = null;
 	XsyncXsyncprojectdata syncProjectConfiguration;
 	UserI _user;
+
+	@Inject
+	private ConfigService _configService;
 	
 	public ProjectSyncConfiguration(String projectId, UserI user) throws XsyncNotConfiguredException{
 		_user = user;
 		project = XnatProjectdata.getProjectByIDorAlias(projectId, (XDATUser)user, false);
-		setSynchronizationConfigurationFromFile();
+		setSyncConfigurationFromService();
 		setProjectSyncConfiguration();
 	}
 
@@ -97,7 +107,7 @@ public class ProjectSyncConfiguration {
 	        oldDate = formatter.parse(date);
 	        return oldDate;
 	    }catch(ParseException e) {
-	        _log.debug("Could not create an old dtae " + e.getMessage());
+	        _log.debug("Could not create an old date " + e.getMessage());
 	        throw e;
 	    }
 	}
@@ -105,30 +115,32 @@ public class ProjectSyncConfiguration {
 	public XsyncXsyncprojectdata getProjectSyncConfigurationFromDB() {
 		return syncProjectConfiguration ;
 	}
-	
-	private void setSynchronizationConfigurationFromFile() throws XsyncNotConfiguredException {
-		File syncConfigFile = new File(getSynchronizationConfigurationFilePath());
-		if (syncConfigFile.exists()) {
+
+	private void setSyncConfigurationFromService() throws XsyncNotConfiguredException {
+		String config = XDAT.getConfigService().getConfig("xsync", "json", Scope.Project, project.getId()).getContents();
+//		String config = _configService.getConfig("xsync", "json", Scope.Project, project.getId()).getContents();
+
+		if (config != null) {
 			ObjectMapper objectMapper = new ObjectMapper();
 			try {
-				syncConfiguration = objectMapper.readValue(syncConfigFile, SyncConfiguration.class);
-			}catch(Exception e) {
+				syncConfiguration = objectMapper.readValue(config, SyncConfiguration.class);
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			
-		}else {
-			throw new XsyncNotConfiguredException("Synchronization Configuration File does not exist " + syncConfigFile.getAbsolutePath());
+		} else {
+			throw new XsyncNotConfiguredException("Synchronization Configuration does not exist for " + project.getId());
 		}
+
 	}
 
 	public SyncConfiguration getSynchronizationConfiguration() {
 		return syncConfiguration;
 	}
-	
-	private String getSynchronizationConfigurationFilePath() {
-		String filePath = project.getArchiveRootPath() + File.separator + "resources" + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
-		return filePath;
-	}
+
+//	private String getSynchronizationConfigurationFilePath() {
+//		String filePath = project.getArchiveRootPath() + File.separator + "resources" + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
+//		return filePath;
+//	}
 
 	public static String GetAnonymizationFilePath(String projectArchiveRootPath, String fileType) {
 		String filePath = getAnonymizationFilePath(projectArchiveRootPath,fileType ) ;
