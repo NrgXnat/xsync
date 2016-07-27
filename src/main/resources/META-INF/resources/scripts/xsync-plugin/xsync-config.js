@@ -256,8 +256,8 @@ XSYNC.xsyncconfig.checkCredentials = function() {
 
 	this.checkCredentialsResult = false;
 	var formData = {
-		host: $("#xsync-config-remote-url").val(),
-		localProject: XNAT.data.context.project,
+		host: XSYNC.xsyncconfig.configuration.remote_url,
+		localProject: XNAT.data.context.project
 	};
 	var saveCredentials = $.ajax({
 		type : "POST",
@@ -279,6 +279,11 @@ XSYNC.xsyncconfig.checkCredentials = function() {
  */
 
 XSYNC.xsyncconfig.editConfig = function() {
+	if (!XSYNC.xsyncconfig.checkCredentials()) {
+		XSYNC.credentialsconfig.enterCredentials();
+		return;
+	}
+
 	XSYNC.xsyncconfig.modal = xmodal.open({
 		title: "Project Sync Settings for " + XNAT.data.context.project,
 		content: '<div id="xsync-config-dialog"></div>',
