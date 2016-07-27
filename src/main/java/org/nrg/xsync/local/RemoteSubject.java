@@ -343,6 +343,9 @@ public class RemoteSubject {
 			if (deletedExperiments != null && deletedExperiments.size() > 0) {
 				//Remove each of these resources from the Remote site
 				for (XnatExperimentdataI experiment:deletedExperiments) {
+					if (experiment.getXSIType().startsWith("xsync:")) {
+						continue;
+					}
 					try {
 						XnatExperimentdata exp = (XnatExperimentdata)experiment;
 						exp.setProject(remoteProjectId);
@@ -375,6 +378,9 @@ public class RemoteSubject {
 	}
 	
 	private void pushExperiment(XnatExperimentdataI assess, XnatSubjectdataI remoteSubject) throws Exception {
+		if (assess.getXSIType().startsWith("xsync:")) {
+			return;
+		}
 		String origId = assess.getId();
 		ExperimentFilter experimentFilter = new ExperimentFilter(user, projectSyncConfiguration);
 		if (assess instanceof XnatImagesessiondata) {

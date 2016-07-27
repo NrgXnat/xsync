@@ -89,7 +89,7 @@ public class QueryResultUtil {
 		return query + " UNION " + deletedQuery ;
 	}
 	public String getQueryForFetchingSubjectResourcesModifiedSinceLastSync() {
-		String query = "select  a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date from xnat_abstractresource a ";
+		String query = "select  a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,am.row_last_modified,xsi.sync_end_time,am.insert_date from xnat_abstractresource a ";
 		query += " left join xnat_abstractresource_meta_data am ON a.abstractresource_info = am.meta_data_id ";
 		query += " left join xnat_subjectdata_resource sr ON a.xnat_abstractresource_id = sr.xnat_abstractresource_xnat_abstractresource_id   ";
 		query += " left join xnat_subjectdata s on sr.xnat_subjectdata_id=s.id ";
@@ -101,7 +101,7 @@ public class QueryResultUtil {
 	}
 
 	public String getQueryForFetchingSubjectResourcesDeletedSinceLastSync() {
-		String query = " select ah.xnat_abstractresource_id,ah.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date from xnat_abstractresource_meta_data am  "; 
+/*		String query = " select ah.xnat_abstractresource_id,ah.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date from xnat_abstractresource_meta_data am  "; 
 		query += " left join xnat_abstractresource_history ah ON ah.abstractresource_info=am.meta_data_id   ";
 		query += " left join xnat_subjectdata_resource_history  srh ON srh.xnat_abstractresource_xnat_abstractresource_id = ah.xnat_abstractresource_id ";
 		query += " left join xnat_subjectdata s on srh.xnat_subjectdata_id=s.id ";
@@ -110,10 +110,30 @@ public class QueryResultUtil {
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id "; 
 		query += "  where s.id=:" + this.SUBJECT_QUERY_PARAMETER_NAME + " and am.status='"+ DELETE_STATUS + "' and p.id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time ";
 		return query;
+*/		
+		String query = "select ah.xnat_abstractresource_id,ah.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date from xnat_abstractresource_meta_data am ";
+		query += " 		left join ";
+		query += " 		 ( ";
+		query += " 		 SELECT DISTINCT ON (xnat_abstractresource_id) ";
+		query += " 		   last_value(change_date) OVER wnd as last_change_date, ";
+		query += " 		   abstractresource_info, ";
+		query += " 		   label,xnat_abstractresource_id FROM xnat_abstractresource_history ";
+		query += " 		  WINDOW wnd AS ( ";
+		query += " 		    PARTITION BY xnat_abstractresource_id ORDER BY change_date   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING ";
+		query += "  		    ) ";
+		query += " 		 ) as ah ON ah.abstractresource_info=am.meta_data_id   ";
+		query += " 		left join xnat_subjectdata_resource_history  srh ON srh.xnat_abstractresource_xnat_abstractresource_id = ah.xnat_abstractresource_id ";
+		query += " 		left join xnat_subjectdata s on srh.xnat_subjectdata_id=s.id ";
+		query += " 		left join xnat_projectdata p ON s.project=p.id   ";
+		query += " 		left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id  ";
+		query += " 		left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
+		query += " 		 where s.id=:" + this.SUBJECT_QUERY_PARAMETER_NAME + " and am.status='"+ DELETE_STATUS + "' and p.id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time ";
+		return query;
+		
 	}	
 	public String getParametrizedQueryForFetchingConfiguredSubjectResourcesChangedSinceLastSync() {
 		String query = getQueryForFetchingSubjectResourcesModifiedSinceLastSync() ; 
-		query += " UNION " + getQueryForFetchingSubjectResourcesDeletedSinceLastSync();
+		//query += " UNION " + getQueryForFetchingSubjectResourcesDeletedSinceLastSync();
 		String selectTheResourcesWhichAreToBeSynced = "select * from (" + query + ") as results ";
 		return selectTheResourcesWhichAreToBeSynced;
 	}

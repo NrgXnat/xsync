@@ -135,7 +135,7 @@ public class SyncManifest{
 		boolean wasSuccessful = true;
 		if (resources.size() > 0) {
 			for (SyncedItem sync:resources) {
-				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED) &&  !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED)  ) {
+				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED) &&  !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_DELETED) ) {
 					wasSuccessful = false;
 					break;
 				}
@@ -143,7 +143,7 @@ public class SyncManifest{
 		}
 		if (subjects.size()>0 && wasSuccessful) {
 			for (SyncedItem sync:subjects) {
-				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED) &&  !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED)  ) {
+				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED) &&  !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_DELETED) ) {
 					wasSuccessful = false;
 					break;
 				}

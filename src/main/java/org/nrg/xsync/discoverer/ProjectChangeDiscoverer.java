@@ -157,6 +157,7 @@ public class ProjectChangeDiscoverer implements Callable<java.lang.Void>{
 	//This class returns  NEW, UPDATED and DELETED lists of resources
 	private void syncProjectResources() {
 		List<Map<String,Object>> resourceRows = getProjectResourcesModifiedSinceLastSync();
+		if (resourceRows == null || resourceRows.size() < 1) return;
 		XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(_projectId, _user, false);
 		String localProjectArchivePath = localProject.getArchiveRootPath();
 		for (Map<String,Object> row:resourceRows) {
