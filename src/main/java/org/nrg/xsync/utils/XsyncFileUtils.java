@@ -58,7 +58,7 @@ public class XsyncFileUtils {
 		} catch (Exception e) {
 			_log.debug(e.toString() + "  " + e.getMessage());
 			//e.printStackTrace();
-			throw new Exception("Unable to retrieve/save session XML."+e.getMessage());
+			throw new Exception("Unable to create/save zip file "+e.getMessage());
 		}
 		return zipFile;
 

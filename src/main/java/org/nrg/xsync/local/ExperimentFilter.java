@@ -121,8 +121,12 @@ public class ExperimentFilter {
 							_log.debug("Experiment Added: " + (String)row.get("id"));
 							experimentsAdded.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
 						}else {
-							_log.debug("Experiment Modified: " + (String)row.get("id"));
-							experimentsModified.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
+							Date experimentModifiedDate = (Date)row.get("last_modified");
+							dateComparison = experimentModifiedDate.compareTo(syncEndDate);
+							if (dateComparison >= 0) { //Modified at endTime or After endTime
+								_log.debug("Experiment Modified: " + (String)row.get("id"));
+								experimentsModified.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
+							}
 						}
 					}
 				}
@@ -222,6 +226,7 @@ public class ExperimentFilter {
 		info.put("project", exp.getProject());
 		info.put("status", itemMeta.getProperty("status"));
 		info.put("last_modified", itemMeta.getProperty("last_modified"));
+		info.put("row_last_modified", itemMeta.getProperty("row_last_modified"));
 		info.put("insert_date", itemMeta.getProperty("insert_date"));
 		info.put("sync_end_time", sync_end_time);
 		return info;

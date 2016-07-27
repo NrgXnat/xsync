@@ -317,8 +317,11 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		int count = 0;
 		while(true) {
 		    try {
-		    	 String uri = connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getId()+"/resources/"+ resourceLabel +"/files?overwrite=true&extract=true";
-		         return this.importZipWithoutRetry( connection, uri, zipFile);
+		    	 String uri = connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getId()+"/resources/"+ resourceLabel ;
+		         if (zipFile != null) {
+			    	uri += "/files?overwrite=true&extract=true";
+		         }
+		    	 return this.importZipWithoutRetry( connection, uri, zipFile);
 		    } catch (RuntimeException e) {
 		    	try {
 			    	logger.error("importsubjectresource: retrycount "+ count);
