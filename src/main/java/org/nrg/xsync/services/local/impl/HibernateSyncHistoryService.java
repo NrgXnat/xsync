@@ -117,7 +117,7 @@ public class HibernateSyncHistoryService
     }
 
     private void setAssessorHistory() {
-        List <XsyncExperimentHistory> histories = new ArrayList<>();
+        List <XsyncAssessorHistory> histories = new ArrayList<>();
 
         for (SubjectSyncItem sub : manifest.getSubjects()) {
             // TODO sub.getAssessors()
@@ -133,6 +133,8 @@ public class HibernateSyncHistoryService
                     assessorHistory.setDisabled(new Date());
                     assessorHistory.setTimestamp(new Date());
                     assessorHistory.setEnabled(true);
+                    histories.add(assessorHistory);
+
                 }
             }
         }
@@ -141,26 +143,26 @@ public class HibernateSyncHistoryService
     private void setResourceHistory() {
         List <XsyncResourceHistory> histories = new ArrayList<>();
 
-        setResourceHistoryProps(manifest.getResources());
+        setResourceHistoryProps(histories,manifest.getResources());
 
         for (SubjectSyncItem sub : manifest.getSubjects()) {
-            setResourceHistoryProps(sub.getResources());
+            setResourceHistoryProps(histories,sub.getResources());
 
             for (ExperimentSyncItem exp : sub.getExperiments()) {
-                setResourceHistoryProps(exp.getResources());
+                setResourceHistoryProps(histories,exp.getResources());
             }
         }
     }
 
-    private void setResourceHistoryProps(List<ResourceSyncItem> resources) {
+    private void setResourceHistoryProps(List <XsyncResourceHistory> histories,List<ResourceSyncItem> resources) {
         for (ResourceSyncItem res : resources) {
             XsyncResourceHistory resourceHistory = new XsyncResourceHistory();
-
             resourceHistory.setSyncStatus(res.getSyncStatus());
             resourceHistory.setSyncMessage(res.getMessage());
             resourceHistory.setLocalLabel(res.getLocalLabel());
             resourceHistory.setFileCount(res.getFileCount());
             resourceHistory.setFileSize((Long) res.getFileSize());
+            histories.add(resourceHistory);
         }
     }
 
