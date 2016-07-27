@@ -321,7 +321,7 @@ public class QueryResultUtil {
 	
 	public String getXsyncRemoteMapQueryString() {
 		String query = "select * from xsync_xsyncremotemapdata pr where ";
-		query += " pr.project_id=:PROJECT_ID " ;
+		query += " pr.source_project_id=:PROJECT_ID " ;
 		query += " and pr.local_xnat_id=:LOCAL_XNAT_ID " ;
 		query += " and pr.xsitype=:XSITYPE " ;
 		return query;

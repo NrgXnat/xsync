@@ -219,8 +219,8 @@ public class SyncManifest{
 				for (ResourceSyncItem res : resources) {
 					 sb.append("<tr>");
 					 sb.append("<td> " + res.localLabel + " </td>");
-					 sb.append("<td> " + res.getFileCount() + " </td>");
-					 sb.append("<td> " + res.getFileSize() + " </td>");
+					 sb.append("<td> " + (res.getFileCount()==null?"NA":res.getFileCount()) + " </td>");
+					 sb.append("<td> " + (res.getFileSize()==null?"NA":res.getFileSize()) + " </td>");
 					 sb.append("<td> " + res.getSyncStatus() + " </td>");
 					 sb.append("<td> " + res.getMessage() + " </td>");
 					 sb.append("</tr>");
