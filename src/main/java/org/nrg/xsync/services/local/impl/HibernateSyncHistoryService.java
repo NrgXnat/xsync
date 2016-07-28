@@ -134,27 +134,27 @@ public class HibernateSyncHistoryService
                     assessorHistory.setTimestamp(new Date());
                     assessorHistory.setEnabled(true);
                     histories.add(assessorHistory);
-
                 }
             }
         }
+        syncHistory.setAssessorHistories(histories);
     }
 
     private void setResourceHistory() {
-        List <XsyncResourceHistory> histories = new ArrayList<>();
-
-        setResourceHistoryProps(histories,manifest.getResources());
+        setResourceHistoryProps(manifest.getResources());
 
         for (SubjectSyncItem sub : manifest.getSubjects()) {
-            setResourceHistoryProps(histories,sub.getResources());
+            setResourceHistoryProps(sub.getResources());
 
             for (ExperimentSyncItem exp : sub.getExperiments()) {
-                setResourceHistoryProps(histories,exp.getResources());
+                setResourceHistoryProps(exp.getResources());
             }
         }
     }
 
-    private void setResourceHistoryProps(List <XsyncResourceHistory> histories,List<ResourceSyncItem> resources) {
+    private void setResourceHistoryProps(List<ResourceSyncItem> resources) {
+        List <XsyncResourceHistory> histories = new ArrayList<>();
+
         for (ResourceSyncItem res : resources) {
             XsyncResourceHistory resourceHistory = new XsyncResourceHistory();
             resourceHistory.setSyncStatus(res.getSyncStatus());
@@ -164,6 +164,7 @@ public class HibernateSyncHistoryService
             resourceHistory.setFileSize((Long) res.getFileSize());
             histories.add(resourceHistory);
         }
+        syncHistory.setResourceHistories(histories);
     }
 
     private int countAllExperiments() {
