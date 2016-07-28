@@ -108,7 +108,7 @@ public class SyncConfiguration implements Serializable{
 	public SyncConfigurationAdvancedOption getSubjectAssessorAdvancedOptions(String xsiType) {
 		SyncConfigurationAdvancedOption advOption = SyncConfigurationAdvancedOption.GetDefaultSyncConfigurationAdvancedOption(xsiType);
 		if (hasSubjectAssessorConfigurationDefinition()) {
-			if (isSubjectAssessorAllowedToSync(xsiType)) {
+			//if (isSubjectAssessorAllowedToSync(xsiType)) {
 				List<SyncConfigurationAdvancedOption> advOptions = subject_assessors.getAdvanced_options();
 				for (SyncConfigurationAdvancedOption aOption : advOptions) {
 					if (aOption.xsi_type.equals(xsiType)) {
@@ -116,7 +116,7 @@ public class SyncConfiguration implements Serializable{
 						break;
 					}
 				}
-			}
+			//}
 		}
 		return advOption;
 	}
@@ -124,7 +124,7 @@ public class SyncConfiguration implements Serializable{
 	public SyncConfigurationImagingSessionAdvancedOption getImagingSessionAdvancedOptions(String xsiType) {
 		SyncConfigurationImagingSessionAdvancedOption advOption = SyncConfigurationImagingSessionAdvancedOption.GetDefaultImagingSessionSyncConfigurationAdvancedOption(xsiType);
 		if (hasImagingSessionConfigurationDefinition()) {
-			if (isImagingSessionAllowedToSync(xsiType)) {
+			//if (isImagingSessionAllowedToSync(xsiType)) {
 				List<SyncConfigurationImagingSessionAdvancedOption> advOptions = imaging_sessions.getAdvanced_options();
 				for (SyncConfigurationImagingSessionAdvancedOption aOption : advOptions) {
 					if (aOption.getXsi_type().equals(xsiType)) {
@@ -132,7 +132,7 @@ public class SyncConfiguration implements Serializable{
 						break;
 					}
 				}
-			}
+			//}
 		}
 		return advOption;
 	}

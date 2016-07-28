@@ -389,11 +389,19 @@ public class RemoteSubject {
 				if (imagingSessionNeedsOkToSync(orig.getXSIType())) {
 					boolean updateOkToSyncAssessorStatus = true;
 					if (hasBeenMarkedOkToSyncAndNotSyncedYet(orig.getId())) {
-						XnatImagesessiondata cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata)remoteSubject,orig);
+						XnatImagesessiondata cleaned_assessor = null;
+						try {
+						cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata)remoteSubject,orig);
 						cleaned_assessor.setProject(remoteSubject.getProject());
-						boolean stored = storeXar((XnatImagesessiondata) orig,remoteSubject.getProject(), (XnatSubjectdata)remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
-						if (!stored)
-							throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
+						}catch(Exception e) {
+							cleaned_assessor = null;
+							throw e;
+						}
+						if (cleaned_assessor != null) {
+							boolean stored = storeXar((XnatImagesessiondata) orig,remoteSubject.getProject(), (XnatSubjectdata)remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
+							if (!stored)
+								throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
+						}
 					}else { //Needs OKToSync which has not been marked yet. So Skip
 						 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
 						 expSyncItem.setXsiType(orig.getXSIType());
@@ -403,11 +411,19 @@ public class RemoteSubject {
 					}
 				}else { //Does not need an OK to Sync - so Push it. 
 					boolean updateOkToSyncAssessorStatus = false; //No SyncAssessor exists in this case
-					XnatImagesessiondata cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata)remoteSubject,orig);
-					cleaned_assessor.setProject(remoteSubject.getProject());
-					boolean stored = storeXar((XnatImagesessiondata) orig,remoteSubject.getProject(), (XnatSubjectdata)remoteSubject, cleaned_assessor,updateOkToSyncAssessorStatus);
-					if (!stored)
-						throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
+					XnatImagesessiondata cleaned_assessor = null;
+					try {
+						cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata)remoteSubject,orig);
+						cleaned_assessor.setProject(remoteSubject.getProject());
+					}catch(Exception e) {
+						cleaned_assessor = null;
+						throw e;
+					}
+					if (cleaned_assessor != null) {
+						boolean stored = storeXar((XnatImagesessiondata) orig,remoteSubject.getProject(), (XnatSubjectdata)remoteSubject, cleaned_assessor,updateOkToSyncAssessorStatus);
+						if (!stored)
+							throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
+					}
 				}
 			}
 		} else { //Its a Subject Assessor

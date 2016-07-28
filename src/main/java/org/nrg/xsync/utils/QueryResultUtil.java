@@ -157,7 +157,7 @@ public class QueryResultUtil {
 	}
 	
 	public String getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync() {
-		String query = "select e.id,e.label,xdme.element_name,e.project,em.status,em.last_modified, xsi.sync_end_time,em.insert_date from xnat_experimentdata e ";
+		String query = "select e.id,e.label,xdme.element_name,e.project,em.status,em.last_modified, xsi.sync_end_time,em.insert_date, xok.sync_status from xnat_experimentdata e ";
 		query += " right join xsync_xsyncassessordata xok ON xok.synced_experiment_id =e.id ";  
 		query += " left join xnat_experimentdata_meta_data em ON e.experimentdata_info = em.meta_data_id ";
 		query += " left join xdat_meta_element xdme ON e.extension = xdme.xdat_meta_element_id ";
@@ -165,7 +165,7 @@ public class QueryResultUtil {
 		query += " left join xnat_subjectassessordata sa ON sa.id=e.id "; 
 		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";  
-		query += " where sa.subject_id=:" +  this.SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME + " and xok.sync_status is  NULL and xok.oktosync=1 "  + " and e.id in (:"+EXPERIMENT_IDS+") ";
+		query += " where sa.subject_id=:" +  this.SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME + "  and xok.oktosync=1 "  + " and e.id in (:"+EXPERIMENT_IDS+") ";
 		return query;
 	}
 	

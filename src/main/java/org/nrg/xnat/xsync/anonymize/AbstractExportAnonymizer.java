@@ -14,11 +14,15 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
+import org.nrg.config.services.ConfigService;
 import org.nrg.dcm.Anonymize;
 import org.nrg.dcm.DicomUtils;
 import org.nrg.dcm.edit.AttributeException;
 import org.nrg.dcm.edit.ScriptEvaluationException;
 import org.nrg.xnat.xsync.anonymize.AbstractExportAnonymizer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 
 public abstract class AbstractExportAnonymizer implements Callable<java.lang.Void> {
 	public static Logger logger = Logger.getLogger(AbstractExportAnonymizer.class);
@@ -116,4 +120,7 @@ public abstract class AbstractExportAnonymizer implements Callable<java.lang.Voi
 		}
 		return null;
 	}
+
+	
+
 }

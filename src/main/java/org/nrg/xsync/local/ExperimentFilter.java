@@ -44,6 +44,7 @@ import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionAdvancedO
 import org.nrg.xsync.configuration.json.SyncConfigurationResource;
 import org.nrg.xsync.configuration.json.SyncConfigurationSessionAssessor;
 import org.nrg.xsync.manager.SynchronizationManager;
+import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,18 +80,33 @@ public class ExperimentFilter {
 		int total_experiments = existingExperiments.size();
 		_log.debug("Existing experiments " + total_experiments);
 		int i = 0;
-		boolean checkExistenceOfOkToSync = false;
+		List<String> experimentIds = new ArrayList<String>();
+
 		while(total_experiments > 0) {
 			XnatSubjectassessordataI subjectAssessor = existingExperiments.get(i);
-			if (projectSyncConfiguration.isSubjectAssessorToBeSynced(subjectAssessor.getXSIType()) || projectSyncConfiguration.isImagingSessionToBeSynced(subjectAssessor.getXSIType())) {
-				   experimentsConfiguredToBeSynced.add(subjectAssessor);	
+			if (subjectAssessor.getXSIType().startsWith("xsync:")) {
+				subject.removeExperiments_experiment(i);
+				existingExperiments = subject.getExperiments_experiment();
+				total_experiments = subject.getExperiments_experiment().size();
+				continue;
 			}
-			if (!checkExistenceOfOkToSync) { //Once true is enough
-				if (projectSyncConfiguration.subjectAssessorNeedsOkToSync(subjectAssessor.getXSIType()) || projectSyncConfiguration.imagingSessionNeedsOkToSync(subjectAssessor.getXSIType())) {
-					checkExistenceOfOkToSync = true;
+			if (subjectAssessor instanceof XnatImagesessiondata) {
+				if (projectSyncConfiguration.isImagingSessionToBeSynced(subjectAssessor.getXSIType())) {
+					//Does it need an OK before its synced?
+					if (projectSyncConfiguration.imagingSessionNeedsOkToSync(subjectAssessor.getXSIType()) ) {
+							   experimentIds.add(subjectAssessor.getId());
+					}else 
+					   experimentsConfiguredToBeSynced.add(subjectAssessor);	
+				}
+			}else {
+				if (projectSyncConfiguration.isSubjectAssessorToBeSynced(subjectAssessor.getXSIType())) {
+					//Does it need an OK before its synced?
+					if (projectSyncConfiguration.subjectAssessorNeedsOkToSync(subjectAssessor.getXSIType()) ) {
+						   experimentIds.add(subjectAssessor.getId());
+					}else 
+							experimentsConfiguredToBeSynced.add(subjectAssessor);	
 				}
 			}
-
 			subject.removeExperiments_experiment(i);
 			existingExperiments = subject.getExperiments_experiment();
 			total_experiments = subject.getExperiments_experiment().size();
@@ -110,6 +126,27 @@ public class ExperimentFilter {
 		QueryResultUtil queryUtil = new QueryResultUtil();
 		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
 				new JdbcTemplate(XDAT.getDataSource()));
+		// Subject has no experiments which are configured to be synced. Have any been deleted?
+		String query = queryUtil.getQueryForFetchingSubjectExperimentsDeletedSinceLastSync();
+		//Columns
+		// id,label,element_name,project,status,last_modified, sync_start_time 		
+		_log.debug("Query is " + query);
+		List<Map<String,Object>> experiments = jdbcTemplate.queryForList(query, parameters);
+		
+		if (experiments != null && experiments.size()>0) {
+			for (Map<String,Object> row:experiments) {
+				if (projectSyncConfiguration.isSubjectAssessorToBeSynced((String)row.get("element_name")) || projectSyncConfiguration.isImagingSessionToBeSynced((String)row.get("element_name"))) {
+					if (row.get("status").equals("deleted")) {
+						_log.debug("Experiment Deleted: " + (String)row.get("id"));
+						experimentsDeleted.add(createNew((String)row.get("id"),(String)row.get("label"),subject,(String)row.get("element_name")));
+					}
+				}
+			}
+		}else {
+			_log.debug("No experiment has been deleted for subject");
+		}
+		
+
 		if (experimentsConfiguredToBeSynced.size() > 0) {
 			if (experimentDetails.size()>0) {
 				for (Map<String,Object> row:experimentDetails) {
@@ -131,53 +168,48 @@ public class ExperimentFilter {
 					}
 				}
 			}
-			if (checkExistenceOfOkToSync) {
-				List<String> experimentIds = new ArrayList<String>();
-				for (XnatExperimentdataI experiment:experimentsConfiguredToBeSynced) {
-					if (!hasAlreadyBeenSelected(experimentsModified,experiment) && !hasAlreadyBeenSelected(experimentsAdded,experiment)) {
-						experimentIds.add(experiment.getId());
-					}
-				}
-				if (experimentIds.size() > 0) { 
-					parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, experimentIds);
-					//Look for experiments which may have been marked ok to sync
-					 String query = queryUtil.getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync();
-						//Columns
-						// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
-					//_log.debug("Query is " + query);
-					 List<Map<String,Object>> experiments = jdbcTemplate.queryForList(query, parameters);
-					if (experiments != null && experiments.size()>0) {
-						for (Map<String,Object> row:experiments) {
-							if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
-								_log.debug("Experiment Marked OK to Sync: " + (String)row.get("id"));
-								experimentsMarkedOkToSync.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
+		}
+		if (experimentIds.size() > 0) {
+				parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, experimentIds);
+				//Look for experiments which may have been marked ok to sync
+				//If the sync_only_new flag is set, if the experiment was synced once
+				//it will be skipped.
+				 query = queryUtil.getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync();
+				 boolean syncOnlyNew = projectSyncConfiguration.isSetToSyncNewOnly();
+				 if (syncOnlyNew) {
+					//Never synced before
+					 query += " and xok.sync_status is  NULL "; 
+				 }
+					//Columns
+					// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
+				 experiments = jdbcTemplate.queryForList(query, parameters);
+				if (experiments != null && experiments.size()>0) {
+					for (Map<String,Object> row:experiments) {
+						if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
+							_log.debug("Experiment Marked OK to Sync: " + (String)row.get("id"));
+							XnatExperimentdataI exp = getExperiment((String)row.get("id"));
+							boolean hasBeenSynced = ((String)row.get("xok.sync_status"))==null?true:false;
+							if (hasBeenSynced) {
+								//Was this session modified? Is syncOnlyNew set?
+								if (!syncOnlyNew) {
+									//Were these sessions modified?
+									Map<String,Object> expTimeLineDetails = getExperimentTimeLineDetails((XnatExperimentdata)exp,syncEndDate);
+									Date experimentModifiedDate = (Date)row.get("last_modified");
+									int dateComparison = experimentModifiedDate.compareTo(syncEndDate);
+									if (dateComparison >= 0) { //Modified at endTime or After endTime
+										_log.debug("Experiment Modified: " + (String)row.get("id"));
+										experimentsModified.add(exp);
+									}
+								}//Dont do anything otherwise (session was synced
+							}else {
+								//Has not yet been synced
+								experimentsMarkedOkToSync.add(exp);
 							}
 						}
-					}else 
-					 _log.debug("None of the configured experiments have changed for subject " + subject.getId());
-				}
-			}
-		}
-		// Subject has no experiments which are configured to be synced. Have any been deleted?
-		String query = queryUtil.getQueryForFetchingSubjectExperimentsDeletedSinceLastSync();
-		//Columns
-		// id,label,element_name,project,status,last_modified, sync_start_time 		
-		_log.debug("Query is " + query);
-		List<Map<String,Object>> experiments = jdbcTemplate.queryForList(query, parameters);
-		
-		if (experiments != null && experiments.size()>0) {
-			for (Map<String,Object> row:experiments) {
-				if (projectSyncConfiguration.isSubjectAssessorToBeSynced((String)row.get("element_name")) || projectSyncConfiguration.isImagingSessionToBeSynced((String)row.get("element_name"))) {
-					if (row.get("status").equals("deleted")) {
-						_log.debug("Experiment Deleted: " + (String)row.get("id"));
-						experimentsDeleted.add(createNew((String)row.get("id"),(String)row.get("label"),subject,(String)row.get("element_name")));
 					}
-				}
-			}
-		}else {
-			_log.debug("Nothing has changed for subject");
+				}else 
+				 _log.debug("None of the configured experiments have changed for subject " + subject.getId());
 		}
-		
 		
 		Map<String,List<XnatExperimentdataI>> filteredResults = new HashMap<String,List<XnatExperimentdataI>>();
 		filteredResults.put(QueryResultUtil.ACTIVE_STATUS, experimentsModified);
@@ -187,18 +219,7 @@ public class ExperimentFilter {
 		return filteredResults;
 	}
 	
-	private boolean hasAlreadyBeenSelected(List<XnatExperimentdataI> experiments, XnatExperimentdataI exp) {
-		boolean hasAlreadyBeenSelected = false;
-		if (experiments != null && experiments.size() > 0) {
-			for (XnatExperimentdataI e:experiments) {
-				if (e.getId().equals(exp.getId())) {
-					hasAlreadyBeenSelected = true;
-					break;
-				}
-			}
-		}
-		return hasAlreadyBeenSelected;
-	}
+	
 	
 	private XnatExperimentdataI getExperiment(String id, List<XnatExperimentdataI> experiments) {
 		XnatExperimentdataI exp = null;
@@ -210,7 +231,13 @@ public class ExperimentFilter {
 		}
 		return exp;
 	}
-	
+
+	private XnatExperimentdataI getExperiment(String id) {
+		XnatExperimentdataI exp = null;
+		exp = XnatExperimentdata.getXnatExperimentdatasById(id, _user, false);
+		return exp;
+	}
+
 	private Map<String,Object> getExperimentTimeLineDetails(XnatExperimentdata exp, Object sync_end_time) throws Exception {
 		// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
 		Map<String,Object> info = new HashMap<String, Object>();
@@ -496,7 +523,7 @@ public class ExperimentFilter {
 	}
 	
 	
-	private void anonymize(XnatImagesessiondata exp, String destProject) {
+	private void anonymize(XnatImagesessiondata exp, String destProject) throws Exception {
 		if (exp.getScans_scan() != null && exp.getScans_scan().size() > 0) {
 			try {
 				File sessionDir = exp.getSessionDir();
@@ -508,6 +535,7 @@ public class ExperimentFilter {
 				}
 			}catch(Exception e) {
 				_log.error(e.getMessage());
+				throw e;
 			}
 		}
 	}
