@@ -188,17 +188,19 @@ public class ExperimentFilter {
 						if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
 							_log.debug("Experiment Marked OK to Sync: " + (String)row.get("id"));
 							XnatExperimentdataI exp = getExperiment((String)row.get("id"));
-							boolean hasBeenSynced = ((String)row.get("xok.sync_status"))==null?true:false;
+							boolean hasBeenSynced = ((String)row.get("sync_status"))==null?false:true;
 							if (hasBeenSynced) {
 								//Was this session modified? Is syncOnlyNew set?
 								if (!syncOnlyNew) {
 									//Were these sessions modified?
 									Map<String,Object> expTimeLineDetails = getExperimentTimeLineDetails((XnatExperimentdata)exp,syncEndDate);
-									Date experimentModifiedDate = (Date)row.get("last_modified");
-									int dateComparison = experimentModifiedDate.compareTo(syncEndDate);
-									if (dateComparison >= 0) { //Modified at endTime or After endTime
-										_log.debug("Experiment Modified: " + (String)row.get("id"));
-										experimentsModified.add(exp);
+									Date experimentModifiedDate = (Date)expTimeLineDetails.get("last_modified");
+									if (experimentModifiedDate != null) {
+										int dateComparison = experimentModifiedDate.compareTo(syncEndDate);
+										if (dateComparison >= 0) { //Modified at endTime or After endTime
+											_log.debug("Experiment Modified: " + (String)row.get("id"));
+											experimentsModified.add(exp);
+										}
 									}
 								}//Dont do anything otherwise (session was synced
 							}else {
