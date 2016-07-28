@@ -65,7 +65,6 @@ public class XsyncSetupController extends AbstractXapiRestController {
 			ObjectMapper objectMapper = new ObjectMapper();
 			final JsonNode synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
 	        projectId = synchronizationJson.get(XsyncUtils.PROJECT_ELEMENT_JSON_NAME).asText();
-	    	
 	        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
             if (project == null) {
                 //this.getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to identify project");
@@ -73,65 +72,16 @@ public class XsyncSetupController extends AbstractXapiRestController {
             }else {
             	projectId = project.getId();
             }
+            //TODO validate the JSON
             XsyncUtils xsyncUtils = new XsyncUtils(user);
             xsyncUtils.loadConfigurationToDB(synchronizationJson);
 //            save_resource(project,jsonbody);
 			saveConfig(project, jsonbody);
-        	return new ResponseEntity<>(projectId + " Xsync Setup complete", (existing == null) ? HttpStatus.CREATED : HttpStatus.OK);
+        	return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
 
 		}catch (Exception  exception) {
         	return new ResponseEntity<>(projectId + " Xsync Setup failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
-	}
-
-	private void saveConfig(XnatProjectdata project, String xsyncConfigJson) throws Exception {
-//		Configuration config = _configService.getConfig("xsync", project.getId());
-		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "json", xsyncConfigJson, Scope.Project, projectId);
-	}
-
-	private synchronized void refreshCatalog(UserI user) throws Exception{
-		String resource = "/archive/projects/"+projectId+"/resources/"+XsyncFileUtils.SYNCHRONIZATION_LABEL;
-
-		URIManager.DataURIA uri=UriParserUtils.parseURI(resource);
-
-		ArchiveItemURI resourceURI = (ArchiveItemURI) uri;
-        EventDetails details = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE, "Catalog(s) Refreshed" , "", "");
-
-		ResourceUtils.refreshResourceCatalog(resourceURI, user, details, true, true, false, true);
-
-	}
-	
-	@RequestMapping(path="/projects/{projectId}/presyncanonymization", method = RequestMethod.PUT)
-    @ApiOperation(value = "Adds Pre-Sync project specific DICOM Anonyzation",  response = String.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
-	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId,@RequestBody String anonymizationScript) {
-		UserI user = getSessionUser();
-        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
-        this.projectId = project.getId();
-		String dest_path = FileUtils.AppendRootPath(project.getRootArchivePath(),
-				"resources/");
-		
-		List<XnatAbstractresourceI> resources = project.getResources_resource();
-		XnatAbstractresourceI synchronizationResource = null;
-		for (XnatAbstractresourceI res: resources) {
-			if (res.getLabel().equalsIgnoreCase(XsyncFileUtils.SYNCHRONIZATION_LABEL)) {
-				//Existing file possibly, update it
-				synchronizationResource = res;
-				break;
-			}
-		}
-		if (synchronizationResource==null) {
-        	return new ResponseEntity<>(projectId + " Xsync has not been configured. Please configure XSync before uploading anonymization script ", HttpStatus.INTERNAL_SERVER_ERROR );
-		}
-		String jsonPath = dest_path + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "DICOM_anon.das";
-		try {
-			Files.write( Paths.get(jsonPath), anonymizationScript.getBytes());
-			refreshCatalog(user);
-		}catch(Exception e) {
-        	return new ResponseEntity<>(projectId + " Pre-Sync DICOM Anonymization script could not be saved. ", HttpStatus.INTERNAL_SERVER_ERROR );
-		}
-    	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved", (existing == null) ? HttpStatus.CREATED : HttpStatus.OK);
-		
 	}
 
 	@RequestMapping(path="/projects/{projectId}", method = RequestMethod.GET)
@@ -142,7 +92,43 @@ public class XsyncSetupController extends AbstractXapiRestController {
 		return new ResponseEntity<>(config, HttpStatus.OK);
 	}
 
-	private XsyncXsyncprojectdata existing            = null;
+	
+	private void saveConfig(XnatProjectdata project, String xsyncConfigJson) throws Exception {
+//		Configuration config = _configService.getConfig("xsync", project.getId());
+		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "json", xsyncConfigJson, Scope.Project, projectId);
+	}
+
+	private void saveDicomAnonymizationToConfig(XnatProjectdata project, String anonymizationScript) throws Exception {
+		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "presyncanonymization", anonymizationScript, Scope.Project, project.getId());
+	}
+
+	@RequestMapping(path="/projects/{projectId}/presyncanonymization", method = RequestMethod.PUT)
+    @ApiOperation(value = "Adds Pre-Sync project specific DICOM Anonyzation",  response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
+	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId,@RequestBody String anonymizationScript) {
+		UserI user = getSessionUser();
+		try {
+	        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
+            if (project == null) {
+	        	return new ResponseEntity<>(" Project ID " +  projectId +"  does not exist ",HttpStatus.BAD_REQUEST);
+            }
+	        this.projectId = project.getId();
+			saveDicomAnonymizationToConfig(project,anonymizationScript);
+		}catch(Exception e) {
+        	return new ResponseEntity<>(projectId + " Pre-Sync DICOM Anonymization script could not be saved. ", HttpStatus.INTERNAL_SERVER_ERROR );
+		}
+    	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved",  HttpStatus.OK);
+	}
+
+	@RequestMapping(path="/projects/{projectId}/presyncanonymization", method = RequestMethod.GET)
+    @ApiOperation(value = "GETs Pre-Sync project specific DICOM Anonyzation",  response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization."),  @ApiResponse(code = 500, message = "Unexpected error")})
+	public ResponseEntity<String> getDICOMAnonymization(@PathVariable("projectId") String projectId) {
+		String config = _configService.getConfig("xsync", "presyncanonymization", Scope.Project, projectId).getContents();
+		return new ResponseEntity<>(config, HttpStatus.OK);
+	}
+
+
 	private String                projectId           = null;
 
 	@Inject

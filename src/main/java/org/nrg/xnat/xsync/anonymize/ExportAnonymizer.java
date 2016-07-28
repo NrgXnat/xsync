@@ -5,32 +5,30 @@ package org.nrg.xnat.xsync.anonymize;
  *
  */
 import java.io.File;
-import java.io.FileInputStream;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.nrg.config.exceptions.ConfigServiceException;
+import org.nrg.config.services.ConfigService;
+import org.nrg.framework.constants.Scope;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatImagesessiondataI;
 import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.om.base.BaseXnatProjectdata;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
-import org.nrg.xsync.configuration.ProjectSyncConfiguration;
+import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 public class ExportAnonymizer extends AbstractExportAnonymizer implements Callable<java.lang.Void>{
-	
-	
 	
 	private final static Logger logger = LoggerFactory.getLogger(ExportAnonymizer.class);
 
@@ -143,17 +141,9 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 	String getScript() {
 		try {
 			if(scriptContent.equals("")) {
-				String anonFilePath = ProjectSyncConfiguration.GetAnonymizationFilePath((XnatImagesessiondata)s,FILE_TYPE);
-				File anonFile = new File(anonFilePath);
-				if (anonFile.exists()) {
-					FileInputStream inputStream = new FileInputStream(anonFilePath);
-					try {
-					    String origscriptContent = IOUtils.toString(inputStream);
-						scriptContent= new String( origscriptContent.getBytes("UTF-8"), Charset.forName("UTF-8") );
-					} finally {
-					    inputStream.close();
-					}
-				}
+				final XsyncXnatInfo xnatInfo = XDAT.getContextService().getBean(XsyncXnatInfo.class);
+				String anonymizationFromConfig = xnatInfo.getDicomAnonymization(s.getProject());
+				scriptContent= new String( anonymizationFromConfig.getBytes("UTF-8"), Charset.forName("UTF-8") );
 			}
 		}catch ( Exception e) {
 			logger.error("Failed to retrieve export anonymization script content",e);
@@ -171,4 +161,5 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 		super.call();
 		return null;
 	}
+	
 }

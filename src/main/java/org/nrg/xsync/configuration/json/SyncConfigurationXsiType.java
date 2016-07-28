@@ -49,17 +49,28 @@ public class SyncConfigurationXsiType {
 		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_NONE)) {
 			return false;
 		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_INCLUDE)) {
-			if (types_list.contains(xsiType)) {
+			if (doesTypesListContainXsiType(xsiType)) {
 				isAllowed = true;
 			}
 		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_EXCLUDE)) {
-			if (!types_list.contains(xsiType)) {
+			if (!doesTypesListContainXsiType(xsiType)) {
 				isAllowed = true;
 			}
 		}
 		return isAllowed;
 	}
 
+	
+	private boolean doesTypesListContainXsiType(String xsiType) {
+		boolean contains = false;
+		for (String x:types_list) {
+			if (x.equals(xsiType)) {
+				contains = true;
+				break;
+			}
+		}
+		return contains;
+	}
 	
 	public static SyncConfigurationXsiType GetDefaultSyncConfiguration() {
 		SyncConfigurationXsiType cfg = new SyncConfigurationXsiType();

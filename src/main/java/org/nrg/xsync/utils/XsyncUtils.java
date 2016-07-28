@@ -53,6 +53,7 @@ public class XsyncUtils {
 	public static final String SYNC_TYPE_EXCLUDE = "exclude";
 
 	public static final String PROJECT_ELEMENT_JSON_NAME = "source_project_id"; 
+
 	public static final String REMOTE_HOST_URL = "remote_url";
 
 	

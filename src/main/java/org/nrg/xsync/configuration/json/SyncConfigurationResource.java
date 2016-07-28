@@ -55,15 +55,28 @@ public class SyncConfigurationResource {
 		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_NONE)) {
 			return false;
 		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_INCLUDE)) {
-			if (resource_list.contains(resourceLabel)) {
+			if (doesResourceListContainResourceLabel(resourceLabel)) {
 				isAllowed = true;
 			}
 		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_EXCLUDE)) {
-			if (!resource_list.contains(resourceLabel)) {
+			if (!doesResourceListContainResourceLabel(resourceLabel)) {
 				isAllowed = true;
 			}
 		}
 		return isAllowed;
+	}
+	
+
+
+	private boolean doesResourceListContainResourceLabel(String label) {
+		boolean contains = false;
+		for (String x:resource_list) {
+			if (x.equals(label)) {
+				contains = true;
+				break;
+			}
+		}
+		return contains;
 	}
 	
 }

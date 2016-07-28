@@ -55,14 +55,25 @@ public class SyncConfigurationScanTypes {
 		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_NONE)) {
 			return false;
 		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_INCLUDE)) {
-			if (scan_type_list.contains(scanType)) {
+			if (doesScanTypeListContainScanType(scanType)) {
 				isAllowed = true;
 			}
 		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_EXCLUDE)) {
-			if (!scan_type_list.contains(scanType)) {
+			if (!doesScanTypeListContainScanType(scanType)) {
 				isAllowed = true;
 			}
 		}
 		return isAllowed;
+	}
+	
+	private boolean doesScanTypeListContainScanType(String scanType) {
+		boolean contains = false;
+		for (String x:scan_type_list) {
+			if (x.equals(scanType)) {
+				contains = true;
+				break;
+			}
+		}
+		return contains;
 	}
 }
