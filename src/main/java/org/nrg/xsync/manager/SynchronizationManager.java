@@ -1,13 +1,13 @@
 package org.nrg.xsync.manager;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Map;
 
+import org.nrg.framework.services.SerializerService;
+import org.nrg.mail.services.MailService;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
@@ -19,11 +19,12 @@ import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.nrg.xsync.manifest.SyncManifest;
 import org.nrg.xsync.manifest.SyncedItem;
+import org.nrg.xsync.services.local.SyncManifestService;
+import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.swagger.models.Path;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * @author Mohana Ramaratnam
@@ -37,10 +38,10 @@ public class SynchronizationManager {
 
 	private static Map<String, SyncManifest> syncManifests = new HashMap<String,SyncManifest>();
 	
-	public static void BEGIN_SYNC(String projectId, String remoteProjectId, String host, UserI user) {
+	public static void BEGIN_SYNC(final SyncManifestService syncManifestService, final XsyncXnatInfo xnatInfo, String projectId, String remoteProjectId, String host, UserI user, final MailService mailService) {
 		Date now = new Date();
 		projectSyncStartTime.put(projectId, now);
-		SyncManifest projectSyncManifest = new SyncManifest(projectId,remoteProjectId, host);
+		SyncManifest projectSyncManifest = new SyncManifest(syncManifestService, xnatInfo, mailService, projectId, remoteProjectId, host);
 		projectSyncManifest.setSync_user(user);
 		projectSyncManifest.setSync_start_time(now);
 		syncManifests.put(projectId, projectSyncManifest);
@@ -70,20 +71,20 @@ public class SynchronizationManager {
 	    }		
 	}
 	
-	public static void END_SYNC(String projectId) {
+	public static void END_SYNC(final SerializerService serializer, String projectId, final NamedParameterJdbcTemplate jdbcTemplate) {
 		Date now = new Date();
 //		projectSyncEndTime.put(projectId,now);
 	    SyncManifest manifest = syncManifests.get(projectId);
 	    if (manifest != null) {
 		  manifest.setSync_end_time(now);
-			XsyncUtils xsyncUtils = new XsyncUtils(manifest.getSync_user());
+			XsyncUtils xsyncUtils = new XsyncUtils(serializer, jdbcTemplate, manifest.getSync_user());
 			XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
 			syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
 			if (manifest.wasSyncSuccessfull()) {
-				syncProjectConfiguration.getSyncinfo().setSyncStatus(xsyncUtils.SYNC_STATUS_SYNCED);
+				syncProjectConfiguration.getSyncinfo().setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
 				syncProjectConfiguration.getSyncinfo().setSyncEndTime(now);
 			} else {
-				syncProjectConfiguration.getSyncinfo().setSyncStatus(xsyncUtils.SYNC_STATUS_FAILED);
+				syncProjectConfiguration.getSyncinfo().setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 				// Don't update sync end time for failed syncs.  We want the last successful sync.  Only initialize null dates.
 				if (syncProjectConfiguration.getSyncinfo().getSyncEndTime()==null) {
 					syncProjectConfiguration.getSyncinfo().setSyncEndTime(new Date(0));

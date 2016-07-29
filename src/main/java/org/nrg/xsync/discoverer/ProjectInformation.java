@@ -27,13 +27,18 @@ public class ProjectInformation {
 
 	String _projectId;
 	MapSqlParameterSource parameters;
+	private final NamedParameterJdbcTemplate _jdbcTemplate;
+	private final QueryResultUtil _queryResultUtil;
+
 	public static final String SUBJECT_RESOURCES="subjectresources";
 	public static final String SUBJECT_ASSESSORS="subjectassessors";
 	public static final String IMAGING_SESSION_TYPES="imagingsessiontypes";
 	public static final String IMAGING_ASSESSOR_TYPES="imagingassessortypes";
 	
 	
-	public ProjectInformation(String projectId) {
+	public ProjectInformation(final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, String projectId) {
+		_queryResultUtil = queryResultUtil;
+		_jdbcTemplate = jdbcTemplate;
 		_projectId = projectId;
 		parameters = new MapSqlParameterSource();
 		parameters.addValue(QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME, _projectId);
@@ -78,9 +83,7 @@ public class ProjectInformation {
 		query += " left join xnat_subjectdata_resource sr ON ar.xnat_abstractresource_id=sr.xnat_abstractresource_xnat_abstractresource_id";
 		query += "	left join xnat_subjectdata s ON s.id = sr.xnat_subjectdata_id";
 		query += " where s.project=:"+QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME; 
-		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
-				new JdbcTemplate(XDAT.getDataSource()));
-		uniqueSubjectResourcesAcrossSubjects = jdbcTemplate.queryForList(query, parameters, String.class);
+		uniqueSubjectResourcesAcrossSubjects = _jdbcTemplate.queryForList(query, parameters, String.class);
 		JsonUtils jsonUtils = new JsonUtils();
 		JsonNode obj =  jsonUtils.toJSONFromList(uniqueSubjectResourcesAcrossSubjects);
 		jsonWithTag.put("subjectresources", obj);
@@ -96,9 +99,7 @@ public class ProjectInformation {
 		query +=" LEFT JOIN xnat_subjectassessordata sa ON sa.id=e.id ";
 		query +=" LEFT JOIN xnat_subjectdata s ON s.id=sa.subject_id where e.project=:"+QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME+" and e.id not in (select exp.id from xnat_experimentdata exp, xnat_imagesessiondata i where exp.id=i.id and exp.project=:"+QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME+")";
 		query += " and e.id not in (select exp.id from xnat_experimentdata exp, xnat_imageassessordata ia where exp.id=ia.id and exp.project=:"+QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME+")";
-		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
-				new JdbcTemplate(XDAT.getDataSource()));
-		 List<Map<String,Object>> results = jdbcTemplate.queryForList(query, parameters);
+		 List<Map<String,Object>> results = _jdbcTemplate.queryForList(query, parameters);
 		 JsonUtils jsonUtils = new JsonUtils();
 		 JsonNode obj = jsonUtils.toJSONFromMap(results);
 		 jsonWithTag.put("subjectassessors", obj);
@@ -110,20 +111,15 @@ public class ProjectInformation {
 		 Map<String,JsonNode> jsonWithTag = new HashMap<String, JsonNode>();
 		 JsonUtils jsonUtils = new JsonUtils();
 
-		 QueryResultUtil queryResultUtil = new QueryResultUtil();
 		 List<Map<String,Object>> mergedRows = new ArrayList<Map<String,Object>>();
 
-			NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
-					new JdbcTemplate(XDAT.getDataSource()));
-
-		 
 		 String queryForImagingSessions = " select  distinct  xes.element_name as xsitype, xes.singular as singularName  from xnat_imagesessiondata i ";
 		queryForImagingSessions += " LEFT JOIN xnat_experimentdata e ON e.id=i.id";
 		queryForImagingSessions += " LEFT JOIN xdat_meta_element xme ON e.extension = xme.xdat_meta_element_id"; 
 		queryForImagingSessions += " LEFT JOIN xdat_element_security xes ON xes.element_name=xme.element_name ";
 		queryForImagingSessions += " where e.project=:"+ QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME+ " order by xsitype";
 		
-		 List<Map<String,Object>> imagingsessions = jdbcTemplate.queryForList(queryForImagingSessions, parameters);
+		 List<Map<String,Object>> imagingsessions = _jdbcTemplate.queryForList(queryForImagingSessions, parameters);
 
 		 
 		String queryForScanTypes = " select  distinct scan.type as scantypes, xes.element_name as xsitype, xes.singular as singularName  from xnat_imagesessiondata i ";
@@ -159,10 +155,10 @@ public class ProjectInformation {
 		 	MEGSession;xnat:megSessionData;[MEGTypeScan1]
 		 */
 
-		 List<Map<String,Object>> scan_types_results = jdbcTemplate.queryForList(queryForScanTypes, parameters);
+		 List<Map<String,Object>> scan_types_results = _jdbcTemplate.queryForList(queryForScanTypes, parameters);
 		 jsonUtils.debug("scan_type_results",scan_types_results);
 
-		 List<Map<String,Object>> reOrganizedImageSessionScans = queryResultUtil.reorganizeAsPivotColumnArray(scan_types_results, "xsitype", "scantypes");
+		 List<Map<String,Object>> reOrganizedImageSessionScans = _queryResultUtil.reorganizeAsPivotColumnArray(scan_types_results, "xsitype", "scantypes");
 		 jsonUtils.debug("reOrganizedImageSessionScans",reOrganizedImageSessionScans);
 
 		 String queryForResources = " select  distinct resource.label as resources, xes.element_name as xsitype, xes.singular as singularName  from xnat_imagesessiondata i ";
@@ -174,9 +170,9 @@ public class ProjectInformation {
 		 queryForResources += " LEFT JOIN xnat_subjectassessordata sa ON sa.id=i.id ";
 		 queryForResources += " LEFT JOIN xnat_subjectdata s ON s.id=sa.subject_id ";
 		 queryForResources += " where e.project=:"+QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME + " group by resources,xsitype order by xsitype";
-		 List<Map<String,Object>> resources_results = jdbcTemplate.queryForList(queryForResources, parameters);
+		 List<Map<String,Object>> resources_results = _jdbcTemplate.queryForList(queryForResources, parameters);
 
-		 List<Map<String,Object>> reOrganizedImageSessionResources = queryResultUtil.reorganizeAsPivotColumnArray(resources_results, "xsitype", "resources");
+		 List<Map<String,Object>> reOrganizedImageSessionResources = _queryResultUtil.reorganizeAsPivotColumnArray(resources_results, "xsitype", "resources");
 		 
 		 String queryForScanResources = " select distinct a.label as scanresources,s.type as scantypes, xes.element_name as xsitype,xes.singular as singularName  from xnat_abstractresource a";
 		 queryForScanResources += " LEFT JOIN xnat_imagescandata s ON a.xnat_imagescandata_xnat_imagescandata_id=s.xnat_imagescandata_id";
@@ -190,33 +186,33 @@ public class ProjectInformation {
 		 queryForScanResources += " LEFT JOIN xnat_experimentdata e ON i.id = e.id";
 		 queryForScanResources += "  where e.project=:" + QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME;
 		 queryForScanResources += " ) group by xsitype, scantypes, a.label order by scantypes";
-		 List<Map<String,Object>> scan_resources_results = jdbcTemplate.queryForList(queryForScanResources, parameters);
-		 Map<Object,List<Map<String,Object>>> reOrganizedImageSessionScanResources = queryResultUtil.separateByColumn(scan_resources_results, "xsitype");
+		 List<Map<String,Object>> scan_resources_results = _jdbcTemplate.queryForList(queryForScanResources, parameters);
+		 Map<Object,List<Map<String,Object>>> reOrganizedImageSessionScanResources = _queryResultUtil.separateByColumn(scan_resources_results, "xsitype");
 		 //Merge all the pieces by the column xsitype
 	 
-		 List<Object> distinctColumnValues = queryResultUtil.getValuesInColumn(imagingsessions,"xsitype");
+		 List<Object> distinctColumnValues = _queryResultUtil.getValuesInColumn(imagingsessions,"xsitype");
 		 for (Object dcv : distinctColumnValues) {
 		    //singularname;xsitype;type
 			//MRSession;xnat:mrSessionData;type=[3D FLAIR, 3D T1, 3D T2, BLA, BLA1, Resting StatefMRI]
-			 Map<String,Object> xsitypeInformation = new HashMap<String,Object>();
-			 List<Map<String,Object>> resourceRows = queryResultUtil.getRows(reOrganizedImageSessionResources,"xsitype",dcv,true); 
-			 Object singularname = queryResultUtil.getValueInColumnInRowWithColumnValue(imagingsessions, "singularname","xsitype",dcv);
-			 Map<String,Object> resourceInfo = new HashMap<String,Object>();
+			 Map<String,Object> xsitypeInformation = new HashMap<>();
+			 List<Map<String,Object>> resourceRows = _queryResultUtil.getRows(reOrganizedImageSessionResources,"xsitype",dcv,true);
+			 Object singularname = _queryResultUtil.getValueInColumnInRowWithColumnValue(imagingsessions, "singularname","xsitype",dcv);
+			 Map<String,Object> resourceInfo = new HashMap<>();
 			 if (resourceRows.size() == 1) {
 				 resourceInfo = resourceRows.get(0);
 			 }else {
 				 ArrayList noResources = new ArrayList();
 				 resourceInfo.put("resources", noResources);
 			 }
-			 queryResultUtil.append(resourceInfo, xsitypeInformation);
+			 _queryResultUtil.append(resourceInfo, xsitypeInformation);
 
-			 List<Map<String,Object>> scanRows = queryResultUtil.getRows(reOrganizedImageSessionScans,"xsitype",dcv,true);
+			 List<Map<String,Object>> scanRows = _queryResultUtil.getRows(reOrganizedImageSessionScans,"xsitype",dcv,true);
 			 List<Map<String,Object>> xsiTypeScanTypeResources = reOrganizedImageSessionScanResources.get(dcv);
 			 List<Map<String,Object>> xsiTypeScanTypeResourcesGroupedByScanTypes = null;
 			 if (xsiTypeScanTypeResources != null) {
-				 xsiTypeScanTypeResourcesGroupedByScanTypes  = queryResultUtil.reorganizeAsPivotColumnArray(xsiTypeScanTypeResources, "scantypes", "scanresources");
+				 xsiTypeScanTypeResourcesGroupedByScanTypes  = _queryResultUtil.reorganizeAsPivotColumnArray(xsiTypeScanTypeResources, "scantypes", "scanresources");
 			 }	 
-			 Map<String,Object> scans = new HashMap<String,Object>();
+			 Map<String,Object> scans = new HashMap<>();
 			 if (scanRows != null && scanRows.size() == 1 ) {
 				 Map<String,Object> scanTypeInfo = scanRows.get(0);
 				 List<Map<String,Object>> scanTypeInformation = new ArrayList<Map<String, Object>>();
@@ -226,7 +222,7 @@ public class ProjectInformation {
 				     scanDetails.put("type", scantype);
 				     List<Map<String,Object>> scanResourceRows = null;
 				     if (xsiTypeScanTypeResourcesGroupedByScanTypes != null) {
-					    scanResourceRows = queryResultUtil.getRows(xsiTypeScanTypeResourcesGroupedByScanTypes,"scantypes",scantype,true);
+					    scanResourceRows = _queryResultUtil.getRows(xsiTypeScanTypeResourcesGroupedByScanTypes,"scantypes",scantype,true);
 				     }
 					 if (scanResourceRows != null && scanResourceRows.size()==1) {
 						 Object resourcesOfScan = scanResourceRows.get(0).get("scanresources");
@@ -241,12 +237,12 @@ public class ProjectInformation {
 				 scans.put("scans", scanTypeInformation);
 				 scans.put("xsitype",dcv);
 				 scans.put("singularname", singularname);
-				 queryResultUtil.append(scans, xsitypeInformation);
+				 _queryResultUtil.append(scans, xsitypeInformation);
 			  }else {
 					 ArrayList noScans = new ArrayList();
 					 scans.put("scans", noScans);
 			  }
-			   queryResultUtil.append(scans, xsitypeInformation);
+			   _queryResultUtil.append(scans, xsitypeInformation);
 			   xsitypeInformation.put("xsitype", dcv);
 			   xsitypeInformation.put("singularname", singularname);
 			   mergedRows.add(xsitypeInformation);
@@ -269,12 +265,9 @@ public class ProjectInformation {
 		query += " LEFT JOIN xdat_element_security xes ON xes.element_name=xme.element_name";
 		query += " where e.project=:"+QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME + " ) as mr_types ON mr_types.imagingsession_id=ia.imagesession_id";
 		query += " where e1.project=:"+QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME + " group by imagingsession_xsitype,imagingassessor_xsitype, singularName";
-		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
-				new JdbcTemplate(XDAT.getDataSource()));
-		 List<Map<String,Object>> results = jdbcTemplate.queryForList(query, parameters);
-		 QueryResultUtil queryResultUtil = new QueryResultUtil();
-		 Map<Object,List<Map<String,Object>>> groupedByImageSession = queryResultUtil.separateByColumn(results, "imagingsession_xsitype");
-		 List<Map<String,Object>> reOrganized = new ArrayList<Map<String,Object>>();
+		 List<Map<String,Object>> results = _jdbcTemplate.queryForList(query, parameters);
+		 Map<Object,List<Map<String,Object>>> groupedByImageSession = _queryResultUtil.separateByColumn(results, "imagingsession_xsitype");
+		 List<Map<String,Object>> reOrganized = new ArrayList<>();
 		 for (Object imagingSession : groupedByImageSession.keySet()) {
 			 Map<String,Object> assessorsOfImagingSession = new HashMap<String,Object>();
 			 assessorsOfImagingSession.put("imagingsession_xsitype", imagingSession);

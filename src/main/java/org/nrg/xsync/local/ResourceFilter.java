@@ -31,11 +31,14 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 public class ResourceFilter {
 	private static final Logger _log = LoggerFactory.getLogger(ResourceFilter.class);
 
+	private final UserI _user;
+	private final NamedParameterJdbcTemplate _jdbcTemplate;
+	private final QueryResultUtil _queryResultUtil;
 	
-	UserI _user;
-	
-	public ResourceFilter(UserI user) {
+	public ResourceFilter(final UserI user, final NamedParameterJdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil) {
 		_user = user;
+		_jdbcTemplate = jdbcTemplate;
+		_queryResultUtil = queryResultUtil;
 	}
 
 /*	public Map<String,List<XnatAbstractresourceI>> select(XnatProjectdata project, ProjectSyncConfiguration projectSyncConfiguration) throws Exception {
@@ -50,10 +53,7 @@ public class ResourceFilter {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue(QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME, projectSyncConfiguration.getSynchronizationConfiguration().getSource_project_id());
 		QueryResultUtil queryUtil = new QueryResultUtil();
-		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
-				new JdbcTemplate(XDAT.getDataSource()));
 
-		
 		int total_resources = resources.size();
 		int i = 0;
 		while(total_resources > 0) {
@@ -120,17 +120,12 @@ public class ResourceFilter {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue(QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME, projectSyncConfiguration.getSynchronizationConfiguration().getSource_project_id());
 		parameters.addValue(QueryResultUtil.SUBJECT_QUERY_PARAMETER_NAME, localSubjectId);
-		QueryResultUtil queryUtil = new QueryResultUtil();
-		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
-				new JdbcTemplate(XDAT.getDataSource()));
-
-		List<Map<String,Object>> deletedResources = null;
 		//Look for any of the subject resources which are configured to be synced
 		//Which have been deleted.
-		String query = queryUtil.getParametrizedQueryForFetchingConfiguredSubjectResourcesDeletedSinceLastSync();
+		String query = _queryResultUtil.getParametrizedQueryForFetchingConfiguredSubjectResourcesDeletedSinceLastSync();
 		//Columns
 		//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date
-		deletedResources = jdbcTemplate.queryForList(query, parameters);
+		List<Map<String,Object>> deletedResources = _jdbcTemplate.queryForList(query, parameters);
 		if (deletedResources != null && deletedResources.size() > 0) {
 			for(Map<String,Object> row:deletedResources) {
 				String deletedResourceLabel = (String)row.get("label");
@@ -152,11 +147,11 @@ public class ResourceFilter {
 			resources = subject.getResources_resource();
 			total_resources = subject.getResources_resource().size();
 		}
-		query = queryUtil.getParametrizedQueryForFetchingConfiguredSubjectResourcesChangedSinceLastSync();
+		query = _queryResultUtil.getParametrizedQueryForFetchingConfiguredSubjectResourcesChangedSinceLastSync();
 		List<Map<String,Object>> changedResources = null;
 		if (resourcesToBeSynced.size() > 0) {
 			//Have the existing resources been modified
-			List<String> resourceLabels = new ArrayList<String>();
+			List<String> resourceLabels = new ArrayList<>();
 			for (XnatAbstractresourceI rsc:resourcesToBeSynced) {
 				resourceLabels.add(rsc.getLabel());
 			}
@@ -167,7 +162,7 @@ public class ResourceFilter {
 				query += " where label in (:resources)";
 				//Columns
 				//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date
-				changedResources = jdbcTemplate.queryForList(query, parameters);
+				changedResources = _jdbcTemplate.queryForList(query, parameters);
 			}
 			if (changedResources!=null && changedResources.size() > 0) {
 				Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
@@ -183,7 +178,7 @@ public class ResourceFilter {
 	}
 	
 	private Hashtable<String,String> toHash(List<XnatAbstractresourceI> rscs) {
-		Hashtable<String,String> labelHash = new Hashtable<String,String>();
+		Hashtable<String,String> labelHash = new Hashtable<>();
 		if (rscs != null && rscs.size() > 0) {
 			for (XnatAbstractresourceI rsc: rscs) {
 				labelHash.put(rsc.getLabel(),rsc.getLabel());

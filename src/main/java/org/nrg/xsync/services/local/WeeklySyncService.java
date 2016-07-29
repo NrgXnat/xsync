@@ -5,5 +5,5 @@ package org.nrg.xsync.services.local;
  *
  */
 public interface WeeklySyncService {
-	public void syncWeekly();
+	void syncWeekly();
 }

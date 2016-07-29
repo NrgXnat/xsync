@@ -37,15 +37,7 @@ import org.springframework.context.annotation.ComponentScan;
 	"org.nrg.xsync.tools",
 	"org.nrg.xsync.remote",
 	"org.nrg.xsync.xapi",
-	"org.nrg.xsync.manifest"
-	/*
-	"org.nrg.xsync.services.remote",
-	"org.nrg.xsync.services.local.impl",
-	"org.nrg.xsync.remote.alias",
-	"org.nrg.xsync.remote.alias.services",
-	"org.nrg.xsync.remote.alias.services.impl",
-	*/
-	})
+	"org.nrg.xsync.manifest"})
 public class XsyncPlugin {
 	
 	public static Logger logger = Logger.getLogger(XsyncPlugin.class);
@@ -53,5 +45,4 @@ public class XsyncPlugin {
 	public XsyncPlugin() {
 		logger.info("Configuring XSync plugin");
 	}
-
 }
