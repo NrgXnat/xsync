@@ -17,9 +17,9 @@ XSYNC.reporting.showHistoryTable = function() {
 		dataType: 'json'
 	});
 
-	getSyncHistory.done(function(data) {
-		var allHistory = [];
+	var allHistory = [];
 
+	getSyncHistory.done(function(data) {
 		for(var i = 0; i < data.length; i++) {
 			var date = new Date(data[i].startDate);
 			var historyUri = serverRoot + '/xapi/xsync/history/'+data[i].id;
@@ -37,9 +37,11 @@ XSYNC.reporting.showHistoryTable = function() {
 		xsyncHistory.rows(allHistory);
 	});
 
-	var xsyncConfigDiv = $("#xsync-config-div");
-	xsyncConfigDiv.append("<h4>Sync History</h4>");
-	xsyncConfigDiv.append(xsyncHistory.table);
+	if (allHistory.length > 0) {
+		var xsyncConfigDiv = $("#xsync-config-div");
+		xsyncConfigDiv.append("<h4>Sync History</h4>");
+		xsyncConfigDiv.append(xsyncHistory.table);
+	}
 };
 
 XSYNC.reporting.showHistoryDetailsModal = function(uri) {

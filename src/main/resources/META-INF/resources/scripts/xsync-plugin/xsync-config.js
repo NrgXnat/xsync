@@ -145,7 +145,8 @@ XSYNC.credentialsconfig.beginConfig = function() {
 		'<input type="button" id="xsync-begin-credentials" value="Enter or Update Remote Site Credentials">'
 	);
 	$("#xsync-begin-credentials").click(function() {
-		XSYNC.credentialsconfig.enterCredentials();
+		// XSYNC.credentialsconfig.enterCredentials();
+		XSYNC.xsyncconfig.editConfig();
 	});
 }
 
@@ -279,15 +280,10 @@ XSYNC.xsyncconfig.checkCredentials = function() {
  */
 
 XSYNC.xsyncconfig.editConfig = function() {
-	if (!XSYNC.xsyncconfig.checkCredentials()) {
-		XSYNC.credentialsconfig.enterCredentials();
-		return;
-	}
-
 	XSYNC.xsyncconfig.modal = xmodal.open({
 		title: "Project Sync Settings for " + XNAT.data.context.project,
 		content: '<div id="xsync-config-dialog"></div>',
-		height: 400,
+		height: '75%',
 		buttons: {
 			submit: {
 				label: "Submit",
@@ -415,8 +411,8 @@ function spawnConfig() {
 
 XSYNC.xsyncconfig.submitConfig = function() {
 
-	XSYNC.xsyncconfig.saveConfig();
-	return;
+	// XSYNC.xsyncconfig.saveConfig();
+	// return;
 
 	////////////////////////////////////////////
 	// TODO
@@ -430,7 +426,7 @@ XSYNC.xsyncconfig.submitConfig = function() {
 	var modalContent =
 		"<div>" +
 			'<div class = "credentials-header-div credentials-div">' +
-				'<h3 style="text-align:center">Enter credentials for ' +  XSYNC.xsyncconfig.configuration.remote_url + '</h3>' +
+				'<h3 style="text-align:center">Enter credentials for ' +  $('#xsync-config-remote-url').val() + '</h3>' +
 			'</div>' +
 			'<div class = "credentials-div">' +
 				'<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
@@ -440,7 +436,7 @@ XSYNC.xsyncconfig.submitConfig = function() {
 			'</div>' +
 		"</div>";
 	var pModalOpts = {
-		width: 740,
+		width: 600,
 		height: 380,
 		id: 'xmodal-enter-credentials',
 		title: "Credentials required for remote server",
