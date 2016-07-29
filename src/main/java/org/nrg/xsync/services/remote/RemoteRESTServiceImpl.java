@@ -34,11 +34,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	/** The logger. */
 	public static Logger logger = Logger.getLogger(RemoteRESTServiceImpl.class);
 
+	// TODO Should these be part of xsync site config?
 	/** The max tries. */
-	static int maxTries = 3;
+	static int maxTries = 2;
 	
 	/** The sleep. */
-	static long sleep=1000000;
+	static long sleep=10000;
 	
 	/**
 	 * Instantiates a new remote rest service impl.

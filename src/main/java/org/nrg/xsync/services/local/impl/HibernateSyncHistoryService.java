@@ -162,6 +162,9 @@ public class HibernateSyncHistoryService
             resourceHistory.setLocalLabel(res.getLocalLabel());
             resourceHistory.setFileCount(res.getFileCount());
             resourceHistory.setFileSize((Long) res.getFileSize());
+
+            resourceHistory.setCreated(new Date());
+            resourceHistory.setTimestamp(new Date());
             histories.add(resourceHistory);
         }
         syncHistory.setResourceHistories(histories);

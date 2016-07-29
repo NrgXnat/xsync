@@ -98,7 +98,7 @@ XSYNC.xsyncconfig.useDefaultConfig = function() {
 	XSYNC.xsyncconfig.configuration = {};
 	XSYNC.xsyncconfig.configuration.source_project_id = XNAT.data.context.project;
 	XSYNC.xsyncconfig.configuration.sync_frequency = 'weekly';
-	XSYNC.xsyncconfig.configuration.sync_new_only = 'true';
+	XSYNC.xsyncconfig.configuration.sync_new_only = true;
 	XSYNC.xsyncconfig.configuration.identifiers = 'use_local';
 	XSYNC.xsyncconfig.configuration.remote_url = 'http://';
 	XSYNC.xsyncconfig.configuration.remote_project_id = '';
@@ -322,7 +322,7 @@ function spawnConfig() {
 			kind: 'panel.input.checkbox',
 			name: 'enabled-switch',
 			label: 'Enabled',
-			checked: true,
+			checked: XSYNC.xsyncconfig.configuration.enabled,
 			value: 'true',
 			text: {
 				on: "enabled",
@@ -336,7 +336,7 @@ function spawnConfig() {
 			kind: 'panel.input.checkbox',
 			name: 'new-only-switch',
 			label: 'New Data Only',
-			checked: true
+			checked: XSYNC.xsyncconfig.configuration.sync_new_only
 		}
 	}
 	function remoteUrl() {
@@ -538,9 +538,9 @@ XSYNC.xsyncconfig.updateCredentialsAndSaveConfig = function() {
 
 XSYNC.xsyncconfig.constructNewJson = function() {
 	var newJson = {};
-	newJson.enabled = true;
+	newJson.enabled = $("#xsync-config-enabled").val();
 	newJson.sync_frequency = $("#xsync-config-frequency").val();
-	newJson.sync_new_only = true;
+	newJson.sync_new_only =  $("#xsync-config-newonly").val();
 	newJson.source_project_id = XNAT.data.context.project;
 	newJson.remote_project_id = $("#xsync-config-remote-project").val();
 	newJson.remote_url = $("#xsync-config-remote-url").val();
