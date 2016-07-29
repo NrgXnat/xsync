@@ -1,11 +1,5 @@
 package org.nrg.xsync.connection;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
-import org.nrg.xdat.XDAT;
 import org.nrg.xsync.exception.XsyncRemoteConnectionException;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.utils.QueryResultUtil;
@@ -13,22 +7,34 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
 /**
  * @author Mohana Ramaratnam
  *
  */
 public class RemoteConnectionHandler {
+	public RemoteConnectionHandler(final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil) {
+		this(new NamedParameterJdbcTemplate(jdbcTemplate), queryResultUtil);
+	}
+
+	public RemoteConnectionHandler(final NamedParameterJdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil) {
+		_jdbcTemplate = jdbcTemplate;
+		_queryResultUtil = queryResultUtil;
+	}
 
 	private List<RemoteAliasEntity> rowsToObject(List<Map<String,Object>> rows) {
-		List<RemoteAliasEntity> rowsAsList = new ArrayList<RemoteAliasEntity>();
+		List<RemoteAliasEntity> rowsAsList = new ArrayList<>();
 		for (Map<String,Object> row:rows) {
-			RemoteAliasEntity remoteAliasEntity = new RemoteAliasEntity();
 			String local_project = (String)row.get("local_project");
 			String remote_host = (String)row.get("remote_host");
 			String remote_alias_token = (String) row.get("remote_alias_token");
 			String remote_alias_password = (String) row.get("remote_alias_password");
 			Date acquiredTime = (Date) row.get("acquired_time");
-			remoteAliasEntity = new RemoteAliasEntity();
+			RemoteAliasEntity remoteAliasEntity = new RemoteAliasEntity();
 			remoteAliasEntity.setAcquiredTime(acquiredTime);
 			remoteAliasEntity.setRemote_alias_password(remote_alias_password);
 			remoteAliasEntity.setRemote_alias_token(remote_alias_token);
@@ -40,22 +46,15 @@ public class RemoteConnectionHandler {
 	}
 	
 	private RemoteAliasEntity getRemoteAliasEntity(String localProjectId, String remoteHost) throws XsyncRemoteConnectionException {
-		RemoteAliasEntity remoteAliasEntity = null;
-		QueryResultUtil queryUtil = new QueryResultUtil();
-		String query = queryUtil.getRemoteConnectionQuery();
+		String query = _queryResultUtil.getRemoteConnectionQuery();
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("LOCAL_PROJECT", localProjectId);
 		parameters.addValue("REMOTE_HOST", remoteHost);
-		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
-				new JdbcTemplate(XDAT.getDataSource()));
-		List<Map<String,Object>> results = jdbcTemplate.queryForList(query, parameters);
+		List<Map<String,Object>> results = _jdbcTemplate.queryForList(query, parameters);
 		if (results == null || results.size() < 1) {
 			throw new XsyncRemoteConnectionException("Unable to find remote connection information");
-		}else {
-			List<RemoteAliasEntity> remoteAliasEntities = rowsToObject(results);
-			remoteAliasEntity = remoteAliasEntities.get(0);
 		}
-		return remoteAliasEntity;
+		return rowsToObject(results).get(0);
 	}
 	
 	private RemoteConnection getRemoteConnectionObject(String localProjectId, String remoteHost) throws XsyncRemoteConnectionException {
@@ -97,4 +96,6 @@ public class RemoteConnectionHandler {
 		return conn;
 	}
 
+	private final NamedParameterJdbcTemplate _jdbcTemplate;
+	private final QueryResultUtil            _queryResultUtil;
 }

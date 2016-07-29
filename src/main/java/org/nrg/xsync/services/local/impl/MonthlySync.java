@@ -20,5 +20,4 @@ public class MonthlySync implements Runnable {
     }
 
     private final MonthlySyncService _service;
-
 }

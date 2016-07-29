@@ -1,23 +1,13 @@
 package org.nrg.xsync.configuration;
 
-import java.io.File;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-
-import org.codehaus.jackson.map.DeserializerFactory;
-import org.nrg.config.entities.Configuration;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
-import org.nrg.xdat.XDAT;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.model.XnatImagesessiondataI;
 import org.nrg.xdat.model.XnatSubjectassessordataI;
-import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
-import org.nrg.xdat.security.XDATUser;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
@@ -25,269 +15,218 @@ import org.nrg.xsync.configuration.json.SyncConfiguration;
 import org.nrg.xsync.configuration.json.SyncConfigurationAdvancedOption;
 import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionAdvancedOption;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
-import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import javax.inject.Inject;
+import java.nio.file.Paths;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 
 /**
  * @author Mohana Ramaratnam
- *
  */
+@SuppressWarnings("unused")
 public class ProjectSyncConfiguration {
-	private static final Logger _log = LoggerFactory.getLogger(ProjectSyncConfiguration.class);
-	private static final int  OLDYEAR = 1970;
-	
-	XnatProjectdata project;
-	SyncConfiguration syncConfiguration = null;
-	XsyncXsyncprojectdata syncProjectConfiguration;
-	UserI _user;
+    public ProjectSyncConfiguration(final ConfigService configService, final SerializerService serializer, final JdbcTemplate jdbcTemplate, final String projectId, final UserI user) throws XsyncNotConfiguredException {
+        _user = user;
+        _project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
+        _configService = configService;
+        _serializer = serializer;
+        _jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+        _syncConfiguration = setSyncConfigurationFromService(projectId);
+        _syncProjectConfiguration = setProjectSyncConfiguration();
+    }
 
-	@Inject
-	private ConfigService _configService;
-	
-	public ProjectSyncConfiguration(String projectId, UserI user) throws XsyncNotConfiguredException{
-		_user = user;
-		project = XnatProjectdata.getProjectByIDorAlias(projectId, (XDATUser)user, false);
-		setSyncConfigurationFromService();
-		setProjectSyncConfiguration();
-	}
+    public XnatProjectdata getProject() {
+        return _project;
+    }
 
-	public XnatProjectdata getProject() {
-		return project;
-	}
-	
-	private void setProjectSyncConfiguration() throws XsyncNotConfiguredException{
-		XsyncUtils xsyncUtils = new XsyncUtils(_user);
-		syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(project.getId());
-		if (syncProjectConfiguration == null) {
-			_log.error("Could not find sync data for project " + project.getId());
-			throw new XsyncNotConfiguredException("Could not find sync data for project " + project.getId());
-		}
-		boolean save = false;
-			//No sync has been done so far. Set a dummy date and then start
-			//If this is the first time that the sync is taking place
-		       try {
-		    	   Date oldDate = getAnOldDate();
-		    	   if (syncProjectConfiguration.getSyncinfo().getSyncStartTime() == null) {
-		    		   syncProjectConfiguration.getSyncinfo().setSyncStartTime(oldDate);
-		    		   save = true;
-		    	   }
-			   		if (syncProjectConfiguration.getSyncinfo().getSyncEndTime() == null) {
-						syncProjectConfiguration.getSyncinfo().setSyncEndTime(oldDate);
-						save = true;
-					}
-		       }catch(ParseException e) {
-					throw new XsyncNotConfiguredException(e.getMessage());
-		       }
-				if (save) {
-						try {
-							//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
-							EventMetaI c = EventUtils.DEFAULT_EVENT(_user,"ADMIN_EVENT occurred");
-							syncProjectConfiguration.save(_user, false, true,c);
-						}catch(Exception e) {
-							_log.debug("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
-							throw new XsyncNotConfiguredException("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
-						}
-				}
-	}
-	
-	private Date getAnOldDate() throws ParseException{
-		//int year = 1970;
-	    int month = 0;
-	    int day = 1;
-	    String date = this.OLDYEAR + "/" + month + "/" + day;
-	    Date oldDate = null;
-	    try {
-	        SimpleDateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
-	        oldDate = formatter.parse(date);
-	        return oldDate;
-	    }catch(ParseException e) {
-	        _log.debug("Could not create an old date " + e.getMessage());
-	        throw e;
-	    }
-	}
+    public XsyncXsyncprojectdata getProjectSyncConfigurationFromDB() {
+        return _syncProjectConfiguration;
+    }
 
-	public XsyncXsyncprojectdata getProjectSyncConfigurationFromDB() {
-		return syncProjectConfiguration ;
-	}
+    public SyncConfiguration getSynchronizationConfiguration() {
+        return _syncConfiguration;
+    }
 
-	private void setSyncConfigurationFromService() throws XsyncNotConfiguredException {
-		String config = XDAT.getConfigService().getConfig("xsync", "json", Scope.Project, project.getId()).getContents();
-//		String config = _configService.getConfig("xsync", "json", Scope.Project, project.getId()).getContents();
+    public boolean isResourceToBeSynced(String resourceLabel) {
+        return _syncConfiguration != null && _syncConfiguration.isProjectResourceAllowedToSync(resourceLabel);
+    }
 
-		if (config != null) {
-			ObjectMapper objectMapper = new ObjectMapper();
-			try {
-				syncConfiguration = objectMapper.readValue(config, SyncConfiguration.class);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else {
-			throw new XsyncNotConfiguredException("Synchronization Configuration does not exist for " + project.getId());
-		}
+    public boolean isSubjectResourceToBeSynced(String resourceLabel) {
+        return _syncConfiguration != null && _syncConfiguration.isSubjectResourceAllowedToSync(resourceLabel);
+    }
 
-	}
+    public boolean isSubjectAssessorToBeSynced(String assessorXsiType) {
+        return _syncConfiguration != null && _syncConfiguration.isSubjectAssessorAllowedToSync(assessorXsiType);
+    }
 
-	public SyncConfiguration getSynchronizationConfiguration() {
-		return syncConfiguration;
-	}
+    public boolean isSubjectAssessorResourceToBeSynced(String assessorXsiType, String resourceLabel) {
+        if (_syncConfiguration.hasSubjectAssessorConfigurationDefinition()) {
+            SyncConfigurationAdvancedOption advOption = _syncConfiguration.getSubjectAssessorAdvancedOptions(assessorXsiType);
+            return advOption.isResourceAllowedToSync(resourceLabel);
+        } else {
+            return true; //Default - when not specified all is pushed
+        }
+    }
 
-//	private String getSynchronizationConfigurationFilePath() {
-//		String filePath = project.getArchiveRootPath() + File.separator + "resources" + File.separator + XsyncFileUtils.SYNCHRONIZATION_LABEL + File.separator + "sync_config.json";
-//		return filePath;
-//	}
+    public boolean subjectAssessorNeedsOkToSync(String assessorXsiType) {
+        if (_syncConfiguration.hasSubjectAssessorConfigurationDefinition()) {
+            SyncConfigurationAdvancedOption advOption = _syncConfiguration.getSubjectAssessorAdvancedOptions(assessorXsiType);
+            return advOption.getNeeds_ok_to_sync();
+        } else {
+            return false;
+        }
+    }
 
-	public static String GetAnonymizationFilePath(String projectArchiveRootPath, String fileType) {
-		String filePath = getAnonymizationFilePath(projectArchiveRootPath,fileType ) ;
-		return filePath;
-	}
+    public boolean imagingSessionNeedsOkToSync(String xsiType) {
+        if (_syncConfiguration.hasImagingSessionConfigurationDefinition()) {
+            SyncConfigurationImagingSessionAdvancedOption advOption = _syncConfiguration.getImagingSessionAdvancedOptions(xsiType);
+            return advOption.getNeeds_ok_to_sync();
+        } else {
+            return false;
+        }
+    }
 
-	public static String GetAnonymizationFilePath(XnatImagesessiondata s, String fileType) throws Exception { 
-		return GetAnonymizationFilePath(s.getArchiveRootPath(),fileType);
-	}
+    public boolean imagingAssessorNeedsOkToSync(String xsiType, String assessorXsiType) {
+        if (_syncConfiguration.hasImagingSessionConfigurationDefinition()) {
+            SyncConfigurationImagingSessionAdvancedOption advOption = _syncConfiguration.getImagingSessionAdvancedOptions(xsiType);
+            try {
+                SyncConfigurationAdvancedOption advSessionAssessorOption = advOption.getSession_assessors().getAdvancedOption(assessorXsiType);
+                return advSessionAssessorOption.getNeeds_ok_to_sync();
+            } catch (NullPointerException npe) {
+                return false; // Not present defaults to ok not required
+            }
+        } else {
+            return false;
+        }
+    }
 
+    public boolean isOnlyASubjectAssessor(XnatSubjectassessordataI experiment) {
+        boolean isOnlyASubjectAssessor = true;
+        if (experiment instanceof XnatImagesessiondataI) {
+            isOnlyASubjectAssessor = false;
+        }
+        return isOnlyASubjectAssessor;
+    }
 
-	
-	private static String getAnonymizationFilePath(String projectArchiveRootPath, String fileType) {
-		String filePath = projectArchiveRootPath + File.separator + "resources" + File.separator + "synchronization" + File.separator + fileType+"_anon.das";
-		return filePath;
-	}
-	
-	public boolean isResourceToBeSynced(String resourceLabel) {
-		if (syncConfiguration == null) 
-			return false;
-		else 
-			return syncConfiguration.isProjectResourceAllowedToSync(resourceLabel);
-	}
+    public boolean isImagingSessionToBeSynced(String imagingSessionXsiType) {
+        return _syncConfiguration != null && _syncConfiguration.isImagingSessionAllowedToSync(imagingSessionXsiType);
+    }
 
-	public boolean isSubjectResourceToBeSynced(String resourceLabel) {
-		if (syncConfiguration == null) 
-			return false;
-		else 
-			return syncConfiguration.isSubjectResourceAllowedToSync(resourceLabel);
-	}
-	
-	public boolean isSubjectAssessorToBeSynced(String assessorXsiType) {
-		if (syncConfiguration == null) 
-			return false;
-		else {
-			return syncConfiguration.isSubjectAssessorAllowedToSync(assessorXsiType);
-		}
-	}
+    public boolean isImagingSessionScanToBeSynced(String imagingSessionXsiType, String imagingScanType) {
+        if (_syncConfiguration == null) {
+            return false;
+        } else {
+            SyncConfigurationImagingSessionAdvancedOption imgSessionAdvOption = _syncConfiguration.getImagingSessionAdvancedOptions(imagingSessionXsiType);
+            return imgSessionAdvOption.isAllowedToSyncScan(imagingScanType);
+        }
 
-	public boolean isSubjectAssessorResourceToBeSynced(String assessorXsiType, String resourceLabel) {
-		if (syncConfiguration.hasSubjectAssessorConfigurationDefinition()) {
-			SyncConfigurationAdvancedOption advOption = syncConfiguration.getSubjectAssessorAdvancedOptions(assessorXsiType);
-			return advOption.isResourceAllowedToSync(resourceLabel);
-		}else {
-			return true; //Default - when not specified all is pushed
-		}
-	}
+    }
 
-	public boolean subjectAssessorNeedsOkToSync(String assessorXsiType) {
-		if (syncConfiguration.hasSubjectAssessorConfigurationDefinition()) {
-			SyncConfigurationAdvancedOption advOption = syncConfiguration.getSubjectAssessorAdvancedOptions(assessorXsiType);
-			return advOption.getNeeds_ok_to_sync();
-		}else 
-			return false;
-	}
+    public boolean isImagingSessionScanResourceToBeSynced(String imagingSessionXsiType, String imagingScanType, String imagingScanResourceName) {
+        if (_syncConfiguration == null) {
+            return false;
+        }
+        SyncConfigurationImagingSessionAdvancedOption imgSessionAdvOption = _syncConfiguration.getImagingSessionAdvancedOptions(imagingSessionXsiType);
+        return imgSessionAdvOption.isAllowedToSyncScan(imagingScanType) && imgSessionAdvOption.isAllowedToSyncScanResource(imagingScanResourceName);
+    }
 
-	public boolean imagingSessionNeedsOkToSync(String xsiType) {
-		if (syncConfiguration.hasImagingSessionConfigurationDefinition()) {
-			SyncConfigurationImagingSessionAdvancedOption advOption = syncConfiguration.getImagingSessionAdvancedOptions(xsiType);
-			return advOption.getNeeds_ok_to_sync();
-		}else 
-			return false;
-	}
+    public boolean isSetToSyncNewOnly() {
+        return getSynchronizationConfiguration().getSync_new_only();
+    }
 
-	public boolean imagingAssessorNeedsOkToSync(String xsiType, String assessorXsiType) {
-		if (syncConfiguration.hasImagingSessionConfigurationDefinition()) {
-			SyncConfigurationImagingSessionAdvancedOption advOption = syncConfiguration.getImagingSessionAdvancedOptions(xsiType);
-			try {
-				SyncConfigurationAdvancedOption advSessionAssessorOption = advOption.getSession_assessors().getAdvancedOption(assessorXsiType);
-				return advSessionAssessorOption.getNeeds_ok_to_sync();
-			}catch(NullPointerException npe) {
-				return false; // Not present defaults to ok not required
-			}
-		}else 
-			return false;
-	}
+    @SuppressWarnings("deprecation")
+    public boolean isThisProjectBeingSyncedForTheFirstTime() {
+        boolean beingSyncedForTheFirstTime = false;
+        XsyncXsyncinfodata syncInfo = getProjectSyncConfigurationFromDB().getSyncinfo();
+        if (syncInfo.getSyncEndTime() == null && syncInfo.getSyncStatus() == null) {
+            beingSyncedForTheFirstTime = true;
+        } else {
+            Object date = syncInfo.getSyncEndTime();
+            if (date != null) {
+                if ((((Date) date).getYear() == OLD_CALENDAR.get(Calendar.YEAR)) && syncInfo.getSyncStatus() == null) {
+                    beingSyncedForTheFirstTime = true;
+                }
+            }
+        }
+        return beingSyncedForTheFirstTime;
+    }
 
-	
-	public boolean isOnlyASubjectAssessor(XnatSubjectassessordataI experiment) {
-		boolean isOnlyASubjectAssessor = true;
-		if (experiment instanceof XnatImagesessiondataI) {
-			isOnlyASubjectAssessor = false;
-		}
-		return isOnlyASubjectAssessor;
-	}	
+    @Override
+    public String toString() {
+        String self = "";
+        self += " Project : " + _project + "\n";
+        self += "SyncConfiguration: " + _syncConfiguration + "\n";
+        self += " DB SyncInfo:  " + "\n";
+        self += "Remote Project: " + _syncProjectConfiguration.getSyncinfo().getRemoteProjectId() + "\n";
+        self += "Remote URL: " + _syncProjectConfiguration.getSyncinfo().getRemoteUrl();
+        self += "Sync_Blocked: " + _syncProjectConfiguration.getSyncBlocked();
+        return self;
+    }
 
-	public boolean isImagingSessionToBeSynced(String imagingSessionXsiType) {
-		if (syncConfiguration == null) 
-			return false;
-		else {
-			return syncConfiguration.isImagingSessionAllowedToSync(imagingSessionXsiType);
-		}
-	}
-	
-	public boolean isImagingSessionScanToBeSynced(String imagingSessionXsiType, String imagingScanType) {
-		if (syncConfiguration == null) 
-			return false;
-		else {
-			SyncConfigurationImagingSessionAdvancedOption imgSessionAdvOption = syncConfiguration.getImagingSessionAdvancedOptions(imagingSessionXsiType);
-			return imgSessionAdvOption.isAllowedToSyncScan(imagingScanType);
-		}
+    private static String getAnonymizationFilePath(final String projectArchiveRootPath, final String fileType) {
+        return Paths.get(projectArchiveRootPath, "resources", "synchronization", fileType + "_anon.das").toString();
+    }
 
-	}
-	
-	public boolean isImagingSessionScanResourceToBeSynced(String imagingSessionXsiType, String imagingScanType, String imagingScanResourceName) {
-			if (syncConfiguration == null) return false;
-			SyncConfigurationImagingSessionAdvancedOption imgSessionAdvOption = syncConfiguration.getImagingSessionAdvancedOptions(imagingSessionXsiType);
-			if (imgSessionAdvOption.isAllowedToSyncScan(imagingScanType)) {
-				return imgSessionAdvOption.isAllowedToSyncScanResource(imagingScanResourceName);
-			}else {
-				return false;
-			}
-	}
-	
-	
-	public boolean isSetToSyncNewOnly() {
-		return this.getSynchronizationConfiguration().getSync_new_only().booleanValue();
-	}
-	
-	@SuppressWarnings("deprecation")
-	public boolean isThisProjectBeingSyncedForTheFirstTime() {
-		boolean beingSyncedForTheFirstTime = false;
-		XsyncXsyncinfodata syncInfo = getProjectSyncConfigurationFromDB().getSyncinfo();
-		if (syncInfo.getSyncEndTime() == null && syncInfo.getSyncStatus() == null ) {
-			beingSyncedForTheFirstTime = true;
-		}else {
-			Object date = syncInfo.getSyncEndTime();
-			if (date != null) {
-				if ((((Date)date).getYear() == OLDYEAR) && syncInfo.getSyncStatus() == null) {
-					beingSyncedForTheFirstTime = true;		
-				}
-			}
-		}
-		return beingSyncedForTheFirstTime;
-	}
+    private XsyncXsyncprojectdata setProjectSyncConfiguration() throws XsyncNotConfiguredException {
+        final XsyncUtils xsyncUtils = new XsyncUtils(_serializer, _jdbcTemplate, _user);
+        final XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(_project.getId());
 
-		
-	public String toString() {
-			String self = "";
-			self += " Project : " + project + "\n";
-			self += "SyncConfiguration: " + syncConfiguration + "\n";
-			self += " DB SyncInfo:  " +"\n";
-			self += "Remote Project: " + syncProjectConfiguration.getSyncinfo().getRemoteProjectId() + "\n"; 
-			self += "Remote URL: " + syncProjectConfiguration.getSyncinfo().getRemoteUrl();
-			self += "Sync_Blocked: " + syncProjectConfiguration.getSyncBlocked();
-			return self;		
-		}
+        if (syncProjectConfiguration == null) {
+            _log.error("Could not find sync data for _project " + _project.getId());
+            throw new XsyncNotConfiguredException("Could not find sync data for _project " + _project.getId());
+        }
+        boolean save = false;
+        //No sync has been done so far. Set a dummy date and then start
+        //If this is the first time that the sync is taking place
+        if (_syncProjectConfiguration.getSyncinfo().getSyncStartTime() == null) {
+            _syncProjectConfiguration.getSyncinfo().setSyncStartTime(OLD_CALENDAR.getTime());
+            save = true;
+        }
+        if (_syncProjectConfiguration.getSyncinfo().getSyncEndTime() == null) {
+            _syncProjectConfiguration.getSyncinfo().setSyncEndTime(OLD_CALENDAR.getTime());
+            save = true;
+        }
+        if (save) {
+            try {
+                //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
+                EventMetaI c = EventUtils.DEFAULT_EVENT(_user, "ADMIN_EVENT occurred");
+                _syncProjectConfiguration.save(_user, false, true, c);
+            } catch (Exception e) {
+                _log.debug("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
+                throw new XsyncNotConfiguredException("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
+            }
+        }
+        return syncProjectConfiguration;
+    }
 
+    private SyncConfiguration setSyncConfigurationFromService(final String projectId) throws XsyncNotConfiguredException {
+        final String config = _configService.getConfig("xsync", "json", Scope.Project, projectId).getContents();
 
+        if (config != null) {
+            try {
+                return _serializer.deserializeJson(config, SyncConfiguration.class);
+            } catch (Exception e) {
+                throw new XsyncNotConfiguredException("Synchronization Configuration does not exist for " + _project.getId());
+            }
+        } else {
+            throw new XsyncNotConfiguredException("Synchronization Configuration does not exist for " + _project.getId());
+        }
+    }
+
+    private static final Logger   _log         = LoggerFactory.getLogger(ProjectSyncConfiguration.class);
+    private static final Calendar OLD_CALENDAR = new GregorianCalendar(1970, 1, 1);
+
+    private final ConfigService              _configService;
+    private final SerializerService          _serializer;
+    private final NamedParameterJdbcTemplate _jdbcTemplate;
+    private final UserI                      _user;
+    private final XsyncXsyncprojectdata      _syncProjectConfiguration;
+    private final XnatProjectdata            _project;
+    private final SyncConfiguration          _syncConfiguration;
 }

@@ -1,9 +1,6 @@
 package org.nrg.xsync.services.local.impl;
 
-import java.util.List;
-
-import org.apache.log4j.Logger;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.entities.AliasToken;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xsync.connection.RemoteConnection;
@@ -13,8 +10,14 @@ import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.nrg.xsync.services.local.XsyncAliasRefreshService;
 import org.nrg.xsync.services.remote.RemoteRESTService;
+import org.nrg.xsync.utils.QueryResultUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 
 /**
@@ -26,16 +29,22 @@ import org.springframework.stereotype.Service;
 public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 	
 	/** The logger. */
-	public static Logger logger = Logger.getLogger(DefaultXsyncAliasRefresher.class);
+	private static final Logger logger = LoggerFactory.getLogger(DefaultXsyncAliasRefresher.class);
 	
-	/** The _alias service. */
+	private final RemoteAliasService _aliasService;
+	private final RemoteRESTService _restService;
+	private final JdbcTemplate _jdbcTemplate;
+	private final SerializerService _serializer;
+	private final QueryResultUtil _queryResultUtil;
+
 	@Autowired
-	RemoteAliasService _aliasService;
-	
-	/** The _rest service. */
-	@Autowired
-	RemoteRESTService _restService;
-	
+	public DefaultXsyncAliasRefresher(final RemoteAliasService aliasService, final RemoteRESTService restService, final JdbcTemplate jdbcTemplate, final SerializerService serializer, final QueryResultUtil queryResultUtil) {
+		_aliasService = aliasService;
+		_restService = restService;
+		_jdbcTemplate = jdbcTemplate;
+		_serializer = serializer;
+		_queryResultUtil = queryResultUtil;
+	}
 
 	/* (non-Javadoc)
 	 * @see java.lang.Runnable#run()
@@ -45,8 +54,7 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 		//Get all the connection information from the RemoteConnectionManager
 		//For each of the connections
 		//Acquire the lock before you refresh them
-		//Hashtable<String,RemoteConnection> projectConnections = RemoteConnectionManager.GetAllConnections();
-		final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+		final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 		final List<RemoteAliasEntity> remoteAliasEntities = _aliasService.getAll();
 		if (remoteAliasEntities == null || remoteAliasEntities.size()<1) {
 			return;
@@ -67,14 +75,14 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 							connEntity.getLocal_project() + ", host " + conn.getUrl() + 
 							".  New credentials may need to be provided.  (HTTP Status=" + remoteResponse.getResponse().getStatusCode() + ")");
 				}
-				final AliasToken aliasToken = (AliasToken) new ObjectMapper().readValue(remoteResponse.getResponse().getBody(), AliasToken.class);	
+				final AliasToken aliasToken = _serializer.deserializeJson(remoteResponse.getResponse().getBody(), AliasToken.class);
 				conn.setUsername(aliasToken.getAlias());
 				conn.setPassword(aliasToken.getSecret());
 				connEntity.setRemote_alias_token(aliasToken.getAlias());
 				connEntity.setRemote_alias_password(aliasToken.getSecret());
 				_aliasService.update(connEntity);
 			}catch(Exception e) {
-				logger.error(e);
+				logger.error("An error occurred while refreshing an alias token", e);
 				AdminUtils.sendAdminEmail("XSync token refresh failure", "XSync token refresh failure for local project  " +
 						connEntity.getLocal_project() + ", host " + conn.getUrl() + 
 						".  New credentials may need to be provided.  (Exception=" + e.toString() + ")");

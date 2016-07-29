@@ -52,7 +52,7 @@ public class XsyncSubjectHistory extends AbstractHibernateEntity {
 //    public XsyncProjectHistory getProjectHistory() {
 //        return projectHistory;
 //    }
-//    public void saveHistoryToDatabase(XsyncProjectHistory projectHistory) {
+//    public void persistHistory(XsyncProjectHistory projectHistory) {
 //        this.projectHistory = projectHistory;
 //    }
 }

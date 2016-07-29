@@ -40,6 +40,7 @@ import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.nrg.xsync.tools.XSyncTools;
+import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.XSyncFailureHandler;
 import org.nrg.xsync.utils.XsyncFileUtils;
@@ -47,6 +48,8 @@ import org.nrg.xsync.utils.XsyncUtils;
 import org.restlet.data.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * @author Mohana Ramaratnam
@@ -60,14 +63,21 @@ public class RemoteSubject {
 	ProjectSyncConfiguration projectSyncConfiguration;
 	UserI user;
 	SubjectSyncItem subjectSyncInfo ;
-
+	private final XsyncXnatInfo _xnatInfo;
+	private final NamedParameterJdbcTemplate _jdbcTemplate;
+	private final RemoteConnectionManager _manager;
+	private final QueryResultUtil _queryResultUtil;
 	
-	public RemoteSubject(XnatSubjectdataI localSubject,ProjectSyncConfiguration projectSyncConfiguration,UserI user, boolean syncAll) {
+	public RemoteSubject(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate, XnatSubjectdataI localSubject, ProjectSyncConfiguration projectSyncConfiguration, UserI user, boolean syncAll) {
 		this.localSubject = localSubject;
 		this.user = user;
 		this.projectSyncConfiguration = projectSyncConfiguration; 
 		this.syncAllStates = syncAll;
 		subjectSyncInfo = new SubjectSyncItem(localSubject.getId(), localSubject.getLabel());
+		_jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		_manager = manager;
+		_xnatInfo = xnatInfo;
+		_queryResultUtil = queryResultUtil;
 	}
 	
 	
@@ -78,18 +88,18 @@ public class RemoteSubject {
 	
 		XnatSubjectdata newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
 		newSubject.setProject(remoteProjectId);
-		IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
+		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
 
 		try {
 			
 			idMapper.correctIDandLabel(newSubject);
 			
 			//Go through resources; if they are in config and modified since last sync, keep them
-			ResourceFilter resourceMapper = new ResourceFilter(user);
+			ResourceFilter resourceMapper = new ResourceFilter(user, _jdbcTemplate, _queryResultUtil);
 			Map<String,List<XnatAbstractresourceI>> resourcesToBeSynced = resourceMapper.select(newSubject, localSubject.getId(), projectSyncConfiguration);
 
 			//Go through experiments; if they are in config, keep them
-			ExperimentFilter experimentMapper = new ExperimentFilter(user, projectSyncConfiguration);
+			ExperimentFilter experimentMapper = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);
 			Map<String,List<XnatExperimentdataI>> experimentsToBeSynced = experimentMapper.select(newSubject, localSubject.getId());
 			//Store the subject
 			//Get its remote id
@@ -122,7 +132,7 @@ public class RemoteSubject {
 	private String storeSubject(XnatSubjectdataI remoteSubject) throws Exception {
 		 String subject_remote_id  = null;
 		 if (syncAllStates) { //We know that the flag syncOnlyNew implies that the subject has already been pushed
-			 IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
+			 IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user,projectSyncConfiguration);
 			 subject_remote_id = idMapper.getRemoteAccessionId(localSubject.getId());
 			 if (subject_remote_id == null) {
 				 //Subject has not been synced yet. Sync it now.
@@ -135,12 +145,11 @@ public class RemoteSubject {
 	}
 
 	private String syncSubjectMetaData(XnatSubjectdataI remoteSubject) throws Exception {
-		RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		String subject_remote_id  = null;
 		try {
-			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-			 RemoteConnectionResponse response =  remoteConnectionManager.importSubject(connection, (XnatSubjectdata)remoteSubject);
+			 RemoteConnectionResponse response = _manager.importSubject(connection, (XnatSubjectdata)remoteSubject);
 			 if (response.wasSuccessful()) 
 				 subject_remote_id = response.getResponseBody();
 			 else 
@@ -153,12 +162,10 @@ public class RemoteSubject {
 		
 	}
 	private RemoteConnectionResponse deleteSubjectResource(XnatSubjectdataI remoteSubject, String resourceLabel) throws Exception {
-		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 try {
-			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-			 RemoteConnectionResponse response =  remoteConnectionManager.deleteSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel);
-			 return response;
+			 return _manager.deleteSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel);
 		 }catch(Exception e) {
 			 _log.error(e.toString());
 			 throw e;
@@ -166,13 +173,11 @@ public class RemoteSubject {
 		}
 
 	private RemoteConnectionResponse updateSubjectResource(XnatSubjectdataI remoteSubject, String resourceLabel, File zipFile) throws Exception {
-		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 try {
-			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-			 RemoteConnectionResponse response =  remoteConnectionManager.importSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel, zipFile);
-			 
-			 return response;
+
+			 return _manager.importSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel, zipFile);
 		 }catch(Exception e) {
 			 _log.error(e.toString());
 			 throw e;
@@ -180,12 +185,10 @@ public class RemoteSubject {
 		}
 
 	private RemoteConnectionResponse updateSubjectAssessorResource(XnatSubjectdataI remoteSubject, XnatSubjectassessordata subjectAssessor, String resourceLabel, File zipFile) throws Exception {
-		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 try {
-			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-			 RemoteConnectionResponse response =  remoteConnectionManager.importSubjectAssessorResource(connection, (XnatSubjectdata)remoteSubject, subjectAssessor, resourceLabel, zipFile);
-			 return response;
+			 return _manager.importSubjectAssessorResource(connection, (XnatSubjectdata)remoteSubject, subjectAssessor, resourceLabel, zipFile);
 		 }catch(Exception e) {
 			 _log.error(e.toString());
 			 throw e;
@@ -196,7 +199,7 @@ public class RemoteSubject {
 		//If the experiment was already stored, we have the remote id
 		//Use that id to delete the experiment
 		//If not, the experiment was never synced. So ignore.
-		IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
+		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user,projectSyncConfiguration);
 		String remoteId = idMapper.getRemoteAccessionId(experiment.getId());
 		String localId = experiment.getId();
 		String localLabel = experiment.getLabel();
@@ -204,15 +207,14 @@ public class RemoteSubject {
 		 expSyncItem.setRemoteId(remoteId);
 		if (remoteId != null)  {
 			experiment.setId(remoteId);
-			RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 			 try {
-				 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+				 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 				 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-				 RemoteConnectionResponse response =  remoteConnectionManager.deleteExperiment(connection, experiment);
+				 RemoteConnectionResponse response = _manager.deleteExperiment(connection, experiment);
 				 if (response.wasSuccessful()) {
 					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + localLabel + " deleted. " );
 					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
-					 XSyncTools xsyncTools = new XSyncTools(user);
+					 XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 					 xsyncTools.deleteXsyncRemoteEntry(this.localSubject.getProject(), localId);
 				 }else {
 					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + localLabel + " could not be deleted. " + response.getResponseBody());
@@ -237,12 +239,12 @@ public class RemoteSubject {
 		subjectSyncInfo.setXsiType(xsiType);
 		subjectSyncInfo.setRemoteLabel(remote_label);
 
-		XSyncTools xsyncTools = new XSyncTools(user);
+		XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType);
 	}
 
 	private void saveSyncDetails(String local_id, String remote_id,  String syncStatus, String xsiType) {
-		XSyncTools xsyncTools = new XSyncTools(user);
+		XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType);
 	}
 
@@ -261,7 +263,7 @@ public class RemoteSubject {
 						if (deleteResponse.wasSuccessful()) {
 							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
 							resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " deleted ");
-							XSyncTools xsyncTools = new XSyncTools(user);
+							XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 							xsyncTools.deleteXsyncRemoteEntry(localSubject.getId(), resource.getLabel());
 						}else {
 							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
@@ -382,7 +384,7 @@ public class RemoteSubject {
 			return;
 		}
 		String origId = assess.getId();
-		ExperimentFilter experimentFilter = new ExperimentFilter(user, projectSyncConfiguration);
+		ExperimentFilter experimentFilter = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);
 		if (assess instanceof XnatImagesessiondata) {
 			XnatImagesessiondata orig = (XnatImagesessiondata) XnatImagesessiondata.getXnatImagesessiondatasById(origId, user, true);
 			if (isImagingSessionConfiguredToBeSyned(orig.getXSIType())) {
@@ -477,12 +479,11 @@ public class RemoteSubject {
 	
 	
 	private boolean hasBeenMarkedOkToSyncAndNotSyncedYet(String expId) {
-		XSyncTools xsyncTools = new XSyncTools(user);
+		XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 		return xsyncTools.hasBeenMarkedOkToSyncAndNotSyncedYet(expId, projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 	}
 	
 	private boolean storeAssessor(String origId, XnatSubjectassessordata orig, XnatSubjectdata remotesubject, XnatSubjectassessordata assessor, boolean updateSyncAssessor) {
-		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
 		 boolean stored = false;
 		 String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 		 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
@@ -490,9 +491,9 @@ public class RemoteSubject {
 		 try {
 			 prepareResourceURI(assessor);
 			 XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
-			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-			 RemoteConnectionResponse connectionResponse =  remoteConnectionManager.importSubjectAssessor(connection, remotesubject, assessor);
+			 RemoteConnectionResponse connectionResponse = _manager.importSubjectAssessor(connection, remotesubject, assessor);
 			 stored = connectionResponse.wasSuccessful();
 			 String remote_id = connectionResponse.getResponseBody();
 			 if (stored) {
@@ -528,7 +529,7 @@ public class RemoteSubject {
 					}
 				}
 				if (updateSyncAssessor) {
-					 XSyncTools xsyncTools = new XSyncTools(user);
+					XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 					 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
 				}
 			 }
@@ -542,19 +543,18 @@ public class RemoteSubject {
 	}
 
 	private boolean storeXar( XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor) throws XsyncRemoteConnectionException{
-		 final RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
-		 boolean stored = false;
+		 boolean stored;
 		 final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 		 final String remoteProjectId = targetproject;
-		 final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
+		 final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 		 final RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 		 final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
 		 expSyncItem.setXsiType(orig.getXSIType());
 		 expSyncItem.extractDetails(target);
 		 try {
 			 prepareResourceURIForXar(target);
-			 final File xar=buildxar( (XnatImagesessiondata) orig,targetproject, targetsubject, target);
-			 final RemoteConnectionResponse connectionResponse =  remoteConnectionManager.importXar(connection, xar);
+			 final File xar=buildxar(orig, targetproject, targetsubject, target);
+			 final RemoteConnectionResponse connectionResponse = _manager.importXar(connection, xar);
 			 stored = connectionResponse.wasSuccessful();
 			 if (stored) {
 				 //final IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
@@ -573,7 +573,7 @@ public class RemoteSubject {
 //					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been synced. " );
 
 					 if (updateSyncAssessor) {
-						 XSyncTools xsyncTools = new XSyncTools(user);
+						 XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 						 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
 					 }
 					 saveSyncDetails(orig.getId(),remote_id,XsyncUtils.SYNC_STATUS_SYNCED,orig.getXSIType());
