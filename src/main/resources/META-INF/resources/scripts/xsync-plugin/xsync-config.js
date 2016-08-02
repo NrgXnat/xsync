@@ -279,6 +279,39 @@ XSYNC.xsyncconfig.checkCredentials = function() {
 	Configuration Settings
  */
 
+function advConfig(){
+
+	var $container = $('#xsync-config-dialog');
+
+	XSYNC.xsyncconfig.render = XNAT.xhr.getJSON({
+		url: XNAT.url.rootUrl('/xapi/spawner/resolve/xsync/config'),
+		success: function(json){
+			var xsyncUI = XNAT.spawner.spawn(json);
+			$container.append(xsyncUI.get());
+			xsyncUI.render($container);
+		}
+	});
+
+	XSYNC.xsyncconfig.render.done(function(){
+
+		function addResource(container, resourceType){
+			var $container = $$(container);
+			var $lastInput = $container.find('input').last();
+			var lastIndex = $lastInput.dataAttr('index');
+			var $newInput = $lastInput.clone();
+			$newInput.val('').dataAttr('index', lastIndex + 1);
+			$newInput.attr('name', resourceType + '[' + (lastIndex + 1) + ']');
+			$container.append($newInput);
+		}
+
+		$('#project-sync-config').on('click', 'button.add-resource', function(){
+			var resourceType = $(this).dataAttr('resourceType');
+			var container = $(this).dataAttr('resourceList');
+			addResource(container, resourceType);
+		});
+	});
+}
+
 XSYNC.xsyncconfig.editConfig = function() {
 	XSYNC.xsyncconfig.modal = xmodal.open({
 		title: "Project Sync Settings for " + XNAT.data.context.project,
@@ -299,6 +332,7 @@ XSYNC.xsyncconfig.editConfig = function() {
 			var spawnerConfig = spawnConfig();
 			var $wrapper = obj.$modal.find('#xsync-config-dialog');
 			XNAT.spawner.spawn(spawnerConfig).render($wrapper);
+			// advConfig();
 		}
 	});
 };
@@ -419,13 +453,6 @@ function spawnConfig() {
 }
 
 XSYNC.xsyncconfig.submitConfig = function() {
-
-	// XSYNC.xsyncconfig.saveConfig();
-	// return;
-
-	////////////////////////////////////////////
-	// TODO
-	////////////////////////////////////////////
 
 	if (XSYNC.xsyncconfig.checkCredentials()) {
 		XSYNC.xsyncconfig.saveConfig();

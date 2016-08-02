@@ -91,8 +91,9 @@ public class XsyncSetupController extends AbstractXapiRestController {
 		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "presyncanonymization", anonymizationScript, Scope.Project, project.getId());
 	}
 
-    @ApiOperation(value = "Adds Pre-Sync project specific DICOM Anonyzation",  response = String.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
+	@RequestMapping(path="/projects/{projectId}/presyncanonymization", method = RequestMethod.PUT)
+	@ApiOperation(value = "Adds Pre-Sync project specific DICOM Anonyzation",  response = String.class)
+	@ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId, @RequestBody(required=false) String anonymizationScript) {
 		UserI user = getSessionUser();
 		try {
@@ -108,8 +109,9 @@ public class XsyncSetupController extends AbstractXapiRestController {
     	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved",  HttpStatus.OK);
 	}
 
-    @ApiOperation(value = "GETs Pre-Sync project specific DICOM Anonyzation",  response = String.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization."),
+	@RequestMapping(path="/projects/{projectId}/presyncanonymization", method = RequestMethod.GET)
+	@ApiOperation(value = "GETs Pre-Sync project specific DICOM Anonyzation",  response = String.class)
+	@ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization."),
 			       @ApiResponse(code = 204, message = "No DICOM anonymization found."),
 			       @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> getDICOMAnonymization(@PathVariable("projectId") String projectId) {
