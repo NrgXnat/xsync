@@ -302,6 +302,7 @@ XSYNC.xsyncconfig.editConfig = function() {
 		}
 	});
 };
+
 function spawnConfig() {
 	function configPanel(contents) {
 		return {
@@ -316,6 +317,7 @@ function spawnConfig() {
 			}
 		}
 	}
+
 	function enabled() {
 		return {
 			id: 'xsync-config-enabled',
@@ -330,6 +332,7 @@ function spawnConfig() {
 			}
 		}
 	}
+
 	function syncNewOnly() {
 		return {
 			id: 'xsync-config-newonly',
@@ -339,6 +342,7 @@ function spawnConfig() {
 			checked: XSYNC.xsyncconfig.configuration.sync_new_only
 		}
 	}
+
 	function remoteUrl() {
 		return {
 			kind: 'panel.input.text',
@@ -347,12 +351,13 @@ function spawnConfig() {
 			label: 'Destination XNAT',
 			value: XSYNC.xsyncconfig.configuration.remote_url,
 			element: {
-				onchange: function(){
+				onchange: function () {
 					// console.log(this.value)
 				}
 			}
 		}
 	}
+
 	function remoteProject() {
 		return {
 			kind: 'panel.input.text',
@@ -361,12 +366,13 @@ function spawnConfig() {
 			label: 'Destination Project',
 			value: XSYNC.xsyncconfig.configuration.remote_project_id,
 			element: {
-				onchange: function(){
+				onchange: function () {
 					// console.log(this.value)
 				}
 			}
 		}
 	}
+
 	function frequency() {
 		return {
 			kind: 'panel.select.menu',
@@ -380,11 +386,13 @@ function spawnConfig() {
 				monthly: 'Monthly'
 			},
 			element: {
-				onchange: function(){
+				onchange: function () {
 					// alert(this.value)
 				}
 			}
-		}    }
+		}
+	}
+
 	function identifiers() {
 		return {
 			kind: 'panel.select.menu',
@@ -398,12 +406,13 @@ function spawnConfig() {
 				use_random: 'Random'
 			},
 			element: {
-				onchange: function(){
+				onchange: function () {
 					// alert(this.value)
 				}
 			}
 		}
 	}
+
 	return {
 		root: configPanel()
 	};
@@ -658,41 +667,58 @@ XSYNC.xsyncconfig.constructNewJson = function() {
  */
 
 XSYNC.xsyncconfig.submitDICOMAnonymization = function() {
-	var modalContent =
-		"<div>" +
-		'<div class = "credentials-header-div credentials-div">' +
-		'<h3 style="text-align:center">Enter Pre-Sync DICOM Anonymization  script ' + '</h3>' +
-		'</div>' +
-		'<div class = "credentials-div">' +
-		'<textarea rows="20" cols="80" id="xsync-dicom-anonymization"></textarea>' +
-		'</div>' +
-		"</div>";
-	var pModalOpts = {
-		width: 680,
-		height: 580,
-		id: 'xmodal-enter-dicom-anonymization',
-		title: "DICOM Anonymization script",
-		content: modalContent,
-		ok: 'show',
-		okLabel: 'Save',
-		okAction: function(modl){
-			XSYNC.xsyncconfig.uploadDicomAnonymization();
-			modl.close();
-		},
-		okClose: false,
-		cancel: 'Cancel',
-		cancelLabel: 'Cancel',
-		cancelAction: function(){
-			xmodal.close(XNAT.app.abu.abuConfigs.modalOpts.id);
-		},
-		closeBtn: 'hide'
-	};
-	xmodal.open(pModalOpts);
+	var getAnonymizationScript = $.ajax({
+		type : "GET",
+		url: serverRoot+'/xapi/xsync/projects/'+XNAT.data.context.project+'/presyncanonymization',
+		dataType: 'text'
+	});
+
+	getAnonymizationScript.done(function(text) {
+		if (text == undefined) {
+			text = '';
+		}
+
+		var modalContent =
+			"<div>" +
+				'<div class = "credentials-header-div credentials-div">' +
+					'<h3 style="text-align:center">Pre-Sync DICOM Anonymization script ' + '</h3>' +
+				'</div>' +
+				'<div class = "credentials-div">' +
+					'<textarea rows="20" cols="80" id="xsync-dicom-anonymization">'+ text +'</textarea>' +
+				'</div>' +
+			"</div>";
+
+		var pModalOpts = {
+			width: 680,
+			height: 580,
+			id: 'xmodal-enter-dicom-anonymization',
+			title: "DICOM Anonymization script",
+			content: modalContent,
+			ok: 'show',
+			okLabel: 'Save',
+			okAction: function(modl){
+				XSYNC.xsyncconfig.uploadDicomAnonymization();
+				modl.close();
+			},
+			okClose: false,
+			cancel: 'Cancel',
+			cancelLabel: 'Cancel',
+			enter: false,
+			cancelAction: function(){
+				xmodal.close(XNAT.app.abu.abuConfigs.modalOpts.id);
+			},
+			closeBtn: 'hide'
+		};
+		xmodal.open(pModalOpts);
+	});
+
+	getAnonymizationScript.fail( function( data, textStatus, error ) {
+		xmodal.message('Error', textStatus + ': Could not retrieve pre-sync DICOM anonymization script (' + error + ')');
+	});
 }
 
 XSYNC.xsyncconfig.uploadDicomAnonymization = function() {
 	var dicomScript = $("#xsync-dicom-anonymization").val();
-	console.log(dicomScript);
 
 	var uploadDICOMscriptAjax = $.ajax({
 		type : "PUT",
@@ -707,6 +733,6 @@ XSYNC.xsyncconfig.uploadDicomAnonymization = function() {
 	});
 
 	uploadDICOMscriptAjax.fail( function( data, textStatus, error ) {
-		xmodal.message('Error','ERROR:  Pre-Sync DICOM Anonymization was not successfully saved (' + textStatus + ')');
+		xmodal.message('Error', textStatus + ': Pre-Sync DICOM Anonymization was not successfully saved (' + error + ')');
 	});
 }

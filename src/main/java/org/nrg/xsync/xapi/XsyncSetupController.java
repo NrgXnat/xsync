@@ -105,7 +105,7 @@ public class XsyncSetupController extends AbstractXapiRestController {
 	@RequestMapping(path="/projects/{projectId}/presyncanonymization", method = RequestMethod.PUT)
     @ApiOperation(value = "Adds Pre-Sync project specific DICOM Anonyzation",  response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
-	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId,@RequestBody String anonymizationScript) {
+	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId, @RequestBody(required=false) String anonymizationScript) {
 		UserI user = getSessionUser();
 		try {
 	        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
@@ -122,10 +122,16 @@ public class XsyncSetupController extends AbstractXapiRestController {
 
 	@RequestMapping(path="/projects/{projectId}/presyncanonymization", method = RequestMethod.GET)
     @ApiOperation(value = "GETs Pre-Sync project specific DICOM Anonyzation",  response = String.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization."),  @ApiResponse(code = 500, message = "Unexpected error")})
+    @ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization."),
+			       @ApiResponse(code = 204, message = "No DICOM anonymization found."),
+			       @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> getDICOMAnonymization(@PathVariable("projectId") String projectId) {
-		String config = _configService.getConfig("xsync", "presyncanonymization", Scope.Project, projectId).getContents();
-		return new ResponseEntity<>(config, HttpStatus.OK);
+		try {
+			String config = _configService.getConfig("xsync", "presyncanonymization", Scope.Project, projectId).getContents();
+			return new ResponseEntity<>(config, HttpStatus.OK);
+		} catch(NullPointerException e) {
+			return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
+		}
 	}
 
 
