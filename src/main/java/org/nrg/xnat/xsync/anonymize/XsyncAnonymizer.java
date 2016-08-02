@@ -22,14 +22,12 @@ import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatResourcecatalogI;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
-import org.nrg.xdat.om.base.BaseXnatSubjectassessordata;
-import org.nrg.xnat.xsync.anonymize.ExportAnonymizer;
-import org.nrg.xnat.xsync.anonymize.AnonymizerI;
-import org.nrg.xnat.xsync.anonymize.XsyncAnonymizer;
 import org.nrg.xnat.utils.CatalogUtils;
 import org.nrg.xsync.manager.SynchronizationManager;
+import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
@@ -74,6 +72,13 @@ public class XsyncAnonymizer implements AnonymizerI {
 	/** The Constant ScanDate. */
 	final static String ScanDate = "Date";
 
+	private final XsyncXnatInfo _xsyncXnatInfo;
+
+	@Autowired
+	public XsyncAnonymizer(final XsyncXnatInfo xsyncXnatInfo) {
+		_xsyncXnatInfo = xsyncXnatInfo;
+	}
+
 	/* (non-Javadoc)
 	 * @see org.nrg.xnat.services.transfer.local.SimpleExportAnonymizerService#anonymize(org.nrg.xdat.om.XnatImagesessiondata, java.lang.String)
 	 */
@@ -85,7 +90,7 @@ public class XsyncAnonymizer implements AnonymizerI {
 			File cachePath = new File(exptCachePath + File.separator + "ARCHIVECOPY" + File.separator);
 			System.out.println("Session Directory " + session.getSessionDir().getAbsolutePath());
 			FileUtils.copyDirectoryToDirectory(session.getSessionDir(), cachePath);
-			ExportAnonymizer anonymizer = new ExportAnonymizer(session, destproject, cachePath.getAbsolutePath());
+			ExportAnonymizer anonymizer = new ExportAnonymizer(_xsyncXnatInfo, session, destproject, cachePath.getAbsolutePath());
 			this.applyAnonymizationToFiles(session,cachePath.getAbsolutePath(),anonymizer);
 		} catch (TransactionException e) {
 			logger.error("applyAnonymizationToFiles", e);

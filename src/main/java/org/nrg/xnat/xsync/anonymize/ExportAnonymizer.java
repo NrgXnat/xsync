@@ -1,19 +1,15 @@
 package org.nrg.xnat.xsync.anonymize;
 
-/**
- * @author Mohana Ramaratnam
- *
- */
 import java.io.File;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+/**
+ * @author Mohana Ramaratnam
+ */
 import org.apache.commons.lang.StringUtils;
-import org.nrg.config.services.ConfigService;
-import org.nrg.framework.constants.Scope;
-import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatImagesessiondataI;
@@ -25,10 +21,8 @@ import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
-public class ExportAnonymizer extends AbstractExportAnonymizer implements Callable<java.lang.Void>{
+public class ExportAnonymizer extends AbstractExportAnonymizer implements Callable<Void>{
 	
 	private final static Logger logger = LoggerFactory.getLogger(ExportAnonymizer.class);
 
@@ -41,6 +35,7 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 	final String path;
 	final String subjectLabel;
 	String scriptContent="";
+	private final XsyncXnatInfo _xsyncXnatInfo;
 	
 	/**
 	 * 
@@ -48,7 +43,8 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 	 * @param projectId The project Id, eg. xnat_E*
 	 * @param sessionPath The root path of this project's session directory
 	 */
-	public ExportAnonymizer(XnatImagesessiondataI s, String projectId, String sessionPath){
+	public ExportAnonymizer(final XsyncXnatInfo xsyncXnatInfo, XnatImagesessiondataI s, String projectId, String sessionPath){
+		_xsyncXnatInfo = xsyncXnatInfo;
 		this.s = s;
 		this.projectId= projectId;
 		this.sessionPath = sessionPath;
@@ -57,7 +53,8 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 		this.subjectLabel = null;
 	}
 	
-	public ExportAnonymizer(String label, XnatImagesessiondataI s, String projectId, String sessionPath) {
+	public ExportAnonymizer(final XsyncXnatInfo xsyncXnatInfo, String label, XnatImagesessiondataI s, String projectId, String sessionPath) {
+		_xsyncXnatInfo = xsyncXnatInfo;
 		this.s = s;
 		this.projectId = projectId;
 		this.sessionPath = sessionPath;
@@ -66,7 +63,8 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 		this.subjectLabel = null;
 	} 
 	
-	public ExportAnonymizer(XnatImagesessiondataI s, String subjectLabel, String projectId, String sessionPath){
+	public ExportAnonymizer(final XsyncXnatInfo xsyncXnatInfo, XnatImagesessiondataI s, String subjectLabel, String projectId, String sessionPath){
+		_xsyncXnatInfo = xsyncXnatInfo;
 		this.s = s;
 		this.projectId= projectId;
 		this.sessionPath = sessionPath;
@@ -112,11 +110,11 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 	/**
 	 * Retrieve a list of files that need to be anonymized.
 	 * By default the files are retrieved from the project's archive space.
-	 * @return
+	 * @return The files to be anonymized.
 	 */
 	@Override
 	public List<File> getFilesToAnonymize() {
-		List<File> ret = new ArrayList<File>();
+		List<File> ret = new ArrayList<>();
 		// anonymize everything in srcRootPath
 		for(final XnatImagescandataI scan: s.getScans_scan()) {
 			for (final XnatAbstractresourceI res:scan.getFile()) {
@@ -141,8 +139,7 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 	String getScript() {
 		try {
 			if(scriptContent.equals("")) {
-				final XsyncXnatInfo xnatInfo = XDAT.getContextService().getBean(XsyncXnatInfo.class);
-				String anonymizationFromConfig = xnatInfo.getDicomAnonymization(s.getProject());
+				String anonymizationFromConfig = _xsyncXnatInfo.getDicomAnonymization(s.getProject());
 				scriptContent= new String( anonymizationFromConfig.getBytes("UTF-8"), Charset.forName("UTF-8") );
 			}
 		}catch ( Exception e) {

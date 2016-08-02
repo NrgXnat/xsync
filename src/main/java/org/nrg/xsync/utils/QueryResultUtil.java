@@ -8,14 +8,17 @@ import java.util.Map;
 import java.util.Set;
 
 import org.nrg.xdat.XDAT;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
+@Component
 public class QueryResultUtil {
 	
 	public static final String PROJECT_QUERY_PARAMETER_NAME="project";
@@ -28,9 +31,22 @@ public class QueryResultUtil {
 	public static final String ACTIVE_STATUS = "active" ;
 	public static final String NEW_STATUS = "new" ;
 	public static final String OK_TO_SYNC_STATUS = "ok_to_sync";
-	
-	
-	
+
+	private final NamedParameterJdbcTemplate _jdbcTemplate;
+
+	@Autowired
+	public QueryResultUtil(final JdbcTemplate jdbcTemplate) {
+        _jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+	}
+
+	/**
+	 * @deprecated This really shouldn't be used. It's necessary for a test command-line application.
+     */
+	@Deprecated
+	public QueryResultUtil() {
+		_jdbcTemplate = null;
+	}
+
 	public String getQueryForFetchingSubjectsModifiedSinceLastSync() {
 		String query = "select s.id, s.label,s.project, sm.status, sm.last_modified,xsi.sync_end_time from xnat_subjectdata_meta_data sm ";
 		query += " left join xnat_subjectdata s ON s.subjectdata_info = sm.meta_data_id ";
@@ -336,20 +352,15 @@ public class QueryResultUtil {
 
 	public List<Map<String,Object>> getProjectsTobeSynced(String frequency) {
 		 String query = getProjectsToSync();
-		 NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
-					new JdbcTemplate(XDAT.getDataSource()));
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("SYNC_FREQUENCY", frequency);
-		List<Map<String,Object>> projectsToSync = jdbcTemplate.queryForList(query, parameters);
-		return projectsToSync;
-		
-	}	
+		return _jdbcTemplate.queryForList(query, parameters);
+	}
 	
 	public List<Map<String,Object>> getProjectsTobeSyncedDaily() {
 		return getProjectsTobeSynced("daily");
 	}
 
-	
 	public List<Map<String,Object>> getProjectsTobeSyncedMonthly() {
 		return getProjectsTobeSynced("monthly");
 	}
@@ -370,6 +381,7 @@ public class QueryResultUtil {
 		String query = "select * from xhbm_remote_alias_entity";
 		return query;
 	}
+
 	public String getRemoteConnectionQuery() {
 		String query = "select * from xhbm_remote_alias_entity where local_project=:LOCAL_PROJECT and remote_host=:REMOTE_HOST";
 		return query;

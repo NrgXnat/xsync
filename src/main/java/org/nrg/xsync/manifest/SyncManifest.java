@@ -1,21 +1,22 @@
 package org.nrg.xsync.manifest;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.util.*;
-
-import javax.mail.MessagingException;
-
-import org.nrg.xdat.XDAT;
+import org.nrg.mail.services.MailService;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
-import org.nrg.xsync.services.local.impl.HibernateSyncHistoryService;
+import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Hashtable;
 
 /**
  * @author Mohana Ramaratnam
@@ -25,6 +26,7 @@ public class SyncManifest{
 	/** The Constant logger. */
 	private final static Logger logger = LoggerFactory.getLogger(SyncManifest.class);
 
+	private final MailService _mailService;
 	String localProjectId;
 	String remoteProjectId;
 	String syncHost;
@@ -34,13 +36,18 @@ public class SyncManifest{
 
 	ArrayList<ResourceSyncItem> resources;
 	ArrayList<SubjectSyncItem> subjects;
+	private final SyncManifestService _syncManifestService;
+	private final XsyncXnatInfo _xnatInfo;
 
-	public SyncManifest(String localProjectId, String remoteProjectId, String syncHost) {
+	public SyncManifest(final SyncManifestService syncManifestService, final XsyncXnatInfo xnatInfo, final MailService mailService, String localProjectId, String remoteProjectId, String syncHost) {
+		_syncManifestService = syncManifestService;
+		_xnatInfo = xnatInfo;
+		_mailService = mailService;
 		this.localProjectId = localProjectId;
 		this.remoteProjectId = remoteProjectId;
 		this.syncHost = syncHost;
-		resources = new ArrayList<ResourceSyncItem>();
-		subjects = new ArrayList<SubjectSyncItem>();
+		resources = new ArrayList<>();
+		subjects = new ArrayList<>();
 	}
 
 
@@ -163,10 +170,8 @@ public class SyncManifest{
 	public void informUser() {
 		final Hashtable<String, String> info = syncInfoAsHTML();
 		try {
-			XDAT.getMailService().sendHtmlMessage(AdminUtils.getAuthorizerEmailId(), this.sync_user.getEmail(), info.get("SUBJECT"),
+			_mailService.sendHtmlMessage(AdminUtils.getAuthorizerEmailId(), this.sync_user.getEmail(), info.get("SUBJECT"),
 					info.get("BODY"));
-		} catch (MessagingException me) {
-			logger.error("Failed to send email.", me);
 		} catch (Exception e) {
 			logger.error("Failed to send email.", e);
 		}
@@ -177,14 +182,13 @@ public class SyncManifest{
 	 *
 	 */
 	public Hashtable<String, String> syncInfoAsHTML() {
-		final Hashtable<String,String> info = new Hashtable<String,String>();
-		final XsyncXnatInfo xnatInfo = XDAT.getContextService().getBean(XsyncXnatInfo.class);
-		final String subject="Project " + this.localProjectId +" data synced from "+ xnatInfo.getSiteId()+" to " + this.syncHost;
+		final Hashtable<String,String> info = new Hashtable<>();
+		final String subject="Project " + this.localProjectId +" data synced from "+ _xnatInfo.getSiteId()+" to " + this.syncHost;
 		info.put("SUBJECT", subject);
 			StringBuilder sb = new StringBuilder();
 			sb.append("<html>");
 	        sb.append("<body>");
-			sb.append("<p>The following data  was synced from project "+this.localProjectId+" on "+TurbineUtils.GetFullServerPath()+" to "+ this.syncHost+"/data/projects/"+this.remoteProjectId+" requested by "+this.sync_user.getUsername()+". </p>");
+			sb.append("<p>The following data  was synced from project ").append(localProjectId).append(" on ").append(TurbineUtils.GetFullServerPath()).append(" to ").append(syncHost).append("/data/projects/").append(this.remoteProjectId).append(" requested by ").append(sync_user.getUsername()).append(". </p>");
 
 
 			sb.append("<table>");
@@ -197,11 +201,11 @@ public class SyncManifest{
 			sb.append("</tr>");
 
 			sb.append("<tr>");
-			sb.append("<td>" + this.localProjectId + "</td>");
-			sb.append("<td>" +this.remoteProjectId + "</td>");
-			sb.append("<td>" +this.getSync_start_time() + "</td>");
-			sb.append("<td>" +this.getSync_end_time() + "</td>");
-			sb.append("<td>" +(this.wasSyncSuccessfull()?"Synced":"Sync Failed/Incomplete") + "</td>");
+			sb.append("<td>").append(this.localProjectId).append("</td>");
+			sb.append("<td>").append(this.remoteProjectId).append("</td>");
+			sb.append("<td>").append(this.getSync_start_time()).append("</td>");
+			sb.append("<td>").append(this.getSync_end_time()).append("</td>");
+			sb.append("<td>").append(this.wasSyncSuccessfull() ? "Synced" : "Sync Failed/Incomplete").append("</td>");
 			sb.append("</tr>");
 			sb.append("</table>");
 			if (resources.size() > 0) {
@@ -218,11 +222,11 @@ public class SyncManifest{
 
 				for (ResourceSyncItem res : resources) {
 					 sb.append("<tr>");
-					 sb.append("<td> " + res.localLabel + " </td>");
-					 sb.append("<td> " + (res.getFileCount()==null?"NA":res.getFileCount()) + " </td>");
-					 sb.append("<td> " + (res.getFileSize()==null?"NA":res.getFileSize()) + " </td>");
-					 sb.append("<td> " + res.getSyncStatus() + " </td>");
-					 sb.append("<td> " + res.getMessage() + " </td>");
+					 sb.append("<td> ").append(res.localLabel).append(" </td>");
+					 sb.append("<td> ").append(res.getFileCount() == null ? "NA" : res.getFileCount()).append(" </td>");
+					 sb.append("<td> ").append(res.getFileSize() == null ? "NA" : res.getFileSize()).append(" </td>");
+					 sb.append("<td> ").append(res.getSyncStatus()).append(" </td>");
+					 sb.append("<td> ").append(res.getMessage()).append(" </td>");
 					 sb.append("</tr>");
 				}
 				sb.append("</table>");
@@ -240,10 +244,10 @@ public class SyncManifest{
 
 				for (SubjectSyncItem sub : subjects) {
 					 sb.append("<tr>");
-					 sb.append("<td> " + sub.localLabel + " </td>");
-					 sb.append("<td> " + (sub.getRemoteId()==null?"":sub.getRemoteId()) + " </td>");
-					 sb.append("<td> " + sub.getSyncStatus() + " </td>");
-					 sb.append("<td> " + (sub.getMessage()==null?"":sub.getMessage()) + " </td>");
+					 sb.append("<td> ").append(sub.localLabel).append(" </td>");
+					 sb.append("<td> ").append(sub.getRemoteId() == null ? "" : sub.getRemoteId()).append(" </td>");
+					 sb.append("<td> ").append(sub.getSyncStatus()).append(" </td>");
+					 sb.append("<td> ").append(sub.getMessage() == null ? "" : sub.getMessage()).append(" </td>");
 					 sb.append("</tr>");
 				}
 				sb.append("</table>");
@@ -264,17 +268,17 @@ public class SyncManifest{
 					ArrayList<ExperimentSyncItem> exps = sub.getExperiments();
 					for (ExperimentSyncItem exp: exps) {
 						 sb.append("<tr>");
-						 sb.append("<td> " + exp.getLocalLabel() + " </td>");
-						 sb.append("<td> " + (exp.getRemoteId()==null?"":exp.getRemoteId()) + " </td>");
-						 sb.append("<td> " + exp.getXsiType() + " </td>");
-						 sb.append("<td> " + exp.getSyncStatus() + " </td>");
-						 sb.append("<td> " + (exp.getMessage()==null?"":exp.getMessage()) + " </td>");
+						 sb.append("<td> ").append(exp.getLocalLabel()).append(" </td>");
+						 sb.append("<td> ").append(exp.getRemoteId() == null ? "" : exp.getRemoteId()).append(" </td>");
+						 sb.append("<td> ").append(exp.getXsiType()).append(" </td>");
+						 sb.append("<td> ").append(exp.getSyncStatus()).append(" </td>");
+						 sb.append("<td> ").append(exp.getMessage() == null ? "" : exp.getMessage()).append(" </td>");
 						 Integer fileCnt = exp.getTotalSyncedFileCount();
 						 String fileCntStr = (fileCnt == 0?"NA":fileCnt.toString());
-						 sb.append("<td> " + fileCntStr + " </td>");
+						 sb.append("<td> ").append(fileCntStr).append(" </td>");
 						 Long fileSize = exp.getTotalSyncedFileSize();
 						 String fileSizeStr = (fileSize == 0?"NA":fileSize.toString());
-						 sb.append("<td> " + fileSizeStr + " </td>");
+						 sb.append("<td> ").append(fileSizeStr).append(" </td>");
 						 sb.append("</tr>");
 					}
 				}
@@ -296,25 +300,15 @@ public class SyncManifest{
 		public void syncInfoToFile(File file) {
 			final Hashtable<String, String> info = syncInfoAsHTML();
 
-			BufferedWriter writer = null;
-		    try {
-		        file.getParentFile().mkdirs();
-		        writer = new BufferedWriter(new FileWriter(file));
+			file.getParentFile().mkdirs();
+			try (final BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
 		        writer.write(info.get("BODY"));
-		    } catch (Exception e) {
-		        e.printStackTrace();
-		    } finally {
-		        try {
-		            // Close the writer regardless of what happens...
-		            writer.close();
-		            } catch (Exception e) {
-		        }
-		    }
+		    } catch (IOException e) {
+				logger.error("An error occurred writing the sync file", e);
+			}
 		}
 
 		public synchronized void syncInfoToDatabase() {
-			final HibernateSyncHistoryService service =
-					XDAT.getContextService().getBean(HibernateSyncHistoryService.class);
-			service.saveHistoryToDatabase(this);
+			_syncManifestService.persistHistory(this);
 		}
 }

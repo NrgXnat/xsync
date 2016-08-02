@@ -1,8 +1,7 @@
 package org.nrg.xsync.local;
 
-import java.util.List;
-
-import org.nrg.xdat.XDAT;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatExperimentdataShareI;
 import org.nrg.xdat.om.XnatExperimentdata;
@@ -16,14 +15,13 @@ import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.exception.XsyncRemoteConnectionException;
+import org.nrg.xsync.utils.QueryResultUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 
 /**
  * @author Mohana Ramaratnam
@@ -38,8 +36,14 @@ public class IdMapper {
 	public static final String USE_CUSTOM = "use_custom";
 	UserI _user;
 	ProjectSyncConfiguration syncProjectConfiguration;
+	private final RemoteConnectionManager _manager;
+	private final QueryResultUtil _queryResultUtil;
+	private final NamedParameterJdbcTemplate _jdbcTemplate;
 	
-	public IdMapper(UserI user,ProjectSyncConfiguration syncProjectConfiguration) {
+	public IdMapper(final RemoteConnectionManager manager, final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, final UserI user, final ProjectSyncConfiguration syncProjectConfiguration) {
+		_manager = manager;
+		_queryResultUtil = queryResultUtil;
+		_jdbcTemplate = jdbcTemplate;
 		_user = user;
 		this.syncProjectConfiguration = syncProjectConfiguration;
 	}
@@ -50,7 +54,7 @@ public class IdMapper {
 		if (USE_LOCAL.equals(syncProjectConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getIdentifiers())) {
 			try {
 				remote_label = item.getStringProperty("label");
-			}catch(Exception e) {
+			} catch(Exception e) {
 				
 			}
 		}
@@ -62,12 +66,9 @@ public class IdMapper {
 		String remoteId = null;
 		String query = "select remote_xnat_id from xsync_xsyncremotemapdata";
 		query += " where local_xnat_id=:localXnatId";
-		MapSqlParameterSource parameters = new MapSqlParameterSource();
-		parameters = new MapSqlParameterSource();
+		final MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("localXnatId", localXnatId);
-		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
-				new JdbcTemplate(XDAT.getDataSource()));
-		 List<String> results = jdbcTemplate.queryForList(query, parameters,String.class);
+		 List<String> results = _jdbcTemplate.queryForList(query, parameters,String.class);
 		 if (results !=null && results.size()>=1) {
 			 remoteId = results.get(0);
 		 }
@@ -133,10 +134,9 @@ public class IdMapper {
 	public String getRemoteId(String remoteUrl, String remoteProjectId, String remoteSubjectLabel, String remoteEntityLabel,String xsiType) throws XsyncRemoteConnectionException, Exception{
 		 String remote_id = null;
 		 String uri = remoteUrl +"/data/archive/projects/" + remoteProjectId +"/subjects/"+ remoteSubjectLabel + "/experiments?format=json&columns=ID,label&xsiType="+xsiType;
-		 RemoteConnectionManager remoteConnectionManager = new RemoteConnectionManager();
-		 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler();
-		 RemoteConnection connection = remoteConnectionHandler.getConnection(syncProjectConfiguration.getProject().getId(),syncProjectConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-		 RemoteConnectionResponse connectionResponse = remoteConnectionManager.getResult(connection,uri);
+		final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
+		RemoteConnection connection = remoteConnectionHandler.getConnection(syncProjectConfiguration.getProject().getId(), syncProjectConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+		 RemoteConnectionResponse connectionResponse = _manager.getResult(connection,uri);
 		 if (connectionResponse.wasSuccessful()) {
 			 //Parse the returned JSON
 			// {"ResultSet":{"Result":[{"ID":"XNAT_E00059","label":"MR1S1","URI":"/data/experiments/XNAT_E00059","xnat:mrsessiondata/id":"XNAT_E00059"}], "totalRecords": "1"}}

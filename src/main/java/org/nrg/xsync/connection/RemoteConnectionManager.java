@@ -5,17 +5,20 @@ import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
-import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
+import org.nrg.xdat.preferences.SiteConfigPreferences;
+import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.services.remote.RemoteRESTService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.google.common.collect.Maps;
@@ -25,16 +28,27 @@ import com.google.common.collect.Maps;
  *
  * @author Mohana Ramaratnam
  */
+@Service
 public class RemoteConnectionManager {
+
 	/** The logger. */
-	public static Logger logger = Logger.getLogger(RemoteConnectionManager.class);
+	private static Logger logger = Logger.getLogger(RemoteConnectionManager.class);
 
 	/** The remote rest service. */
-	private final RemoteRESTService remoteRESTService = XDAT.getContextService().getBean(RemoteRESTService.class);
-	
+	private final RemoteRESTService     _remoteRESTService;
+	private final SyncManifestService   _syncManifestService;
+	private final SiteConfigPreferences _preferences;
+
 	/** The Constant cache. */
 	private static final Map<String,String> sessionCache = Maps.newHashMap();
-	
+
+	@Autowired
+	public RemoteConnectionManager(final RemoteRESTService remoteRESTService, final SyncManifestService syncManifestService, final SiteConfigPreferences preferences) {
+		_remoteRESTService = remoteRESTService;
+		_syncManifestService = syncManifestService;
+		_preferences = preferences;
+	}
+
 	/**
 	 * Gets the auth headers.
 	 *
@@ -134,7 +148,7 @@ public class RemoteConnectionManager {
 	 * @param conn the conn
 	 * @return the base64 credentials
 	 */
-	protected static String getBase64Credentials(RemoteConnection conn) {
+	private static String getBase64Credentials(RemoteConnection conn) {
 		final String plainCreds;
 		plainCreds = conn.getUsername()+":"+conn.getPassword();
 		final byte[] plainCredsBytes = plainCreds.getBytes();
@@ -143,6 +157,25 @@ public class RemoteConnectionManager {
 		return base64Creds;
 	}
 
+	/**
+	 * Gets the site ID.
+	 * @return The site ID.
+     */
+	public String getSiteId() {
+		return _preferences.getSiteId();
+	}
+
+	/**
+	 * Gets the remote REST service.
+	 * @return The remote REST service.
+     */
+	public RemoteRESTService getRemoteRESTService() {
+		return _remoteRESTService;
+	}
+
+	public SyncManifestService getSyncManifestService() {
+		return _syncManifestService;
+	}
 
 	/**
 	 * Import subject.
@@ -153,7 +186,7 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse importSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception {
-		return remoteRESTService.importSubject(connection, subject);
+		return _remoteRESTService.importSubject(connection, subject);
 	}
 
 	/**
@@ -165,7 +198,7 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse deleteSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception {
-		return remoteRESTService.deleteSubject(connection, subject);
+		return _remoteRESTService.deleteSubject(connection, subject);
 	}
 
 	/**
@@ -178,7 +211,7 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse deleteSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel) throws Exception{
-		return remoteRESTService.deleteSubjectResource(connection, subject, resourceLabel);
+		return _remoteRESTService.deleteSubjectResource(connection, subject, resourceLabel);
 	}
 	
 	/**
@@ -191,7 +224,7 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse deleteProjectResource(RemoteConnection connection, String projectId, String resourceLabel) throws Exception{
-		return remoteRESTService.deleteProjectResource(connection, projectId, resourceLabel);
+		return _remoteRESTService.deleteProjectResource(connection, projectId, resourceLabel);
 	}
 	
 	/**
@@ -205,7 +238,7 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse importProjectResource(RemoteConnection connection, String projectId, String resourceLabel, File zipFile) throws Exception {
-		return remoteRESTService.importProjectResource(connection, projectId, resourceLabel, zipFile);
+		return _remoteRESTService.importProjectResource(connection, projectId, resourceLabel, zipFile);
 	}
 
 	/**
@@ -219,7 +252,7 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse importSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel, File zipFile) throws Exception{
-		return remoteRESTService.importSubjectResource(connection, subject, resourceLabel, zipFile);
+		return _remoteRESTService.importSubjectResource(connection, subject, resourceLabel, zipFile);
 	}
 
 	/**
@@ -231,7 +264,7 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse deleteExperiment(RemoteConnection connection, XnatExperimentdata experiment) throws Exception {
-		return remoteRESTService.deleteExperiment(connection, experiment);
+		return _remoteRESTService.deleteExperiment(connection, experiment);
 	}
 
 	/**
@@ -244,7 +277,7 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse importSubjectAssessor(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ) throws Exception{
-		return remoteRESTService.importSubjectAssessor(connection, subject,assessor);
+		return _remoteRESTService.importSubjectAssessor(connection, subject, assessor);
 	}
 	
 	/**
@@ -259,7 +292,7 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile ) throws Exception {
-		return remoteRESTService.importSubjectAssessorResource(connection, subject,assessor, resourceLabel, zipFile);
+		return _remoteRESTService.importSubjectAssessorResource(connection, subject, assessor, resourceLabel, zipFile);
 	}
 
 	/**
@@ -271,7 +304,7 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse importXar(RemoteConnection connection,File xar) throws Exception{
-		return remoteRESTService.importXar(connection, xar);
+		return _remoteRESTService.importXar(connection, xar);
 	}
 
 	/**
@@ -283,7 +316,6 @@ public class RemoteConnectionManager {
 	 * @throws Exception the exception
 	 */
 	public RemoteConnectionResponse getResult(RemoteConnection connection,String uri) throws Exception{
-		return remoteRESTService.getResult(connection,uri);
+		return _remoteRESTService.getResult(connection, uri);
 	}
-
 }

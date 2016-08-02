@@ -144,8 +144,8 @@ public class TestJson {
 		m.put("xsitype","xnat:petSessionData");
 		m.put("singularname", "PETSession");
 		mylist.add(m);
-		
-		QueryResultUtil queryResultUtil = new QueryResultUtil();
+
+		final QueryResultUtil queryResultUtil = new QueryResultUtil();
 		List<Map<String,Object>> reOrganized = queryResultUtil.reorganizeAsPivotColumnArray(mylist, "xsitype", "type");
 		for (Map<String,Object> arow : reOrganized) {
 			for (Entry<String,Object> r : arow.entrySet()) {

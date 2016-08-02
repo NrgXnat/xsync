@@ -5,5 +5,5 @@ package org.nrg.xsync.services.local;
  *
  */
 public interface MonthlySyncService {
-	public void syncMonthly();
+	void syncMonthly();
 }

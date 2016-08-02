@@ -1,10 +1,17 @@
 package org.nrg.xsync.utils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
+import com.google.common.base.Joiner;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
@@ -52,26 +59,28 @@ public class XsyncUtils {
 	public static final String SYNC_TYPE_INCLUDE = "include";
 	public static final String SYNC_TYPE_EXCLUDE = "exclude";
 
-	public static final String PROJECT_ELEMENT_JSON_NAME = "source_project_id"; 
+	public static final String PROJECT_ELEMENT_JSON_NAME = "source_project_id";
 
 	public static final String REMOTE_HOST_URL = "remote_url";
 
-	
-	
-	UserI _user;
 	private static final Logger _log = LoggerFactory.getLogger(XsyncUtils.class);
-	
-	
-	public XsyncUtils(UserI user) {
+
+	private final SerializerService          _serializer;
+	private final NamedParameterJdbcTemplate _jdbcTemplate;
+	private final UserI                      _user;
+
+	public XsyncUtils(final SerializerService serializer, final NamedParameterJdbcTemplate jdbcTemplate, final UserI user) {
+		_serializer = serializer;
+		_jdbcTemplate = jdbcTemplate;
 		_user = user;
 	}
 	
-	public synchronized void loadConfigurationToDB(File jsonFile) throws Exception{
-		ObjectMapper objectMapper = new ObjectMapper();
-		JsonNode synchronizationJson = objectMapper.readValue(jsonFile, JsonNode.class);
-		loadConfigurationToDB(synchronizationJson);
-		return;
-	}	
+	public synchronized void loadConfigurationToDB(final File jsonFile) throws Exception{
+		try (final InputStream input = new FileInputStream(jsonFile)) {
+			JsonNode synchronizationJson = _serializer.deserializeJson(input);
+			loadConfigurationToDB(synchronizationJson);
+		}
+	}
 	
 	public synchronized  void loadConfigurationToDB(JsonNode synchronizationJson) throws Exception{
         String sourceProjectId = synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText();
@@ -207,9 +216,7 @@ public class XsyncUtils {
 		parameters = new MapSqlParameterSource();
 		parameters.addValue("localProjectId", localProjectId);
 		parameters.addValue("localXnatId", localXnatId);
-		NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(
-				new JdbcTemplate(XDAT.getDataSource()));
-		 List<String> results = jdbcTemplate.queryForList(query, parameters,String.class);
+		 List<String> results = _jdbcTemplate.queryForList(query, parameters,String.class);
 		 if (results !=null && results.size()>1) {
 			 remoteId = results.get(0);
 		 }
