@@ -1,5 +1,11 @@
 package org.nrg.xnat.xsync.anonymize;
 
+import java.io.File;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+
 /**
  * @author Mohana Ramaratnam
  */
@@ -15,12 +21,6 @@ import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Callable;
 
 public class ExportAnonymizer extends AbstractExportAnonymizer implements Callable<Void>{
 	

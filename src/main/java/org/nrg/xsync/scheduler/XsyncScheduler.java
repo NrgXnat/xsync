@@ -1,7 +1,5 @@
 package org.nrg.xsync.scheduler;
 
-import javax.annotation.PostConstruct;
-
 import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
 import org.nrg.xsync.services.local.DailySyncService;
 import org.nrg.xsync.services.local.MonthlySyncService;
@@ -11,10 +9,10 @@ import org.nrg.xsync.services.local.impl.DailySync;
 import org.nrg.xsync.services.local.impl.MonthlySync;
 import org.nrg.xsync.services.local.impl.WeeklySync;
 import org.nrg.xsync.services.local.impl.XSyncAliasTokenRefresh;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 import org.springframework.scheduling.config.TriggerTask;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.PeriodicTrigger;
@@ -25,6 +23,12 @@ import org.springframework.scheduling.support.PeriodicTrigger;
 @Configuration
 @EnableScheduling
 public class XsyncScheduler {
+	
+	@Bean
+	public ThreadPoolExecutorFactoryBean threadPoolExecutorFactoryBean() {
+		return new ThreadPoolExecutorFactoryBean();
+	}
+	
     @Bean
     public XsyncSitePreferencesBean xsyncSitePreferencesBean() {
         return new XsyncSitePreferencesBean();
@@ -32,7 +36,7 @@ public class XsyncScheduler {
 
     @Bean
     // Request that this bean be constructed "PostConstruct" so it uses configured value
-    @PostConstruct
+   // @PostConstruct
     public TriggerTask refreshToken(final XsyncAliasRefreshService aliasRefreshService, final XsyncSitePreferencesBean prefs) {
         return new TriggerTask(new XSyncAliasTokenRefresh(aliasRefreshService),
                                new PeriodicTrigger(((prefs != null) ? prefs.getTokenRefreshIntervalInMillis() :

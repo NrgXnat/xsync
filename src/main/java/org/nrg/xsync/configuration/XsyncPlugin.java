@@ -34,9 +34,12 @@ import org.springframework.context.annotation.ComponentScan;
 	"org.nrg.xsync.component",
 	"org.nrg.xsync.scheduler",
 	"org.nrg.xsync.services",
+	"org.nrg.xsync.services.local",
 	"org.nrg.xsync.tools",
 	"org.nrg.xsync.remote",
 	"org.nrg.xsync.xapi",
+	"org.nrg.xsync.utils",	
+	"org.nrg.xsync.connection",
 	"org.nrg.xsync.manifest"})
 public class XsyncPlugin {
 	

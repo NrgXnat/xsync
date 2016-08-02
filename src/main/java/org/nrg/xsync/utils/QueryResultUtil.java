@@ -35,8 +35,8 @@ public class QueryResultUtil {
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
 
 	@Autowired
-	public QueryResultUtil(final NamedParameterJdbcTemplate jdbcTemplate) {
-		_jdbcTemplate = jdbcTemplate;
+	public QueryResultUtil(final JdbcTemplate jdbcTemplate) {
+        _jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 	}
 
 	/**
