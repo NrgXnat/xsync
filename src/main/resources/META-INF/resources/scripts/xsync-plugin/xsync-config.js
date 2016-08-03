@@ -187,7 +187,7 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 
 			var credentialsAjax = $.ajax({
 				type : "POST",
-		 		url: serverRoot + '/data/xsync/remoteREST?XNAT_CSRF=' + window.csrfToken,
+		 		url: serverRoot + '/xapi/xsync/remoteREST?XNAT_CSRF=' + window.csrfToken,
 				cache: false,
 				async: true,
 				dataType: 'json',
