@@ -2,7 +2,7 @@
 <!-- allowGuest: false -->
 <script type="text/javascript" >
 function syncNow(projectId) {
-	var exporturl = serverRoot + '/data/xsync/projects/'+projectId+'?XNAT_CSRF='+csrfToken ;
+	var exporturl = serverRoot + '/xapi/xsync/projects/'+projectId+'?XNAT_CSRF='+csrfToken ;
 	$.ajax({
 	  url:exporturl,
 	  type:"POST",
