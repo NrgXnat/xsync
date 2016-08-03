@@ -181,7 +181,7 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 			var tokenData = {
 				url: credHost + "/data/services/tokens/issue",
 				method: "GET",
-				user: credUser,
+				username: credUser,
 				password: credPassword
 			};
 
