@@ -1,5 +1,11 @@
 package org.nrg.xsync.configuration;
 
+import java.nio.file.Paths;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+
+import org.nrg.config.entities.Configuration;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
 import org.nrg.framework.services.SerializerService;
@@ -20,11 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import java.nio.file.Paths;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 
 /**
  * @author Mohana Ramaratnam
@@ -184,19 +185,19 @@ public class ProjectSyncConfiguration {
         boolean save = false;
         //No sync has been done so far. Set a dummy date and then start
         //If this is the first time that the sync is taking place
-        if (_syncProjectConfiguration.getSyncinfo().getSyncStartTime() == null) {
-            _syncProjectConfiguration.getSyncinfo().setSyncStartTime(OLD_CALENDAR.getTime());
+        if (syncProjectConfiguration.getSyncinfo().getSyncStartTime() == null) {
+            syncProjectConfiguration.getSyncinfo().setSyncStartTime(OLD_CALENDAR.getTime());
             save = true;
         }
-        if (_syncProjectConfiguration.getSyncinfo().getSyncEndTime() == null) {
-            _syncProjectConfiguration.getSyncinfo().setSyncEndTime(OLD_CALENDAR.getTime());
+        if (syncProjectConfiguration.getSyncinfo().getSyncEndTime() == null) {
+            syncProjectConfiguration.getSyncinfo().setSyncEndTime(OLD_CALENDAR.getTime());
             save = true;
         }
         if (save) {
             try {
                 //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
                 EventMetaI c = EventUtils.DEFAULT_EVENT(_user, "ADMIN_EVENT occurred");
-                _syncProjectConfiguration.save(_user, false, true, c);
+                syncProjectConfiguration.save(_user, false, true, c);
             } catch (Exception e) {
                 _log.debug("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
                 throw new XsyncNotConfiguredException("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
@@ -206,7 +207,8 @@ public class ProjectSyncConfiguration {
     }
 
     private SyncConfiguration setSyncConfigurationFromService(final String projectId) throws XsyncNotConfiguredException {
-        final String config = _configService.getConfig("xsync", "json", Scope.Project, projectId).getContents();
+        Configuration conf  = _configService.getConfig("xsync", "json", Scope.Project, projectId);
+        final String config	= conf.getContents();
 
         if (config != null) {
             try {
