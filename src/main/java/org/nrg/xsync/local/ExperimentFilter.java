@@ -705,7 +705,9 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	public void filterAssessorResources(XnatExperimentdata exp,SyncConfigurationImagingSessionAdvancedOption sessionOption)
 			throws IndexOutOfBoundsException, FieldNotFoundException {
 		SyncConfigurationSessionAssessor assessorOption = sessionOption.getSession_assessors();
+		if (assessorOption == null) return;
 		List<XnatImageassessordataI> assessors = ((XnatImagesessiondata)exp).getAssessors_assessor();
+		if (assessors == null) return;
 		for (XnatImageassessordataI ass:assessors) {
 			SyncConfigurationAdvancedOption assessorAdvOption = assessorOption.getAdvancedOption(ass.getXSIType());
 			if (assessorAdvOption != null) {

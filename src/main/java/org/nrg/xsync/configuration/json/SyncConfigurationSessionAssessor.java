@@ -45,6 +45,7 @@ public class SyncConfigurationSessionAssessor  {
 	public SyncConfigurationAdvancedOption getAdvancedOption(String asessorXsiType) {
 		SyncConfigurationAdvancedOption advOption = null;
 		List<SyncConfigurationAdvancedOption> advOptions = getAdvanced_options();
+		if (advOptions == null) return null;
 		for (SyncConfigurationAdvancedOption aOption : advOptions) {
 			if (aOption.getXsi_type().equals(asessorXsiType)) {
 				advOption = aOption;
