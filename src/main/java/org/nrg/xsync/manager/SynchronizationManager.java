@@ -109,19 +109,25 @@ public class SynchronizationManager {
 	
 	private static void cleanUp(String projectId) {
 		File folder = new File(GET_SYNC_FILE_PATH(projectId));
-		//Delete all the subfolders
-		 if (folder.isDirectory() && folder.exists()) {
-	          File[] list = folder.listFiles();
-	          for (File f:list) {
-	        	  if (f.isDirectory()) {
-	        		  f.delete();
-	        	  }
-	          }
-		 }
+		if (folder.exists())
+			rmdir(folder);
 	}
 	
-
-	
+	private static void rmdir(File folder) {
+		  // check if folder file is a real folder
+	      if (folder.isDirectory()) {
+	          File[] list = folder.listFiles();
+	          if (list != null) {
+	              for (int i = 0; i < list.length; i++) {
+	                  File tmpF = list[i];
+	                  if (tmpF.isDirectory()) {
+	                      rmdir(tmpF);
+	                  }
+	                  tmpF.delete();
+	              }
+	          }
+	      }
+	}	
 
 	private static String timeToPath(Date d) {
 		SimpleDateFormat ft = 

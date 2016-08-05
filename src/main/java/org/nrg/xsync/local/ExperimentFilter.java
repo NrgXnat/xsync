@@ -21,6 +21,7 @@ import org.nrg.xdat.model.XnatSubjectdataI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImageassessordata;
+import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatResourceseries;
@@ -614,8 +615,59 @@ public class ExperimentFilter {
 		SyncConfigurationImagingSessionAdvancedOption sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
 		while (findAndRemoveScantypes(exp, sessionOption))
 			;
+		filterScanResources(exp,sessionOption);
 		return;
 	}
+	
+	/**
+	 * Filter scan resources.
+	 *
+	 * @param exp
+	 *            the exp
+	 * @param sessionOption Session options.
+	 * @throws IndexOutOfBoundsException
+	 *             the index out of bounds exception
+	 * @throws FieldNotFoundException
+	 *             the field not found exception
+	 */
+	public void filterScanResources(XnatExperimentdata exp,SyncConfigurationImagingSessionAdvancedOption sessionOption)
+			throws IndexOutOfBoundsException, FieldNotFoundException {
+		SyncConfigurationResource rscOption = sessionOption.getScan_resources();
+		if (rscOption == null) return;
+		List<XnatImagescandataI> scans = ((XnatImagesessiondata)exp).getScans_scan();
+		for (XnatImagescandataI scan:scans) {
+				while (findAndRemoveScanResources(scan, rscOption))
+					;
+			}
+		return;
+	}
+
+/**
+ * Find and remove experiment resources.
+ *
+ * @param assessor
+ *            the exp
+ * @param resourcesCfg
+ *            the resource type
+ * @return true, if successful
+ */
+private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigurationResource resourcesCfg) {
+	boolean found = false;
+	if (resourcesCfg == null) {
+		return found;
+	}
+	List<XnatAbstractresourceI> resource = scan.getFile();
+	for (int i = 0; i < resource.size(); i++) {
+		if (!resourcesCfg.isAllowedToSync(resource.get(i).getLabel())) {
+			((XnatImagescandata)scan).removeFile(i);
+			found = true;
+			break;
+		}
+	}
+	return found;
+}
+
+	
 	
 	/**
 	 * Filter Assessors.
