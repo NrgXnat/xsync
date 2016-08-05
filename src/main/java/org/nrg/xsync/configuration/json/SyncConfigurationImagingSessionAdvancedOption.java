@@ -98,7 +98,7 @@ public class SyncConfigurationImagingSessionAdvancedOption extends SyncConfigura
 		if (session_assessors == null) {
 				isAllowed = true;
 		}else {
-			isAllowed = session_assessors.isAllowedToSync(assessorXsiType);
+			isAllowed = session_assessors.getXsi_types().isAllowedToSync(assessorXsiType);
 		}
 		return isAllowed;
 	}

@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 
-public class SyncConfigurationSessionAssessor extends SyncConfigurationXsiType  {
+public class SyncConfigurationSessionAssessor  {
 	SyncConfigurationXsiType xsi_types;
 	List<SyncConfigurationAdvancedOption> advanced_options;
 
