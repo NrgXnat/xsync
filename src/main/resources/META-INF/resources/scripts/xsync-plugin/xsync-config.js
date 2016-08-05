@@ -279,39 +279,6 @@ XSYNC.xsyncconfig.checkCredentials = function() {
 	Configuration Settings
  */
 
-function advConfig(){
-
-	var $container = $('#xsync-config-dialog');
-
-	XSYNC.xsyncconfig.render = XNAT.xhr.getJSON({
-		url: XNAT.url.rootUrl('/xapi/spawner/resolve/xsync/config'),
-		success: function(json){
-			var xsyncUI = XNAT.spawner.spawn(json);
-			$container.append(xsyncUI.get());
-			xsyncUI.render($container);
-		}
-	});
-
-	XSYNC.xsyncconfig.render.done(function(){
-
-		function addResource(container, resourceType){
-			var $container = $$(container);
-			var $lastInput = $container.find('input').last();
-			var lastIndex = $lastInput.dataAttr('index');
-			var $newInput = $lastInput.clone();
-			$newInput.val('').dataAttr('index', lastIndex + 1);
-			$newInput.attr('name', resourceType + '[' + (lastIndex + 1) + ']');
-			$container.append($newInput);
-		}
-
-		$('#project-sync-config').on('click', 'button.add-resource', function(){
-			var resourceType = $(this).dataAttr('resourceType');
-			var container = $(this).dataAttr('resourceList');
-			addResource(container, resourceType);
-		});
-	});
-}
-
 XSYNC.xsyncconfig.editConfig = function() {
 	XSYNC.xsyncconfig.modal = xmodal.open({
 		title: "Project Sync Settings for " + XNAT.data.context.project,
@@ -320,8 +287,12 @@ XSYNC.xsyncconfig.editConfig = function() {
 		buttons: {
 			submit: {
 				label: "Submit",
-				action: function() {
-					XSYNC.xsyncconfig.submitConfig()
+				action: function(obj) {
+					var form = obj.$modal.find('form')[0];
+					var jsonObject = form2js(form);
+					jsonObject.source_project_id = XNAT.data.context.project;
+					XSYNC.xsyncconfig.submitConfig(JSON.stringify(jsonObject));
+					$(form).triggerHandler('reload-data')
 				}
 			},
 			close: {
@@ -332,37 +303,75 @@ XSYNC.xsyncconfig.editConfig = function() {
 			var spawnerConfig = spawnConfig();
 			var $wrapper = obj.$modal.find('#xsync-config-dialog');
 			XNAT.spawner.spawn(spawnerConfig).render($wrapper);
-			// advConfig();
 		}
 	});
 };
 
 function spawnConfig() {
-	function configPanel(contents) {
+
+	// Basic Config Elements
+
+	function configPanel() {
 		return {
-			kind: 'panel',
+			kind: 'panel.form',
+			title: 'XSync Configuration',
+			load: "XSYNC.xsyncconfig.configuration",
+			refresh: "/xapi/xsync/projects/" + XNAT.data.context.project,
+			action: "#",
 			contents: {
-				"Enabled": enabled(),
-				"New Data Only": syncNewOnly(),
-				"Destination XNAT": remoteUrl(),
-				"Destination Project ID": remoteProject(),
+				enabled: enabled(),
+				newOnly: syncNewOnly(),
+				destXnat: remoteUrl(),
+				destProjectId: remoteProject(),
 				frequency: frequency(),
-				identifiers: identifiers()
-			}
+				identifiers: identifiers(),
+				advancedConfigHeading: {
+					kind: 'panel.element',
+					label: '<h3>Advanced Settings</h3>'
+				},
+				projectResources: {
+					tag: "div",
+					contents: {
+						projectResourceSelect:
+							syncTypeSelector("project_resources.sync_type", "Project Resources"),
+						projectResourceInput:
+							resourceInput("project_resources.sync_type")
+					}
+				},
+				subjectResources: {
+					tag: "div",
+					contents: {
+						subjectResourceSelect:
+							syncTypeSelector("subject_resources.sync_type", "Subject Resources"),
+						subjectResourceInput:
+							resourceInput("subject_resources.sync_type")
+					}
+				}
+
+			},
+			footer: false
 		}
 	}
 
 	function enabled() {
 		return {
-			id: 'xsync-config-enabled',
+			id: 'enabled',
 			kind: 'panel.input.checkbox',
-			name: 'enabled-switch',
-			label: 'Enabled',
-			checked: XSYNC.xsyncconfig.configuration.enabled,
-			value: 'true',
-			text: {
-				on: "enabled",
-				off: "disabled"
+			name: 'enabled',
+			label: 'Enabled'
+		}
+	}
+
+	function frequency() {
+		return {
+			kind: 'panel.select.menu',
+			id: 'sync_frequency',
+			name: 'sync_frequency',
+			label: 'Sync Frequency',
+			options: {
+				daily: 'Daily',
+				weekly: 'Weekly',
+				monthly: 'Monthly'
 			}
 		}
 	}
@@ -371,9 +380,8 @@ function spawnConfig() {
 		return {
 			id: 'xsync-config-newonly',
 			kind: 'panel.input.checkbox',
-			name: 'new-only-switch',
-			label: 'New Data Only',
-			checked: XSYNC.xsyncconfig.configuration.sync_new_only
+			name: 'sync_new_only',
+			label: 'New Data Only'
 		}
 	}
 
@@ -381,69 +389,91 @@ function spawnConfig() {
 		return {
 			kind: 'panel.input.text',
 			id: 'xsync-config-remote-url',
-			//name: '',
+			name: 'remote_url',
 			label: 'Destination XNAT',
-			value: XSYNC.xsyncconfig.configuration.remote_url,
-			element: {
-				onchange: function () {
-					// console.log(this.value)
-				}
-			}
+			// value: XSYNC.xsyncconfig.configuration.remote_url
 		}
 	}
 
 	function remoteProject() {
 		return {
 			kind: 'panel.input.text',
-			id: 'xsync-config-remote-project',
-			//name: '',
+			id: 'remote_project_id',
+			name: 'remote_project_id',
 			label: 'Destination Project',
-			value: XSYNC.xsyncconfig.configuration.remote_project_id,
-			element: {
-				onchange: function () {
-					// console.log(this.value)
-				}
-			}
-		}
-	}
-
-	function frequency() {
-		return {
-			kind: 'panel.select.menu',
-			id: 'xsync-config-frequency',
-			// name: '',
-			label: 'Sync Frequency',
-			value: XSYNC.xsyncconfig.configuration.sync_frequency,
-			options: {
-				daily: 'Daily',
-				weekly: 'Weekly',
-				monthly: 'Monthly'
-			},
-			element: {
-				onchange: function () {
-					// alert(this.value)
-				}
-			}
+			// value: XSYNC.xsyncconfig.configuration.remote_project_id
 		}
 	}
 
 	function identifiers() {
 		return {
 			kind: 'panel.select.menu',
-			// name: '',
+			name: 'identifiers',
 			id: 'xsync-config-identifiers',
-			label: 'Use Identifiers',
-			value: XSYNC.xsyncconfig.configuration.identifiers,
+			label: 'Identifiers',
+			// value: XSYNC.xsyncconfig.configuration.identifiers,
 			options: {
 				use_local: 'Local',
-				use_remote: 'Remote',
-				use_random: 'Random'
+				use_remote: 'Remote'
+			}
+		}
+	}
+
+	// Config UI Common Widgets
+
+	function syncTypeSelector(name, label) {
+		return {
+			kind: 'panel.select.menu',
+			name: name,
+			id: name.replace(/\./g, '') + '_select_menu_id',
+			label: label,
+			options: {
+				all: 'All',
+				none: 'None',
+				include: 'Include',
+				exclude: 'Exclude'
 			},
 			element: {
-				onchange: function () {
-					// alert(this.value)
+				onchange: function() {
+					showHideInput(this, name)
 				}
 			}
+		}
+	}
+
+	// Function level map to keep track of which text inputs should be visible
+	var showTextInput = {};
+
+	function resourceInput(name) {
+		showTextInput[name] = false;
+
+		return {
+			kind: 'input.text',
+			name: name + '.resource_list',
+			id: name.replace(/\./g, '') + '_input_text_id',
+			size: 100
+		}
+	}
+
+	function xsiTypeInput() {}
+
+
+	// Config UI Helpers
+
+	function showHideInput(selector, name) {
+		// jquery doesn't like to select ids with periods
+		var inputId = name.replace(/\./g, '') + '_input_text_id';
+		var $textInput = $('#'+inputId);
+
+		// show or hide input text box
+		if ((selector.value == "include" || selector.value == "exclude") && !showTextInput[name]) {
+			$textInput.show();
+			showTextInput[name] = true;
+		} else if ((selector.value == "all" || selector.value == "none" && showTextInput[name])) {
+			// remove input contents and hide
+			$textInput.hide();
+			$textInput.empty();
+			showTextInput[name] = false;
 		}
 	}
 
@@ -452,10 +482,10 @@ function spawnConfig() {
 	};
 }
 
-XSYNC.xsyncconfig.submitConfig = function() {
+XSYNC.xsyncconfig.submitConfig = function(jsonString) {
 
 	if (XSYNC.xsyncconfig.checkCredentials()) {
-		XSYNC.xsyncconfig.saveConfig();
+		XSYNC.xsyncconfig.saveConfig(jsonString);
 		return;
 	}
 
@@ -471,6 +501,7 @@ XSYNC.xsyncconfig.submitConfig = function() {
 				'<div style="width:100px; float:left;">Password: </div><span><input type="password" size=20 id="xsync-credentials-password">' +
 			'</div>' +
 		"</div>";
+
 	var pModalOpts = {
 		width: 600,
 		height: 380,
@@ -489,19 +520,19 @@ XSYNC.xsyncconfig.submitConfig = function() {
 		cancelAction: function(){ xmodal.close(XNAT.app.abu.abuConfigs.modalOpts.id); },
 		closeBtn: 'hide'
 	};
+
 	xmodal.open(pModalOpts);
 	$('#xsync-credentials-username').focus();
 }
 
-XSYNC.xsyncconfig.saveConfig = function() {
-	var newJson = XSYNC.xsyncconfig.constructNewJson();
-
+XSYNC.xsyncconfig.saveConfig = function(newJson) {
 	var xsyncConfigAjax = $.ajax({
-		type : "POST",
- 		url:serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '?XNAT_CSRF=' + window.csrfToken,
+		type: "POST",
+ 		url: serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '?XNAT_CSRF=' + window.csrfToken,
 		cache: false,
 		async: true,
-		data:  JSON.stringify(newJson),
+		// dataType: 'json',
+		data: newJson,
 		contentType: "application/json; charset=utf-8"
 	 });
 
@@ -509,13 +540,12 @@ XSYNC.xsyncconfig.saveConfig = function() {
 		$("#xsync-annon_add-config").attr("disabled", false);
 		xmodal.message('Saved','The XSync configuration has been saved');
 		XSYNC.xsyncconfig.modal.close();
-		console.log(JSON.stringify(newJson));
+		console.log(newJson);
 	});
 
 	xsyncConfigAjax.fail( function( data, textStatus, error ) {
 		console.log(newJson);
-		console.log(JSON.stringify(newJson));
-		xmodal.message('Error','ERROR:  Configuration was not successfully saved (' + textStatus + ')');
+		xmodal.message('Error',  'Configuration was not successfully saved (' + error + ')');
 	});
 }
 
@@ -570,123 +600,6 @@ XSYNC.xsyncconfig.updateCredentialsAndSaveConfig = function() {
 		credentialsAjax.fail( function( data, textStatus, error ) {
 			xmodal.message('Error','ERROR:  Could not get alias token');
 	});
-}
-
-XSYNC.xsyncconfig.constructNewJson = function() {
-	var newJson = {};
-	newJson.enabled = $("#xsync-config-enabled").val();
-	newJson.sync_frequency = $("#xsync-config-frequency").val();
-	newJson.sync_new_only =  $("#xsync-config-newonly").val();
-	newJson.source_project_id = XNAT.data.context.project;
-	newJson.remote_project_id = $("#xsync-config-remote-project").val();
-	newJson.remote_url = $("#xsync-config-remote-url").val();
-	newJson.identifiers = $("#xsync-config-identifiers").val();
-
-	console.log(newJson);
-
-	return newJson;
-
-	////////////////////////////////////////////
-	// TODO
-	////////////////////////////////////////////
-
-	newJson.projectresources = $(".project-resource-input").map(function(){
-		return this.value;
-	});
-
-	newJson.projectresources = [];
-	$(".project-resource-input").each(function() {
-		var newresource = $(this).val();
-		if (typeof newresource == undefined || newresource.length<1) {
-			return true;
-		}
-		newJson.projectresources.push(newresource);
-	});
-	newJson.subjectresources = [];
-	$(".subject-resource-input").each(function() {
-		var newresource = $(this).val();
-		if (typeof newresource == undefined || newresource.length<1) {
-			return true;
-		}
-		newJson.subjectresources.push(newresource);
-	});
-	newJson.subjectassessors = [];
-	$(".xsync-subject-assessor-div").each(function() {
-		var checkval = $(this).find(".subject-assessor-xsitype-input").val();
-		if (typeof checkval == undefined || checkval.length<1) {
-			return true;
-		}
-		var subject_assessor = {};
-		subject_assessor.xsiType = $(this).find(".subject-assessor-xsitype-input").val();
-		subject_assessor.needs_ok_to_sync = JSON.parse($(this).find(".subject-assessor-needsok-input").val().toLowerCase());
-		subject_assessor.resources = [];
-		$(this).find(".subject-assessor-resource-input").each(function() {
-			var newresource = $(this).val();
-			if (typeof newresource == undefined || newresource.length<1) {
-				return true;
-			}
-			subject_assessor.resources.push(newresource);
-		});
-		newJson.subjectassessors.push(subject_assessor);
-	});
-	newJson.imagingsessions = [];
-	$(".xsync-imaging-session-div").each(function() {
-		var checkval = $(this).find(".imaging-session-xsitype-input").val();
-		if (typeof checkval == undefined || checkval.length<1) {
-			return true;
-		}
-		var imaging_session = {};
-		imaging_session.xsiType = $(this).find(".imaging-session-xsitype-input").val();
-		imaging_session.needs_ok_to_sync = JSON.parse($(this).find(".imaging-session-needsok-input").val().toLowerCase());
-		imaging_session.anonymize = JSON.parse($(this).find(".imaging-session-anonymize-input").val().toLowerCase());
-		imaging_session.resources = [];
-		$(this).find(".imaging-session-resource-input").each(function() {
-			var newresource = $(this).val();
-			if (typeof newresource == undefined || newresource.length<1) {
-				return true;
-			}
-			imaging_session.resources.push(newresource);
-		});
-		imaging_session.scans = [];
-		$(this).find(".xsync-imaging-session-scan-div").each(function() {
-			var checkval = $(this).find(".imaging-session-scan-type-input").val();
-			if (typeof checkval == undefined || checkval.length<1) {
-				return true;
-			}
-			var scan = {};
-			scan.type = $(this).find(".imaging-session-scan-type-input").val();
-			scan.resources = [];
-			$(this).find(".imaging-scan-resource-input").each(function() {
-				var newresource = $(this).val();
-				if (typeof newresource == undefined || newresource.length<1) {
-					return true;
-				}
-				scan.resources.push(newresource);
-			});
-			imaging_session.scans.push(scan);
-		});
-		imaging_session.assessors = [];
-		$(this).find(".xsync-imaging-session-assessor-div").each(function() {
-			var checkval = $(this).find(".imaging-session-assessor-xsitype-input").val();
-			if (typeof checkval == undefined || checkval.length<1) {
-				return true;
-			}
-			var assessor = {};
-			assessor.xsiType = $(this).find(".imaging-session-assessor-xsitype-input").val();
-			assessor.needs_ok_to_sync = JSON.parse($(this).find(".imaging-session-assessor-needsok-input").val().toLowerCase());
-			assessor.resources = [];
-			$(this).find(".imaging-assessor-resource-input").each(function() {
-				var newresource = $(this).val();
-				if (typeof newresource == undefined || newresource.length<1) {
-					return true;
-				}
-				assessor.resources.push(newresource);
-			});
-			imaging_session.assessors.push(assessor);
-		});
-		newJson.imagingsessions.push(imaging_session);
-	});
-	return newJson;
 }
 
 /*
