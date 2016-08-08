@@ -303,6 +303,8 @@ XSYNC.xsyncconfig.editConfig = function() {
 			var spawnerConfig = spawnConfig();
 			var $wrapper = obj.$modal.find('#xsync-config-dialog');
 			XNAT.spawner.spawn(spawnerConfig).render($wrapper);
+			var form = obj.$modal.find('form')[0];
+			$(form).find('select').trigger('change');
 		}
 	});
 };
@@ -335,7 +337,7 @@ function spawnConfig() {
 						projectResourceSelect:
 							syncTypeSelector("project_resources.sync_type", "Project Resources"),
 						projectResourceInput:
-							resourceInput("project_resources.sync_type")
+							resourceInput("project_resources.resource_list")
 					}
 				},
 				subjectResources: {
@@ -344,10 +346,27 @@ function spawnConfig() {
 						subjectResourceSelect:
 							syncTypeSelector("subject_resources.sync_type", "Subject Resources"),
 						subjectResourceInput:
-							resourceInput("subject_resources.sync_type")
+							resourceInput("subject_resources.resource_list")
+					}
+				},
+				subjectAssessors: {
+					tag: "div",
+					contents: {
+						subjectAssessorSelect:
+							syncTypeSelector("subject_assessors.xsi_types.sync_type", "Subject Assessors"),
+						subjectAssessorXsiTypes:
+							resourceInput("subject_assessors.xsi_types.types_list")
+					}
+				},
+				imagingSessions: {
+					tag: "div",
+					contents: {
+						imagingSessionsSelect:
+							syncTypeSelector("imaging_sessions.xsi_types.sync_type", "Imaging Sessions"),
+						imagingSessionsXsiTypes:
+							resourceInput("imaging_sessions.xsi_types.types_list")
 					}
 				}
-
 			},
 			footer: false
 		}
@@ -391,7 +410,6 @@ function spawnConfig() {
 			id: 'xsync-config-remote-url',
 			name: 'remote_url',
 			label: 'Destination XNAT'
-			// value: XSYNC.xsyncconfig.configuration.remote_url
 		}
 	}
 
@@ -401,7 +419,6 @@ function spawnConfig() {
 			id: 'remote_project_id',
 			name: 'remote_project_id',
 			label: 'Destination Project'
-			// value: XSYNC.xsyncconfig.configuration.remote_project_id
 		}
 	}
 
@@ -411,7 +428,6 @@ function spawnConfig() {
 			name: 'identifiers',
 			id: 'xsync-config-identifiers',
 			label: 'Identifiers',
-			// value: XSYNC.xsyncconfig.configuration.identifiers,
 			options: {
 				use_local: 'Local',
 				use_remote: 'Remote'
@@ -425,7 +441,7 @@ function spawnConfig() {
 		return {
 			kind: 'panel.select.menu',
 			name: name,
-			id: name.replace(/\./g, '') + '_select_menu_id',
+			id: name.replace(/\./g, '_') + '_select_menu_id',
 			label: label,
 			options: {
 				all: 'All',
@@ -435,7 +451,7 @@ function spawnConfig() {
 			},
 			element: {
 				onchange: function() {
-					showHideInput(this, name)
+					showHideInput(this, name.replace('sync_type', 'resource_list'))
 				}
 			}
 		}
@@ -445,34 +461,49 @@ function spawnConfig() {
 	var showTextInput = {};
 
 	function resourceInput(name) {
+	    var inputId = name.replace(/\./g, '_') + '_input_text_id';
+        // Initialize
+        $('#'+inputId).hide();
 		showTextInput[name] = false;
 
 		return {
 			kind: 'input.text',
-			name: name + '.resource_list',
-			id: name.replace(/\./g, '') + '_input_text_id',
-			size: 100
+			name: name,
+			id: inputId,
+			size: 50
 		}
 	}
 
-	function xsiTypeInput() {}
+	// function xsiTypeInput(name) {
+	// 	var inputId = name.replace(/\./g, '_') + '_input_text_id';
+	// 	// Initialize
+	// 	$('#'+inputId).hide();
+	// 	showTextInput[name] = false;
+    //
+	// 	return {
+	// 		kind: 'input.text',
+	// 		name: name,
+	// 		id: inputId,
+	// 		size: 50
+	// 	}
+	// }
 
 
 	// Config UI Helpers
 
 	function showHideInput(selector, name) {
 		// jquery doesn't like to select ids with periods
-		var inputId = name.replace(/\./g, '') + '_input_text_id';
+		var inputId = name.replace(/\./g, '_') + '_input_text_id';
 		var $textInput = $('#'+inputId);
 
 		// show or hide input text box
 		if ((selector.value == "include" || selector.value == "exclude") && !showTextInput[name]) {
 			$textInput.show();
 			showTextInput[name] = true;
-		} else if ((selector.value == "all" || selector.value == "none" && showTextInput[name])) {
+		} else if ((selector.value == "all" || selector.value == "none")) {
 			// remove input contents and hide
+			$textInput.val("");
 			$textInput.hide();
-			$textInput.empty();
 			showTextInput[name] = false;
 		}
 	}
