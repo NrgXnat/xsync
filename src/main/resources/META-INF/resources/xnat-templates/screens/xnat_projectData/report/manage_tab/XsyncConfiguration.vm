@@ -6,7 +6,7 @@
     <div id='xsync-config-div'>
     </div>
     <script type="text/javascript">
-        $.ready(XSYNC.xsyncconfig.initialize());
+        $(XSYNC.xsyncconfig.initialize);
     </script>
 </div>
 ##<h3>XSync Credentials</h3>
