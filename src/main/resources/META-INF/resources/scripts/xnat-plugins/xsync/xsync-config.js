@@ -390,7 +390,7 @@ function spawnConfig() {
 			kind: 'panel.input.text',
 			id: 'xsync-config-remote-url',
 			name: 'remote_url',
-			label: 'Destination XNAT',
+			label: 'Destination XNAT'
 			// value: XSYNC.xsyncconfig.configuration.remote_url
 		}
 	}
@@ -400,7 +400,7 @@ function spawnConfig() {
 			kind: 'panel.input.text',
 			id: 'remote_project_id',
 			name: 'remote_project_id',
-			label: 'Destination Project',
+			label: 'Destination Project'
 			// value: XSYNC.xsyncconfig.configuration.remote_project_id
 		}
 	}
