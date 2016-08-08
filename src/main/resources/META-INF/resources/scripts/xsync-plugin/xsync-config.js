@@ -348,8 +348,25 @@ function spawnConfig() {
 						subjectResourceInput:
 							resourceInput("subject_resources.resource_list")
 					}
+				},
+				subjectAssessors: {
+					tag: "div",
+					contents: {
+						subjectAssessorSelect:
+							syncTypeSelector("subject_assessors.xsi_types.sync_type", "Subject Assessors"),
+						subjectAssessorXsiTypes:
+							resourceInput("subject_assessors.xsi_types.types_list")
+					}
+				},
+				imagingSessions: {
+					tag: "div",
+					contents: {
+						imagingSessionsSelect:
+							syncTypeSelector("imaging_sessions.xsi_types.sync_type", "Imaging Sessions"),
+						imagingSessionsXsiTypes:
+							resourceInput("imaging_sessions.xsi_types.types_list")
+					}
 				}
-
 			},
 			footer: false
 		}
@@ -457,7 +474,19 @@ function spawnConfig() {
 		}
 	}
 
-	function xsiTypeInput() {}
+	// function xsiTypeInput(name) {
+	// 	var inputId = name.replace(/\./g, '_') + '_input_text_id';
+	// 	// Initialize
+	// 	$('#'+inputId).hide();
+	// 	showTextInput[name] = false;
+    //
+	// 	return {
+	// 		kind: 'input.text',
+	// 		name: name,
+	// 		id: inputId,
+	// 		size: 50
+	// 	}
+	// }
 
 
 	// Config UI Helpers
@@ -471,7 +500,7 @@ function spawnConfig() {
 		if ((selector.value == "include" || selector.value == "exclude") && !showTextInput[name]) {
 			$textInput.show();
 			showTextInput[name] = true;
-		} else if ((selector.value == "all" || selector.value == "none") && showTextInput[name]) {
+		} else if ((selector.value == "all" || selector.value == "none")) {
 			// remove input contents and hide
 			$textInput.val("");
 			$textInput.hide();
