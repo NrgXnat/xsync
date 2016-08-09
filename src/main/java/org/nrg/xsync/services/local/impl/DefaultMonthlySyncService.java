@@ -57,7 +57,7 @@ public class DefaultMonthlySyncService extends AbstractSyncService implements Mo
                 logger.debug(e.getMessage());
                 XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), "", e, "Monthly sync failed");
             }finally{
-                executor.shutdown();
+                //executor.shutdown();
             }
         }
         logger.info("Monthly Sync Trigger - END " + new Date());

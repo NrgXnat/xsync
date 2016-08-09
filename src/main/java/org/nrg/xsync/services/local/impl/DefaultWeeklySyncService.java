@@ -59,7 +59,7 @@ public class DefaultWeeklySyncService extends AbstractSyncService implements Wee
                 logger.debug(e.getMessage());
                 XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), "", e, "Weekly sync failed");
             }finally {
-                executor.shutdown();
+                //executor.shutdown();
             }
         }
         logger.info("Weekly Sync Trigger - END " + new Date());

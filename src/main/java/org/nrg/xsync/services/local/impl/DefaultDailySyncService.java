@@ -58,7 +58,7 @@ public class DefaultDailySyncService extends AbstractSyncService implements Dail
 				logger.debug(e.getMessage(), e);
 				XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), "Project", e, "Daily sync failed");
 			} finally {
-				executor.shutdown();
+				//executor.shutdown();
 			}
 		}
 	}
