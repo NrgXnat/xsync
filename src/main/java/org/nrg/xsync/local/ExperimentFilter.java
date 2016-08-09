@@ -547,10 +547,12 @@ public class ExperimentFilter {
 	 *             the field not found exception
 	 */
 	public void filterExperimentResources(XnatExperimentdata exp)
-			throws IndexOutOfBoundsException, FieldNotFoundException {
+			throws Exception {
 		SyncConfigurationImagingSessionAdvancedOption session = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
 	    SyncConfigurationResource sessionResources = session.getResources();
 		while (findAndRemoveExperimentResources(exp, sessionResources))	;
+		//Look for configured resources which have been modified since last sync
+		//while (findAndRemoveExperimentResourcesNotModified(exp, sessionResources))	;
 		return;
 	}
 
@@ -566,6 +568,28 @@ public class ExperimentFilter {
 		List<XnatAbstractresourceI> resource = exp.getResources_resource();
 		for (int i = 0; i < resource.size(); i++) {
 			if (!resourcesCfg.isAllowedToSync(resource.get(i).getLabel())) {
+				exp.removeResources_resource(i);
+				found = true;
+				break;
+			}
+		}
+		return found;
+	}
+
+	/**
+	 * Find and remove experiment resources.
+	 *
+	 * @param exp
+	 *            the exp
+	 * @return true, if successful
+	 */
+	private boolean findAndRemoveExperimentResourcesNotModified(XnatExperimentdata exp, SyncConfigurationResource resourcesCfg) throws Exception {
+		boolean found = false;
+		Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
+		List<XnatAbstractresourceI> resources = exp.getResources_resource();
+		ResourceFilter resourceFilter = new ResourceFilter(_user,_jdbcTemplate,_queryResultUtil);
+		for (int i = 0; i < resources.size(); i++) {
+			if (!resourceFilter.hasResourceBeenModified((XnatAbstractresource)resources.get(i), syncEndDate)) {
 				exp.removeResources_resource(i);
 				found = true;
 				break;
@@ -616,6 +640,7 @@ public class ExperimentFilter {
 		while (findAndRemoveScantypes(exp, sessionOption))
 			;
 		filterScanResources(exp,sessionOption);
+		//filterScanResourcesNotModified(exp,sessionOption);
 		return;
 	}
 	
@@ -642,6 +667,8 @@ public class ExperimentFilter {
 		return;
 	}
 
+	
+	
 /**
  * Find and remove experiment resources.
  *

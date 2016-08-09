@@ -26,7 +26,11 @@ public class XsyncScheduler {
 	
 	@Bean
 	public ThreadPoolExecutorFactoryBean threadPoolExecutorFactoryBean() {
-		return new ThreadPoolExecutorFactoryBean();
+		//return new ThreadPoolExecutorFactoryBean();
+		ThreadPoolExecutorFactoryBean tBean = new ThreadPoolExecutorFactoryBean();
+		tBean.setCorePoolSize(5);
+		tBean.setThreadNamePrefix("xsync-thread-");
+		return tBean;
 	}
 	
     @Bean

@@ -238,14 +238,15 @@ public class RemoteSubject {
 		subjectSyncInfo.setRemoteId(remote_id);
 		subjectSyncInfo.setXsiType(xsiType);
 		subjectSyncInfo.setRemoteLabel(remote_label);
-
+		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 		XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
-		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType);
+		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType,remoteProjectId);
 	}
 
 	private void saveSyncDetails(String local_id, String remote_id,  String syncStatus, String xsiType) {
+		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 		XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
-		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType);
+		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType,remoteProjectId);
 	}
 
 	
@@ -594,12 +595,19 @@ public class RemoteSubject {
 		if (resource instanceof XnatResource) {
 			String path = ((XnatResource) resource).getUri();
 			int exp_label_index = path.indexOf(orig.getLabel());
-			String newURI = path.substring(exp_label_index);
+			String newURI = path.substring(exp_label_index+orig.getLabel().length());
+			if (newURI.startsWith(File.separator)) {
+				newURI=newURI.substring(1);
+			}
 			((XnatResource) resource).setUri(newURI);
+			//Clear the catalog entries metadata
 		} else if (resource instanceof XnatResourceseries) {
 			String path = ((XnatResourceseries) resource).getPath();
 			int exp_label_index = path.indexOf(orig.getLabel());
-			String newURI = path.substring(exp_label_index);
+			String newURI = path.substring(exp_label_index+orig.getLabel().length());
+			if (newURI.startsWith(File.separator)) {
+				newURI=newURI.substring(1);
+			}
 			((XnatResource) resource).setUri(newURI);
 		}
 	}

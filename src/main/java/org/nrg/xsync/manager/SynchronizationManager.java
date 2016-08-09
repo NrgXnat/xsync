@@ -103,7 +103,7 @@ public class SynchronizationManager {
 			manifest.syncInfoToFile(syncInfoFilePath);
 			manifest.syncInfoToDatabase();
 			//Clean up the cache path contents
-			cleanUp(projectId);
+			if (manifest.wasSyncSuccessfull()) cleanUp(projectId);
 	    }
 	}
 	
@@ -123,7 +123,8 @@ public class SynchronizationManager {
 	                  if (tmpF.isDirectory()) {
 	                      rmdir(tmpF);
 	                  }
-	                  tmpF.delete();
+	                  if (!tmpF.getAbsolutePath().endsWith("_sync.html"))
+	                	  tmpF.delete();
 	              }
 	          }
 	      }

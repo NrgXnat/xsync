@@ -2,6 +2,7 @@ package org.nrg.xsync.services.remote;
 
 
 import java.io.File;
+import java.io.FileWriter;
 
 import org.apache.log4j.Logger;
 import org.nrg.xdat.om.XnatExperimentdata;
@@ -10,6 +11,7 @@ import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
+import org.nrg.xsync.manager.SynchronizationManager;
 import org.springframework.core.NestedRuntimeException;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
@@ -409,8 +411,17 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
 			response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
 		} catch (XsyncHttpAuthenticationException authex) {
-			final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
-			response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+			try {
+				final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
+				response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+			}catch(Exception e) {
+				String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(subject.getProject());
+				File subjectF = new File(cachePath + "failed_" + subject.getLabel()+".xml");
+				FileWriter fw = new FileWriter(subjectF);
+				subject.toXML(fw, false);
+				fw.close();
+				throw e;
+			}
 		}
 		
 		logger.info(response);

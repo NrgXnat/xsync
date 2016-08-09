@@ -147,38 +147,47 @@
     <xs:element name="XsyncRemoteMapData" type="xsync:xsyncRemoteMapData"></xs:element>
     <xs:complexType name="xsyncRemoteMapData">
     	<xs:sequence>
-    		<xs:element name="source_project_id" type="xs:string" maxOccurs="1"
-    			minOccurs="1">
-  			<xs:annotation>
-				<xs:appinfo>
-					<xdat:field baseElement="xsync:xsyncProjectData" baseCol="source_project_id">
-						<xdat:sqlField name="source_project_id"/>
-					</xdat:field>
-				</xs:appinfo>
-			</xs:annotation>
+    		<xs:element name="source_project_id" type="xs:string"
+    			maxOccurs="1" minOccurs="1">
+    			<xs:annotation>
+    				<xs:appinfo>
+    					<xdat:field baseElement="xsync:xsyncProjectData"
+    						baseCol="source_project_id">
+    						<xdat:sqlField name="source_project_id" uniqueComposite="UNIQ_REMOTE" />
+    					</xdat:field>
+    				</xs:appinfo>
+    			</xs:annotation>
     		</xs:element>
-    		<xs:element name="local_xnat_id" type="xs:string" maxOccurs="1"
-    			minOccurs="1">
-			<xs:annotation>
-				<xs:appinfo>
-					<xdat:field>
-						<xdat:sqlField primaryKey="true"/>
-					</xdat:field>
-				</xs:appinfo>
-			</xs:annotation>
+    		<xs:element name="local_xnat_id" type="xs:string"
+    			maxOccurs="1" minOccurs="1">
+    			<xs:annotation>
+    				<xs:appinfo>
+    					<xdat:field uniqueComposite="UNIQ_REMOTE">
+    						<xdat:sqlField primaryKey="true"  />
+    					</xdat:field>
+    				</xs:appinfo>
+    			</xs:annotation>
     		</xs:element>
     		<xs:element name="xsiType" type="xs:string" maxOccurs="1"
     			minOccurs="1">
-  			<xs:annotation>
-				<xs:appinfo>
-					<xdat:field baseElement="xdat:xdat_meta_element" baseCol="element_name">
-						<xdat:sqlField name="xsiType"/>
-					</xdat:field>
-				</xs:appinfo>
-			</xs:annotation>
+    			<xs:annotation>
+    				<xs:appinfo>
+    					<xdat:field baseElement="xdat:xdat_meta_element"
+    						baseCol="element_name">
+    						<xdat:sqlField name="xsiType" />
+    					</xdat:field>
+    				</xs:appinfo>
+    			</xs:annotation>
     		</xs:element>
     		<xs:element name="remote_xnat_id" type="xs:string"></xs:element>
     		<xs:element name="sync_status" type="xs:string"></xs:element>
+    		<xs:element name="remote_project_id" type="xs:string">
+			<xs:annotation>
+				<xs:appinfo>
+					<xdat:field uniqueComposite="UNIQ_REMOTE"/>
+				</xs:appinfo>
+			</xs:annotation>
+    		</xs:element>
     	</xs:sequence>
     </xs:complexType>
 </xs:schema>

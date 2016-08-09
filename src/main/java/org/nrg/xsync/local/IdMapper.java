@@ -64,10 +64,12 @@ public class IdMapper {
 	
 	private String getAssignedRemoteId(String localXnatId) {
 		String remoteId = null;
+        String remoteProjectId = syncProjectConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 		String query = "select remote_xnat_id from xsync_xsyncremotemapdata";
-		query += " where local_xnat_id=:localXnatId";
+		query += " where local_xnat_id=:localXnatId and remote_project_id=:remoteProjectId";
 		final MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("localXnatId", localXnatId);
+		parameters.addValue("remoteProjectId", remoteProjectId);
 		 List<String> results = _jdbcTemplate.queryForList(query, parameters,String.class);
 		 if (results !=null && results.size()>=1) {
 			 remoteId = results.get(0);

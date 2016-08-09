@@ -54,10 +54,14 @@ public class SyncConfiguration implements Serializable{
 
 	public boolean isSubjectAssessorAllowedToSync(String xsiType) {
 		boolean isAllowed = false;
-		if (hasSubjectAssessorConfigurationDefinition()) {
-			isAllowed = subject_assessors.getXsi_types().isAllowedToSync(xsiType);
-		}else {
-			return true; //Anything not configured defaults to sync
+		try {
+			if (hasSubjectAssessorConfigurationDefinition()) {
+				isAllowed = subject_assessors.getXsi_types().isAllowedToSync(xsiType);
+			}else {
+				return true; //Anything not configured defaults to sync
+			}
+		}catch(NullPointerException npe) {
+			
 		}
 		return isAllowed;
 	}
@@ -97,11 +101,13 @@ public class SyncConfiguration implements Serializable{
 
 	public boolean isImagingSessionAllowedToSync(String xsiType) {
 		boolean isAllowed = false;
-		if (hasImagingSessionConfigurationDefinition()) {
-			isAllowed = imaging_sessions.getXsi_types().isAllowedToSync(xsiType);
-		}else {
-			return true; //Anything not configured defaults to sync
-		}
+		try {
+			if (hasImagingSessionConfigurationDefinition()) {
+				isAllowed = imaging_sessions.getXsi_types().isAllowedToSync(xsiType);
+			}else {
+				return true; //Anything not configured defaults to sync
+			}
+		}catch(NullPointerException npe) {}
 		return isAllowed;
 	}
 
@@ -110,8 +116,11 @@ public class SyncConfiguration implements Serializable{
 		if (hasSubjectAssessorConfigurationDefinition()) {
 			//if (isSubjectAssessorAllowedToSync(xsiType)) {
 				List<SyncConfigurationAdvancedOption> advOptions = subject_assessors.getAdvanced_options();
+				if (advOptions == null || advOptions.size() < 1) {
+					return advOption;
+				}
 				for (SyncConfigurationAdvancedOption aOption : advOptions) {
-					if (aOption.xsi_type.equals(xsiType)) {
+					if (xsiType.equals(aOption.getXsi_type())) {
 						advOption = aOption;
 						break;
 					}
@@ -126,8 +135,11 @@ public class SyncConfiguration implements Serializable{
 		if (hasImagingSessionConfigurationDefinition()) {
 			//if (isImagingSessionAllowedToSync(xsiType)) {
 				List<SyncConfigurationImagingSessionAdvancedOption> advOptions = imaging_sessions.getAdvanced_options();
+				if (advOptions == null || advOptions.size() < 1){
+					return advOption;
+				}
 				for (SyncConfigurationImagingSessionAdvancedOption aOption : advOptions) {
-					if (aOption.getXsi_type().equals(xsiType)) {
+					if (xsiType.equals(aOption.getXsi_type())) {
 						advOption = aOption;
 						break;
 					}

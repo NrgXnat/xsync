@@ -14,6 +14,11 @@ import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xft.ItemI;
+import org.nrg.xft.XFTItem;
+import org.nrg.xft.exception.ElementNotFoundException;
+import org.nrg.xft.exception.FieldNotFoundException;
+import org.nrg.xft.exception.XFTInitException;
+import org.nrg.xft.search.ItemSearch;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.configuration.json.SyncConfigurationResource;
@@ -252,5 +257,25 @@ public class ResourceFilter {
 		return absResources;
 	}
 	
+	public boolean hasResourceBeenModified(XnatAbstractresource resource, Date syncEndDate) throws Exception {
+		boolean modified = false;
+		XFTItem item = resource.getCurrentDBVersion(); 
+		String metaFieldName = item.getGenericSchemaElement().getMetaDataFieldName();
+        Object v = item.getProperty(metaFieldName);
+        XFTItem itemMeta = ItemSearch.GetItem(item.getXSIType() + "_meta_data/meta_data_id",v,null,false);
+		//Is this new or updated?
+		Date experimentInsertDate = (Date)itemMeta.getProperty("insert_date");
+		Date experimentModifiedDate = (Date)itemMeta.getProperty("last_modified");
+		int dateComparison = experimentInsertDate.compareTo(syncEndDate);
+		if (dateComparison >= 0) { //Inserted at endTime or After endTime
+			modified = true;
+		}else {
+			dateComparison = experimentModifiedDate.compareTo(syncEndDate);
+			if (dateComparison >= 0) { //Modified at endTime or After endTime
+				modified = true;
+			}
+		}
+		return modified;
+	}
 
 }
