@@ -120,7 +120,7 @@ public class SyncConfiguration implements Serializable{
 					return advOption;
 				}
 				for (SyncConfigurationAdvancedOption aOption : advOptions) {
-					if (aOption.xsi_type.equals(xsiType)) {
+					if (xsiType.equals(aOption.getXsi_type())) {
 						advOption = aOption;
 						break;
 					}
@@ -139,7 +139,7 @@ public class SyncConfiguration implements Serializable{
 					return advOption;
 				}
 				for (SyncConfigurationImagingSessionAdvancedOption aOption : advOptions) {
-					if (aOption.getXsi_type().equals(xsiType)) {
+					if (xsiType.equals(aOption.getXsi_type())) {
 						advOption = aOption;
 						break;
 					}
