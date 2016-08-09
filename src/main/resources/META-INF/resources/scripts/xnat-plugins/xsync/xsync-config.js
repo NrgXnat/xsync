@@ -283,7 +283,7 @@ XSYNC.xsyncconfig.editConfig = function() {
 	XSYNC.xsyncconfig.modal = xmodal.open({
 		title: "Project Sync Settings for " + XNAT.data.context.project,
 		content: '<div id="xsync-config-dialog"></div>',
-		height: '75%',
+		height: '90%',
 		buttons: {
 			submit: {
 				label: "Submit",
@@ -299,7 +299,7 @@ XSYNC.xsyncconfig.editConfig = function() {
 				label: "Cancel"
 			}
 		},
-		beforeShow: function(obj){
+		beforeShow: function(obj) {
 			var spawnerConfig = spawnConfig();
 			var $wrapper = obj.$modal.find('#xsync-config-dialog');
 			XNAT.spawner.spawn(spawnerConfig).render($wrapper);
@@ -307,6 +307,18 @@ XSYNC.xsyncconfig.editConfig = function() {
 			$(form).find('select').trigger('change');
 		}
 	});
+
+	// function listify(json) {
+	// 	for (var key in json) {
+	// 		if (json.hasOwnProperty(key)) {
+	// 			var value = json[key];
+	// 			if (value.includes(',')) {
+	// 				json[key] = json[key].split(',')
+	// 			}
+	// 		}
+	// 	}
+	// 	return json
+	// }
 };
 
 function spawnConfig() {
@@ -328,8 +340,8 @@ function spawnConfig() {
 				frequency: frequency(),
 				identifiers: identifiers(),
 				advancedConfigHeading: {
-					kind: 'panel.element',
-					label: '<h3>Advanced Settings</h3>'
+					kind: 'panel.subhead',
+					label: 'Advanced Settings'
 				},
 				projectResources: {
 					tag: "div",
@@ -355,7 +367,9 @@ function spawnConfig() {
 						subjectAssessorSelect:
 							syncTypeSelector("subject_assessors.xsi_types.sync_type", "Subject Assessors"),
 						subjectAssessorXsiTypes:
-							resourceInput("subject_assessors.xsi_types.types_list")
+							resourceInput("subject_assessors.xsi_types.types_list"),
+						advanced: {
+						}
 					}
 				},
 				imagingSessions: {
@@ -451,7 +465,14 @@ function spawnConfig() {
 			},
 			element: {
 				onchange: function() {
-					showHideInput(this, name.replace('sync_type', 'resource_list'))
+					// TODO - Get rid of nasty hack
+					var inputName;
+					if (name.includes('assessors') || name.includes('imaging')) {
+						inputName = name.replace('sync_type', 'types_list')
+					} else {
+						inputName = name.replace('sync_type', 'resource_list')
+					}
+					showHideInput(this, inputName)
 				}
 			}
 		}
@@ -463,14 +484,15 @@ function spawnConfig() {
 	function resourceInput(name) {
 	    var inputId = name.replace(/\./g, '_') + '_input_text_id';
         // Initialize
-        $('#'+inputId).hide();
+        // $('#'+inputId).hide();
 		showTextInput[name] = false;
 
 		return {
-			kind: 'input.text',
-			name: name,
+			kind: 'panel.input.textarea',
 			id: inputId,
-			size: 50
+			name: name,
+			label: ' ',
+			rows: 3
 		}
 	}
 
@@ -495,6 +517,8 @@ function spawnConfig() {
 		// jquery doesn't like to select ids with periods
 		var inputId = name.replace(/\./g, '_') + '_input_text_id';
 		var $textInput = $('#'+inputId);
+
+		console.log(showTextInput);
 
 		// show or hide input text box
 		if ((selector.value == "include" || selector.value == "exclude") && !showTextInput[name]) {
@@ -562,7 +586,6 @@ XSYNC.xsyncconfig.saveConfig = function(newJson) {
  		url: serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '?XNAT_CSRF=' + window.csrfToken,
 		cache: false,
 		async: true,
-		// dataType: 'json',
 		data: newJson,
 		contentType: "application/json; charset=utf-8"
 	 });
@@ -623,7 +646,6 @@ XSYNC.xsyncconfig.updateCredentialsAndSaveConfig = function() {
 							modl.close();
 			});
 
-
 		} else {
 			xmodal.message('Error','ERROR:  Could not get alias token.  Please check username and password and try again.');
 		}
@@ -644,43 +666,43 @@ XSYNC.xsyncconfig.submitDICOMAnonymization = function() {
 		dataType: 'text'
 	});
 
-	getAnonymizationScript.done(function(text) {
-		if (text == undefined) {
-			text = '';
-		}
+	getAnonymizationScript.done(function (data) {
 
-		var modalContent =
-			"<div>" +
-				'<div class = "credentials-header-div credentials-div">' +
-					'<h3 style="text-align:center">Pre-Sync DICOM Anonymization script ' + '</h3>' +
-				'</div>' +
-				'<div class = "credentials-div">' +
-					'<textarea rows="20" cols="80" id="xsync-dicom-anonymization">'+ text +'</textarea>' +
-				'</div>' +
-			"</div>";
+		var tempDiv = spawn('div', data);
 
-		var pModalOpts = {
-			width: 680,
-			height: 580,
-			id: 'xmodal-enter-dicom-anonymization',
-			title: "DICOM Anonymization script",
-			content: modalContent,
-			ok: 'show',
-			okLabel: 'Save',
-			okAction: function(modl){
-				XSYNC.xsyncconfig.uploadDicomAnonymization();
-				modl.close();
-			},
-			okClose: false,
-			cancel: 'Cancel',
-			cancelLabel: 'Cancel',
-			enter: false,
-			cancelAction: function(){
-				xmodal.close(XNAT.app.abu.abuConfigs.modalOpts.id);
-			},
-			closeBtn: 'hide'
+		var editorConfig = {
+			//url: '/path/to/data', // PLACEHOLDER - NOT IMPLEMENTED
+			// title: 'Edit',
+			language: 'text'
 		};
-		xmodal.open(pModalOpts);
+
+		var editor = XNAT.app.codeEditor.init(tempDiv, editorConfig);
+
+		editor.openEditor({
+			id: "xsync-dicom-anonymization",
+			title: "Pre-Sync DICOM Anonymization Script",
+			before: '<p>This anonymization script will be applied when Sync Anonymization is enabled.</p>',
+			after: '<small>Submit to save changes</small>',
+			width: 680,
+			height: 400,
+			buttons: {
+				save: {
+					label: 'Submit',
+					action: function (modal) {
+						var code = editor.getValue().code;
+						XSYNC.xsyncconfig.uploadDicomAnonymization(code);
+						modal.close()
+					}
+				},
+				cancel: {
+					label: 'Cancel',
+					action: function (modal) {
+						modal.close()
+					}
+				}
+			}
+			// other xmodal properties
+		});
 	});
 
 	getAnonymizationScript.fail( function( data, textStatus, error ) {
@@ -688,13 +710,11 @@ XSYNC.xsyncconfig.submitDICOMAnonymization = function() {
 	});
 }
 
-XSYNC.xsyncconfig.uploadDicomAnonymization = function() {
-	var dicomScript = $("#xsync-dicom-anonymization").val();
-
+XSYNC.xsyncconfig.uploadDicomAnonymization = function(editorContents) {
 	var uploadDICOMscriptAjax = $.ajax({
 		type : "PUT",
 		url:serverRoot+'/xapi/xsync/projects/' + XNAT.data.context.project + '/presyncanonymization?XNAT_CSRF=' + window.csrfToken,
-		data:  dicomScript
+		data:  editorContents
 	});
 
 	uploadDICOMscriptAjax.done( function( data, textStatus, jqXHR ) {
