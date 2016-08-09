@@ -123,7 +123,8 @@ public class SynchronizationManager {
 	                  if (tmpF.isDirectory()) {
 	                      rmdir(tmpF);
 	                  }
-	                  tmpF.delete();
+	                  if (!tmpF.getAbsolutePath().endsWith("_sync.html"))
+	                	  tmpF.delete();
 	              }
 	          }
 	      }

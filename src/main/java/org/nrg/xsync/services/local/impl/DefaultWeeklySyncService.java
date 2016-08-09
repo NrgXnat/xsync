@@ -42,19 +42,24 @@ public class DefaultWeeklySyncService extends AbstractSyncService implements Wee
         //The user who sets up the sync will
         //All project access will be done by the admin user
         if (queryResultsRows != null && queryResultsRows.size() > 0) {
-            for (Map<String, Object> row : queryResultsRows) {
-                String projectId = (String) row.get("source_project_id");
-                String userId = (String) row.get("sync_scheduled_by");
-                ExecutorService executor = getExecutor();
-                try {
-                    final ProjectChangeDiscoverer projectChange = getProjectChangeDiscoverer(projectId, Users.getUser(userId));
-                    executor.submit(projectChange);
-                } catch (Exception e) {
-                    logger.debug(e.getMessage());
-                    XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), projectId, e, "Weekly sync failed");
-                } finally {
-                    executor.shutdown();
+            ExecutorService executor = getExecutor();
+            try {
+            	for (Map<String, Object> row : queryResultsRows) {
+                    String projectId = (String) row.get("source_project_id");
+                    String userId = (String) row.get("sync_scheduled_by");
+                    try {
+                        final ProjectChangeDiscoverer projectChange = getProjectChangeDiscoverer(projectId, Users.getUser(userId));
+                        executor.submit(projectChange);
+                    } catch (Exception e) {
+                        logger.debug(e.getMessage());
+                        XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), projectId, e, "Weekly sync failed");
+                    }
                 }
+            }catch(Exception e) {
+                logger.debug(e.getMessage());
+                XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), "", e, "Weekly sync failed");
+            }finally {
+                executor.shutdown();
             }
         }
         logger.info("Weekly Sync Trigger - END " + new Date());

@@ -168,6 +168,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         if (resourceRows == null || resourceRows.size() < 1) {
             return;
         }
+        String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
         XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(_projectId, _user, false);
         String localProjectArchivePath = localProject.getArchiveRootPath();
         for (Map<String, Object> row : resourceRows) {
@@ -192,7 +193,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                         //Check if its a new resource or an updated resource
                         XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
                         XnatAbstractresource resource = getResource(label);
-                        if (xsyncTools.hasBeenSyncedAlready(_projectId, label, resource.getXSIType())) {
+                        if (xsyncTools.hasBeenSyncedAlready(_projectId, label, resource.getXSIType(),remoteProjectId)) {
                             //This is an instance of Update and auto-update is set to false; skip this resource
                             ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, label);
                             resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
@@ -258,7 +259,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                     resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
                     resourceSyncItem.setMessage("Project resource " + resourceLabel + " updated ");
                     XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
-                    xsyncTools.saveSyncDetails(_projectId, resource.getLabel(), resource.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED, resource.getXSIType());
+                    xsyncTools.saveSyncDetails(_projectId, resource.getLabel(), resource.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED, resource.getXSIType(),remoteProjectId);
                 } else {
                     resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
                     resourceSyncItem.setMessage("Project resource " + resourceLabel + " could not be updated. Cause: " + response.getResponseBody());
@@ -322,6 +323,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     private void deleteSubject(String deletedSubjectLocalId, String deletedSubjectLabel) {
         //Get the remote ID
         //If it exists; delete the remote subject
+        String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
         IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, _projectSyncConfiguration);
         String remoteId = idMapper.getRemoteAccessionId(deletedSubjectLocalId);
         if (_syncAll) {
@@ -341,7 +343,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                         subjectSyncItem.setMessage("Subject " + deletedSubjectLocalId + " has been deleted.");
                         SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncItem);
                         XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
-                        xsyncTools.saveSyncDetails(_projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), deletedSubjectLocalId, remoteId, XsyncUtils.SYNC_STATUS_DELETED, subject.getXSIType());
+                        xsyncTools.saveSyncDetails(_projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), deletedSubjectLocalId, remoteId, XsyncUtils.SYNC_STATUS_DELETED, subject.getXSIType(),remoteProjectId);
                         xsyncTools.deleteXsyncRemoteEntry(_projectId, deletedSubjectLocalId);
                     }
                 } catch (Exception e) {

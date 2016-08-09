@@ -41,19 +41,24 @@ public class DefaultDailySyncService extends AbstractSyncService implements Dail
 		//The user who sets up the sync will 
 		//All project access will be done by the admin user
 		if (queryResultsRows != null && queryResultsRows.size() > 0) {
-			for (final Map<String,Object> row : queryResultsRows) {
-				final String projectId =(String)row.get("source_project_id");
-				final String userId = (String)row.get("sync_scheduled_by");
-				final ExecutorService executor = getExecutor();
-				try {
+			final ExecutorService executor = getExecutor();
+			try {
+				for (final Map<String,Object> row : queryResultsRows) {
+					final String projectId =(String)row.get("source_project_id");
+					final String userId = (String)row.get("sync_scheduled_by");
 					final ProjectChangeDiscoverer projectChange = getProjectChangeDiscoverer(projectId, Users.getUser(userId));
-					executor.submit(projectChange);
-				}catch(Exception e) {
-					logger.debug(e.getMessage(), e);
-					XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), projectId, e, "Daily sync failed");
-				} finally {
-					executor.shutdown();
+					try {
+						executor.submit(projectChange);
+					}catch(Exception e) {
+						logger.debug(e.getMessage(), e);
+						XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), projectId, e, "Daily sync failed");
+					}
 				}
+			}catch(Exception e) {
+				logger.debug(e.getMessage(), e);
+				XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), "Project", e, "Daily sync failed");
+			} finally {
+				executor.shutdown();
 			}
 		}
 	}
