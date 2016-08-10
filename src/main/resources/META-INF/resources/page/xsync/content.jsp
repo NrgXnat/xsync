@@ -42,25 +42,8 @@
 
                 </div>
 
-                <c:import url="/xapi/siteConfig" var="siteConfig"/>
-                <c:import url="/xapi/notifications" var="notifications"/>
-
                 <script>
                     (function(){
-
-                        XNAT.data = getObject(XNAT.data);
-
-                        <%-- safety check --%>
-                        <c:if test="${not empty siteConfig}">
-                            XNAT.data.siteConfig = ${siteConfig};
-                            // get rid of the 'targetSource' property
-                            delete XNAT.data.siteConfig.targetSource;
-                        </c:if>
-
-                        <%-- can't use empty/undefined object --%>
-                        <c:if test="${not empty notifications}">
-                            XNAT.data.notifications = ${notifications};
-                        </c:if>
 
                         var jsonUrl = XNAT.url.rootUrl('/xapi/spawner/resolve/xsyncSiteConfiguration/xsyncConfigPage');
 

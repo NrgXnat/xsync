@@ -1,0 +1,93 @@
+
+input.xsync-button {
+    padding: 2px;
+    margin: 5px;
+}
+
+input.xsync-submit-button {
+    margin: 5px;
+}
+
+div.credentials-header-div {
+    margin-bottom:30px;
+}
+
+div.credentials-div {
+    width:100%;
+    margin-top:10px;
+    /*margin-left:30px;*/
+}
+
+div.row1 {
+    width:90%;
+    margin-top:10px;
+    margin-left:20px;
+}
+
+div.xsync-imaging-session-assessor-div, div.xsync-imaging-session-scan-div {
+    border:1px;
+    background-color:#EEF3FF;
+    border-color:#AAAAAA;
+    border-style:solid;
+    margin-top:5px;
+    margin-left:50px;
+    margin-right:50px;
+}
+
+div.xsync-container-div {
+    margin-left:38px;
+    border:1px;
+    background-color:#FFFFFF;
+    border-color:#AAAAAA;
+    border-style:solid;
+    width:100%;
+    margin:5px;
+    padding:5px;
+}
+
+div.col1 {
+    width:150px;
+    float:left;
+}
+div.col2 {
+    margin-left:75px;
+    width:150px;
+    float:left;
+}
+
+input.project-resource-input,
+input.subject-resource-input,
+input.subject-assessor-resource-input,
+input.imaging-session-resource-input,
+input.imaging-session-scan-type-input,
+input.imaging-session-assessor-xsitype-input {
+    margin-left:75px;
+}
+
+input.imaging-scan-resource-input,
+input.imaging-assessor-resource-input {
+    margin-left:150px;
+}
+
+.xsync-history-container {
+    border:1px;
+    background-color:#FFFFFF;
+    border-color:#AAAAAA;
+    border-style:solid;
+    width:98%;
+    margin:5px;
+    padding:5px;
+}
+
+.xsync-history-table td {
+    border: none;
+}
+
+.xsync-history-scroll {
+    max-height: 150px;
+    overflow-y: scroll;
+}
+
+.xsync-history-header {
+    padding-top: 10px;
+}
