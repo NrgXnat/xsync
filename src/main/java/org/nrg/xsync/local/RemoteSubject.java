@@ -596,7 +596,7 @@ public class RemoteSubject {
 			String path = ((XnatResource) resource).getUri();
 			int exp_label_index = path.indexOf(orig.getLabel());
 			String newURI = path.substring(exp_label_index+orig.getLabel().length());
-			if (newURI.startsWith(File.separator)) {
+			if (newURI.startsWith(File.separator) || newURI.startsWith("/")) {
 				newURI=newURI.substring(1);
 			}
 			((XnatResource) resource).setUri(newURI);
