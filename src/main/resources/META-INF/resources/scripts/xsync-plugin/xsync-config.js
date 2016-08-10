@@ -320,6 +320,7 @@ XSYNC.xsyncconfig.editConfig = function() {
 function spawnConfig() {
 
 	// Basic Config Elements
+	
 
 	function configPanel() {
 		return {
