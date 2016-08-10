@@ -178,6 +178,7 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 			var credHost = $("#xsync-credentials-host").val();
 			var credUser = $("#xsync-credentials-username").val();
 			var credPassword = $("#xsync-credentials-password").val();
+			var remote
 			var tokenData = {
 				url: credHost + "/data/services/tokens/issue",
 				method: "GET",
@@ -203,7 +204,8 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 						host: $("#xsync-credentials-host").val(),
 						localProject: XNAT.data.context.project,
 						alias: data.alias,
-						secret: data.secret
+						secret: data.secret,
+						username:credUser
 					};
 					var saveCredentials = $.ajax({
 						type : "POST",
@@ -215,16 +217,24 @@ XSYNC.credentialsconfig.enterCredentials = function() {
 						contentType: "application/json; charset=utf-8"
 					 });
 					saveCredentials.done( function( data, textStatus, jqXHR ) {
-						xmodal.message(
-							'Credentials saved','Successfully saved credentials for remote server ' +
-							$("#xsync-credentials-host").val()
-						);
+						if (jqXHR.status == 202) {
+							xmodal.message(
+									'Credentials saved',' WARNING: ' + jqXHR.responseText + '\n' + 
+									'Successfully saved credentials for remote server ' +
+									$("#xsync-credentials-host").val() 
+								);
+						}else {
+							xmodal.message(
+								'Credentials saved','Successfully saved credentials for remote server ' +
+								$("#xsync-credentials-host").val()
+							);
+						}
 						modl.close();
 					});
 					saveCredentials.fail( function( data, textStatus, jqXHR ) {
 						xmodal.message(
-							'Error','Could not save credentials for remote server ' +
-							$("#xsync-credentials-host").val()
+							'Error','Could not save credentials for remote server '  +
+							$("#xsync-credentials-host").val() + ' Cause: ' + data.statusText + " Details: " + data.responseText
 						);
 						modl.close();
 					});

@@ -62,6 +62,13 @@ public class XsyncUtils {
 	public static final String PROJECT_ELEMENT_JSON_NAME = "source_project_id";
 
 	public static final String REMOTE_HOST_URL = "remote_url";
+	
+	public static final String USER_ACCESS_OWNER = "owner";
+	public static final String USER_ACCESS_MEMBER = "member";
+	public static final String USER_ACCESS_COLLABORATOR= "collaborator";
+	public static final String USER_API_GROUP_ID= "GROUP_ID";
+	public static final String USER_API_LOGIN= "login";
+	
 
 	private static final Logger _log = LoggerFactory.getLogger(XsyncUtils.class);
 
