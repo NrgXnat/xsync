@@ -298,9 +298,12 @@ XSYNC.xsyncconfig.editConfig = function() {
 				label: "Submit",
 				action: function(obj) {
 					var form = obj.$modal.find('form')[0];
-					var jsonObject = form2js(form);
-					jsonObject.source_project_id = XNAT.data.context.project;
-					XSYNC.xsyncconfig.submitConfig(JSON.stringify(jsonObject));
+					var json = form2js(form);
+					// Source project not on the form
+					json.source_project_id = XNAT.data.context.project;
+					// Delete stuff we don't want serialized
+					delete json.subjectDetailsCheckbox;
+					XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
 					$(form).triggerHandler('reload-data')
 				}
 			},
@@ -316,23 +319,13 @@ XSYNC.xsyncconfig.editConfig = function() {
 			$(form).find('select').trigger('change');
 		}
 	});
-
-	// function listify(json) {
-	// 	for (var key in json) {
-	// 		if (json.hasOwnProperty(key)) {
-	// 			var value = json[key];
-	// 			if (value.includes(',')) {
-	// 				json[key] = json[key].split(',')
-	// 			}
-	// 		}
-	// 	}
-	// 	return json
-	// }
-};
+}
 
 function spawnConfig() {
 
-	// Basic Config Elements
+	////////////////////
+	// Parent element //
+	////////////////////
 
 	function configPanel() {
 		return {
@@ -348,72 +341,136 @@ function spawnConfig() {
 				destProjectId: remoteProject(),
 				frequency: frequency(),
 				identifiers: identifiers(),
-				advancedConfigHeading: {
-					kind: 'panel.subhead',
-					label: 'Advanced Settings'
-				},
+
 				projectResources: {
-					tag: "div",
+					tag: "div#project-resources-div",
 					contents: {
+						projectResourcesHeading: {
+							kind: 'panel.subhead',
+							label: 'Project Resources'
+						},
 						projectResourceSelect:
-							syncTypeSelector("project_resources.sync_type", "Project Resources"),
+							syncTypeSelector("project_resources.sync_type", " "),
 						projectResourceInput:
 							resourceInput("project_resources.resource_list")
 					}
 				},
+
 				subjectResources: {
-					tag: "div",
+					tag: "div#subject-resources-div",
 					contents: {
+						subjectResourcesHeading: {
+							kind: 'panel.subhead',
+							label: 'Subject Resources'
+						},
 						subjectResourceSelect:
-							syncTypeSelector("subject_resources.sync_type", "Subject Resources"),
+							syncTypeSelector("subject_resources.sync_type", " "),
 						subjectResourceInput:
 							resourceInput("subject_resources.resource_list")
 					}
 				},
+
 				subjectAssessors: {
-					tag: "div",
+					tag: "div#subject-assessors-div",
 					contents: {
+						subjectAssessorsHeading: {
+							kind: 'panel.subhead',
+							label: 'Subject Assessors'
+						},
 						subjectAssessorSelect:
-							syncTypeSelector("subject_assessors.xsi_types.sync_type", "Subject Assessors"),
+							syncTypeSelector("subject_assessors.xsi_types.sync_type", " "),
 						subjectAssessorXsiTypes:
-							resourceInput("subject_assessors.xsi_types.types_list"),
-						advanced: {
+							xsiInput("subject_assessors.xsi_types.types_list"),
+
+						subjectDetailsCheckbox:
+							detailsToggle("subject-assessor-advanced"),
+						xsiTypeAdvanced: {
+							tag: "div#subject-assessor-advanced",
+							contents: {
+								subAssessorSelect:
+									syncTypeSelector("subject_assessors.advanced_options.resources.sync_type", "Assessor Resources"),
+								subAssessessorResources:
+									resourceInput("subject_assessors.advanced_options.resources.resource_list"),
+								okToSync: {
+									kind: 'panel.input.checkbox',
+									name: "subject_assessors.advanced_options.needs_ok_to_sync",
+									label: 'Require QC to Sync'
+								}
+							}
 						}
 					}
 				},
-				subjectResources: {
-					tag: "div",
-					contents: {
-						subjectResourceSelect:
-							syncTypeSelector("subject_resources.sync_type", "Subject Resources"),
-						subjectResourceInput:
-							resourceInput("subject_resources.resource_list")
-					}
-				},
-				subjectAssessors: {
-					tag: "div",
-					contents: {
-						subjectAssessorSelect:
-							syncTypeSelector("subject_assessors.xsi_types.sync_type", "Subject Assessors"),
-						subjectAssessorXsiTypes:
-							resourceInput("subject_assessors.xsi_types.types_list"),
-						advanced: {
-						}
-					}
-				},
+
 				imagingSessions: {
-					tag: "div",
+					tag: "div#imaging-sessions-div",
 					contents: {
+						imagingSessionsHeading: {
+							kind: 'panel.subhead',
+							label: 'Imaging Sessions'
+						},
 						imagingSessionsSelect:
-							syncTypeSelector("imaging_sessions.xsi_types.sync_type", "Imaging Sessions"),
+							syncTypeSelector("imaging_sessions.xsi_types.sync_type", " "),
 						imagingSessionsXsiTypes:
-							resourceInput("imaging_sessions.xsi_types.types_list")
+							xsiInput("imaging_sessions.xsi_types.types_list"),
+
+						sessionDetailsCheckbox:
+							detailsToggle("imaging-sessions-advanced"),
+						imagingAdvanced: {
+							tag: "div#imaging-sessions-advanced",
+							contents: {
+								okToSync: {
+									kind: 'panel.input.checkbox',
+									name: "imaging_sessions.advanced_options.needs_ok_to_sync",
+									label: 'Require QC to Sync'
+								},
+								anonymize: {
+									kind: 'panel.input.checkbox',
+									name: "imaging_sessions.advance_options.anonymize",
+									label: 'Anonymize DICOM'
+								},
+								imageResourceSelect:
+									syncTypeSelector("imaging_sessions.advanced_options.resources.sync_type", "Session Resources"),
+								imageResourcesInput:
+									resourceInput("imaging_sessions.advanced_options.resources.resource_list"),
+								scanTypeSelect:
+									syncTypeSelector("imaging_sessions.advanced_options.scan_types.sync_type", "Scan Types"),
+								scanTypeInput:
+									resourceInput("imaging_sessions.advanced_options.scan_types.sync_type_list"),
+								scanResourceSelect:
+									syncTypeSelector("imaging_sessions.advanced_options.scan_resources.sync_type", "Scan Resources"),
+								scanResourceInput:
+									resourceInput("imaging_sessions.advanced_options.scan_types.resource_list"),
+
+								imagingAssessorHeading: {
+									kind: 'panel.subhead',
+									label: 'Imaging Assessors'
+								},
+								assessorsSelect:
+									syncTypeSelector("imaging_sessions.advanced_options.session_assessors.xsy_types.sync_type", " "),
+								assessorsInput:
+									xsiInput("imaging_sessions.advanced_options.session_assessors.xsi_types.types_list"),
+								okToSyncAss: {
+									kind: 'panel.input.checkbox',
+									name: "imaging_sessions.advanced_options.session_assessors.advanced_options.needs_ok_to_sync",
+									label: 'Require QC to Sync'
+								},
+
+								imageAssessorResourceSelect:
+									syncTypeSelector("imaging_sessions.advanced_options.session_assessors.advanced_options.sync_type", "Assessor Resources"),
+								imageAssessorResourcesInput:
+									resourceInput("imaging_sessions.advanced_options.session_assessors.advanced_options.resource_list")
+							}
+						}
 					}
 				}
 			},
 			footer: false
 		}
 	}
+
+	///////////////////////////
+	// Basic config elements //
+	///////////////////////////
 
 	function enabled() {
 		return {
@@ -478,7 +535,37 @@ function spawnConfig() {
 		}
 	}
 
-	// Config UI Common Widgets
+	// function okToSync(_name) {
+	// 	return {
+	// 		kind: 'panel.input.checkbox',
+	// 		name: _name,
+	// 		label: 'Require QC to Sync'
+	// 	}
+	// }
+
+	function detailsToggle(divId) {
+		return {
+			kind: 'panel.input.checkbox',
+			name: '',
+			label: 'More details',
+			element: {
+				onchange: function() {
+					if ($(this).is(':checked')) {
+						$('#'+divId).slideDown(400)
+					} else {
+						$('#'+divId).slideUp(400)
+					}
+				}
+			}
+		}
+	}
+
+	///////////////////////////////
+	// Common config UI elements //
+	///////////////////////////////
+
+	// Function level map to keep track of which text inputs should be visible
+	var showTextInput = {};
 
 	function syncTypeSelector(name, label) {
 		return {
@@ -496,7 +583,7 @@ function spawnConfig() {
 				onchange: function() {
 					// TODO - Get rid of nasty hack
 					var inputName;
-					if (name.includes('assessors') || name.includes('imaging')) {
+					if (name.includes('assessors') || name.includes('imaging') && ! name.includes('advanced')) {
 						inputName = name.replace('sync_type', 'types_list')
 					} else {
 						inputName = name.replace('sync_type', 'resource_list')
@@ -507,58 +594,72 @@ function spawnConfig() {
 		}
 	}
 
-	// Function level map to keep track of which text inputs should be visible
-	var showTextInput = {};
-
-	function resourceInput(name) {
-	    var inputId = name.replace(/\./g, '_') + '_input_text_id';
-        // Initialize
-        // $('#'+inputId).hide();
+	function resourceInput(name, label) {
+		var inputId = name.replace(/\./g, '_') + '_input_text_id';
+		// Initialize show input to false
 		showTextInput[name] = false;
 
 		return {
 			kind: 'panel.input.textarea',
 			id: inputId,
 			name: name,
-			label: ' ',
-			rows: 3
+			label: "Resource List",
+			rows: 2,
 		}
 	}
 
-	// function xsiTypeInput(name) {
-	// 	var inputId = name.replace(/\./g, '_') + '_input_text_id';
-	// 	// Initialize
-	// 	$('#'+inputId).hide();
-	// 	showTextInput[name] = false;
-    //
-	// 	return {
-	// 		kind: 'input.text',
-	// 		name: name,
-	// 		id: inputId,
-	// 		size: 50
-	// 	}
-	// }
+	function xsiInput(name) {
+		var inputId = name.replace(/\./g, '_') + '_input_text_id';
+		// Initialize show input to false
+		showTextInput[name] = false;
+
+		return {
+			kind: 'panel.input.textarea',
+			id: inputId,
+			name: name,
+			label: 'XSI Types',
+			rows: 2,
+			element: {
+				onblur: function() {
+					var xsiTypes = $(this).val().split(',');
+					console.log(xsiTypes);
+					// split the list on comma
+					// append advanced section for each xsiType
+					// showHideAdvanced(this)
+				}
+			}
+		}
+	}
 
 
-	// Config UI Helpers
+	///////////////////////
+	// Config UI Helpers //
+	///////////////////////
 
 	function showHideInput(selector, name) {
 		// jquery doesn't like to select ids with periods
 		var inputId = name.replace(/\./g, '_') + '_input_text_id';
 		var $textInput = $('#'+inputId);
 
-		console.log(showTextInput);
+		// console.log(showTextInput);
 
 		// show or hide input text box
 		if ((selector.value == "include" || selector.value == "exclude") && !showTextInput[name]) {
-			$textInput.show();
+			$textInput.slideDown(400);
 			showTextInput[name] = true;
 		} else if ((selector.value == "all" || selector.value == "none")) {
 			// remove input contents and hide
+			$textInput.slideUp(400);
 			$textInput.val("");
-			$textInput.hide();
 			showTextInput[name] = false;
 		}
+		// else {
+		// 	$textInput.hide();
+		// }
+	}
+
+	function showHideAdvanced(selector, name) {
+
 	}
 
 	return {
