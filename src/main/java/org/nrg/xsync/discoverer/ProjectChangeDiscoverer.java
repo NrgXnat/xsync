@@ -377,7 +377,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                 _log.info("Appears that " + deletedSubjectLocalId + " has been locally deleted between two syncs. Ignoring");
                 SubjectSyncItem subjectSyncItem = new SubjectSyncItem(deletedSubjectLocalId, deletedSubjectLabel);
                 subjectSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
-                subjectSyncItem.setMessage("Subject " + deletedSubjectLocalId + " has been skipped as it appeards to have been deleted between two sync events.");
+                subjectSyncItem.setMessage("Subject " + deletedSubjectLocalId + " has been skipped as it has not been synced in the past.");
                 SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncItem);
             }
         } else {
