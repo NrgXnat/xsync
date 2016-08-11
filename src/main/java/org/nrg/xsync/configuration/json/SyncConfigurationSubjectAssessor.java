@@ -1,5 +1,6 @@
 package org.nrg.xsync.configuration.json;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -41,5 +42,12 @@ public class SyncConfigurationSubjectAssessor {
 	public boolean isAllowedToSync(String xsiType) {
 		boolean isAllowedToSync = xsi_types.isAllowedToSync(xsiType);
 		return isAllowedToSync;
+	}
+	
+	public static SyncConfigurationSubjectAssessor GetDefaultSyncConfigurationSubjectAssessor() {
+		SyncConfigurationSubjectAssessor ass = new SyncConfigurationSubjectAssessor();
+		ass.setXsi_types(SyncConfigurationXsiType.GetDefaultSyncConfiguration());
+		ass.setAdvanced_options(new ArrayList<SyncConfigurationAdvancedOption>());
+		return ass;
 	}
 }

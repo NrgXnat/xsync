@@ -69,7 +69,8 @@ public class SyncConfigurationImagingSessionAdvancedOption extends SyncConfigura
 		advOption.setResources(SyncConfigurationResource.GetDefaultSyncConfigurationResource());
 		advOption.setAnonymize(false);
 		advOption.setScan_types(SyncConfigurationScanTypes.GetDefaultSyncConfigurationScanTypes());
-		advOption.setResources(SyncConfigurationResource.GetDefaultSyncConfigurationResource());
+		advOption.setScan_resources(SyncConfigurationResource.GetDefaultSyncConfigurationResource());
+		advOption.setSession_assessors(SyncConfigurationSessionAssessor.GetDefaultSyncConfigurationSessionAssessor());
 		return advOption;
 	}
 	

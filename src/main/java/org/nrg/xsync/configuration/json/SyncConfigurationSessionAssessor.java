@@ -1,6 +1,9 @@
 package org.nrg.xsync.configuration.json;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import org.nrg.xsync.utils.XsyncUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -55,4 +58,10 @@ public class SyncConfigurationSessionAssessor  {
 		return advOption;
 	}
 	
+	public static SyncConfigurationSessionAssessor GetDefaultSyncConfigurationSessionAssessor() {
+		SyncConfigurationSessionAssessor ass = new SyncConfigurationSessionAssessor();
+		ass.setXsi_types(SyncConfigurationXsiType.GetDefaultSyncConfiguration());
+		ass.setAdvanced_options(new ArrayList<SyncConfigurationAdvancedOption>());
+		return ass;
+	}
 }

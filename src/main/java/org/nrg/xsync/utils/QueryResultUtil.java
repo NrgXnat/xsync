@@ -200,6 +200,11 @@ public class QueryResultUtil {
 	}
 	
 	
+	public String getQueryForSubjectsSharedIntoProject(String projectId) {
+		String query = "select label,project,subject_id from xnat_projectparticipant where project='"+projectId +"'";
+		return query;
+	}
+	
 	public String getQueryForFetchingSubjectExperimentsSinceLastSync() {
 		String query = getQueryForFetchingSubjectExperimentsModifiedSinceLastSync();
 		query += " UNION ";

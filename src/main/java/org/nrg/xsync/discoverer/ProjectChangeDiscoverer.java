@@ -136,6 +136,20 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                     syncSubject(localSubject);
                 }
             }
+            //Mark the shared subjects as skipped
+            List<Map<String, Object>> sharedSubjects = getSubjectsSharedIntoProject();
+            for (Map<String, Object> row : sharedSubjects) {
+            	String subjectProjectLabel = (String) row.get("label");
+            	String subjectId = (String) row.get("subject_id");
+            	SubjectSyncItem subjectSyncInfo = new SubjectSyncItem(subjectId,subjectProjectLabel);
+        		subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+        		subjectSyncInfo.setMessage("Shared Subject");
+        		subjectSyncInfo.setRemoteId("");
+        		subjectSyncInfo.setXsiType(XnatSubjectdata.SCHEMA_ELEMENT_NAME);
+        		subjectSyncInfo.setRemoteLabel("");
+        		SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncInfo);
+
+            }            
             //Save into the DB the starttime and end-time
             //Clear the time logs
             saveSyncBlockStatus(Boolean.FALSE);
@@ -296,6 +310,12 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         return _jdbcTemplate.queryForList(query, _parameters);
     }
 
+    private List<Map<String, Object>> getSubjectsSharedIntoProject() {
+        String query = _queryResultUtil.getQueryForSubjectsSharedIntoProject(_projectId);
+        return _jdbcTemplate.queryForList(query, _parameters);
+    }
+
+    
     private List<Map<String, Object>> getQueryForFetchingSubjectsWhoseExperimentsMarkedOKSinceLastSync(List<String> excludeIds) {
         MapSqlParameterSource parameters = new MapSqlParameterSource();
         parameters.addValue("project", _projectId);
