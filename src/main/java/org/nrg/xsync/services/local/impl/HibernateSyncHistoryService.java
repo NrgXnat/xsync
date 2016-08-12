@@ -2,6 +2,7 @@ package org.nrg.xsync.services.local.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.apache.commons.io.FileUtils;
+import org.hibernate.HibernateException;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xsync.manifest.*;
 import org.nrg.xsync.services.local.SyncManifestService;
@@ -53,7 +54,11 @@ public class HibernateSyncHistoryService
         this.setExperiemntHistory();
         this.setAssessorHistory();
         this.setResourceHistory();
-        this.create(syncHistory);
+        try {
+            this.create(syncHistory);
+        } catch (HibernateException e) {
+            logger.error("Unable to create XSync history entry from manifest - " + syncHistory.toString(), e);
+        }
     }
 
     private void setProjectHistory() {
