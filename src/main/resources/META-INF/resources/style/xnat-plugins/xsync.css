@@ -185,24 +185,3 @@ input.imaging-assessor-resource-input {
 .xsync-history-header {
     padding-top: 10px;
 }
-
-#project-resources-panel {
-    border: 1px solid #AAAAAA;
-    margin-bottom: 15px;
-}
-#subject-resources-panel {
-    border: 1px solid #AAAAAA;
-    margin-bottom: 15px;
-}
-#subject-assessors-panel {
-    border: 1px solid #AAAAAA;
-    margin-bottom: 15px;
-}
-#imaging-sessions-panel {
-    border: 1px solid #AAAAAA;
-    margin-bottom: 15px;
-}
-
-/*.panel-default .panel-heading {*/
-    /*background-color: gray;*/
-/*}*/

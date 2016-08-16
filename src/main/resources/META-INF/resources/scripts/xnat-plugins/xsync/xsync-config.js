@@ -568,6 +568,7 @@ function spawnConfig() {
 	var showTextInput = {};
 
 	function syncTypeSelector(name, label) {
+	    // imaging_sessions.advanced_options.resources.sync_type
 		return {
 			kind: 'panel.select.menu',
 			name: name,
@@ -583,10 +584,11 @@ function spawnConfig() {
 				onchange: function() {
 					// TODO - Get rid of nasty hack
 					var inputName;
-					if (name.includes('assessors') || name.includes('imaging') && ! name.includes('advanced')) {
+                    if (name.includes('resource')) {
+                        inputName = name.replace('sync_type', 'resource_list')
+                    }
+					else {
 						inputName = name.replace('sync_type', 'types_list')
-					} else {
-						inputName = name.replace('sync_type', 'resource_list')
 					}
 					showHideInput(this, inputName)
 				}
@@ -604,7 +606,7 @@ function spawnConfig() {
 			id: inputId,
 			name: name,
 			label: "Resource List",
-			rows: 2,
+			rows: 2
 		}
 	}
 

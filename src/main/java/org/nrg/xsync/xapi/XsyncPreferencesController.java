@@ -50,8 +50,14 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 			//Store the JSON to the Synchronization table
 			final ObjectMapper objectMapper = new ObjectMapper();
 			final JsonNode synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
+
 	        final String tokenRefreshInterval = synchronizationJson.get("tokenRefreshInterval").asText();
+			final String syncRetryInterval = synchronizationJson.get("syncRetryInterval").asText();
+			final String syncRetryCount = synchronizationJson.get("syncRetryCount").asText();
+
 	        _prefs.setTokenRefreshInterval(tokenRefreshInterval);
+			_prefs.setTokenRefreshInterval(syncRetryInterval);
+			_prefs.setTokenRefreshInterval(syncRetryCount);
 		}catch (Exception  exception) {
         	return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
@@ -70,6 +76,8 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		try {
 			final JSONObject prefsJson = new JSONObject();
 			prefsJson.put("tokenRefreshInterval", _prefs.getTokenRefreshInterval());
+			prefsJson.put("syncRetryInterval", _prefs.getSyncRetryInterval());
+			prefsJson.put("syncRetryCount", _prefs.getSyncRetryCount());
         	return new ResponseEntity<>(prefsJson.toString(), HttpStatus.OK );
 		}catch (Exception  exception) {
         	return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR );

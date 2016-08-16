@@ -8,10 +8,12 @@ import org.apache.log4j.Logger;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
+import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.manager.SynchronizationManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.NestedRuntimeException;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
@@ -24,6 +26,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.PostConstruct;
+
 
 /**
  * The Class RemoteRESTServiceImpl.
@@ -32,24 +36,28 @@ import org.springframework.web.client.RestTemplate;
 //@EnableRetry
 //TODO update to retry when we upgrade spring to 4
 public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements RemoteRESTService {
-	
+
 	/** The logger. */
 	public static Logger logger = Logger.getLogger(RemoteRESTServiceImpl.class);
 
-	// TODO Should these be part of xsync site config?
-	/** The max tries. */
-	static int maxTries = 2;
-	
-	/** The sleep. */
-	static long sleep=10000;
-	
-	/**
-	 * Instantiates a new remote rest service impl.
-	 */
-	public  RemoteRESTServiceImpl() {
-		super();
+//	private final XsyncSitePreferencesBean _prefs = XDAT.getContextService().getBean(XsyncSitePreferencesBean.class);
+//	@Autowired
+	private final XsyncSitePreferencesBean _prefs;
+	private long sleep = 10;
+	private int maxTries = 1;
+
+
+	@Autowired
+	public RemoteRESTServiceImpl(final XsyncSitePreferencesBean prefs) {
+		_prefs = prefs;
 	}
-	
+
+	@PostConstruct
+	private void getXsyncPreferences() {
+		maxTries = _prefs.getSyncRetryCountInt();
+		sleep = _prefs.getSyncRetryIntervalInMillis() * 1000;
+	}
+
 	/**
 	 * importXar with retry.
 	 *
@@ -106,11 +114,11 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			logger.info(response);
 			logger.info(response.getBody());
 			logger.info(response.getHeaders().get("Set-Cookie"));
-			final boolean status= ((response.getStatusCode().value()==HttpStatus.OK.value()) || 
+			final boolean status= ((response.getStatusCode().value()==HttpStatus.OK.value()) ||
 						 (response.getStatusCode().value()==HttpStatus.CREATED.value()) ||
 						 // Let's not keep trying these error types either.  They will be thrown by invalid XAR requests, and we don't want a
 						 // long wait with retry for errors returned by the XarImporter class.
-						 (response.getStatusCode().value()==HttpStatus.INTERNAL_SERVER_ERROR.value()) || 
+						 (response.getStatusCode().value()==HttpStatus.INTERNAL_SERVER_ERROR.value()) ||
 						 (response.getStatusCode().value()==HttpStatus.BAD_REQUEST.value())
 						 )?true:false;
 			logger.warn("importXar"+xar.getName());
@@ -530,6 +538,5 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		logger.info(response.getBody());
 		logger.info(response.getHeaders().get("Set-Cookie"));
 		return new RemoteConnectionResponse(response);
-	}	
-		
+	}
 }
