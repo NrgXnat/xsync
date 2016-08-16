@@ -171,7 +171,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 					return interval;
 				}
 			}
-			throw new InvalidValueException("XSync - Invalid token refresh interval specified - " + intervalStr);
+			throw new InvalidValueException("XSync - Invalid interval specified - " + intervalStr);
 	}
 		
 }

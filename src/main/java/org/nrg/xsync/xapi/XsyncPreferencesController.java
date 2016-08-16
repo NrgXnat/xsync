@@ -56,8 +56,8 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 			final String syncRetryCount = synchronizationJson.get("syncRetryCount").asText();
 
 	        _prefs.setTokenRefreshInterval(tokenRefreshInterval);
-			_prefs.setTokenRefreshInterval(syncRetryInterval);
-			_prefs.setTokenRefreshInterval(syncRetryCount);
+			_prefs.setSyncRetryInterval(syncRetryInterval);
+			_prefs.setSyncRetryCount(syncRetryCount);
 		}catch (Exception  exception) {
         	return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
