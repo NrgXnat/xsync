@@ -26,6 +26,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteOperation;
 import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
+import org.nrg.xsync.exception.XsyncCredentialsRequiredException;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
@@ -143,16 +144,22 @@ public class XsyncOperationsController extends AbstractXapiRestController {
     @ApiResponses({@ApiResponse(code = 200, message = "The return value from the REST call."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to run REST calls on this server."), @ApiResponse(code = 500, message = "Unexpected error")})
     @RequestMapping(value = "remoteREST", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
-    public ResponseEntity<String> connectToRemoteRestEndpoint(@RequestBody final RemoteOperation operation) throws URISyntaxException {
+    public ResponseEntity<String> connectToRemoteRestEndpoint(@RequestBody final RemoteOperation operation) throws URISyntaxException, XsyncCredentialsRequiredException {
         HttpStatus status = isPermitted();
         if (status != null) {
             return new ResponseEntity<>(status);
         }
 
+        final String username = operation.getUsername();
+        final String password = operation.getPassword();
+        if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
+            throw new XsyncCredentialsRequiredException(getSessionUser().getUsername(), operation.getUrl(), StringUtils.isBlank(username), StringUtils.isBlank(password));
+        }
+
         final RestTemplate template = getRestTemplate(operation);
         final HttpMethod method = HttpMethod.resolve(operation.getMethod());
         if (_log.isDebugEnabled()) {
-            _log.debug("Attempting to " + method + " to URL " + operation.getUrl() + " as user " + operation.getUsername());
+            _log.debug("Attempting to " + method + " to URL " + operation.getUrl() + " as user " + username);
         }
         final String value;
         switch (method) {
