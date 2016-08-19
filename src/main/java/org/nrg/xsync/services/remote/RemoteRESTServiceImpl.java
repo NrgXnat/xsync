@@ -40,8 +40,6 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	/** The logger. */
 	public static Logger logger = Logger.getLogger(RemoteRESTServiceImpl.class);
 
-//	private final XsyncSitePreferencesBean _prefs = XDAT.getContextService().getBean(XsyncSitePreferencesBean.class);
-//	@Autowired
 	private final XsyncSitePreferencesBean _prefs;
 	private long sleep = 10;
 	private int maxTries = 1;

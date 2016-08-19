@@ -78,8 +78,12 @@ public class XsyncSetupController extends AbstractXapiRestController {
 	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
 	@RequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET)
 	public ResponseEntity<String> setup(@PathVariable("projectId") final String projectId) {
-		String config = _configService.getConfig("xsync", "json", Scope.Project, projectId).getContents();
-		return new ResponseEntity<>(config, HttpStatus.OK);
+		try {
+			String config = _configService.getConfig("xsync", "json", Scope.Project, projectId).getContents();
+			return new ResponseEntity<>(config, HttpStatus.OK);
+		} catch (NullPointerException e1) {
+			return new ResponseEntity<>("XSync config not found for " + projectId, HttpStatus.NOT_FOUND);
+		}
 	}
 
 	private void saveConfig(XnatProjectdata project, String xsyncConfigJson) throws Exception {
