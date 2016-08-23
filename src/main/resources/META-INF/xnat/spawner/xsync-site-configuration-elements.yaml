@@ -11,15 +11,15 @@ xsyncConfigPage:
     contents:
         remoteTokenRefresh:
             kind: tab
-            name: remoteTokenRefresh
-            label: Remote Site Token Refresh
+            name: xsyncSiteConfig
+            label: Remote Token
             group: siteConfig
             active: true
             contents:
                 remoteTokenRefreshPanel:
                     kind: panel.form
                     name: remoteTokenRefreshPanel
-                    label: Remote Token Refresh Interval
+                    label: Remote Token Refresh
                     method: POST
                     action: /xapi/xsyncSitePreferences # url to save data
                     contentType: json # omit this for standard form submission
@@ -33,13 +33,32 @@ xsyncConfigPage:
                             description: Interval for running token refresh service specified in hours or minutes.  Must be 5 minutes or greater.  Uses
                                  <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
                                  <b>NOTE&#58;  This setting requires Tomcat restart to take effect.</b>
+        syncRetry:
+            kind: tab
+            name: remoteTokenRefresh
+            label: Sync Retry
+            group: siteConfig
+            active: false
+            contents:
+                syncRetryPanel:
+                    kind: panel.form
+                    name: syncRetryPanel
+                    label: Sync Retry Settings
+                    method: POST
+                    action: /xapi/xsyncSitePreferences
+                    contentType: json
+                    load: /xapi/xsyncSitePreferences
+                    refresh: /xapi/xsyncSitePreferences
+                    contents:
                         syncRetryInterval:
                             kind: panel.input.text
                             name: syncRetryInterval
-                            label: Sync Retry Interval
-                            description: Interval between retrying sync on failure. (default 2 hours)
+                            label: Retry Interval
+                            description: Interval between retry on sync failure. Must be 5 minutes or greater. Uses
+                               <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
+                               <b>NOTE&#58;  This setting requires Tomcat restart to take effect.</b>
                         syncRetryCount:
                             kind: panel.input.text
                             name: syncRetryCount
                             label: Max Retries
-                            description: Number of times sync is retried before going to failed state.
+                            description: Number of times sync is retried before going to a failed state.

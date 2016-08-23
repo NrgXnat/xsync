@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 @XapiRestController
 @RequestMapping(value = "/xsyncSitePreferences")
 @Api(description = "XSync Preferences API")
+@SuppressWarnings("unused")
 public class XsyncPreferencesController extends AbstractXapiRestController {
 	@Autowired
 	public XsyncPreferencesController(final  XsyncSitePreferencesBean prefs,final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
@@ -51,14 +53,25 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 			final ObjectMapper objectMapper = new ObjectMapper();
 			final JsonNode synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
 
-	        final String tokenRefreshInterval = synchronizationJson.get("tokenRefreshInterval").asText();
-			final String syncRetryInterval = synchronizationJson.get("syncRetryInterval").asText();
-			final String syncRetryCount = synchronizationJson.get("syncRetryCount").asText();
-
-	        _prefs.setTokenRefreshInterval(tokenRefreshInterval);
-			_prefs.setSyncRetryInterval(syncRetryInterval);
-			_prefs.setSyncRetryCount(syncRetryCount);
-		}catch (Exception  exception) {
+			try {
+				final String tokenRefreshInterval = synchronizationJson.get("tokenRefreshInterval").asText();
+				_prefs.setTokenRefreshInterval(tokenRefreshInterval);
+			} catch (NullPointerException e) {
+				// Allow for blank field
+			}
+			try {
+				final String syncRetryInterval = synchronizationJson.get("syncRetryInterval").asText();
+				_prefs.setSyncRetryInterval(syncRetryInterval);
+			} catch (NullPointerException e) {
+				// Allow for blank field
+			}
+			try {
+				final String syncRetryCount = synchronizationJson.get("syncRetryCount").asText();
+				_prefs.setSyncRetryCount(syncRetryCount);
+			} catch (NullPointerException e) {
+				// Allow for blank field
+			}
+		}catch (Exception exception) {
         	return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
        	return new ResponseEntity<>("XSync preferences set", HttpStatus.OK );

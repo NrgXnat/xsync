@@ -159,6 +159,8 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	 */
 	private static long calculateIntervalInMillis(final String intervalStr) throws InvalidValueException {
 			final String[] intervalArr = intervalStr.split("[\\s]+");
+			final long minIntervalMilis = 300000;
+
 			if (intervalArr.length==2) {
 				final long intervalNum = Long.valueOf(intervalArr[0]);
 				Long interval = null;
@@ -167,11 +169,13 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 				} else if (intervalArr[1].toLowerCase().contains("minute")) {
 					interval = intervalNum*1000*60;
 				}
-				if (interval != null && interval>=300000) {
+				if (interval != null && interval>=minIntervalMilis) {
 					return interval;
+				} else {
+					throw new InvalidValueException("XSync - Interval too short - Specify minimum of " + minIntervalMilis*1000*60 + " minutes.");
 				}
 			}
 			throw new InvalidValueException("XSync - Invalid interval specified - " + intervalStr);
 	}
-		
+
 }
