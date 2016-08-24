@@ -1,44 +1,25 @@
 package org.nrg.xsync.local;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatReconstructedimagedataI;
-import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatReconstructedimagedata;
 import org.nrg.xft.exception.FieldNotFoundException;
-import org.nrg.xft.security.UserI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionAdvancedOption;
-import org.nrg.xsync.utils.QueryResultUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.nrg.xsync.configuration.json.SyncConfigurationScanTypes;
+import org.nrg.xsync.utils.XsyncUtils;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
 public class ReconstructionFilter {
-	private static final Logger _log = LoggerFactory.getLogger(ResourceFilter.class);
 
-	private final UserI _user;
-	private final NamedParameterJdbcTemplate _jdbcTemplate;
-	private final QueryResultUtil _queryResultUtil;
 
-	
-	public ReconstructionFilter(final UserI user, final NamedParameterJdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil) {
-		_user = user;
-		_jdbcTemplate = jdbcTemplate;
-		_queryResultUtil = queryResultUtil;
-	}
-
-	
 	/**
 	 * correctIDandLabel.
 	 *
@@ -64,10 +45,10 @@ public class ReconstructionFilter {
 				}
 			}
 
-			filterRecons(exp,scanTypes,projectSyncConfiguration);
+			filterRecons(exp,scanTypes);
 		}
 	}
-	
+
 	/**
 	 * Filter recons.
 	 *
@@ -80,13 +61,9 @@ public class ReconstructionFilter {
 	 * @throws FieldNotFoundException
 	 *             the field not found exception
 	 */
-	private void filterRecons(XnatExperimentdata exp, List<String> scan_types,ProjectSyncConfiguration projectSyncConfiguration)
-			throws  Exception {
+	private void filterRecons(XnatExperimentdata exp, List<String> scan_types)
+			throws IndexOutOfBoundsException, FieldNotFoundException {
 		while (findAndRemoveRecons(exp, scan_types));
-		List<XnatReconstructedimagedataI> recons = ((XnatImagesessiondata) exp).getReconstructions_reconstructedimage();
-		for (int i = 0; i < recons.size(); i++) {
-			while (findAndRemoveReconFiles(recons.get(i),projectSyncConfiguration));
-		}
 		return;
 	}
 
@@ -107,40 +84,6 @@ public class ReconstructionFilter {
 				((XnatImagesessiondata) exp).removeReconstructions_reconstructedimage(i);
 				found = true;
 				break;
-			}
-		}
-		return found;
-	}
-
-	/**
-	 * Find and remove recon files.
-	 *
-	 * @param exp
-	 *            the exp
-	 * @param scan_types
-	 *            the scan_types
-	 * @return true, if successful
-	 */
-	private boolean findAndRemoveReconFiles(XnatReconstructedimagedataI recon,ProjectSyncConfiguration projectSyncConfiguration) throws Exception {
-		boolean found = false;
-		ResourceFilter resourceFilter = new ResourceFilter(_user,_jdbcTemplate,_queryResultUtil);
-		Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
-		List<XnatAbstractresourceI> resources = recon.getIn_file();
-		for (int i=0; i< resources.size(); i++) {
-			XnatAbstractresource res = (XnatAbstractresource)resources.get(i);
-			if (!resourceFilter.hasResourceBeenModified(res, syncEndDate)) {
-				((XnatReconstructedimagedata)recon).removeIn_file(i);
-				found = true;
-				break;
-			}
-		}
-		resources = recon.getOut_file();
-		for (int i=0; i< resources.size(); i++) {
-			XnatAbstractresource res = (XnatAbstractresource)resources.get(i);
-			if (!resourceFilter.hasResourceBeenModified(res, syncEndDate)) {
-					((XnatReconstructedimagedata)recon).removeIn_file(i);
-					found = true;
-					break;
 			}
 		}
 		return found;
