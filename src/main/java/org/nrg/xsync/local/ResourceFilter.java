@@ -39,7 +39,7 @@ public class ResourceFilter {
 	private final UserI _user;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
 	private final QueryResultUtil _queryResultUtil;
-	
+
 	public ResourceFilter(final UserI user, final NamedParameterJdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil) {
 		_user = user;
 		_jdbcTemplate = jdbcTemplate;
@@ -53,7 +53,7 @@ public class ResourceFilter {
 		List<XnatAbstractresourceI> resourcesModified = new ArrayList<XnatAbstractresourceI>();
 		List<XnatAbstractresourceI> resourcesDeleted = new ArrayList<XnatAbstractresourceI>();
 		List<XnatAbstractresourceI> resourcesAdded = new ArrayList<XnatAbstractresourceI>();
-		
+
 		Map<String,List<XnatAbstractresourceI>> filteredResources = new HashMap<String,List<XnatAbstractresourceI>>();
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue(QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME, projectSyncConfiguration.getSynchronizationConfiguration().getSource_project_id());
@@ -64,7 +64,7 @@ public class ResourceFilter {
 		while(total_resources > 0) {
 			XnatAbstractresourceI resource = resources.get(i);
 			if (projectSyncConfiguration.isResourceToBeSynced(resource.getLabel())) {
-				   resourcesToBeSynced.add(resource);	
+				   resourcesToBeSynced.add(resource);
 			}
 			project.removeResources_resource(i);
 			resources = project.getResources_resource();
@@ -79,10 +79,10 @@ public class ResourceFilter {
 			for (XnatAbstractresourceI rsc:resourcesToBeSynced) {
 				resourceLabels.add(rsc.getLabel());
 			}
-			if (resourceLabels.size() > 0 ) { 
+			if (resourceLabels.size() > 0 ) {
 				parameters.addValue("resources", resourceLabels);
 			}
-			if (resourceLabels.size() > 0 ) { 
+			if (resourceLabels.size() > 0 ) {
 				query += " where label in (:resources)";
 				//Columns
 				//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_start_time
@@ -108,11 +108,11 @@ public class ResourceFilter {
 		filteredResources.put(QueryResultUtil.ACTIVE_STATUS,resourcesModified);
 		filteredResources.put(QueryResultUtil.DELETE_STATUS,resourcesDeleted);
 		filteredResources.put(QueryResultUtil.NEW_STATUS,resourcesAdded);
-		
+
 		return filteredResources;
 	}
 */
-	
+
 	public Map<String,List<XnatAbstractresourceI>> select(XnatSubjectdata subject, String localSubjectId, ProjectSyncConfiguration projectSyncConfiguration) throws Exception {
 		List<XnatAbstractresourceI> resources = subject.getResources_resource();
 		List<XnatAbstractresourceI> resourcesToBeSynced = new ArrayList<XnatAbstractresourceI>();
@@ -139,14 +139,14 @@ public class ResourceFilter {
 				}
 			}
 		}
-		
-		
+
+
 		int total_resources = resources.size();
 		int i = 0;
 		while(total_resources > 0) {
 			XnatAbstractresourceI resource = resources.get(i);
 			if (projectSyncConfiguration.isSubjectResourceToBeSynced(resource.getLabel())) {
-				   resourcesToBeSynced.add(resource);	
+				   resourcesToBeSynced.add(resource);
 			}
 			subject.removeResources_resource(i);
 			resources = subject.getResources_resource();
@@ -160,10 +160,10 @@ public class ResourceFilter {
 			for (XnatAbstractresourceI rsc:resourcesToBeSynced) {
 				resourceLabels.add(rsc.getLabel());
 			}
-			if (resourceLabels.size() > 0 ) { 
+			if (resourceLabels.size() > 0 ) {
 				parameters.addValue("resources", resourceLabels);
 			}
-			if (resourceLabels.size() > 0 ) { 
+			if (resourceLabels.size() > 0 ) {
 				query += " where label in (:resources)";
 				//Columns
 				//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date
@@ -181,7 +181,7 @@ public class ResourceFilter {
 		filteredResources.put(QueryResultUtil.NEW_STATUS,resourcesAdded);
 		return filteredResources;
 	}
-	
+
 	private Hashtable<String,String> toHash(List<XnatAbstractresourceI> rscs) {
 		Hashtable<String,String> labelHash = new Hashtable<>();
 		if (rscs != null && rscs.size() > 0) {
@@ -191,34 +191,34 @@ public class ResourceFilter {
 		}
 		return labelHash;
 	}
-	
+
 	private XnatResource createNewResource(String label) {
 		Class c = BaseElement.GetGeneratedClass(XnatResource.SCHEMA_ELEMENT_NAME);
 		ItemI o = null;
 		try {
             o = (ItemI) c.newInstance();
-            o.setProperty("label", label);        
+            o.setProperty("label", label);
         }catch(Exception e) {
         	_log.debug("Could not instantiate the Abstract resource " + label);
         }
         return new XnatResource(o);
 	}
-	
+
 	private List<XnatAbstractresourceI> getAbstractResourceItems(Hashtable<String,String> accountedResources,List<Map<String,Object>> rows, String status, Date syncEndDate,SyncConfigurationResource resource) throws Exception {
 		List<XnatAbstractresourceI> absResources = new ArrayList<XnatAbstractresourceI>();
-		List<Map<String,Object>> unaccountedRows = new ArrayList<Map<String,Object>>(); 
+		List<Map<String,Object>> unaccountedRows = new ArrayList<Map<String,Object>>();
 		if (rows != null && rows.size() > 0) {
 			for (Map<String,Object> row: rows) {
 				 String label = (String)row.get("label");
 				 if (!accountedResources.containsKey(label)) {
 					 unaccountedRows.add(row);
 				 }
-			}	
+			}
 			absResources = getAbstractResourceItems(unaccountedRows, status, syncEndDate, resource);
 		}
 		return absResources;
 	}
-	
+
 	private List<XnatAbstractresourceI> getAbstractResourceItems(List<Map<String,Object>> rows, String status, Date syncEndDate,SyncConfigurationResource resource) throws Exception {
 		List<XnatAbstractresourceI> absResources = new ArrayList<XnatAbstractresourceI>();
 		if (rows != null && rows.size() > 0) {
@@ -256,10 +256,10 @@ public class ResourceFilter {
 		}
 		return absResources;
 	}
-	
+
 	public boolean hasResourceBeenModified(XnatAbstractresource resource, Date syncEndDate) throws Exception {
 		boolean modified = false;
-		XFTItem item = resource.getCurrentDBVersion(); 
+		XFTItem item = resource.getCurrentDBVersion();
 		String metaFieldName = item.getGenericSchemaElement().getMetaDataFieldName();
         Object v = item.getProperty(metaFieldName);
         XFTItem itemMeta = ItemSearch.GetItem(item.getXSIType() + "_meta_data/meta_data_id",v,null,false);

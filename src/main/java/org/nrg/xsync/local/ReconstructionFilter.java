@@ -18,8 +18,8 @@ import org.nrg.xsync.utils.XsyncUtils;
  *
  */
 public class ReconstructionFilter {
-	
-	
+
+
 	/**
 	 * correctIDandLabel.
 	 *
@@ -48,7 +48,7 @@ public class ReconstructionFilter {
 			filterRecons(exp,scanTypes);
 		}
 	}
-	
+
 	/**
 	 * Filter recons.
 	 *

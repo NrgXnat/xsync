@@ -207,9 +207,8 @@ public class ProjectSyncConfiguration {
     }
 
     private SyncConfiguration setSyncConfigurationFromService(final String projectId) throws XsyncNotConfiguredException {
-        Configuration conf  = _configService.getConfig("xsync", "json", Scope.Project, projectId);
-        final String config	= conf.getContents();
-
+        final Configuration conf  = _configService.getConfig("xsync", "json", Scope.Project, projectId);
+        final String config	= conf != null ? conf.getContents() : null;
         if (config != null) {
             try {
                 return _serializer.deserializeJson(config, SyncConfiguration.class);

@@ -5,6 +5,8 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import org.apache.commons.lang3.StringUtils;
+import org.nrg.config.entities.Configuration;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.constants.Scope;
@@ -78,12 +80,9 @@ public class XsyncSetupController extends AbstractXapiRestController {
 	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
 	@RequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET)
 	public ResponseEntity<String> setup(@PathVariable("projectId") final String projectId) {
-		try {
-			String config = _configService.getConfig("xsync", "json", Scope.Project, projectId).getContents();
-			return new ResponseEntity<>(config, HttpStatus.OK);
-		} catch (NullPointerException e1) {
-			return new ResponseEntity<>("XSync config not found for " + projectId, HttpStatus.NOT_FOUND);
-		}
+		final Configuration conf = _configService.getConfig("xsync", "json", Scope.Project, projectId);
+		final String config = conf != null ? conf.getContents() : null;
+		return StringUtils.isNotBlank(config) ? new ResponseEntity<>(config, HttpStatus.OK) : new ResponseEntity<String>(HttpStatus.NOT_FOUND);
 	}
 
 	private void saveConfig(XnatProjectdata project, String xsyncConfigJson) throws Exception {
