@@ -23,6 +23,7 @@ import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImageassessordata;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.om.XnatReconstructedimagedata;
 import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatResourceseries;
 import org.nrg.xdat.om.XnatSubjectassessordata;
@@ -433,7 +434,7 @@ public class ExperimentFilter {
 
 	
 	private void filterRecons(XnatExperimentdata exp) throws Exception{
-		ReconstructionFilter reconFilter = new ReconstructionFilter();
+		ReconstructionFilter reconFilter = new ReconstructionFilter(_user,_jdbcTemplate,_queryResultUtil);
 		reconFilter.filter(exp, projectSyncConfiguration);
 	}
 
@@ -470,7 +471,7 @@ public class ExperimentFilter {
 					for (final XnatReconstructedimagedataI recon : ((XnatImagesessiondata) exp)
 							.getReconstructions_reconstructedimage()) {
 						recon.setImageSessionId(exp.getLabel());
-						ReconstructionFilter reconFilter = new ReconstructionFilter();
+						ReconstructionFilter reconFilter = new ReconstructionFilter(_user,_jdbcTemplate,_queryResultUtil);
 						reconFilter.correctIDandLabel(recon);
 						for (final XnatAbstractresourceI res : recon.getIn_file()) {
 							modifyExptResource((XnatAbstractresource) res, orig);
@@ -552,7 +553,7 @@ public class ExperimentFilter {
 	    SyncConfigurationResource sessionResources = session.getResources();
 		while (findAndRemoveExperimentResources(exp, sessionResources))	;
 		//Look for configured resources which have been modified since last sync
-		//while (findAndRemoveExperimentResourcesNotModified(exp, sessionResources))	;
+		while (findAndRemoveExperimentResourcesNotModified(exp, sessionResources))	;
 		return;
 	}
 
@@ -623,6 +624,30 @@ public class ExperimentFilter {
 		return found;
 	}
 
+	/**
+	 * Find and remove assessor In Files.
+	 *
+	 * @param assessor
+	 *            the exp
+	 * @param resourcesCfg
+	 *            the resource type
+	 * @return true, if successful
+	 */
+	private boolean findAndRemoveAssessorInFiles(XnatImageassessordataI assessor,ProjectSyncConfiguration projectSyncConfiguration ) throws Exception {
+		boolean found = false;
+		ResourceFilter resourceFilter = new ResourceFilter(_user,_jdbcTemplate,_queryResultUtil);
+		Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
+		List<XnatAbstractresourceI> resource = assessor.getIn_file();
+		for (int i = 0; i < resource.size(); i++) {
+			XnatAbstractresource res = (XnatAbstractresource)resource.get(i);
+			if (!resourceFilter.hasResourceBeenModified(res, syncEndDate)) {
+				((XnatImageassessordata)assessor).removeIn_file(i);
+				found = true;
+				break;
+			}
+		}
+		return found;
+	}
 	
 	/**
 	 * Filter scantypes.
@@ -635,12 +660,12 @@ public class ExperimentFilter {
 	 *             the field not found exception
 	 */
 	private void filterScantypes(XnatExperimentdata exp)
-			throws IndexOutOfBoundsException, FieldNotFoundException {
+			throws IndexOutOfBoundsException, FieldNotFoundException, Exception {
 		SyncConfigurationImagingSessionAdvancedOption sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
 		while (findAndRemoveScantypes(exp, sessionOption))
 			;
 		filterScanResources(exp,sessionOption);
-		//filterScanResourcesNotModified(exp,sessionOption);
+		filterScanResourcesNotModified(exp,sessionOption);
 		return;
 	}
 	
@@ -667,6 +692,26 @@ public class ExperimentFilter {
 		return;
 	}
 
+	/**
+	 * Filter scan resources.
+	 *
+	 * @param exp
+	 *            the exp
+	 * @param sessionOption Session options.
+	 * @throws IndexOutOfBoundsException
+	 *             the index out of bounds exception
+	 * @throws FieldNotFoundException
+	 *             the field not found exception
+	 */
+	public void filterScanResourcesNotModified(XnatExperimentdata exp,SyncConfigurationImagingSessionAdvancedOption sessionOption)
+			throws IndexOutOfBoundsException, FieldNotFoundException, Exception {
+		List<XnatImagescandataI> scans = ((XnatImagesessiondata)exp).getScans_scan();
+		for (XnatImagescandataI scan:scans) {
+				while (findAndRemoveScanResourcesNotModified(scan))
+					;
+			}
+		return;
+	}
 	
 	
 /**
@@ -694,6 +739,29 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	return found;
 }
 
+/**
+ * Find and remove experiment resources.
+ *
+ * @param assessor
+ *            the exp
+ * @param resourcesCfg
+ *            the resource type
+ * @return true, if successful
+ */
+private boolean findAndRemoveScanResourcesNotModified(XnatImagescandataI scan) throws Exception{
+	boolean found = false;
+	Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
+	List<XnatAbstractresourceI> resources = scan.getFile();
+	ResourceFilter resourceFilter = new ResourceFilter(_user,_jdbcTemplate,_queryResultUtil);
+	for (int i = 0; i < resources.size(); i++) {
+		if (!resourceFilter.hasResourceBeenModified((XnatAbstractresource)resources.get(i), syncEndDate)) {
+			((XnatImagescandata)scan).removeFile(i);
+			found = true;
+			break;
+		}
+	}
+	return found;
+}
 	
 	
 	/**
@@ -740,7 +808,6 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 			if (assessorAdvOption != null) {
 				while (findAndRemoveAssessorResources(ass, assessorAdvOption.getResources()))
 					;
-
 			}
 		}
 		return;

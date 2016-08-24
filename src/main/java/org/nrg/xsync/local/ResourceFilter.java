@@ -264,13 +264,13 @@ public class ResourceFilter {
         Object v = item.getProperty(metaFieldName);
         XFTItem itemMeta = ItemSearch.GetItem(item.getXSIType() + "_meta_data/meta_data_id",v,null,false);
 		//Is this new or updated?
-		Date experimentInsertDate = (Date)itemMeta.getProperty("insert_date");
-		Date experimentModifiedDate = (Date)itemMeta.getProperty("last_modified");
-		int dateComparison = experimentInsertDate.compareTo(syncEndDate);
+		Date resourceInsertDate = (Date)itemMeta.getProperty("insert_date");
+		Date resourceModifiedDate = (Date)itemMeta.getProperty("last_modified");
+		int dateComparison = resourceInsertDate.compareTo(syncEndDate);
 		if (dateComparison >= 0) { //Inserted at endTime or After endTime
 			modified = true;
 		}else {
-			dateComparison = experimentModifiedDate.compareTo(syncEndDate);
+			dateComparison = resourceModifiedDate.compareTo(syncEndDate);
 			if (dateComparison >= 0) { //Modified at endTime or After endTime
 				modified = true;
 			}
