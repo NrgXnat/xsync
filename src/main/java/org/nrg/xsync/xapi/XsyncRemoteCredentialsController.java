@@ -71,8 +71,8 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
     @ApiOperation(value = "Sets remote credentials for XSync")
     @ApiResponses({@ApiResponse(code = 200, message = "XSync remote credentials set."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	public synchronized ResponseEntity<String> saveRemoteCredentials(@RequestBody String jsonbody) {
-		ResponseEntity<String> response = null;
-		String message="";
+		ResponseEntity<String> response;
+		String message;
 		try {
 			final ObjectMapper objectMapper = new ObjectMapper();
 			final JsonNode synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
@@ -81,23 +81,18 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	        final String secret = (synchronizationJson.get("secret")!=null) ? synchronizationJson.get("secret").asText() : null;
 	        final String localProject = (synchronizationJson.get("localProject")!=null) ? synchronizationJson.get("localProject").asText() : null;
 	        final String username = (synchronizationJson.get("username")!=null) ? synchronizationJson.get("username").asText() : null;
+			final String remoteProjectId = (synchronizationJson.get("remoteProject")!=null) ? synchronizationJson.get("remoteProject").asText() : null;
+			final boolean syncNewOnly = synchronizationJson.get("syncNewOnly").asBoolean();
 
 	        if (host==null || host.length()<1 || alias==null || alias.length()<1 || secret==null ||
 	        		secret.length()<1 || localProject==null || localProject.length()<1 || username==null || username.length()<1) {
 	        	return new ResponseEntity<>("Could not save remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );
 	        	
 	        }
-			String config = _configService.getConfig("xsync", "json", Scope.Project, localProject).getContents();
-			if (config == null || config.length() < 1) {
-	        	return new ResponseEntity<>("Could not save remote credentials.  Project Synchronization incomplete.", HttpStatus.BAD_REQUEST );
-			}
-			//Check the user permissions on the remote project
-			//If they are insufficient, report as error
-			final JsonNode configJson = _serializer.deserializeJson(config, JsonNode.class);
-	        final String remoteProjectId = (configJson.get("remote_project_id")!=null) ? configJson.get("remote_project_id").asText() : null;
-	        final boolean syncNewOnly = (configJson.get("sync_new_only")!=null) ? configJson.get("sync_new_only").asBoolean() : null;
+
 	        final String userAccessUrl = (host.endsWith("/")? host:host+"/") + "data/archive/projects/"+remoteProjectId+"/users?format=json";
 	        response = userHasRequiredAccessAtRemoteProject(alias,secret,username,userAccessUrl,remoteProjectId,syncNewOnly);
+
 	        if (response != null && (response.getStatusCode().value() == HttpStatus.OK.value() || response.getStatusCode().value() == HttpStatus.ACCEPTED.value() )) {
 				RemoteAliasEntity remoteAliasEntity = _remoteAliasService.getRemoteAliasEntity(localProject, host);
 		        if (remoteAliasEntity != null) {
