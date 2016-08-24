@@ -11,7 +11,7 @@
     <div id='xsync-config-div'>
     </div>
     <script type="text/javascript">
-        $(XSYNC.xsyncconfig.initialize);
+        $(XSYNC.xsyncconfig.init());
     </script>
 </div>
 
