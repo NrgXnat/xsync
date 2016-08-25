@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +24,7 @@ import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImageassessordata;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.om.XnatReconstructedimagedata;
 import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatResourceseries;
 import org.nrg.xdat.om.XnatSubjectassessordata;
@@ -65,7 +67,7 @@ public class ExperimentFilter {
 	private final RemoteConnectionManager    _manager;
 	private final XsyncXnatInfo              _xsyncXnatInfo;
 	private final QueryResultUtil            _queryResultUtil;
-
+ 
 	public ExperimentFilter(final RemoteConnectionManager manager, final NamedParameterJdbcTemplate jdbcTemplate, final XsyncXnatInfo xsyncXnatInfo, final QueryResultUtil queryResultUtil, final UserI user, final ProjectSyncConfiguration projectSyncConfiguration) {
 		_manager = manager;
 		_jdbcTemplate = jdbcTemplate;
@@ -74,7 +76,7 @@ public class ExperimentFilter {
 		_user = user;
 		this.projectSyncConfiguration = projectSyncConfiguration;
 	}
-
+	
 	public Map<String,List<XnatExperimentdataI>> select(XnatSubjectdata subject, String localSubjectId) throws Exception {
 		List<XnatExperimentdataI> experimentsDeleted = new ArrayList<XnatExperimentdataI>();
 		List<XnatExperimentdataI> experimentsModified = new ArrayList<XnatExperimentdataI>();
@@ -83,7 +85,7 @@ public class ExperimentFilter {
 
 		List<XnatExperimentdataI> experimentsConfiguredToBeSynced = new ArrayList<XnatExperimentdataI>();
 		Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
-
+		
 		List<XnatSubjectassessordataI> existingExperiments = subject.getExperiments_experiment();
 		int total_experiments = existingExperiments.size();
 		_log.debug("Existing experiments " + total_experiments);
@@ -103,16 +105,16 @@ public class ExperimentFilter {
 					//Does it need an OK before its synced?
 					if (projectSyncConfiguration.imagingSessionNeedsOkToSync(subjectAssessor.getXSIType()) ) {
 							   experimentIds.add(subjectAssessor.getId());
-					}else
-					   experimentsConfiguredToBeSynced.add(subjectAssessor);
+					}else 
+					   experimentsConfiguredToBeSynced.add(subjectAssessor);	
 				}
 			}else {
 				if (projectSyncConfiguration.isSubjectAssessorToBeSynced(subjectAssessor.getXSIType())) {
 					//Does it need an OK before its synced?
 					if (projectSyncConfiguration.subjectAssessorNeedsOkToSync(subjectAssessor.getXSIType()) ) {
 						   experimentIds.add(subjectAssessor.getId());
-					}else
-							experimentsConfiguredToBeSynced.add(subjectAssessor);
+					}else 
+							experimentsConfiguredToBeSynced.add(subjectAssessor);	
 				}
 			}
 			subject.removeExperiments_experiment(i);
@@ -134,10 +136,10 @@ public class ExperimentFilter {
 		// Subject has no experiments which are configured to be synced. Have any been deleted?
 		String query = _queryResultUtil.getQueryForFetchingSubjectExperimentsDeletedSinceLastSync();
 		//Columns
-		// id,label,element_name,project,status,last_modified, sync_start_time
+		// id,label,element_name,project,status,last_modified, sync_start_time 		
 		_log.debug("Query is " + query);
 		List<Map<String,Object>> experiments = _jdbcTemplate.queryForList(query, parameters);
-
+		
 		if (experiments != null && experiments.size()>0) {
 			for (Map<String,Object> row:experiments) {
 				if (projectSyncConfiguration.isSubjectAssessorToBeSynced((String)row.get("element_name")) || projectSyncConfiguration.isImagingSessionToBeSynced((String)row.get("element_name"))) {
@@ -150,7 +152,7 @@ public class ExperimentFilter {
 		}else {
 			_log.debug("No experiment has been deleted for subject");
 		}
-
+		
 
 		if (experimentsConfiguredToBeSynced.size() > 0) {
 			if (experimentDetails.size()>0) {
@@ -183,10 +185,10 @@ public class ExperimentFilter {
 				 boolean syncOnlyNew = projectSyncConfiguration.isSetToSyncNewOnly();
 				 if (syncOnlyNew) {
 					//Never synced before
-					 query += " and xok.sync_status is  NULL ";
+					 query += " and xok.sync_status is  NULL "; 
 				 }
 					//Columns
-					// id,label,element_name,project,status,last_modified, sync_end_time, insert_date
+					// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
 				 experiments = _jdbcTemplate.queryForList(query, parameters);
 				if (experiments != null && experiments.size()>0) {
 					for (Map<String,Object> row:experiments) {
@@ -214,10 +216,10 @@ public class ExperimentFilter {
 							}
 						}
 					}
-				}else
+				}else 
 				 _log.debug("None of the configured experiments have changed for subject " + subject.getId());
 		}
-
+		
 		Map<String,List<XnatExperimentdataI>> filteredResults = new HashMap<String,List<XnatExperimentdataI>>();
 		filteredResults.put(QueryResultUtil.ACTIVE_STATUS, experimentsModified);
 		filteredResults.put(QueryResultUtil.DELETE_STATUS, experimentsDeleted);
@@ -225,9 +227,9 @@ public class ExperimentFilter {
 		filteredResults.put(QueryResultUtil.OK_TO_SYNC_STATUS, experimentsMarkedOkToSync);
 		return filteredResults;
 	}
-
-
-
+	
+	
+	
 	private XnatExperimentdataI getExperiment(String id, List<XnatExperimentdataI> experiments) {
 		XnatExperimentdataI exp = null;
 		for (XnatExperimentdataI e:experiments) {
@@ -246,7 +248,7 @@ public class ExperimentFilter {
 	}
 
 	private Map<String,Object> getExperimentTimeLineDetails(XnatExperimentdata exp, Object sync_end_time) throws Exception {
-		// id,label,element_name,project,status,last_modified, sync_end_time, insert_date
+		// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
 		Map<String,Object> info = new HashMap<String, Object>();
 		XFTItem item = exp.getCurrentDBVersion(); // exp.getItem does not contain the meta fields
 		//ItemI itemMeta = item.getMeta(); was returning null
@@ -265,14 +267,14 @@ public class ExperimentFilter {
 		info.put("sync_end_time", sync_end_time);
 		return info;
 	}
-
+	
 	private XnatExperimentdataI createNew(String id, String label, XnatSubjectdata subject,String xsiType) {
 		Class c = BaseElement.GetGeneratedClass(xsiType);
 		ItemI o = null;
 		try {
             o = (ItemI) c.newInstance();
             o.setProperty("id", id);
-            o.setProperty("label", label);
+            o.setProperty("label", label);        
             o.setProperty("project", subject.getProject());
             o.setProperty("subject_ID", subject.getId());
         }catch(Exception e) {
@@ -280,7 +282,7 @@ public class ExperimentFilter {
         }
         return new XnatExperimentdata(o);
 	}
-
+	
 	/**
 	 * @param targetsubject
 	 *            subject for experiment for correction
@@ -345,7 +347,17 @@ public class ExperimentFilter {
 		exp.setPrearchivepath(null);
 
 	}
-
+	
+	private boolean hasResourceBeenModified(XnatAbstractresource resource) throws Exception{
+		boolean modified = false;
+		Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
+		ResourceFilter resourceFilter = new ResourceFilter(_user,_jdbcTemplate,_queryResultUtil);
+			if (resourceFilter.hasResourceBeenModified(resource, syncEndDate)) {
+				modified = true;
+			}
+		return modified;
+	}
+	
 	/**
 	 * Modify expt resource.
 	 *
@@ -367,25 +379,36 @@ public class ExperimentFilter {
 	 *             the XFT init exception
 	 */
 	private void modifyExptResource(XnatAbstractresourceI resource, XnatExperimentdata orig) throws IOException, UnknownPrimaryProjectException, InvalidArchiveStructure,
-																									ElementNotFoundException, FieldNotFoundException, XFTInitException {
+																									ElementNotFoundException, FieldNotFoundException, XFTInitException, Exception {
 		String filepath = orig.getArchiveRootPath() + "arc001/";// +
 																// orig.getArchiveDirectoryName();
 		String newFilepath = SynchronizationManager.GET_SYNC_FILE_PATH(orig.getProject(),orig);
+		boolean hasResourceBeenModified = hasResourceBeenModified((XnatAbstractresource)resource);
 
 		if (resource instanceof XnatResource) {
 			String path = ((XnatResource) resource).getUri();
 			String newURI = path.replace(filepath, newFilepath);
 			((XnatResource) resource).setUri(newURI);
-			modifyExptResourceFiles(path, newURI);
+			if (hasResourceBeenModified) {
+				modifyExptResourceFiles(path, newURI);
+			}else {
+				resource.setFileCount(-1*resource.getFileCount());
+				resource.setFileSize(-1*(Long)resource.getFileSize());
+			}
 		} else if (resource instanceof XnatResourceseries) {
 			String path = ((XnatResourceseries) resource).getPath();
 			String newURI = path.replace(filepath, newFilepath);
 			((XnatResourceseries) resource).setPath(newURI);
-			modifyExptResourceFiles(path, newURI);
+			if (hasResourceBeenModified) {
+				modifyExptResourceFiles(path, newURI);
+			}else {
+				resource.setFileCount(-1*resource.getFileCount());
+				resource.setFileSize(-1*(Long)resource.getFileSize());
+			}
 		}
 	}
 
-
+	
 	/**
 	 * Modify expt resource files.
 	 *
@@ -409,7 +432,6 @@ public class ExperimentFilter {
 	private void modifyExptResourceFiles(String catalogFile, String newCatalogFile)
 			throws IOException, UnknownPrimaryProjectException, InvalidArchiveStructure, ElementNotFoundException,
 			FieldNotFoundException, XFTInitException {
-
 		// this is path to catalog
 		String newCatalogFileParentDir = newCatalogFile.substring(0, newCatalogFile.lastIndexOf(File.separatorChar));
 		new File(newCatalogFileParentDir).mkdirs();
@@ -431,7 +453,7 @@ public class ExperimentFilter {
 		}
 	}
 
-
+	
 	private void filterRecons(XnatExperimentdata exp) throws Exception{
 		ReconstructionFilter reconFilter = new ReconstructionFilter();
 		reconFilter.filter(exp, projectSyncConfiguration);
@@ -465,7 +487,7 @@ public class ExperimentFilter {
 							modifyExptResource((XnatAbstractresource) res, orig);
 						}
 					}
-
+					
 					filterRecons(exp);
 					for (final XnatReconstructedimagedataI recon : ((XnatImagesessiondata) exp)
 							.getReconstructions_reconstructedimage()) {
@@ -498,18 +520,18 @@ public class ExperimentFilter {
 						for (final XnatAbstractresourceI res : assess.getOut_file()) {
 							modifyExptResource((XnatAbstractresource) res, orig);
 						}
-
+						
 					}
-					Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType()).getAnonymize();
+					Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType()).getAnonymize(); 
 					_log.debug("Exp " + exp.getLabel() + " needs to be anonymized " + isExptToBeAnonymized);
 					if (isExptToBeAnonymized) {
 						_log.debug("About to anonymize " + exp.getLabel());
 						 anonymize((XnatImagesessiondata)exp, newSubject.getProject());
-						_log.debug("DONE - anonymize " + exp.getLabel());
+						_log.debug("DONE - anonymize " + exp.getLabel());						
 					}
 				} else {
 				}
-
+				
 			}
 		} catch (Exception ex) {
 			_log.error(ex.toString() + " " + ex.getLocalizedMessage());
@@ -517,8 +539,8 @@ public class ExperimentFilter {
 		}
 		return exp;
 	}
-
-
+	
+	
 	private void anonymize(XnatImagesessiondata exp, String destProject) throws Exception {
 		if (exp.getScans_scan() != null && exp.getScans_scan().size() > 0) {
 			try {
@@ -535,7 +557,7 @@ public class ExperimentFilter {
 			}
 		}
 	}
-
+	
 	/**
 	 * Filter experiment resources.
 	 *
@@ -551,8 +573,6 @@ public class ExperimentFilter {
 		SyncConfigurationImagingSessionAdvancedOption session = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
 	    SyncConfigurationResource sessionResources = session.getResources();
 		while (findAndRemoveExperimentResources(exp, sessionResources))	;
-		//Look for configured resources which have been modified since last sync
-		//while (findAndRemoveExperimentResourcesNotModified(exp, sessionResources))	;
 		return;
 	}
 
@@ -565,6 +585,9 @@ public class ExperimentFilter {
 	 */
 	private boolean findAndRemoveExperimentResources(XnatExperimentdata exp, SyncConfigurationResource resourcesCfg) {
 		boolean found = false;
+		if (resourcesCfg == null) {
+			return false;
+		}
 		List<XnatAbstractresourceI> resource = exp.getResources_resource();
 		for (int i = 0; i < resource.size(); i++) {
 			if (!resourcesCfg.isAllowedToSync(resource.get(i).getLabel())) {
@@ -576,27 +599,6 @@ public class ExperimentFilter {
 		return found;
 	}
 
-	/**
-	 * Find and remove experiment resources.
-	 *
-	 * @param exp
-	 *            the exp
-	 * @return true, if successful
-	 */
-	private boolean findAndRemoveExperimentResourcesNotModified(XnatExperimentdata exp, SyncConfigurationResource resourcesCfg) throws Exception {
-		boolean found = false;
-		Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
-		List<XnatAbstractresourceI> resources = exp.getResources_resource();
-		ResourceFilter resourceFilter = new ResourceFilter(_user,_jdbcTemplate,_queryResultUtil);
-		for (int i = 0; i < resources.size(); i++) {
-			if (!resourceFilter.hasResourceBeenModified((XnatAbstractresource)resources.get(i), syncEndDate)) {
-				exp.removeResources_resource(i);
-				found = true;
-				break;
-			}
-		}
-		return found;
-	}
 
 	/**
 	 * Find and remove experiment resources.
@@ -623,7 +625,7 @@ public class ExperimentFilter {
 		return found;
 	}
 
-
+	
 	/**
 	 * Filter scantypes.
 	 *
@@ -635,15 +637,14 @@ public class ExperimentFilter {
 	 *             the field not found exception
 	 */
 	private void filterScantypes(XnatExperimentdata exp)
-			throws IndexOutOfBoundsException, FieldNotFoundException {
+			throws IndexOutOfBoundsException, FieldNotFoundException, Exception {
 		SyncConfigurationImagingSessionAdvancedOption sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
 		while (findAndRemoveScantypes(exp, sessionOption))
 			;
 		filterScanResources(exp,sessionOption);
-		//filterScanResourcesNotModified(exp,sessionOption);
 		return;
 	}
-
+	
 	/**
 	 * Filter scan resources.
 	 *
@@ -667,8 +668,8 @@ public class ExperimentFilter {
 		return;
 	}
 
-
-
+	
+	
 /**
  * Find and remove experiment resources.
  *
@@ -694,8 +695,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	return found;
 }
 
-
-
+	
 	/**
 	 * Filter Assessors.
 	 *
@@ -717,7 +717,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 		filterAssessorResources(exp,sessionOption);
 		return;
 	}
-
+	
 	/**
 	 * Filter experiment resources.
 	 *
@@ -740,16 +740,15 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 			if (assessorAdvOption != null) {
 				while (findAndRemoveAssessorResources(ass, assessorAdvOption.getResources()))
 					;
-
 			}
 		}
 		return;
 	}
 
 
-
-
-
+	
+	
+	
 	/**
 	 * Find and remove scantypes.
 	 *
@@ -761,6 +760,9 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	 */
 	private boolean findAndRemoveScantypes(XnatExperimentdata exp, SyncConfigurationImagingSessionAdvancedOption sessionOption) {
 		boolean found = false;
+		if (sessionOption == null || sessionOption.getScan_types() == null) {
+			return false;
+		}
 		List<XnatImagescandataI> scans = ((XnatImagesessiondata) exp).getScans_scan();
 		for (int i = 0; i < scans.size(); i++) {
 			if (!sessionOption.isAllowedToSyncScan(scans.get(i).getType())) {
@@ -772,7 +774,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 		return found;
 	}
 
-
+	
 	/**
 	 * Find and remove assessors.
 	 *
@@ -782,7 +784,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	 */
 	private boolean findAndRemoveAssessors(XnatExperimentdata orig, XnatExperimentdata exp, SyncConfigurationImagingSessionAdvancedOption sessionOption) {
 		boolean found = false;
-		if (sessionOption == null) {
+		if (sessionOption == null || sessionOption.getSession_assessors() == null) {
 			return false;
 		}
 		List<XnatImageassessordataI> assessors = ((XnatImagesessiondata) exp).getAssessors_assessor();
@@ -818,7 +820,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 
 		}
 		return assess;
-
+		
 	}
 
 	/**
@@ -861,8 +863,6 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 			String newURI = path.replace(filepath, newFilepath);
 			((XnatResourceseries) resource).setPath(newURI);
 			modifySubjResourceFiles(path, newURI);
-			// payload.addManifestEntry(new
-			// PayloadManifestEntry(newURI,PayloadManifestEntry.SUCCESS,""));
 		}
 
 	}

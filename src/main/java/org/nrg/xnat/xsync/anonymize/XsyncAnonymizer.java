@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.dcm4che2.io.DicomInputStream;
@@ -18,9 +19,11 @@ import org.nrg.transaction.OperationI;
 import org.nrg.transaction.TransactionException;
 import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.CatEntryI;
+import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatResourcecatalogI;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
 import org.nrg.xnat.utils.CatalogUtils;
 import org.nrg.xsync.manager.SynchronizationManager;
@@ -85,11 +88,14 @@ public class XsyncAnonymizer implements AnonymizerI {
 	// have to rename files.
 	@Override
 	public void anonymize(final XnatImagesessiondata session, final String destproject) throws Exception {
-		String exptCachePath = SynchronizationManager.GET_SYNC_FILE_PATH(session.getProject());
+		//String exptCachePath = SynchronizationManager.GET_SYNC_FILE_PATH(session.getProject());
+		String exptCachePath =  SynchronizationManager.GET_SYNC_FILE_PATH_TO_SESSION(session.getProject(),session) ;
 		try {
-			File cachePath = new File(exptCachePath + File.separator + "ARCHIVECOPY" + File.separator);
-			System.out.println("Session Directory " + session.getSessionDir().getAbsolutePath());
-			FileUtils.copyDirectoryToDirectory(session.getSessionDir(), cachePath);
+			//File cachePath = new File(exptCachePath + File.separator + "ARCHIVECOPY" + File.separator + session.getLabel() + File.separator);
+			File cachePath = new File(exptCachePath);
+			//FileUtils.copyDirectoryToDirectory(session.getSessionDir(), cachePath);
+			//Smart copy - dont copy all the data; only what is needed
+			//copyScanFiles(session,cachePath);
 			ExportAnonymizer anonymizer = new ExportAnonymizer(_xsyncXnatInfo, session, destproject, cachePath.getAbsolutePath());
 			this.applyAnonymizationToFiles(session,cachePath.getAbsolutePath(),anonymizer);
 		} catch (TransactionException e) {
@@ -104,6 +110,26 @@ public class XsyncAnonymizer implements AnonymizerI {
 	}
 
 	
+	private void copyScanFiles(final XnatImagesessiondata session, File cachePath) throws IOException {
+		for(final XnatImagescandataI scan: session.getScans_scan()) {
+			for (final XnatAbstractresourceI res:scan.getFile()) {
+				if (res instanceof XnatResource) {
+					final XnatResource abs=(XnatResource)res;
+					if (StringUtils.isNotEmpty(abs.getFormat()) && abs.getFormat().equals("DICOM")){
+						File rscFile = new File(abs.getUri());
+						File scanFolder = new File(rscFile.getParent());
+						try {
+							if (abs.getFileCount() >0  && ((Long)abs.getFileSize()).longValue() > 0 ) {
+								FileUtils.copyDirectoryToDirectory(scanFolder, cachePath);
+							}
+						}catch(ClassCastException ce) {
+							FileUtils.copyDirectoryToDirectory(scanFolder, cachePath);
+						}
+					}
+				}
+			}
+		}
+	}
 	
 	/**
 	 * Apply anonymization script.

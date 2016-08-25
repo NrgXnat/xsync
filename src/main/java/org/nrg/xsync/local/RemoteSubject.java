@@ -469,7 +469,11 @@ public class RemoteSubject {
 	
 	private boolean imagingSessionNeedsOkToSync(String xsiType) {
 		//return projectSyncConfiguration.getSynchronizationConfiguration().checkImagingSessionOkToSync(xsiType);
-		return projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(xsiType).getNeeds_ok_to_sync().booleanValue();
+		try {
+			return projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(xsiType).getNeeds_ok_to_sync().booleanValue();
+		}catch(NullPointerException npe) {
+			return false;
+		}
 
 	}
 	
@@ -552,9 +556,12 @@ public class RemoteSubject {
 		 final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
 		 expSyncItem.setXsiType(orig.getXSIType());
 		 expSyncItem.extractDetails(target);
+		 
 		 try {
 			 prepareResourceURIForXar(target);
+
 			 final File xar=buildxar(orig, targetproject, targetsubject, target);
+
 			 final RemoteConnectionResponse connectionResponse = _manager.importXar(connection, xar);
 			 stored = connectionResponse.wasSuccessful();
 			 if (stored) {
@@ -610,6 +617,9 @@ public class RemoteSubject {
 			}
 			((XnatResource) resource).setUri(newURI);
 		}
+		//Negative values indicate that the resource is being skipped
+		resource.setFileCount(resource.getFileCount()>0?resource.getFileCount():-1*resource.getFileCount());
+		resource.setFileSize((Long)resource.getFileSize()>0?resource.getFileSize():-1*(Long)resource.getFileSize());
 	}
 	private void prepareResourceURI(XnatExperimentdata exp){
 		for (final XnatAbstractresourceI res : exp.getResources_resource()) {
@@ -660,8 +670,9 @@ public class RemoteSubject {
 
 	File buildxar(XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target) throws Exception {
 		File xarFile;
+		String anonymizedSessionPath = getAnonymizedSessionPath(orig);
+		
 		try {
-			String anonymizedSessionPath = SynchronizationManager.GET_SYNC_FILE_PATH_TO_SESSION(orig.getProject(),orig) ;
 			File experimentPath = new File(anonymizedSessionPath);
 
 			ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,(orig).getArchiveDirectoryName(),0);
@@ -699,7 +710,6 @@ public class RemoteSubject {
 			
 			rep.setDownloadName(target.getLabel()+".xar");
 			xarFile = new File(expCachePath, (new Date()).getTime()+".xar");
-			xarFile.deleteOnExit();
 			rep.write(new FileOutputStream(xarFile));
 		} catch (Exception e) {
 			_log.debug(e.toString() + "  " + e.getMessage());
@@ -748,7 +758,6 @@ public class RemoteSubject {
 			
 			rep.setDownloadName(target.getLabel()+".xar");
 			xarFile = new File(expCachePath, (new Date()).getTime()+".xar");
-			xarFile.deleteOnExit();
 			rep.write(new FileOutputStream(xarFile));
 		} catch (Exception e) {
 			_log.debug(e.toString() + "  " + e.getMessage());
@@ -762,6 +771,9 @@ public class RemoteSubject {
 
 	}
 
-	
+	private String getAnonymizedSessionPath(XnatExperimentdata orig) {
+		return SynchronizationManager.GET_SYNC_FILE_PATH_TO_SESSION(orig.getProject(),orig) ;
+
+	}
 
 }

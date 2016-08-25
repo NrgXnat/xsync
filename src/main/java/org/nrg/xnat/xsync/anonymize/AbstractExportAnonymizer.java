@@ -66,7 +66,8 @@ public abstract class AbstractExportAnonymizer implements Callable<java.lang.Voi
 			DicomObject dcmFile = DicomUtils.read(f);
 			String deident = dcmFile.getString(Tag.DeidentificationMethod);
 			if (deident != null) {
-				if (StringUtils.contains("XSYNC anonymization script",deident) == false) {
+				boolean anonymizationDone = StringUtils.contains(deident,"XSYNC anonymization script"); 
+				if ( anonymizationDone == false) {
 					logger.error("Cannot find Data DeidentificationMethod in dicom. FAILED!! ");
 					throw new RuntimeException("Cannot find Data DeidentificationMethod in dicom. Anonymization FAILED");
 				}

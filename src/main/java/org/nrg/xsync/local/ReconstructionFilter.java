@@ -1,23 +1,31 @@
 package org.nrg.xsync.local;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatReconstructedimagedataI;
+import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.om.XnatReconstructedimagedata;
 import org.nrg.xft.exception.FieldNotFoundException;
+import org.nrg.xft.security.UserI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionAdvancedOption;
-import org.nrg.xsync.configuration.json.SyncConfigurationScanTypes;
-import org.nrg.xsync.utils.XsyncUtils;
+import org.nrg.xsync.utils.QueryResultUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
 public class ReconstructionFilter {
+	private static final Logger _log = LoggerFactory.getLogger(ReconstructionFilter.class);
 
 
 	/**
@@ -45,7 +53,7 @@ public class ReconstructionFilter {
 				}
 			}
 
-			filterRecons(exp,scanTypes);
+			filterRecons(exp,scanTypes,projectSyncConfiguration);
 		}
 	}
 
@@ -61,8 +69,8 @@ public class ReconstructionFilter {
 	 * @throws FieldNotFoundException
 	 *             the field not found exception
 	 */
-	private void filterRecons(XnatExperimentdata exp, List<String> scan_types)
-			throws IndexOutOfBoundsException, FieldNotFoundException {
+	private void filterRecons(XnatExperimentdata exp, List<String> scan_types,ProjectSyncConfiguration projectSyncConfiguration)
+			throws  Exception {
 		while (findAndRemoveRecons(exp, scan_types));
 		return;
 	}
@@ -88,5 +96,6 @@ public class ReconstructionFilter {
 		}
 		return found;
 	}
+
 
 }

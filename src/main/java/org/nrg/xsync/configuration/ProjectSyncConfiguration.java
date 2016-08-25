@@ -87,7 +87,11 @@ public class ProjectSyncConfiguration {
     public boolean imagingSessionNeedsOkToSync(String xsiType) {
         if (_syncConfiguration.hasImagingSessionConfigurationDefinition()) {
             SyncConfigurationImagingSessionAdvancedOption advOption = _syncConfiguration.getImagingSessionAdvancedOptions(xsiType);
-            return advOption.getNeeds_ok_to_sync();
+            try {
+            	return advOption.getNeeds_ok_to_sync();
+            }catch(Exception e) {
+            	return false;
+            }
         } else {
             return false;
         }
