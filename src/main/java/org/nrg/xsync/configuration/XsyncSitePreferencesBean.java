@@ -4,9 +4,11 @@ import org.nrg.prefs.annotations.NrgPreference;
 import org.nrg.prefs.annotations.NrgPreferenceBean;
 import org.nrg.prefs.beans.AbstractPreferenceBean;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
+import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xft.exception.InvalidValueException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * The Class XsyncSitePreferencesBean.
@@ -30,6 +32,11 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	private static final String DEFAULT_SYNC_RETRY_INTERVAL = "2 hours";
 
 	private static final String DEFAULT_SYNC_RETRY_COUNT = "2";
+	
+
+	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService) {
+		super(preferenceService);
+	}
     
     /**
      * Gets the token refresh interval.

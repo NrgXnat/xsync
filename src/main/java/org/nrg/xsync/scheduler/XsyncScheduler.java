@@ -1,5 +1,6 @@
 package org.nrg.xsync.scheduler;
 
+import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
 import org.nrg.xsync.services.local.DailySyncService;
 import org.nrg.xsync.services.local.MonthlySyncService;
@@ -9,6 +10,7 @@ import org.nrg.xsync.services.local.impl.DailySync;
 import org.nrg.xsync.services.local.impl.MonthlySync;
 import org.nrg.xsync.services.local.impl.WeeklySync;
 import org.nrg.xsync.services.local.impl.XSyncAliasTokenRefresh;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -24,6 +26,10 @@ import org.springframework.scheduling.support.PeriodicTrigger;
 @EnableScheduling
 public class XsyncScheduler {
 	
+	@Autowired
+	private NrgPreferenceService _preferenceService;
+	
+	
 	@Bean
 	public ThreadPoolExecutorFactoryBean threadPoolExecutorFactoryBean() {
 		//return new ThreadPoolExecutorFactoryBean();
@@ -35,7 +41,7 @@ public class XsyncScheduler {
 	
     @Bean
     public XsyncSitePreferencesBean xsyncSitePreferencesBean() {
-        return new XsyncSitePreferencesBean();
+        return new XsyncSitePreferencesBean(_preferenceService);
     }
 
     @Bean
