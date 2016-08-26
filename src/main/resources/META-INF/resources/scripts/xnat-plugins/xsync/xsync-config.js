@@ -84,23 +84,27 @@ XSYNC.xsyncconfig.showConfigPanel = function() {
 
 
 /*
-* Get user credentials
-* @param {String} optional configuration JSON to submit if first authentication
-*/
+ * Get user credentials
+ * @param {String} optional configuration JSON to submit if initial setup
+ */
 
 XSYNC.credentialsconfig.enterCredentials = function(configJson) {
+    var remoteProjectId = XSYNC.xsyncconfig.configuration.remote_project_id || $("#xsync-config-remote-project").val() || "ERROR";
+    var newOnly = $("#xsync-config-newonly").val() || XSYNC.xsyncconfig.configuration.sync_new_only || true;
+    var credHost = XSYNC.xsyncconfig.configuration.remote_url != "http://" ? XSYNC.xsyncconfig.configuration.remote_url : $("#xsync-config-remote-url").val();
+
     var modalContent =
         '<div>' +
-            '<div class = "credentials-header-div credentials-div">' +
-                '<h3 style="text-align:center">Enter credentials for ' + $("#xsync-config-remote-url").val() + '</h3>' +
-            '</div>' +
-            '<input id="xsync-credentials-host" type="hidden" value="' + $("#xsync-config-remote-url").val() + '">' +
-            '<div class = "credentials-div">' +
-                '<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
-                '</div>' +
-                '<div class = "credentials-div">' +
-                '<div style="width:100px; float:left;">Password: </div><span><input type="password" size=20 id="xsync-credentials-password">' +
-            '</div>' +
+        '<div class = "credentials-header-div credentials-div">' +
+        '<h3 style="text-align:center">Enter credentials for ' + remoteProjectId + '</h3>' +
+        '</div>' +
+        '<input id="xsync-credentials-host" type="hidden" value="' + remoteProjectId + '">' +
+        '<div class = "credentials-div">' +
+        '<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
+        '</div>' +
+        '<div class = "credentials-div">' +
+        '<div style="width:100px; float:left;">Password: </div><span><input type="password" size=20 id="xsync-credentials-password">' +
+        '</div>' +
         "</div>";
 
     var pModalOpts = {
@@ -112,7 +116,7 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
         ok: 'show',
         okLabel: 'Continue',
         okAction: function(modl){
-            var credHost = $("#xsync-config-remote-url").val();
+            // var credHost = $("#xsync-config-remote-url").val();
             var credUser = $("#xsync-credentials-username").val();
             var credPassword = $("#xsync-credentials-password").val();
             var tokenData = {
@@ -137,10 +141,10 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                 if (typeof data !== 'undefined' && typeof data.secret !== 'undefined') {
 
                     var formData = {
-                        host: $("#xsync-config-remote-url").val(),
+                        host: credHost,
                         localProject: XNAT.data.context.project,
-                        remoteProject: $("#xsync-config-remote-project").val(),
-                        syncNewOnly: $("#xsync-config-newonly").val(),
+                        remoteProject: remoteProjectId,
+                        syncNewOnly: newOnly,
                         alias: data.alias,
                         secret: data.secret,
                         username:credUser
@@ -297,7 +301,7 @@ XSYNC.xsyncconfig.editConfig = function() {
 
     function toggleAdvanced() {
         /*
-        Check if any of the advanced settings have been set and toggle appropriately
+         Check if any of the advanced settings have been set and toggle appropriately
          */
         var $advanced_checkbox = $('#advanced-sync-checkbox');
         var $advanced_section = $('#xsync-advanced-settings');

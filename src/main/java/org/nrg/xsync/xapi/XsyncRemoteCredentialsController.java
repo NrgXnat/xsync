@@ -82,7 +82,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	        final String localProject = (synchronizationJson.get("localProject")!=null) ? synchronizationJson.get("localProject").asText() : null;
 	        final String username = (synchronizationJson.get("username")!=null) ? synchronizationJson.get("username").asText() : null;
 			final String remoteProjectId = (synchronizationJson.get("remoteProject")!=null) ? synchronizationJson.get("remoteProject").asText() : null;
-			final boolean syncNewOnly = synchronizationJson.get("syncNewOnly").asBoolean();
+			final boolean syncNewOnly = synchronizationJson.get("syncNewOnly") == null || synchronizationJson.get("syncNewOnly").asBoolean();
 
 	        if (host==null || host.length()<1 || alias==null || alias.length()<1 || secret==null ||
 	        		secret.length()<1 || localProject==null || localProject.length()<1 || username==null || username.length()<1) {
