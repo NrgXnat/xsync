@@ -15,14 +15,20 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 XSYNC.xsyncconfig.init = function() {
     XNAT.xhr.getJSON({
         url: XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project),
-        done: XSYNC.xsyncconfig.showConfigPanel(),
-        fail: XSYNC.xsyncconfig.initialConfig()
+        done: function(data) {
+            XSYNC.xsyncconfig.configuration = data;
+            XSYNC.xsyncconfig.showConfigPanel()
+        },
+        fail: function() {
+            XSYNC.xsyncconfig.initialConfig()
+        }
     })
 }
 
 XSYNC.xsyncconfig.useDefaultConfig = function() {
     // Use the defaults to populate config dialog
     XSYNC.xsyncconfig.configuration = {};
+    XSYNC.xsyncconfig.configuration.enabled = true;
     XSYNC.xsyncconfig.configuration.source_project_id = XNAT.data.context.project;
     XSYNC.xsyncconfig.configuration.sync_frequency = 'weekly';
     XSYNC.xsyncconfig.configuration.sync_new_only = true;
@@ -83,8 +89,6 @@ XSYNC.xsyncconfig.showConfigPanel = function() {
 */
 
 XSYNC.credentialsconfig.enterCredentials = function(configJson) {
-    console.log("enterCredentials - " + $("#xsync-config-remote-url").val());
-
     var modalContent =
         '<div>' +
             '<div class = "credentials-header-div credentials-div">' +
@@ -135,6 +139,8 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                     var formData = {
                         host: $("#xsync-config-remote-url").val(),
                         localProject: XNAT.data.context.project,
+                        remoteProject: $("#xsync-config-remote-project").val(),
+                        syncNewOnly: $("#xsync-config-newonly").val(),
                         alias: data.alias,
                         secret: data.secret,
                         username:credUser
@@ -220,7 +226,7 @@ XSYNC.xsyncconfig.checkCredentials = function() {
         XSYNC.xsyncconfig.checkCredentialsResult = true;
     });
     saveCredentials.fail( function( data, textStatus ) {
-        console.log(textStatus)
+        console.log(textStatus + " - Failed to save credentials")
     });
     return this.checkCredentialsResult;
 }
@@ -239,11 +245,33 @@ XSYNC.xsyncconfig.editConfig = function() {
                 label: "Submit",
                 action: function(obj) {
                     var form = obj.$modal.find('form')[0];
-                    var json = form2js(form);
+
+                    // Only include visible fields and checkboxes, which are of type 'hidden'
+                    var json = form2js($('#root-panel').find(':input').filter(':visible, [type="hidden"]').toArray());
+
                     // Source project not on the form
                     json.source_project_id = XNAT.data.context.project;
+
                     // Delete stuff we don't want serialized
                     delete json.subjectDetailsCheckbox;
+                    delete json.advancedSyncCheckbox;
+                    // If advanced settings were toggled but then the section is hidden on submit,
+                    // assuming the user doesn't want those saved
+                    if (! $('#advanced-sync-checkbox').checked) {
+                        if (XSYNC.xsyncconfig.configuration.hasOwnProperty('project_resources')) {
+                            delete json.project_resources;
+                        }
+                        if (XSYNC.xsyncconfig.configuration.hasOwnProperty('subject_resources')) {
+                            delete subject_resources;
+                        }
+                        if (XSYNC.xsyncconfig.configuration.hasOwnProperty('subject_assessors')) {
+                            delete subject_assessors;
+                        }
+                        if (XSYNC.xsyncconfig.configuration.hasOwnProperty('imaging_sessions')) {
+                            delete imaging_sessions;
+                        }
+                    }
+
                     XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
                     $(form).triggerHandler('reload-data')
                 }
@@ -253,13 +281,40 @@ XSYNC.xsyncconfig.editConfig = function() {
             }
         },
         beforeShow: function(obj) {
+            // Spawn everything
             var spawnerConfig = spawnConfig();
             var $wrapper = obj.$modal.find('#xsync-config-dialog');
             XNAT.spawner.spawn(spawnerConfig).render($wrapper);
+
+            toggleAdvanced();
+
+            // Trigger changes
             var form = obj.$modal.find('form')[0];
             $(form).find('select').trigger('change');
+            $(form).find('checkbox').trigger('change');
         }
     });
+
+    function toggleAdvanced() {
+        /*
+        Check if any of the advanced settings have been set and toggle appropriately
+         */
+        var $advanced_checkbox = $('#advanced-sync-checkbox');
+        var $advanced_section = $('#xsync-advanced-settings');
+
+        // if (XSYNC.xsyncconfig.configuration.hasOwnProperty("project_resources.resource_list")) {
+        if (XSYNC.xsyncconfig.configuration.hasOwnProperty('project_resources') ||
+            XSYNC.xsyncconfig.configuration.hasOwnProperty('subject_resources') ||
+            XSYNC.xsyncconfig.configuration.hasOwnProperty('subject_assessors') ||
+            XSYNC.xsyncconfig.configuration.hasOwnProperty('imaging_sessions') ) {
+
+            $advanced_checkbox.prop('checked', true);
+            $advanced_section.show();
+        } else {
+            $advanced_checkbox.prop('checked', false);
+            $advanced_section.hide();
+        }
+    }
 }
 
 function spawnConfig() {
@@ -273,7 +328,7 @@ function spawnConfig() {
             kind: 'panel.form',
             title: 'XSync Configuration',
             load: "XSYNC.xsyncconfig.configuration",
-            refresh: "/xapi/xsync/projects/" + XNAT.data.context.project,
+            // refresh: "/xapi/xsync/projects/" + XNAT.data.context.project,
             action: "#",
             contents: {
                 enabled: enabled(),
@@ -283,123 +338,134 @@ function spawnConfig() {
                 frequency: frequency(),
                 identifiers: identifiers(),
 
-                projectResources: {
-                    tag: "div#project-resources-div",
-                    contents: {
-                        projectResourcesHeading: {
-                            kind: 'panel.subhead',
-                            label: 'Project Resources'
-                        },
-                        projectResourceSelect:
-                            syncTypeSelector("project_resources.sync_type", " "),
-                        projectResourceInput:
-                            resourceInput("project_resources.resource_list")
-                    }
-                },
-
-                subjectResources: {
-                    tag: "div#subject-resources-div",
-                    contents: {
-                        subjectResourcesHeading: {
-                            kind: 'panel.subhead',
-                            label: 'Subject Resources'
-                        },
-                        subjectResourceSelect:
-                            syncTypeSelector("subject_resources.sync_type", " "),
-                        subjectResourceInput:
-                            resourceInput("subject_resources.resource_list")
-                    }
-                },
-
-                subjectAssessors: {
-                    tag: "div#subject-assessors-div",
-                    contents: {
-                        subjectAssessorsHeading: {
-                            kind: 'panel.subhead',
-                            label: 'Subject Assessors'
-                        },
-                        subjectAssessorSelect:
-                            syncTypeSelector("subject_assessors.xsi_types.sync_type", " "),
-                        subjectAssessorXsiTypes:
-                            xsiInput("subject_assessors.xsi_types.types_list"),
-
-                        subjectDetailsCheckbox:
-                            detailsToggle("subject-assessor-advanced"),
-                        xsiTypeAdvanced: {
-                            tag: "div#subject-assessor-advanced",
-                            contents: {
-                                subAssessorSelect:
-                                    syncTypeSelector("subject_assessors.advanced_options.resources.sync_type", "Assessor Resources"),
-                                subAssessessorResources:
-                                    resourceInput("subject_assessors.advanced_options.resources.resource_list"),
-                                okToSync: {
-                                    kind: 'panel.input.checkbox',
-                                    name: "subject_assessors.advanced_options.needs_ok_to_sync",
-                                    label: 'Require QC to Sync'
-                                }
+                advancedSyncCheckbox: {
+                    kind: 'panel.input.checkbox',
+                    name: '',
+                    label: 'Advanced Settings',
+                    element: {
+                        onchange: function() {
+                            if ($(this).is(':checked')) {
+                                $('#xsync-advanced-settings').slideDown(400)
+                            } else {
+                                $('#xsync-advanced-settings').slideUp(400)
                             }
                         }
                     }
                 },
-
-                imagingSessions: {
-                    tag: "div#imaging-sessions-div",
+                advancedSettings: {
+                    tag: "div#xsync-advanced-settings",
                     contents: {
-                        imagingSessionsHeading: {
-                            kind: 'panel.subhead',
-                            label: 'Imaging Sessions'
-                        },
-                        imagingSessionsSelect:
-                            syncTypeSelector("imaging_sessions.xsi_types.sync_type", " "),
-                        imagingSessionsXsiTypes:
-                            xsiInput("imaging_sessions.xsi_types.types_list"),
-
-                        sessionDetailsCheckbox:
-                            detailsToggle("imaging-sessions-advanced"),
-                        imagingAdvanced: {
-                            tag: "div#imaging-sessions-advanced",
+                        projectResources: {
+                            tag: "div#project-resources-div",
                             contents: {
-                                okToSync: {
-                                    kind: 'panel.input.checkbox',
-                                    name: "imaging_sessions.advanced_options.needs_ok_to_sync",
-                                    label: 'Require QC to Sync'
-                                },
-                                anonymize: {
-                                    kind: 'panel.input.checkbox',
-                                    name: "imaging_sessions.advance_options.anonymize",
-                                    label: 'Anonymize DICOM'
-                                },
-                                imageResourceSelect:
-                                    syncTypeSelector("imaging_sessions.advanced_options.resources.sync_type", "Session Resources"),
-                                imageResourcesInput:
-                                    resourceInput("imaging_sessions.advanced_options.resources.resource_list"),
-                                scanTypeSelect:
-                                    syncTypeSelector("imaging_sessions.advanced_options.scan_types.sync_type", "Scan Types"),
-                                scanTypeInput:
-                                    resourceInput("imaging_sessions.advanced_options.scan_types.sync_type_list"),
-                                scanResourceSelect:
-                                    syncTypeSelector("imaging_sessions.advanced_options.scan_resources.sync_type", "Scan Resources"),
-                                scanResourceInput:
-                                    resourceInput("imaging_sessions.advanced_options.scan_types.resource_list"),
-
-                                imagingAssessorHeading: {
+                                projectResourcesHeading: {
                                     kind: 'panel.subhead',
-                                    label: 'Imaging Assessors'
+                                    label: 'Project Resources'
                                 },
-                                assessorsSelect:
-                                    syncTypeSelector("imaging_sessions.advanced_options.session_assessors.xsy_types.sync_type", " "),
-                                assessorsInput:
-                                    xsiInput("imaging_sessions.advanced_options.session_assessors.xsi_types.types_list"),
-                                okToSyncAss: {
-                                    kind: 'panel.input.checkbox',
-                                    name: "imaging_sessions.advanced_options.session_assessors.advanced_options.needs_ok_to_sync",
-                                    label: 'Require QC to Sync'
-                                },
+                                projectResourceSelect: syncTypeSelector("project_resources.sync_type", " "),
+                                projectResourceInput: resourceInput("project_resources.resource_list")
+                            }
+                        },
 
-                                imageAssessorResourceSelect:
-                                    syncTypeSelector("imaging_sessions.advanced_options.session_assessors.advanced_options.sync_type", "Assessor Resources"),
-                                imageAssessorResourcesInput:
-                                    resourceInput("imaging_sessions.advanced_options.session_assessors.advanced_options.resource_list")
+                        subjectResources: {
+                            tag: "div#subject-resources-div",
+                            contents: {
+                                subjectResourcesHeading: {
+                                    kind: 'panel.subhead',
+                                    label: 'Subject Resources'
+                                },
+                                subjectResourceSelect: syncTypeSelector("subject_resources.sync_type", " "),
+                                subjectResourceInput: resourceInput("subject_resources.resource_list")
+                            }
+                        },
+
+                        subjectAssessors: {
+                            tag: "div#subject-assessors-div",
+                            contents: {
+                                subjectAssessorsHeading: {
+                                    kind: 'panel.subhead',
+                                    label: 'Subject Assessors'
+                                },
+                                subjectAssessorSelect: syncTypeSelector("subject_assessors.xsi_types.sync_type", " "),
+                                subjectAssessorXsiTypes: xsiInput("subject_assessors.xsi_types.types_list"),
+
+                                // subjectDetailsCheckbox:
+                                //     detailsToggle("subject-assessor-advanced"),
+                                // xsiTypeAdvanced: {
+                                //     tag: "div#subject-assessor-advanced",
+                                //     contents: {
+                                //         subAssessorSelect:
+                                //             syncTypeSelector("subject_assessors.advanced_options.resources.sync_type", "Assessor Resources"),
+                                //         subAssessessorResources:
+                                //             resourceInput("subject_assessors.advanced_options.resources.resource_list"),
+                                //         okToSync: {
+                                //             kind: 'panel.input.checkbox',
+                                //             name: "subject_assessors.advanced_options.needs_ok_to_sync",
+                                //             label: 'Require QC to Sync'
+                                //         }
+                                //     }
+                                // }
+                            }
+                        },
+
+                        imagingSessions: {
+                            tag: "div#imaging-sessions-div",
+                            contents: {
+                                imagingSessionsHeading: {
+                                    kind: 'panel.subhead',
+                                    label: 'Imaging Sessions'
+                                },
+                                imagingSessionsSelect: syncTypeSelector("imaging_sessions.xsi_types.sync_type", " "),
+                                imagingSessionsXsiTypes: xsiInput("imaging_sessions.xsi_types.types_list"),
+
+                                // sessionDetailsCheckbox:
+                                //     detailsToggle("imaging-sessions-advanced"),
+                                // imagingAdvanced: {
+                                //     tag: "div#imaging-sessions-advanced",
+                                //     contents: {
+                                //         okToSync: {
+                                //             kind: 'panel.input.checkbox',
+                                //             name: "imaging_sessions.advanced_options.needs_ok_to_sync",
+                                //             label: 'Require QC to Sync'
+                                //         },
+                                //         anonymize: {
+                                //             kind: 'panel.input.checkbox',
+                                //             name: "imaging_sessions.advance_options.anonymize",
+                                //             label: 'Anonymize DICOM'
+                                //         },
+                                //         imageResourceSelect:
+                                //             syncTypeSelector("imaging_sessions.advanced_options.resources.sync_type", "Session Resources"),
+                                //         imageResourcesInput:
+                                //             resourceInput("imaging_sessions.advanced_options.resources.resource_list"),
+                                //         scanTypeSelect:
+                                //             syncTypeSelector("imaging_sessions.advanced_options.scan_types.sync_type", "Scan Types"),
+                                //         scanTypeInput:
+                                //             resourceInput("imaging_sessions.advanced_options.scan_types.sync_type_list"),
+                                //         scanResourceSelect:
+                                //             syncTypeSelector("imaging_sessions.advanced_options.scan_resources.sync_type", "Scan Resources"),
+                                //         scanResourceInput:
+                                //             resourceInput("imaging_sessions.advanced_options.scan_types.resource_list"),
+                                //
+                                //         imagingAssessorHeading: {
+                                //             kind: 'panel.subhead',
+                                //             label: 'Imaging Assessors'
+                                //         },
+                                //         assessorsSelect:
+                                //             syncTypeSelector("imaging_sessions.advanced_options.session_assessors.xsy_types.sync_type", " "),
+                                //         assessorsInput:
+                                //             xsiInput("imaging_sessions.advanced_options.session_assessors.xsi_types.types_list"),
+                                //         okToSyncAss: {
+                                //             kind: 'panel.input.checkbox',
+                                //             name: "imaging_sessions.advanced_options.session_assessors.advanced_options.needs_ok_to_sync",
+                                //             label: 'Require QC to Sync'
+                                //         },
+                                //
+                                //         imageAssessorResourceSelect:
+                                //             syncTypeSelector("imaging_sessions.advanced_options.session_assessors.advanced_options.sync_type", "Assessor Resources"),
+                                //         imageAssessorResourcesInput:
+                                //             resourceInput("imaging_sessions.advanced_options.session_assessors.advanced_options.resource_list")
+                                //     }
+                                // }
                             }
                         }
                     }
@@ -457,7 +523,7 @@ function spawnConfig() {
     function remoteProject() {
         return {
             kind: 'panel.input.text',
-            id: 'remote_project_id',
+            id: 'xsync-config-remote-project',
             name: 'remote_project_id',
             label: 'Destination Project'
         }
@@ -466,8 +532,8 @@ function spawnConfig() {
     function identifiers() {
         return {
             kind: 'panel.select.menu',
-            name: 'identifiers',
             id: 'xsync-config-identifiers',
+            name: 'identifiers',
             label: 'Identifiers',
             options: {
                 use_local: 'Local',
@@ -484,22 +550,6 @@ function spawnConfig() {
     // 	}
     // }
 
-    function detailsToggle(divId) {
-        return {
-            kind: 'panel.input.checkbox',
-            name: '',
-            label: 'More details',
-            element: {
-                onchange: function() {
-                    if ($(this).is(':checked')) {
-                        $('#'+divId).slideDown(400)
-                    } else {
-                        $('#'+divId).slideUp(400)
-                    }
-                }
-            }
-        }
-    }
 
     ///////////////////////////////
     // Common config UI elements //
@@ -543,11 +593,13 @@ function spawnConfig() {
         showTextInput[name] = false;
 
         return {
-            kind: 'panel.input.textarea',
+            // kind: 'panel.input.textarea',
+            kind: 'panel.textarea.arrayList',
             id: inputId,
             name: name,
             label: "Resource List",
-            rows: 2
+            rows: 2,
+            description: "Comma separated list of resource names, e.g., Res1,Res2. You can view your resources by selecting Manage Files in the Actions menu."
         }
     }
 
@@ -557,11 +609,12 @@ function spawnConfig() {
         showTextInput[name] = false;
 
         return {
-            kind: 'panel.input.textarea',
+            kind: 'panel.textarea.arrayList',
             id: inputId,
             name: name,
             label: 'XSI Types',
             rows: 2,
+            description: "Comma separated list of XSI types, e.g., xnat:mrSessionData,hcp:subjectMetadata. You can get a list of XSI types in the <a href='http://xnat-41.xnat.org/app/template/XDATScreen_dataTypes.vm' target='_blank'>admin section</a>",
             element: {
                 onblur: function() {
                     var xsiTypes = $(this).val().split(',');
@@ -574,6 +627,24 @@ function spawnConfig() {
         }
     }
 
+    function detailsToggle(divId) {
+        return {
+            kind: 'panel.input.checkbox',
+            name: '',
+            label: 'More details',
+            element: {
+                onchange: function() {
+                    if ($(this).is(':checked')) {
+                        $('#'+divId).slideDown(400)
+                    } else {
+                        $('#'+divId).slideUp(400)
+                    }
+                }
+            }
+        }
+    }
+
+
 
     ///////////////////////
     // Config UI Helpers //
@@ -584,26 +655,19 @@ function spawnConfig() {
         var inputId = name.replace(/\./g, '_') + '_input_text_id';
         var $textInput = $('#'+inputId);
 
-        // console.log(showTextInput);
-
         // show or hide input text box
         if ((selector.value == "include" || selector.value == "exclude") && !showTextInput[name]) {
-            $textInput.slideDown(400);
+            $('[data-name="'+name+'"]').fadeIn(400);
             showTextInput[name] = true;
-        } else if ((selector.value == "all" || selector.value == "none")) {
+        } else if ((selector.value == "all" || selector.value == "none") || selector.value == "") {
             // remove input contents and hide
-            $textInput.slideUp(400);
+            $('[data-name="'+name+'"]').hide();
             $textInput.val("");
             showTextInput[name] = false;
         }
-        // else {
-        // 	$textInput.hide();
-        // }
     }
 
-    function showHideAdvanced(selector, name) {
-
-    }
+    function showHideAdvanced(selector, name) {}
 
     return {
         root: configPanel()

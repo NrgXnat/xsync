@@ -1,2 +1,7 @@
 <!-- Sequence: 9 -->
 <li><a href="/page/xsync">XSync Administration</a></li>
+
+<script>
+    // This will render the yaml to the existing Site Admin page instead of it's own page
+//    XNAT.spawner.resolve('xsyncSiteConfiguration/xsyncConfigPage').render($('#admin-config-tabs').find('.xnat-tab-container'));
+</script>
