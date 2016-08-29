@@ -107,6 +107,7 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
         '</div>' +
         "</div>";
 
+
     var pModalOpts = {
         width: 600,
         height: 380,
@@ -117,7 +118,7 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
         okLabel: 'Continue',
         okAction: function(modl){
             // var credHost = $("#xsync-config-remote-url").val();
-            var credUser = $("#xsync-credentials-username").val();
+        	var credUser = $("#xsync-credentials-username").val();
             var credPassword = $("#xsync-credentials-password").val();
             var tokenData = {
                 url: credHost + "/data/services/tokens/issue",
@@ -128,7 +129,7 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
 
             var credentialsAjax = $.ajax({
                 type : "POST",
-                url: credHost + '/xapi/xsync/remoteREST?XNAT_CSRF=' + window.csrfToken,
+                url: XNAT.url.csrfUrl('/xapi/xsync/remoteREST?XNAT_CSRF='),
                 cache: false,
                 async: true,
                 dataType: 'json',
@@ -183,7 +184,7 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                             'Error','Could not save credentials for remote server '  +
                             $("#xsync-credentials-host").val() + ' Cause: ' + data.statusText + " Details: " + data.responseText
                         );
-                        modl.close();
+                        xmodal.close(pModalOpts);
                     });
 
                 } else {
