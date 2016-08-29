@@ -5,13 +5,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
-import org.nrg.framework.constants.Scope;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.rest.AbstractXapiRestController;
 import org.nrg.xdat.security.services.RoleHolder;
@@ -82,6 +84,8 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	        final String localProject = (synchronizationJson.get("localProject")!=null) ? synchronizationJson.get("localProject").asText() : null;
 	        final String username = (synchronizationJson.get("username")!=null) ? synchronizationJson.get("username").asText() : null;
 			final String remoteProjectId = (synchronizationJson.get("remoteProject")!=null) ? synchronizationJson.get("remoteProject").asText() : null;
+			//Only XNAT 1.7 will supply the expiration time. If the Destination server is runnung on < XNAT 1.7, this value would be null
+			final String estimatedExpirationTime = (synchronizationJson.get("estimatedExpirationTime")!=null) ? synchronizationJson.get("estimatedExpirationTime").asText() : null;
 			final boolean syncNewOnly = synchronizationJson.get("syncNewOnly") == null || synchronizationJson.get("syncNewOnly").asBoolean();
 
 	        if (host==null || host.length()<1 || alias==null || alias.length()<1 || secret==null ||
@@ -92,12 +96,16 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 
 	        final String userAccessUrl = (host.endsWith("/")? host:host+"/") + "data/archive/projects/"+remoteProjectId+"/users?format=json";
 	        response = userHasRequiredAccessAtRemoteProject(alias,secret,username,userAccessUrl,remoteProjectId,syncNewOnly);
-
+	        DateFormat format = new SimpleDateFormat("YYYYMMDD_HHmmss");
+	        
 	        if (response != null && (response.getStatusCode().value() == HttpStatus.OK.value() || response.getStatusCode().value() == HttpStatus.ACCEPTED.value() )) {
 				RemoteAliasEntity remoteAliasEntity = _remoteAliasService.getRemoteAliasEntity(localProject, host);
 		        if (remoteAliasEntity != null) {
 		        	remoteAliasEntity.setRemote_alias_token(alias);
 		        	remoteAliasEntity.setRemote_alias_password(secret);
+		        	if (estimatedExpirationTime != null) {
+		        		remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
+		        	}
 		        	_remoteAliasService.update(remoteAliasEntity);
 		        } else {
 		        	remoteAliasEntity = new RemoteAliasEntity();
@@ -107,6 +115,9 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 		        	remoteAliasEntity.setRemote_alias_password(secret);
 		        	final Date now = new Date();
 		        	remoteAliasEntity.setAcquiredTime(now);
+		        	if (estimatedExpirationTime != null) {
+		        		remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
+		        	}
 		        	_remoteAliasService.create(remoteAliasEntity);
 		        }
 				if (response != null && response.getStatusCode().value() == HttpStatus.ACCEPTED.value()) {

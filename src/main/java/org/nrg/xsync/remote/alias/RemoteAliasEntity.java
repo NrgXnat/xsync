@@ -87,10 +87,31 @@ public class RemoteAliasEntity extends AbstractHibernateEntity {
 	}
 
 
+	
+
+
+	/**
+	 * @return the estimatedExpirationTime
+	 */
+	public Date getEstimatedExpirationTime() {
+		return estimatedExpirationTime;
+	}
+	/**
+	 * @param estimatedExpirationTime the estimatedExpirationTime to set
+	 */
+	public void setEstimatedExpirationTime(Date estimatedExpirationTime) {
+		this.estimatedExpirationTime = estimatedExpirationTime;
+	}
+
+
+
+
+
 	private String remote_alias_token;
 	private String remote_alias_password;
 	private String remote_host;
 	private String local_project;
 	Date acquiredTime;
+	Date estimatedExpirationTime;
 	
 }

@@ -148,6 +148,7 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                         syncNewOnly: newOnly,
                         alias: data.alias,
                         secret: data.secret,
+                        expirationTime:data.expirationTime,
                         username:credUser
                     };
                     var saveCredentials = $.ajax({
@@ -184,7 +185,7 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                             'Error','Could not save credentials for remote server '  +
                             $("#xsync-credentials-host").val() + ' Cause: ' + data.statusText + " Details: " + data.responseText
                         );
-                        xmodal.close(pModalOpts);
+                        modl.close();
                     });
 
                 } else {
