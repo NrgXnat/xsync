@@ -148,9 +148,12 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                         syncNewOnly: newOnly,
                         alias: data.alias,
                         secret: data.secret,
-                        expirationTime:data.expirationTime,
                         username:credUser
                     };
+                    try {
+                        formData['estimatedExpirationTime']=data.estimatedExpirationTime
+                    }catch(err){}
+
                     var saveCredentials = $.ajax({
                         type : "POST",
                         url: XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project + '/saveRemoteCredentials'),
