@@ -282,7 +282,7 @@ XSYNC.xsyncconfig.editConfig = function() {
                     }
 
                     XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
-                    $(form).triggerHandler('reload-data')
+                    $(form).triggerHandler('reload-data');
                 }
             },
             close: {
@@ -337,7 +337,7 @@ function spawnConfig() {
             kind: 'panel.form',
             title: 'XSync Configuration',
             load: "XSYNC.xsyncconfig.configuration",
-            // refresh: "/xapi/xsync/projects/" + XNAT.data.context.project,
+            refresh: "/xapi/xsync/projects/" + XNAT.data.context.project,
             action: "#",
             contents: {
                 enabled: enabled(),
@@ -708,10 +708,23 @@ XSYNC.xsyncconfig.saveConfig = function(newJson) {
         $("#xsync-annon_add-config").attr("disabled", false);
         xmodal.message('Saved','The XSync configuration has been saved');
         XSYNC.xsyncconfig.modal.close();
-        console.log(newJson);
+
+        // Reload the data on successful save
+        XNAT.xhr.getJSON({
+            url: XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project),
+            done: function(data) {
+                XSYNC.xsyncconfig.configuration = data;
+                // $('#root-panel').setValues(data);
+            },
+            fail: function() {
+                console.log("Failed to reload XSync config data after submission.")
+            }
+        })
+
     });
 
     xsyncConfigAjax.fail( function( data, textStatus, error ) {
+        console.log("XSync config submission failed");
         console.log(newJson);
         xmodal.message('Error',  'Configuration was not successfully saved (' + error + ')');
     });
