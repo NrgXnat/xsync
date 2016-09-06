@@ -1,6 +1,8 @@
 package org.nrg.xsync.scheduler;
 
 import org.nrg.prefs.services.NrgPreferenceService;
+import org.nrg.framework.configuration.ConfigPaths;
+import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
 import org.nrg.xsync.services.local.DailySyncService;
 import org.nrg.xsync.services.local.MonthlySyncService;
@@ -40,8 +42,8 @@ public class XsyncScheduler {
 	}
 	
     @Bean
-    public XsyncSitePreferencesBean xsyncSitePreferencesBean() {
-        return new XsyncSitePreferencesBean(_preferenceService);
+    public XsyncSitePreferencesBean xsyncSitePreferencesBean(final NrgPreferenceService preferenceService, final ConfigPaths configPaths) {
+        return new XsyncSitePreferencesBean(preferenceService, configPaths);
     }
 
     @Bean

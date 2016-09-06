@@ -1,5 +1,6 @@
 package org.nrg.xsync.configuration;
 
+import org.nrg.framework.configuration.ConfigPaths;
 import org.nrg.prefs.annotations.NrgPreference;
 import org.nrg.prefs.annotations.NrgPreferenceBean;
 import org.nrg.prefs.beans.AbstractPreferenceBean;
@@ -16,15 +17,19 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @NrgPreferenceBean(toolId = XsyncSitePreferencesBean.XSYNC_TOOL_ID, toolName = "XSync Site Preferences")
 public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
+	@Autowired
+	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, final ConfigPaths configFolderPaths) {
+		super(preferenceService, configFolderPaths);
+	}
 
-    /** The Constant _log. */
+	/** The Constant _log. */
     private static final Logger _log = LoggerFactory.getLogger(XsyncSitePreferencesBean.class);
     
     /** The Constant XSYNC_TOOL_ID. */
-    public static final String XSYNC_TOOL_ID = "xsync";
+    static final String XSYNC_TOOL_ID = "xsync";
 	
 	/** The Constant DEFAULT_TOKEN_REFRESH_INTERVAL. */
-	public static final String DEFAULT_TOKEN_REFRESH_INTERVAL = "10 hours";
+	private static final String DEFAULT_TOKEN_REFRESH_INTERVAL = "10 hours";
 	
 	/** The Constant DEFAULT_TOKEN_REFRESH_INTERVAL_MILLIS. */
 	public static final long DEFAULT_TOKEN_REFRESH_INTERVAL_MILLIS = 10*60*60*1000;
@@ -87,7 +92,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 			try {
 				return calculateIntervalInMillis(DEFAULT_TOKEN_REFRESH_INTERVAL);
 			} catch (InvalidValueException e1) {
-				return Long.valueOf(1000*60*60*10);
+				return (long) (1000 * 60 * 60 * 10);
 			}
 		}
 	}
