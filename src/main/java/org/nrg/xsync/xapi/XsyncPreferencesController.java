@@ -6,8 +6,8 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.json.JSONObject;
 import org.nrg.framework.annotations.XapiRestController;
+import org.nrg.framework.exceptions.NrgServiceException;
 import org.nrg.xdat.rest.AbstractXapiRestController;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
@@ -16,10 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+
+import java.util.Properties;
 
 /**
  * The Class XsyncPreferencesController.
@@ -83,17 +84,18 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	 * @return the preferences
 	 */
 	@RequestMapping(method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
-    @ApiOperation(value = "Gets the XSync site preferences")
-    @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences retrieved."),  @ApiResponse(code = 500, message = "Unexpected error")})
-	public ResponseEntity<String> getPreferences() {
+    @ApiOperation(value = "Gets the XSync site preferences", response = Properties.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences retrieved."),
+				   @ApiResponse(code = 500, message = "Unexpected error")})
+	public ResponseEntity<Properties> getPreferences() throws NrgServiceException {
 		try {
-			final JSONObject prefsJson = new JSONObject();
-			prefsJson.put("tokenRefreshInterval", _prefs.getTokenRefreshInterval());
-			prefsJson.put("syncRetryInterval", _prefs.getSyncRetryInterval());
-			prefsJson.put("syncRetryCount", _prefs.getSyncRetryCount());
-        	return new ResponseEntity<>(prefsJson.toString(), HttpStatus.OK );
-		}catch (Exception  exception) {
-        	return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR );
+			final Properties preferences = new Properties();
+			preferences.setProperty("tokenRefreshInterval", _prefs.getTokenRefreshInterval());
+			preferences.setProperty("syncRetryInterval", _prefs.getSyncRetryInterval());
+			preferences.setProperty("syncRetryCount", _prefs.getSyncRetryCount());
+        	return new ResponseEntity<>(preferences, HttpStatus.OK);
+		} catch (Exception exception) {
+        	throw new NrgServiceException("XSync preferences assignment failed", exception);
 		}
 	}
 
