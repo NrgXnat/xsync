@@ -7,7 +7,6 @@ import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatSubjectdata;
-import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
@@ -103,7 +102,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             if (isSyncBlocked != null && isSyncBlocked) {
                 try {
                     System.out.println("Sync is blocked ");
-                    _mailService.sendHtmlMessage(AdminUtils.getAuthorizerEmailId(), _user.getEmail(), "Project " + _projectId + " sync skipped ",
+                    _mailService.sendHtmlMessage(_xnatInfo.getAdminEmail(), _user.getEmail(), "Project " + _projectId + " sync skipped ",
                                                           "<html><body><p>Project " + _projectId + " sync skipped </p></body></html>");
                     _log.debug("Sync Blocked");
                 } catch (Exception e) {
@@ -158,7 +157,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             //Roll back the syncBlocked flag
             _log.debug(e.getLocalizedMessage());
             saveSyncBlockStatus(Boolean.FALSE);
-            XSyncFailureHandler.handle(_mailService, _manager.getSiteId(), _projectId, e, "Sync failed");
+            XSyncFailureHandler.handle(_mailService, _xnatInfo.getAdminEmail(), _manager.getSiteId(), _projectId, e, "Sync failed");
         }
     }
 

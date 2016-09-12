@@ -50,12 +50,12 @@ public class DefaultMonthlySyncService extends AbstractSyncService implements Mo
                         executor.submit(projectChange);
                     } catch (Exception e) {
                         logger.debug(e.getMessage());
-                        XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), projectId, e, "Monthly sync failed");
+                        XSyncFailureHandler.handle(getMailService(), getXnatInfo().getAdminEmail(), getManager().getSiteId(), projectId, e, "Monthly sync failed");
                     }
                 }
             }catch(Exception e) {
                 logger.debug(e.getMessage());
-                XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), "", e, "Monthly sync failed");
+                XSyncFailureHandler.handle(getMailService(), getXnatInfo().getAdminEmail(), getManager().getSiteId(), "", e, "Monthly sync failed");
             }finally{
                 //executor.shutdown();
             }

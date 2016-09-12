@@ -55,4 +55,8 @@ public abstract class AbstractSyncService {
     protected ExecutorService getExecutor() {
         return _executorFactoryBean.getObject();
     }
+
+    protected XsyncXnatInfo getXnatInfo() {
+        return _xnatInfo;
+    }
 }

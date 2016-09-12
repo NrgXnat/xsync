@@ -52,12 +52,12 @@ public class DefaultWeeklySyncService extends AbstractSyncService implements Wee
                         executor.submit(projectChange);
                     } catch (Exception e) {
                         logger.debug(e.getMessage());
-                        XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), projectId, e, "Weekly sync failed");
+                        XSyncFailureHandler.handle(getMailService(), getXnatInfo().getAdminEmail(), getManager().getSiteId(), projectId, e, "Weekly sync failed");
                     }
                 }
             }catch(Exception e) {
                 logger.debug(e.getMessage());
-                XSyncFailureHandler.handle(getMailService(), getManager().getSiteId(), "", e, "Weekly sync failed");
+                XSyncFailureHandler.handle(getMailService(), getXnatInfo().getAdminEmail(), getManager().getSiteId(), "", e, "Weekly sync failed");
             }finally {
                 //executor.shutdown();
             }

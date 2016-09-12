@@ -21,6 +21,14 @@ public class XsyncXnatInfo {
         return _preferences.getSiteId();
     }
 
+    /**
+     * Gets the primary administrator's email address.
+     * @return The primary administrator's email address.
+     */
+    public String getAdminEmail() {
+        return _preferences.getAdminEmail();
+    }
+
     public String getDicomAnonymization(String projectId) {
         return _configService.getConfig("xsync", "presyncanonymization", Scope.Project, projectId).getContents();
     }

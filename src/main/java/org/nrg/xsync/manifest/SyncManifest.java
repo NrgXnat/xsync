@@ -170,7 +170,7 @@ public class SyncManifest{
 	public void informUser() {
 		final Hashtable<String, String> info = syncInfoAsHTML();
 		try {
-			_mailService.sendHtmlMessage(AdminUtils.getAuthorizerEmailId(), this.sync_user.getEmail(), info.get("SUBJECT"),
+			_mailService.sendHtmlMessage(_xnatInfo.getAdminEmail(), this.sync_user.getEmail(), info.get("SUBJECT"),
 					info.get("BODY"));
 		} catch (Exception e) {
 			logger.error("Failed to send email.", e);

@@ -43,7 +43,7 @@ public class XSyncFailureHandler {
 
 	}
 
-	public static void handle(final MailService mailService, String siteId, String project, Exception e, String message) {
+	public static void handle(final MailService mailService, String adminEmail, String siteId, String project, Exception e, String message) {
 		final Hashtable<String,String> info = new Hashtable<>();
 
 		final String subject= siteId + " XSYNC: Project " + project +" failed ";
@@ -62,7 +62,7 @@ public class XSyncFailureHandler {
 		info.put("BODY", sb.toString());
 		SynchronizationManager.END_ERROR_FAILURE_SYNC(project);
 		try {
-			mailService.sendHtmlMessage(AdminUtils.getAuthorizerEmailId(),AdminUtils.getAuthorizerEmailId(), info.get("SUBJECT"), info.get("BODY"));
+			mailService.sendHtmlMessage(adminEmail, adminEmail, info.get("SUBJECT"), info.get("BODY"));
 		} catch (Exception ex) {
 			_log.error("Failed to send email.", e);
 		}
