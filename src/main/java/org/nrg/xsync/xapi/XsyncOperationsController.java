@@ -2,8 +2,10 @@ package org.nrg.xsync.xapi;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.lang3.StringUtils;
@@ -73,7 +75,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
                                      final MailService mailService,
                                      final XsyncXnatInfo xnatInfo, final SerializerService serializer,
                                      final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate,
-                                     final List<HttpMessageConverter<?>> converters,
+                                     final Map<String, HttpMessageConverter<?>> converters,
                                      final ExecutorService executorService) {
         super(userManagementService, roleHolder);
         _configService = configService;
@@ -82,8 +84,10 @@ public class XsyncOperationsController extends AbstractXapiRestController {
         _serializer = serializer;
         _queryResultUtil = queryResultUtil;
         _jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-        _converters = converters;
-        _converters.add(new StringHttpMessageConverter());
+        _converters = new ArrayList<>(converters.values());
+        if (!converters.containsKey("stringHttpMessageConverter")) {
+            _converters.add(new StringHttpMessageConverter());
+        }
         _executorService = executorService;
         _manager = manager;
     }
