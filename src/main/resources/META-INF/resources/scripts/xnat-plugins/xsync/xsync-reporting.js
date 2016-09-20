@@ -28,7 +28,7 @@ window.XSYNC = getObject(window.XSYNC);
 		xsyncHistory.tr();
 		xsyncHistory.th('Date').th('Status').th('Subjects').th('Experiments').th('Assessments').th('Resources').th('Total Data');
 
-		var getSyncHistory = xhr.getJSON(xsyncUrl('/history/project/' + projectContext));
+		var getSyncHistory = xhr.getJSON(xsyncUrl('/history/projects/' + projectContext));
 
 		getSyncHistory.done(function(data) {
 

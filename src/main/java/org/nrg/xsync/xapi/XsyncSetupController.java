@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.http.MediaType;
 
 /**
  * @author Mohana Ramaratnam
@@ -33,7 +34,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
  */
 
 @XapiRestController
-@RequestMapping(value = "/xsync")
+@RequestMapping(value = "/xsync/setup")
 @Api(description = "XSync Management API")
 public class XsyncSetupController extends AbstractXapiRestController {
 	@Autowired
@@ -46,31 +47,30 @@ public class XsyncSetupController extends AbstractXapiRestController {
 
 	@ApiOperation(value = "Sets up the Xsync project configuration",  response = String.class)
 	@ApiResponses({@ApiResponse(code = 200, message = "XSync configuration successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
-	@RequestMapping(value = "/projects/{projectId}", method = RequestMethod.POST, consumes = "application/json")
+	@RequestMapping(value = "/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
 	public ResponseEntity<String> setup(@PathVariable("projectId") String projectId, @RequestBody String jsonbody) {
 		//curl -H "Content-Type: application/json" -X POST -d '{  "project":"TEST1ID",  "sync_frequency":"daily",  "auto_sync":"false",  "identifiers":"use_local",  "remote_url":"http://localhost:8080/xnat",  "remote_project_id":"SyncProjectId"}' -u admin  "http://localhost:8080/xnat/xapi/xsync/setup?project=TEST1ID"
 		try {
 			UserI user = getSessionUser();
-
-			// TODO I don't know what's going on with the project ID here, but it's asking for something to go wrong. I think the project ID retrieved from the JSON is the target sync project, but one variable shouldn't do double duty like that.
-			this.projectId = projectId;
 			//Store the JSON to the Synchronization table
 			final JsonNode synchronizationJson = _serializer.deserializeJson(jsonbody, JsonNode.class);
 			projectId = synchronizationJson.get(XsyncUtils.PROJECT_ELEMENT_JSON_NAME).asText();
-			XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
-			if (project == null) {
+			if (projectId == null) {
 				//this.getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to identify project");
 				return new ResponseEntity<>(" Project ID not provided ",HttpStatus.BAD_REQUEST);
 			}else {
-				projectId = project.getId();
+				XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
+				if (project == null) {
+					return new ResponseEntity<>(" Project  " + projectId + " not found. ",HttpStatus.BAD_REQUEST);
+				}else {
+					//TODO validate the JSON
+					XsyncUtils xsyncUtils = new XsyncUtils(_serializer, _jdbcTemplate, user);
+					xsyncUtils.loadConfigurationToDB(synchronizationJson);
+//		            save_resource(project,jsonbody);
+					saveConfig(project, jsonbody, projectId);
+					return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
+				}
 			}
-			//TODO validate the JSON
-			XsyncUtils xsyncUtils = new XsyncUtils(_serializer, _jdbcTemplate, user);
-			xsyncUtils.loadConfigurationToDB(synchronizationJson);
-//            save_resource(project,jsonbody);
-			saveConfig(project, jsonbody);
-			return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
-
 		}catch (Exception  exception) {
 			return new ResponseEntity<>(projectId + " Xsync Setup failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
@@ -85,7 +85,7 @@ public class XsyncSetupController extends AbstractXapiRestController {
 		return StringUtils.isNotBlank(config) ? new ResponseEntity<>(config, HttpStatus.OK) : new ResponseEntity<String>(HttpStatus.NOT_FOUND);
 	}
 
-	private void saveConfig(XnatProjectdata project, String xsyncConfigJson) throws Exception {
+	private void saveConfig(XnatProjectdata project, String xsyncConfigJson, String projectId) throws Exception {
 //		Configuration config = _configService.getConfig("xsync", project.getId());
 		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "json", xsyncConfigJson, Scope.Project, projectId);
 	}
@@ -94,7 +94,7 @@ public class XsyncSetupController extends AbstractXapiRestController {
 		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "presyncanonymization", anonymizationScript, Scope.Project, project.getId());
 	}
 
-	@RequestMapping(path="/projects/{projectId}/presyncanonymization", method = RequestMethod.PUT)
+	@RequestMapping(path="/presyncanonymization/projects/{projectId}", method = RequestMethod.PUT)
 	@ApiOperation(value = "Adds Pre-Sync project specific DICOM Anonyzation",  response = String.class)
 	@ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId, @RequestBody(required=false) String anonymizationScript) {
@@ -104,7 +104,6 @@ public class XsyncSetupController extends AbstractXapiRestController {
             if (project == null) {
 	        	return new ResponseEntity<>(" Project ID " +  projectId +"  does not exist ",HttpStatus.BAD_REQUEST);
             }
-	        this.projectId = project.getId();
 			saveDicomAnonymizationToConfig(project,anonymizationScript);
 		}catch(Exception e) {
         	return new ResponseEntity<>(projectId + " Pre-Sync DICOM Anonymization script could not be saved. ", HttpStatus.INTERNAL_SERVER_ERROR );
@@ -112,7 +111,7 @@ public class XsyncSetupController extends AbstractXapiRestController {
     	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved",  HttpStatus.OK);
 	}
 
-	@RequestMapping(path="/projects/{projectId}/presyncanonymization", method = RequestMethod.GET)
+	@RequestMapping(path="/presyncanonymization/projects/{projectId}", method = RequestMethod.GET)
 	@ApiOperation(value = "GETs Pre-Sync project specific DICOM Anonyzation",  response = String.class)
 	@ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization."),
 			       @ApiResponse(code = 204, message = "No DICOM anonymization found."),
@@ -126,7 +125,6 @@ public class XsyncSetupController extends AbstractXapiRestController {
 		}
 	}
 
-	private String projectId = null;
 
 	private final ConfigService              _configService;
 	private final SerializerService          _serializer;

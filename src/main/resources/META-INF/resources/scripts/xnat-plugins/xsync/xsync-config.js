@@ -10,13 +10,13 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 
 /*
  Initialization
- */
+*/
 
 XSYNC.xsyncconfig.init = function() {
     XNAT.xhr.getJSON({
-        url: XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project),
+        url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
         done: function(data) {
-            XSYNC.xsyncconfig.configuration = data;
+            XSYNC.xsyncconfig.configuration = JSON.parse(data);
             XSYNC.xsyncconfig.showConfigPanel()
         },
         fail: function() {
@@ -24,6 +24,8 @@ XSYNC.xsyncconfig.init = function() {
         }
     })
 }
+
+
 
 XSYNC.xsyncconfig.useDefaultConfig = function() {
     // Use the defaults to populate config dialog
@@ -156,12 +158,12 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
 
                     var saveCredentials = $.ajax({
                         type : "POST",
-                        url: XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project + '/saveRemoteCredentials'),
+                        url: XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project ),
                         cache: false,
                         async: true,
                         dataType: 'text',
                         data:  JSON.stringify(formData),
-                        contentType: "application/json; charset=utf-8"
+                        contentType: "text/plain"
                     });
                     saveCredentials.done( function( data, textStatus, jqXHR ) {
                         if (jqXHR.status == 202) {
@@ -192,13 +194,13 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                     });
 
                 } else {
-                    console.log(XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project + '/saveRemoteCredentials'));
+                    console.log(XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project));
                     xmodal.message('Error','ERROR:  Could not get alias token.  Please check username and password and try again.');
                 }
 
             });
             credentialsAjax.fail( function( data, textStatus, error ) {
-                console.log(XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project + '/saveRemoteCredentials'));
+                console.log(XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project));
                 xmodal.message('Error','ERROR:  Could not get alias token.  Please check username and password and try again.');
             });
 
@@ -224,12 +226,12 @@ XSYNC.xsyncconfig.checkCredentials = function() {
     };
     var saveCredentials = $.ajax({
         type : "POST",
-        url: XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project + '/checkRemoteCredentials'),
+        url: XNAT.url.csrfUrl('/xapi/xsync/credentials/check/projects/' + XNAT.data.context.project ),
         cache: false,
         async: false,
         dataType: 'text',
         data:  JSON.stringify(formData),
-        contentType: "application/json; charset=utf-8"
+        contentType: "text/plain"
     });
     saveCredentials.done( function( data, textStatus, jqXHR ) {
         XSYNC.xsyncconfig.checkCredentialsResult = true;
@@ -337,7 +339,7 @@ function spawnConfig() {
             kind: 'panel.form',
             title: 'XSync Configuration',
             load: "XSYNC.xsyncconfig.configuration",
-            refresh: "/xapi/xsync/projects/" + XNAT.data.context.project,
+            refresh: "/xapi/xsync/setup/projects/" + XNAT.data.context.project,
             action: "#",
             contents: {
                 enabled: enabled(),
@@ -697,11 +699,11 @@ XSYNC.xsyncconfig.submitConfig = function(jsonString) {
 XSYNC.xsyncconfig.saveConfig = function(newJson) {
     var xsyncConfigAjax = $.ajax({
         type: "POST",
-        url: XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project),
+        url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
         cache: false,
         async: true,
         data: newJson,
-        contentType: "application/json; charset=utf-8"
+        contentType: "text/plain"
     });
 
     xsyncConfigAjax.done( function( data, textStatus, jqXHR ) {
@@ -711,7 +713,7 @@ XSYNC.xsyncconfig.saveConfig = function(newJson) {
 
         // Reload the data on successful save
         XNAT.xhr.getJSON({
-            url: XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project),
+            url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
             done: function(data) {
                 XSYNC.xsyncconfig.configuration = data;
                 // $('#root-panel').setValues(data);
@@ -737,7 +739,7 @@ XSYNC.xsyncconfig.saveConfig = function(newJson) {
 XSYNC.xsyncconfig.submitDICOMAnonymization = function() {
     var getAnonymizationScript = $.ajax({
         type : "GET",
-        url: XNAT.url.csrfUrl('/xapi/xsync/projects/'+XNAT.data.context.project+'/presyncanonymization'),
+        url: XNAT.url.csrfUrl('/xapi/xsync/setup/presyncanonymization/projects/'+XNAT.data.context.project),
         dataType: 'text'
     });
 
@@ -788,7 +790,7 @@ XSYNC.xsyncconfig.submitDICOMAnonymization = function() {
 XSYNC.xsyncconfig.uploadDicomAnonymization = function(editorContents) {
     var uploadDICOMscriptAjax = $.ajax({
         type: "PUT",
-        url: XNAT.url.csrfUrl('/xapi/xsync/projects/' + XNAT.data.context.project + '/presyncanonymization'),
+        url: XNAT.url.csrfUrl('/xapi/xsync/setup/presyncanonymization/projects/' + XNAT.data.context.project ),
         data: editorContents
     });
 

@@ -44,7 +44,7 @@ import io.swagger.annotations.ApiResponses;
  */
 
 @XapiRestController
-@RequestMapping(value = "/xsync")
+@RequestMapping(value = "/xsync/credentials")
 @Api(description = "XSync Credentials API")
 public class XsyncRemoteCredentialsController extends AbstractXapiRestController {
 	
@@ -69,7 +69,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	 * @param jsonbody the jsonbody
 	 * @return the response entity
 	 */
-	@RequestMapping(path="/projects/{projectId}/saveRemoteCredentials", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(path="/save/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
     @ApiOperation(value = "Sets remote credentials for XSync")
     @ApiResponses({@ApiResponse(code = 200, message = "XSync remote credentials set."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	public synchronized ResponseEntity<String> saveRemoteCredentials(@RequestBody String jsonbody) {
@@ -196,7 +196,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	 * @param jsonbody the jsonbody
 	 * @return the response entity
 	 */
-	@RequestMapping(path="/projects/{projectId}/checkRemoteCredentials", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(path="/check/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
     @ApiOperation(value = "Checks whether XSync remote credentials are valid")
     @ApiResponses({@ApiResponse(code = 200, message = "Remote credentials valid."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	public synchronized ResponseEntity<String> checkRemoteCredentials(@RequestBody String jsonbody) {

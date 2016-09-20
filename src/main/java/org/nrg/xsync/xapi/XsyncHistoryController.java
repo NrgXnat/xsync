@@ -58,7 +58,7 @@ public class XsyncHistoryController extends AbstractXapiRestController {
         return new ResponseEntity<>(_service.retrieve(id), HttpStatus.OK);
     }
 
-    @RequestMapping(value="/project/{projectId}", method=RequestMethod.GET)
+    @RequestMapping(value="/projects/{projectId}", method=RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<List<XsyncProjectHistory>> getSyncHistoryByProject(@PathVariable("projectId") String projectId) {
         List<XsyncProjectHistory> allHistory = _service.getAll();

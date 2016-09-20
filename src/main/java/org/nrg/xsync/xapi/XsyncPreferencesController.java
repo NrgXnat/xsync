@@ -45,7 +45,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	 * @param jsonbody the jsonbody
 	 * @return the response entity
 	 */
-	@RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
     @ApiOperation(value = "Sets the XSync site preferences")
     @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences set."), @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> setPreferences(@RequestBody String jsonbody) {

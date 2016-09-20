@@ -22,7 +22,7 @@ xsyncConfigPage:
                     label: Remote Token Refresh
                     method: POST
                     action: /xapi/xsyncSitePreferences # url to save data
-                    contentType: json # omit this for standard form submission
+                    contentType: text/plain # omit this for standard form submission
                     load: /xapi/xsyncSitePreferences   # url to load data - uses GET and expects JSON data to be returned
                     refresh: /xapi/xsyncSitePreferences   # url to load data - uses GET and expects JSON data to be returned
                     contents:
@@ -46,7 +46,7 @@ xsyncConfigPage:
                     label: Sync Retry Settings
                     method: POST
                     action: /xapi/xsyncSitePreferences
-                    contentType: json
+                    contentType: text/plain
                     load: /xapi/xsyncSitePreferences
                     refresh: /xapi/xsyncSitePreferences
                     contents:

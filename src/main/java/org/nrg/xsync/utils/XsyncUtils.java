@@ -88,6 +88,7 @@ public class XsyncUtils {
 			loadConfigurationToDB(synchronizationJson);
 		}
 	}
+
 	
 	public synchronized  void loadConfigurationToDB(JsonNode synchronizationJson) throws Exception{
         String sourceProjectId = synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText();

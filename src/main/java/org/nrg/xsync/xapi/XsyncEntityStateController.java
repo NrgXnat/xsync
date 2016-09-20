@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Api(description = "XSync Entity State API")
 @XapiRestController
+@RequestMapping(value = "/xsync/information")
 public class XsyncEntityStateController extends AbstractXapiRestController {
     @Autowired
     public XsyncEntityStateController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate) {
@@ -36,7 +37,7 @@ public class XsyncEntityStateController extends AbstractXapiRestController {
 
     @ApiOperation(value = "Retrieves the information specified in the list parameter for the indicated project.", notes = "Returns the project information if available.", response = ObjectNode.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project information was successfully retrieved."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to access indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
-    @RequestMapping(value = "/projects/{projectId}/information", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET)
+    @RequestMapping(value = "/projects/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<ObjectNode> getProjectInformation(@PathVariable("projectId") final String projectId, @RequestParam("listChoices") final String listChoices) throws XsyncNoProjectSpecifiedException, XsyncNoProjectEntitiesSpecifiedException {
         if (StringUtils.isBlank(projectId)) {
