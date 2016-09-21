@@ -3,13 +3,13 @@ def pluginVersion = '0.1-SNAPSHOT'
 group 'org.nrg.xsync'
 version pluginVersion
 
-def vXnat = '1.7.0-SNAPSHOT'
+def vXnat = '1.7.0'
 def vJunit = '4.12'
-def vSpring = '4.2.5.RELEASE'
-def vSlf4j = '1.7.15'
+def vSpring = '4.2.7.RELEASE'
+def vSlf4j = '1.7.21'
 def vLog4j = '1.2.17'
 def vSpringSecurity = '4.0.4.RELEASE'
-def vSwagger = '2.3.1'
+def vSwagger = '2.4.0'
 
 apply plugin: 'groovy'
 apply plugin: 'maven'
@@ -33,7 +33,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.0-SNAPSHOT"
+        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.0"
     }
     configurations {
         all*.exclude group: 'avalon-framework'
@@ -164,8 +164,6 @@ dependencies {
     compile("org.nrg.xnat:xnat-data-models:${vXnat}") {
         exclude group: '*'
     }
-    compile "org.nrg.xdat:tasks:${vXnat}"
-
     compile("org.nrg.xdat:core:${vXnat}") {
         exclude group: '*'
     }
@@ -187,7 +185,7 @@ dependencies {
     compile "org.nrg:prefs:${vXnat}"
 
 
-    compile "org.nrg:DicomEdit:6.0-SNAPSHOT"
+    compile "org.nrg:DicomEdit:6.0"
     compile "org.nrg:DicomUtils:1.3.1"
 
 
