@@ -354,13 +354,13 @@ function spawnConfig() {
                     name: '',
                     label: 'Advanced Settings',
                     element: {
-                        onchange: function() {
-                            if ($(this).is(':checked')) {
+                        $: { change: function() {
+                            if (this.checked) {
                                 $('#xsync-advanced-settings').slideDown(400)
                             } else {
                                 $('#xsync-advanced-settings').slideUp(400)
                             }
-                        }
+                        }}
                     }
                 },
                 advancedSettings: {
