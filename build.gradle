@@ -3,7 +3,8 @@ def pluginVersion = '0.1-SNAPSHOT'
 group 'org.nrg.xsync'
 version pluginVersion
 
-def vXnat = '1.7.0-SNAPSHOT'
+def vXnat = '1.7.0'
+def vXnatTasks = '1.7.0-SNAPSHOT'
 def vJunit = '4.12'
 def vSpring = '4.2.5.RELEASE'
 def vSlf4j = '1.7.15'
@@ -33,7 +34,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.0-SNAPSHOT"
+        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.0"
     }
     configurations {
         all*.exclude group: 'avalon-framework'
@@ -164,7 +165,7 @@ dependencies {
     compile("org.nrg.xnat:xnat-data-models:${vXnat}") {
         exclude group: '*'
     }
-    compile "org.nrg.xdat:tasks:${vXnat}"
+    compile "org.nrg.xdat:tasks:${vXnatTasks}"
 
     compile("org.nrg.xdat:core:${vXnat}") {
         exclude group: '*'
