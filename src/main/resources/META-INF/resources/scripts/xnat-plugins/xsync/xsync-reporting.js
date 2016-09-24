@@ -68,9 +68,10 @@ window.XSYNC = getObject(window.XSYNC);
 			var startDate = new Date(history.startDate);
 			xmodal.open({
 				title: 'Xsync History for '+ projectContext + ' on '+ localDate(startDate) + ' ' + localTime(startDate),
-				width: 800,
+				width: '80%',
 				height: '95%',
 				overflow: 'auto',
+				maximize: true,
 				content: '<div id="xsync-details-modal"></div>',
 				beforeShow: function(obj){
 					var container = obj.$modal.find('#xsync-details-modal');
@@ -119,6 +120,8 @@ window.XSYNC = getObject(window.XSYNC);
 			contents: {
 				overview: {
 					kind: 'panel',
+					label: 'History Overview',
+					footer: false,
 					contents: {
 						syncStatus: {
 							kind: 'panel.element',
@@ -184,29 +187,30 @@ window.XSYNC = getObject(window.XSYNC);
 // String tomfoolery to generate similarly formatted tabs
 	function generateHistoryTab(tabType, data) {
 
-		var _items, tableContent;
+		var panelContent;
 
 		if (data.length) {
-			_items = {
-				localLabel: tabType + " Label",
-				syncStatus: "Status",
-				syncMessage: "Message"
-			}
+			panelContent = XNAT.table.dataTable(data, {
+				id: tabType.toLowerCase() + '-table',
+				items: {
+					localLabel: tabType + " Label",
+					syncStatus: "Status",
+					syncMessage: "Message"
+				}
+			})
 		}
 		else {
-			data = [{'message': "Nothing synced"}];
-			_items = {
-				message: tabType + " Data"
-			}
+			// panelContent = spawn('i', 'Nothing synced.');
+			panelContent = '<i class="pad20h">Nothing synced.</i>';
 		}
 
-		tableContent = {
-			kind: 'panel.dataTable',
-			name: tabType.toLowerCase() + ' Table',
+		var tabContent = {
+			kind: 'panel',
 			label: tabType + ' Sync Details',
-			data: data,
-			id: tabType.toLowerCase() + '-table',
-			items: _items
+			footer: false,
+			contents: {
+				history: spawn('div.pad20v', panelContent)
+			}
 		};
 
 		return {
@@ -214,9 +218,10 @@ window.XSYNC = getObject(window.XSYNC);
 			name: tabType.toLowerCase() + ' Tab',
 			label: tabType + 's',
 			contents: {
-				tabTable: tableContent
+				tabTable: tabContent
 			}
 		}
+
 	}
 
 })(window.XNAT, window.XSYNC);
