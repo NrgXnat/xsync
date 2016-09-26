@@ -17,6 +17,7 @@ public class SubjectSyncItem extends SyncedItem {
 		resources = new ArrayList<ResourceSyncItem>();
 		experiments = new ArrayList<ExperimentSyncItem>();
 	}
+		
 	
 	/**
 	 * @return the resources
@@ -27,6 +28,7 @@ public class SubjectSyncItem extends SyncedItem {
 
 	public void addResources(ResourceSyncItem resource) {
 		resources.add(resource);
+		stateChanged();
 	}
 
 	/**
@@ -46,6 +48,7 @@ public class SubjectSyncItem extends SyncedItem {
 
 	public void addExperiment(ExperimentSyncItem experiment) {
 		experiments.add(experiment);
+		stateChanged();
 	}
 
 	
@@ -55,6 +58,6 @@ public class SubjectSyncItem extends SyncedItem {
 	public void setExperiments(ArrayList<ExperimentSyncItem> experiments) {
 		this.experiments = experiments;
 	}
-
+	
 
 }

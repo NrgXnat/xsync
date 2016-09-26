@@ -2,12 +2,13 @@ package org.nrg.xsync.manifest;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Observable;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
-public abstract class SyncedItem  {
+public abstract class SyncedItem  extends Observable{
 	String localId;
 	String localLabel;
 	String remoteId;
@@ -19,6 +20,7 @@ public abstract class SyncedItem  {
 	
 	
 	public SyncedItem(String localId, String localLabel) {
+		super();
 		this.localId = localId;
 		this.localLabel = localLabel;
 	}
@@ -123,6 +125,24 @@ public abstract class SyncedItem  {
 	 */
 	public void setSyncTime(Date syncTime) {
 		this.syncTime = syncTime;
+	}
+	
+	public String toString() {
+		String str = "";
+		str += "Local ID:" + this.getLocalId() + "\n";
+		str += "Local Label:" + this.getLocalLabel() + "\n";
+		str += "XsiType:" + this.getXsiType() + "\n";
+		str += "Remote ID:" + this.getRemoteId() + "\n";
+		str += "Remote Label:" + this.getRemoteLabel() + "\n";
+		str += "Message: " + this.getMessage() + "\n";
+		str += "Sync Status:" + this.getSyncStatus() + "\n";
+		str += "Sync Time:" + this.getSyncTime() + "\n";
+		return str;
+	}
+	
+	public void stateChanged() {
+		setChanged();
+		notifyObservers(this);
 	}
 	
 	

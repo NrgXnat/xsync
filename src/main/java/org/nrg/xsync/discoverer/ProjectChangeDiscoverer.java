@@ -22,6 +22,7 @@ import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.nrg.xsync.tools.XSyncTools;
+import org.nrg.xsync.tools.XsyncObserver;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.XSyncFailureHandler;
@@ -60,6 +61,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     private       MapSqlParameterSource      _parameters;
     private final ProjectSyncConfiguration   _projectSyncConfiguration;
     private final boolean                    _syncAll;
+    private final XsyncObserver				 _observer;
 
     public ProjectChangeDiscoverer(final RemoteConnectionManager manager, final ConfigService configService, final SerializerService serializer, final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, final MailService mailService, final XsyncXnatInfo xnatInfo, final String projectId, final UserI user) throws XsyncNotConfiguredException {
         _manager = manager;
@@ -73,6 +75,8 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         _parameters = new MapSqlParameterSource("project", _projectId);
         _projectSyncConfiguration = new ProjectSyncConfiguration(configService, serializer, (JdbcTemplate) jdbcTemplate.getJdbcOperations(), _projectId, _user);
         _syncAll = !_projectSyncConfiguration.isSetToSyncNewOnly();
+		_observer  = new XsyncObserver(_projectId);
+
     }
 
     /**
@@ -141,11 +145,13 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             	String subjectProjectLabel = (String) row.get("label");
             	String subjectId = (String) row.get("subject_id");
             	SubjectSyncItem subjectSyncInfo = new SubjectSyncItem(subjectId,subjectProjectLabel);
-        		subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+        		subjectSyncInfo.addObserver(_observer);
+            	subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
         		subjectSyncInfo.setMessage("Shared Subject");
         		subjectSyncInfo.setRemoteId("");
         		subjectSyncInfo.setXsiType(XnatSubjectdata.SCHEMA_ELEMENT_NAME);
         		subjectSyncInfo.setRemoteLabel("");
+        		subjectSyncInfo.stateChanged();
         		SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncInfo);
 
             }            
@@ -158,6 +164,8 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             _log.debug(e.getLocalizedMessage());
             saveSyncBlockStatus(Boolean.FALSE);
             XSyncFailureHandler.handle(_mailService, _xnatInfo.getAdminEmail(), _manager.getSiteId(), _projectId, e, "Sync failed");
+        }finally{
+        	_observer.close();
         }
     }
 
@@ -199,8 +207,10 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                     //If its a new addition, sync it. If its an update or a delete skip it.
                     if (QueryResultUtil.DELETE_STATUS.equals(status)) {
                         ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, label);
+                		resourceSyncItem.addObserver(_observer);
                         resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
                         resourceSyncItem.setMessage("Project resource " + label + " has been deleted, however, it was not synced as project is configured not to sync automatically ");
+                        resourceSyncItem.stateChanged();
                         SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
                     } else {
                         //Check if its a new resource or an updated resource
@@ -209,8 +219,10 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                         if (xsyncTools.hasBeenSyncedAlready(_projectId, label, resource.getXSIType(),remoteProjectId)) {
                             //This is an instance of Update and auto-update is set to false; skip this resource
                             ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, label);
+                    		resourceSyncItem.addObserver(_observer);
                             resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
                             resourceSyncItem.setMessage("Project resource " + label + " has been updated, however, it was not synced as project is configured not to sync automatically ");
+                            resourceSyncItem.stateChanged();
                             SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
                         } else {
                             //New resource has been added. Push this resource
@@ -230,22 +242,27 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
 
             RemoteConnectionResponse response = _manager.deleteProjectResource(connection, remoteProjectId, resourceLabel);
             ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, resourceLabel);
+    		resourceSyncItem.addObserver(_observer);
             if (response.wasSuccessful()) {
                 resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
                 resourceSyncItem.setMessage("Project resource " + resourceLabel + " deleted ");
+                resourceSyncItem.stateChanged();
                 //Remove the entry from the remote map table; so that in the future we can have same named resource
                 XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
                 xsyncTools.deleteXsyncRemoteEntry(_projectId, resourceLabel);
             } else {
                 resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
                 resourceSyncItem.setMessage("Project resource " + resourceLabel + " could not be deleted. Cause: " + response.getResponseBody());
+                resourceSyncItem.stateChanged();
             }
             SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
         } catch (Exception e) {
             _log.error(e.toString());
             ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, resourceLabel);
+    		resourceSyncItem.addObserver(_observer);
             resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
             resourceSyncItem.setMessage("Project resource " + resourceLabel + " could not be deleted. Cause: " + e.getMessage());
+            resourceSyncItem.stateChanged();
             SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
         }
     }
@@ -255,6 +272,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         try {
             XnatAbstractresource resource = getResource(resourceLabel);
             ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, resourceLabel);
+    		resourceSyncItem.addObserver(_observer);
             resourceSyncItem.setFileCount(resource.getFileCount());
             resourceSyncItem.setFileSize(resource.getFileSize());
             String archiveDirectory = resource.getFullPath(localProjectArchivePath);
@@ -271,19 +289,23 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                     }
                     resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
                     resourceSyncItem.setMessage("Project resource " + resourceLabel + " updated ");
+                    resourceSyncItem.stateChanged();
                     XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
                     xsyncTools.saveSyncDetails(_projectId, resource.getLabel(), resource.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED, resource.getXSIType(),remoteProjectId);
                 } else {
                     resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
                     resourceSyncItem.setMessage("Project resource " + resourceLabel + " could not be updated. Cause: " + response.getResponseBody());
+                    resourceSyncItem.stateChanged();
                 }
                 SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
             }
         } catch (Exception e) {
             _log.error(e.toString());
             ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, resourceLabel);
+    		resourceSyncItem.addObserver(_observer);
             resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
             resourceSyncItem.setMessage("Project resource " + resourceLabel + " could not be updated. Cause: " + e.getMessage());
+            resourceSyncItem.stateChanged();
             SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
         }
     }
@@ -335,7 +357,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
 
     private void syncSubject(XnatSubjectdata localSubject) throws Exception {
         _log.debug("Exporting " + localSubject.getId());
-        RemoteSubject remoteSubject = new RemoteSubject(_manager, _xnatInfo, _queryResultUtil, (JdbcTemplate) _jdbcTemplate.getJdbcOperations(), localSubject, _projectSyncConfiguration, _user, _syncAll);
+        RemoteSubject remoteSubject = new RemoteSubject(_manager, _xnatInfo, _queryResultUtil, (JdbcTemplate) _jdbcTemplate.getJdbcOperations(), localSubject, _projectSyncConfiguration, _user, _syncAll, _observer);
         remoteSubject.sync();
     }
 
@@ -358,8 +380,10 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                     RemoteConnectionResponse response = _manager.deleteSubject(connection, subject);
                     if (response.wasSuccessful()) {
                         SubjectSyncItem subjectSyncItem = new SubjectSyncItem(deletedSubjectLocalId, deletedSubjectLabel);
+                		subjectSyncItem.addObserver(_observer);
                         subjectSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
                         subjectSyncItem.setMessage("Subject " + deletedSubjectLocalId + " has been deleted.");
+                        subjectSyncItem.stateChanged();
                         SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncItem);
                         XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
                         xsyncTools.saveSyncDetails(_projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), deletedSubjectLocalId, remoteId, XsyncUtils.SYNC_STATUS_DELETED, subject.getXSIType(),remoteProjectId);
@@ -368,22 +392,28 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                 } catch (Exception e) {
                     _log.error(e.toString());
                     SubjectSyncItem subjectSyncItem = new SubjectSyncItem(deletedSubjectLocalId, deletedSubjectLabel);
+            		subjectSyncItem.addObserver(_observer);
                     subjectSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
                     subjectSyncItem.setMessage("Subject " + deletedSubjectLocalId + " could not be deleted.");
+                    subjectSyncItem.stateChanged();
                     SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncItem);
                 }
             } else {
                 _log.info("Appears that " + deletedSubjectLocalId + " has been locally deleted between two syncs. Ignoring");
                 SubjectSyncItem subjectSyncItem = new SubjectSyncItem(deletedSubjectLocalId, deletedSubjectLabel);
+        		subjectSyncItem.addObserver(_observer);
                 subjectSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
                 subjectSyncItem.setMessage("Subject " + deletedSubjectLocalId + " has been deleted locally but has not been synced in the past and hence is being skipped.");
+                subjectSyncItem.stateChanged();
                 SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncItem);
             }
         } else {
             if (remoteId != null) {
                 SubjectSyncItem subjectSyncItem = new SubjectSyncItem(deletedSubjectLocalId, deletedSubjectLabel);
+        		subjectSyncItem.addObserver(_observer);
                 subjectSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
                 subjectSyncItem.setMessage("Subject " + deletedSubjectLocalId + " has been skipped as it appeards to have been deleted locally but synced in the past");
+                subjectSyncItem.stateChanged();
                 SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncItem);
             }
         }

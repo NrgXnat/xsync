@@ -147,6 +147,10 @@ public class SynchronizationManager {
 		
 	}
 
+	public static String GET_SYNC_LOG_FILE_PATH(String projectId) {
+		return SynchronizationManager.GET_SYNC_FILE_PATH(projectId)+projectId+"_sync.log";
+
+	}
 
 	
 	public static String GET_SYNC_FILE_PATH(String projectId, XnatSubjectdata subject) {
