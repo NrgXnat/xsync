@@ -421,8 +421,11 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 				response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
 			}catch(Exception e) {
+				logger.debug("Error while storing subject " + e.getMessage());
 				String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(subject.getProject());
 				File subjectF = new File(cachePath + "failed_" + subject.getLabel()+".xml");
+				if (!subjectF.exists())
+					subjectF.getParentFile().mkdirs();
 				FileWriter fw = new FileWriter(subjectF);
 				subject.toXML(fw, false);
 				fw.close();
