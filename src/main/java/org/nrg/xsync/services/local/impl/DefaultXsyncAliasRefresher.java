@@ -1,7 +1,9 @@
 package org.nrg.xsync.services.local.impl;
 
+import java.util.List;
+import java.util.Map;
+
 import org.nrg.framework.services.SerializerService;
-import org.nrg.xdat.entities.AliasToken;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -16,8 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 
 /**
@@ -75,12 +75,25 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 							connEntity.getLocal_project() + ", host " + conn.getUrl() + 
 							".  New credentials may need to be provided.  (HTTP Status=" + remoteResponse.getResponse().getStatusCode() + ")");
 				}
-				final AliasToken aliasToken = _serializer.deserializeJson(remoteResponse.getResponse().getBody(), AliasToken.class);
-				conn.setUsername(aliasToken.getAlias());
-				conn.setPassword(aliasToken.getSecret());
-				connEntity.setRemote_alias_token(aliasToken.getAlias());
-				connEntity.setRemote_alias_password(aliasToken.getSecret());
-				_aliasService.update(connEntity);
+				/* IMPORTANT - September 27, 2016
+				 * The following code was replaced as XNAT was sending the estimatedExpirationDate
+				 * in a format which is not a standard date format and so the deserialize method is failing
+				 * 
+					final AliasToken aliasToken = _serializer.deserializeJson(remoteResponse.getResponse().getBody(), AliasToken.class);
+					conn.setUsername(aliasToken.getAlias());
+					conn.setPassword(aliasToken.getSecret());
+					connEntity.setRemote_alias_token(aliasToken.getAlias());
+					connEntity.setRemote_alias_password(aliasToken.getSecret());
+					_aliasService.update(connEntity);
+				 */
+				final Map<String, String> token = _serializer.deserializeJsonToMapOfStrings(remoteResponse.getResponse().getBody());
+				final String alias = token.get("alias");
+				final String secret = token.get("secret");
+				conn.setUsername(alias);
+				conn.setPassword(secret);
+				connEntity.setRemote_alias_token(alias);
+				connEntity.setRemote_alias_password(secret);				
+				
 			}catch(Exception e) {
 				logger.error("An error occurred while refreshing an alias token", e);
 				AdminUtils.sendAdminEmail("XSync token refresh failure", "XSync token refresh failure for local project  " +

@@ -127,14 +127,17 @@ public class XsyncOperationsController extends AbstractXapiRestController {
             if (syncProjectDatas != null && syncProjectDatas.size() > 0) {
             	syncProjectData = syncProjectDatas.get(0);
                 if (syncProjectData != null) {
-                	if (syncProjectData.getSyncBlocked())
-                		syncProjectData.setSyncBlocked(new Boolean(false));
-                    //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
-                    EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
-                    boolean saved = syncProjectData.save(user, false, true, c);
-                    if (!saved) {
-                        return new ResponseEntity<>("Unable to save Project Sync Block Information", HttpStatus.INTERNAL_SERVER_ERROR);
-                    }
+                	if (syncProjectData.getSyncBlocked()) {
+	                		syncProjectData.setSyncBlocked(new Boolean(false));
+	                    //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
+	                    EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
+	                    boolean saved = syncProjectData.save(user, false, true, c);
+	                    if (!saved) {
+	                        return new ResponseEntity<>("Unable to save Project Sync Block Information", HttpStatus.INTERNAL_SERVER_ERROR);
+	                    }
+                	}else {
+                        return new ResponseEntity<>(projectId + " sync block was already unblocked ", HttpStatus.OK);
+                	}
                 }
                 return new ResponseEntity<>(projectId + " sync block has been unblock ", HttpStatus.OK);
             }else 
