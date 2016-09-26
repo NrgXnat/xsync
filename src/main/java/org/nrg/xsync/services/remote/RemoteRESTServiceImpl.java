@@ -418,6 +418,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		
 		ResponseEntity<String> response;
 		try {
+			logger.debug("URL: " + connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true");
 			final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
 			response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
 			logger.debug(response);
