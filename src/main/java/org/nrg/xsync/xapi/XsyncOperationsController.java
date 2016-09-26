@@ -120,13 +120,15 @@ public class XsyncOperationsController extends AbstractXapiRestController {
     public ResponseEntity<String> unblock(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
         final UserI user = getSessionUser();
 
-        final List<XsyncXsyncprojectdata> syncProjectDatas = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/source_project_id",projectId, user, false);
+        final List<XsyncXsyncprojectdata> syncProjectDatas = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/source_project_id",projectId, user, true);
         final XsyncXsyncprojectdata syncProjectData;
 
         try {
             if (syncProjectDatas != null && syncProjectDatas.size() > 0) {
             	syncProjectData = syncProjectDatas.get(0);
                 if (syncProjectData != null) {
+                	if (syncProjectData.getSyncBlocked())
+                		syncProjectData.setSyncBlocked(new Boolean(false));
                     //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
                     EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
                     boolean saved = syncProjectData.save(user, false, true, c);
