@@ -124,7 +124,7 @@ public class SynchronizationManager {
 	                  if (tmpF.isDirectory()) {
 	                      rmdir(tmpF);
 	                  }
-	                  if (!tmpF.getAbsolutePath().endsWith("_sync.html"))
+	                  if (!tmpF.getAbsolutePath().endsWith("_sync.html") && !tmpF.getAbsolutePath().endsWith("_sync.log"))
 	                	  tmpF.delete();
 	              }
 	          }

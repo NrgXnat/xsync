@@ -1,12 +1,20 @@
 package org.nrg.xsync.xapi;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -30,6 +38,7 @@ import org.nrg.xsync.connection.RemoteOperation;
 import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
 import org.nrg.xsync.exception.XsyncCredentialsRequiredException;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
+import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -188,6 +197,30 @@ public class XsyncOperationsController extends AbstractXapiRestController {
         return new ResponseEntity<>(value, HttpStatus.OK);
     }
 
+    @RequestMapping(value = "/progress/{projectId}",  method = RequestMethod.GET)
+    @ResponseBody
+    public void getSyncProgress(HttpServletRequest request, HttpServletResponse response, @PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncCredentialsRequiredException {
+        HttpStatus status = isPermitted();
+        if (status != null) {
+            //return new ResponseEntity<>(status);
+        }
+        String syncStatusFilePath = SynchronizationManager.GET_SYNC_LOG_FILE_PATH(projectId);
+        Path file = Paths.get(syncStatusFilePath);
+        if (Files.exists(file)) 
+        {
+            response.setContentType(MediaType.TEXT_PLAIN_VALUE);
+            response.addHeader("Content-Disposition", "attachment; filename="+file.getFileName());
+            try
+            {
+                Files.copy(file, response.getOutputStream());
+                response.getOutputStream().flush();
+            } 
+            catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+    
     private XsyncXsyncassessordata createNewXsyncassessor(final String experimentId, final boolean okToSync, final UserI user) throws Exception {
         final XsyncXsyncassessordata okToSyncData;
         final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);

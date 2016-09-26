@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Observable;
 
+import org.nrg.xsync.tools.XSyncTools;
+
 /**
  * @author Mohana Ramaratnam
  *
@@ -94,6 +96,9 @@ public abstract class SyncedItem  extends Observable{
 	 */
 	public void setSyncStatus(String syncStatus) {
 		this.syncStatus = syncStatus;
+		if (syncTime==null) {
+			syncTime = new Date();
+		}
 	}
 
 
@@ -129,14 +134,15 @@ public abstract class SyncedItem  extends Observable{
 	
 	public String toString() {
 		String str = "";
-		str += "Local ID:" + this.getLocalId() + "\n";
-		str += "Local Label:" + this.getLocalLabel() + "\n";
-		str += "XsiType:" + this.getXsiType() + "\n";
-		str += "Remote ID:" + this.getRemoteId() + "\n";
-		str += "Remote Label:" + this.getRemoteLabel() + "\n";
-		str += "Message: " + this.getMessage() + "\n";
-		str += "Sync Status:" + this.getSyncStatus() + "\n";
-		str += "Sync Time:" + this.getSyncTime() + "\n";
+		final  String newline = XSyncTools.NEWLINE;
+		str += "Local ID:" + this.getLocalId() + newline;
+		str += "Local Label:" + this.getLocalLabel() + newline;
+		str += "XsiType:" + this.getXsiType() + newline;
+		str += "Remote ID:" + this.getRemoteId() + newline;
+		str += "Remote Label:" + this.getRemoteLabel() + newline;
+		str += "Message: " + this.getMessage() + newline;
+		str += "Sync Status:" + this.getSyncStatus() + newline;
+		str += "Sync Time:" + this.getSyncTime() + newline;
 		return str;
 	}
 	

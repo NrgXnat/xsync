@@ -25,6 +25,8 @@ public class XSyncTools {
     private final UserI                      _user;
     private final NamedParameterJdbcTemplate _jdbcTemplate;
     private final QueryResultUtil            _queryResultUtil;
+	public static final String NEWLINE = System.getProperty("line.separator");
+
 
     public XSyncTools(final UserI user, final NamedParameterJdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil) {
         _user = user;

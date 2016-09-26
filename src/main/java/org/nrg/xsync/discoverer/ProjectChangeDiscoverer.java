@@ -61,7 +61,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     private       MapSqlParameterSource      _parameters;
     private final ProjectSyncConfiguration   _projectSyncConfiguration;
     private final boolean                    _syncAll;
-    private final XsyncObserver				 _observer;
+    private 	  XsyncObserver				 _observer;
 
     public ProjectChangeDiscoverer(final RemoteConnectionManager manager, final ConfigService configService, final SerializerService serializer, final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, final MailService mailService, final XsyncXnatInfo xnatInfo, final String projectId, final UserI user) throws XsyncNotConfiguredException {
         _manager = manager;
@@ -75,7 +75,6 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         _parameters = new MapSqlParameterSource("project", _projectId);
         _projectSyncConfiguration = new ProjectSyncConfiguration(configService, serializer, (JdbcTemplate) jdbcTemplate.getJdbcOperations(), _projectId, _user);
         _syncAll = !_projectSyncConfiguration.isSetToSyncNewOnly();
-		_observer  = new XsyncObserver(_projectId);
 
     }
 
@@ -123,6 +122,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             String remoteHost = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 
             SynchronizationManager.BEGIN_SYNC(_manager.getSyncManifestService(), _xnatInfo, project.getId(), remoteProjectId, remoteHost, _user, _mailService);
+    		_observer  = new XsyncObserver(_projectId);
             syncProjectResources();
             List<Map<String, Object>> subjectRows = getSubjectsModifiedSinceLastSync();
             List<String> subjectIds = new ArrayList<>();

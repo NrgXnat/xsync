@@ -2,6 +2,8 @@ package org.nrg.xsync.manifest;
 
 import java.util.ArrayList;
 
+import org.nrg.xsync.tools.XSyncTools;
+
 /**
  * @author Mohana Ramaratnam
  *
@@ -57,6 +59,20 @@ public class SubjectSyncItem extends SyncedItem {
 	 */
 	public void setExperiments(ArrayList<ExperimentSyncItem> experiments) {
 		this.experiments = experiments;
+	}
+	
+	public String toString() {
+		String str = super.toString();
+		final  String newline = XSyncTools.NEWLINE;
+		str += "Resources:" + newline;
+		for (int i=0;i<resources.size();i++) {
+			str += resources.get(i).toString() + " " + newline;
+		}
+		str += "Experiments:" + newline;
+		for (int i=0;i<experiments.size();i++) {
+			str += experiments.get(i).toString() + " " + newline;
+		}
+		return str;
 	}
 	
 
