@@ -193,7 +193,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			    	logger.error("importSubject: retrycount "+ count);
 			    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
 			    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());
-			    	
+			    	logger.error("Sleeping for " + sleep + " milliseconds");
 					Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -386,7 +386,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		while(true) {
 		    try {
 			    	 String uri = connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getId()+"/experiments/"+assessor.getLabel()+"/resources/"+ resourceLabel +"/files?overwrite=true&extract=true";
-			         return this.importZipWithoutRetry( connection, uri, zipFile);
+			    	 return this.importZipWithoutRetry( connection, uri, zipFile);
 		    	
 		    } catch (RuntimeException e) {
 		    	try {
@@ -419,10 +419,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		try {
 			final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
 			response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+			logger.debug(response);
 		} catch (XsyncHttpAuthenticationException authex) {
 			try {
 				final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 				response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+				logger.debug(response);
 			}catch(Exception e) {
 				logger.debug("Error while storing subject " + e.getMessage());
 				String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(subject.getProject());
