@@ -53,7 +53,8 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	@PostConstruct
 	private void getXsyncPreferences() {
 		maxTries = _prefs.getSyncRetryCountInt();
-		sleep = _prefs.getSyncRetryIntervalInMillis() * 1000;
+		//sleep = _prefs.getSyncRetryIntervalInMillis() * 1000;
+		sleep = _prefs.getSyncRetryIntervalInMillis();
 	}
 
 	/**
