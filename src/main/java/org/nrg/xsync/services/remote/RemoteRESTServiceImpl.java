@@ -191,6 +191,9 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    } catch (RuntimeException e) {
 		    	try {
 			    	logger.error("importSubject: retrycount "+ count);
+			    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
+			    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());
+			    	
 					Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -424,7 +427,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				logger.debug("Error while storing subject " + e.getMessage());
 				String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(subject.getProject());
 				File subjectF = new File(cachePath + "failed_" + subject.getLabel()+".xml");
-				if (!subjectF.exists())
+				if (!subjectF.getParentFile().exists())
 					subjectF.getParentFile().mkdirs();
 				FileWriter fw = new FileWriter(subjectF);
 				subject.toXML(fw, false);
@@ -433,7 +436,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			}
 		}
 		
-		logger.info(response);
+		logger.debug(response);
 		//return 	((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
 		return new RemoteConnectionResponse(response);
 	}
