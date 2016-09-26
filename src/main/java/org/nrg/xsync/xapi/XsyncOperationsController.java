@@ -1,6 +1,5 @@
 package org.nrg.xsync.xapi;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -114,6 +113,37 @@ public class XsyncOperationsController extends AbstractXapiRestController {
         return new ResponseEntity<>(projectId + " synchronization started", HttpStatus.OK);
     }
 
+    @ApiOperation(value = "Clears the Sync Blocked Status", notes = "Clears the projects block status")
+    @ApiResponses({@ApiResponse(code = 200, message = "The project was unblocked"), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to  unblock the indicated project."), @ApiResponse(code = 404, message = "Project not configured to sync yet."),@ApiResponse(code = 500, message = "Unexpected error")})
+    @RequestMapping(value = "/unblock/{projectId}",  method = RequestMethod.POST)
+    @ResponseBody
+    public ResponseEntity<String> unblock(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
+        final UserI user = getSessionUser();
+
+        final List<XsyncXsyncprojectdata> syncProjectDatas = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/source_project_id",projectId, user, false);
+        final XsyncXsyncprojectdata syncProjectData;
+
+        try {
+            if (syncProjectDatas != null && syncProjectDatas.size() > 0) {
+            	syncProjectData = syncProjectDatas.get(0);
+                if (syncProjectData != null) {
+                    //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
+                    EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
+                    boolean saved = syncProjectData.save(user, false, true, c);
+                    if (!saved) {
+                        return new ResponseEntity<>("Unable to save Project Sync Block Information", HttpStatus.INTERNAL_SERVER_ERROR);
+                    }
+                }
+                return new ResponseEntity<>(projectId + " sync block has been unblock ", HttpStatus.OK);
+            }else 
+                return new ResponseEntity<>("Unable to find Project Sync Information", HttpStatus.NOT_FOUND);
+        }catch (Exception e) {
+            final String message = "An error occurred trying to unblock the project " + projectId;
+            _log.error(message, e);
+            return new ResponseEntity<>(message + ": " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
     @ApiOperation(value = "Exports the indicated project.", notes = "Starts the project export operation for the project with the indicated ID.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
     @RequestMapping(value = "/experiments/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
