@@ -40,6 +40,7 @@ import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.nrg.xsync.tools.XSyncTools;
+import org.nrg.xsync.tools.XsyncObserver;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.XSyncFailureHandler;
@@ -68,12 +69,13 @@ public class RemoteSubject {
 	private final RemoteConnectionManager _manager;
 	private final QueryResultUtil _queryResultUtil;
 	
-	public RemoteSubject(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate, XnatSubjectdataI localSubject, ProjectSyncConfiguration projectSyncConfiguration, UserI user, boolean syncAll) {
+	public RemoteSubject(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate, XnatSubjectdataI localSubject, ProjectSyncConfiguration projectSyncConfiguration, UserI user, boolean syncAll, XsyncObserver observer) {
 		this.localSubject = localSubject;
 		this.user = user;
 		this.projectSyncConfiguration = projectSyncConfiguration; 
 		this.syncAllStates = syncAll;
 		subjectSyncInfo = new SubjectSyncItem(localSubject.getId(), localSubject.getLabel());
+		subjectSyncInfo.addObserver(observer);
 		_jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		_manager = manager;
 		_xnatInfo = xnatInfo;

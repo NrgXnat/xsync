@@ -20,6 +20,7 @@ public abstract class AbstractRemoteRESTService {
 		 */
 		public RestTemplate getResttemplate(){
 			final SimpleClientHttpRequestFactory requestFactory =new SimpleClientHttpRequestFactory();
+			requestFactory.setBufferRequestBody(false);
 			final RestTemplate template = new RestTemplate(requestFactory); 
 			template.setErrorHandler(new XsyncResponseErrorHandler());
 			return template;

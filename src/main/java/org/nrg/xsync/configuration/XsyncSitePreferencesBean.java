@@ -151,9 +151,9 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	 */
 	public int getSyncRetryCountInt() {
 		try {
-			return Integer.parseInt(getValue("syncRetryInterval"));
+			return Integer.parseInt(getValue("syncRetryCount"));
 		} catch (Exception e) {
-			_log.info("XSync - Invalid sync refresh count specified - " + getValue("syncRetryInterval") + ".  Using default.");
+			_log.info("XSync - Invalid sync refresh count specified - " + getValue("syncRetryCount") + ".  Using default.");
 			try {
 				return Integer.parseInt(DEFAULT_SYNC_RETRY_COUNT);
 			} catch (Exception e1) {
@@ -186,8 +186,8 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 				} else {
 					throw new InvalidValueException("XSync - Interval too short - Specify minimum of " + minIntervalMilis*1000*60 + " minutes.");
 				}
-			}
-			throw new InvalidValueException("XSync - Invalid interval specified - " + intervalStr);
+			}else
+				throw new InvalidValueException("XSync - Invalid interval specified - " + intervalStr);
 	}
 
 }

@@ -124,7 +124,7 @@ public class SynchronizationManager {
 	                  if (tmpF.isDirectory()) {
 	                      rmdir(tmpF);
 	                  }
-	                  if (!tmpF.getAbsolutePath().endsWith("_sync.html"))
+	                  if (!tmpF.getAbsolutePath().endsWith("_sync.html") && !tmpF.getAbsolutePath().endsWith("_sync.log"))
 	                	  tmpF.delete();
 	              }
 	          }
@@ -147,6 +147,10 @@ public class SynchronizationManager {
 		
 	}
 
+	public static String GET_SYNC_LOG_FILE_PATH(String projectId) {
+		return SynchronizationManager.GET_SYNC_FILE_PATH(projectId)+projectId+"_sync.log";
+
+	}
 
 	
 	public static String GET_SYNC_FILE_PATH(String projectId, XnatSubjectdata subject) {
