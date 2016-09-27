@@ -191,6 +191,8 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.importSubjectWithoutRetry( connection, subject );
 		    } catch (RuntimeException e) {
 		    	try {
+		    		e.printStackTrace();
+		    		logger.debug("Exception " + e.getMessage());
 			    	logger.error("importSubject: retrycount "+ count);
 			    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
 			    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());

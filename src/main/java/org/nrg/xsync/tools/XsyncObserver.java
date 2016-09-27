@@ -53,6 +53,7 @@ public class XsyncObserver implements Observer {
 		        bWriter.newLine();
 		        bWriter.write("-------------------------------------------------------");
 		        bWriter.newLine();
+		        bWriter.flush();
 			} catch (IOException e) {
 				logger.error("An error occurred writing the log sync file " + logFile.getAbsolutePath(), e);
 			}
