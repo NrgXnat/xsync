@@ -586,7 +586,7 @@ function spawnConfig() {
                 onchange: function() {
                     // TODO - Get rid of nasty hack
                     var inputName;
-                    if (name.includes('resource')) {
+                    if (name.indexOf('resource') > -1) {
                         inputName = name.replace('sync_type', 'resource_list')
                     }
                     else {
