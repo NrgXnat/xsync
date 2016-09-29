@@ -350,12 +350,12 @@ function spawnConfig() {
                 identifiers: identifiers(),
 
                 advancedSyncCheckbox: {
-                    kind: 'panel.input.switchbox',
+                    kind: 'panel.input.checkbox',
                     name: '',
                     label: 'Advanced Settings',
                     element: {
                         $: { change: function() {
-                            if ($(this).is(':checked')) {
+                            if (this.checked) {
                                 $('#xsync-advanced-settings').slideDown(400)
                             } else {
                                 $('#xsync-advanced-settings').slideUp(400)
@@ -492,7 +492,7 @@ function spawnConfig() {
 
     function enabled() {
         return {
-            id: 'sync-enabled',
+            id: 'enabled',
             kind: 'panel.input.checkbox',
             name: 'enabled',
             label: 'Enabled'
@@ -625,7 +625,7 @@ function spawnConfig() {
             name: name,
             label: 'XSI Types',
             rows: 2,
-            description: "Comma separated list of XSI types, e.g., xnat:mrSessionData,hcp:subjectMetadata. You can get a list of XSI types in the <a href=" + XNAT.url.rootUrl('app/template/XDATScreen_dataTypes.vm')+ " target='_blank'>admin section</a>",
+            description: "Comma separated list of XSI types, e.g., xnat:mrSessionData,hcp:subjectMetadata. You can get a list of XSI types in the <a href='http://xnat-41.xnat.org/app/template/XDATScreen_dataTypes.vm' target='_blank'>admin section</a>",
             element: {
                 onblur: function() {
                     var xsiTypes = $(this).val().split(',');

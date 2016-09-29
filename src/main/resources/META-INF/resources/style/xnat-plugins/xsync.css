@@ -185,3 +185,11 @@ input.imaging-assessor-resource-input {
 .xsync-history-header {
     padding-top: 10px;
 }
+
+div.xmodal div.panel h3.panel-title {
+    margin: 0 !important;
+}
+
+#xsync-details-modal .xnat-tab-content.side {
+    min-height: 600px;
+}

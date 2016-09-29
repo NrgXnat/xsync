@@ -53,7 +53,8 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	@PostConstruct
 	private void getXsyncPreferences() {
 		maxTries = _prefs.getSyncRetryCountInt();
-		sleep = _prefs.getSyncRetryIntervalInMillis() * 1000;
+		//sleep = _prefs.getSyncRetryIntervalInMillis() * 1000;
+		sleep = _prefs.getSyncRetryIntervalInMillis();
 	}
 
 	/**
@@ -190,7 +191,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.importSubjectWithoutRetry( connection, subject );
 		    } catch (RuntimeException e) {
 		    	try {
+		    		e.printStackTrace();
+		    		logger.debug("Exception " + e.getMessage());
 			    	logger.error("importSubject: retrycount "+ count);
+			    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
+			    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());
+			    	logger.error("Sleeping for " + sleep + " milliseconds");
 					Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -383,7 +389,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		while(true) {
 		    try {
 			    	 String uri = connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getId()+"/experiments/"+assessor.getLabel()+"/resources/"+ resourceLabel +"/files?overwrite=true&extract=true";
-			         return this.importZipWithoutRetry( connection, uri, zipFile);
+			    	 return this.importZipWithoutRetry( connection, uri, zipFile);
 		    	
 		    } catch (RuntimeException e) {
 		    	try {
@@ -414,15 +420,21 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		
 		ResponseEntity<String> response;
 		try {
+			logger.debug("URL: " + connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true");
 			final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
 			response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+			logger.debug(response);
 		} catch (XsyncHttpAuthenticationException authex) {
 			try {
 				final HttpEntity<?> httpEntity = new HttpEntity<String>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 				response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+				logger.debug(response);
 			}catch(Exception e) {
+				logger.debug("Error while storing subject " + e.getMessage());
 				String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(subject.getProject());
 				File subjectF = new File(cachePath + "failed_" + subject.getLabel()+".xml");
+				if (!subjectF.getParentFile().exists())
+					subjectF.getParentFile().mkdirs();
 				FileWriter fw = new FileWriter(subjectF);
 				subject.toXML(fw, false);
 				fw.close();
@@ -430,7 +442,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			}
 		}
 		
-		logger.info(response);
+		logger.debug(response);
 		//return 	((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
 		return new RemoteConnectionResponse(response);
 	}

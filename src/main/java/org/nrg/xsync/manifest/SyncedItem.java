@@ -2,12 +2,15 @@ package org.nrg.xsync.manifest;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Observable;
+
+import org.nrg.xsync.tools.XSyncTools;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
-public abstract class SyncedItem  {
+public abstract class SyncedItem  extends Observable{
 	String localId;
 	String localLabel;
 	String remoteId;
@@ -19,6 +22,7 @@ public abstract class SyncedItem  {
 	
 	
 	public SyncedItem(String localId, String localLabel) {
+		super();
 		this.localId = localId;
 		this.localLabel = localLabel;
 	}
@@ -92,6 +96,9 @@ public abstract class SyncedItem  {
 	 */
 	public void setSyncStatus(String syncStatus) {
 		this.syncStatus = syncStatus;
+		if (syncTime==null) {
+			syncTime = new Date();
+		}
 	}
 
 
@@ -123,6 +130,25 @@ public abstract class SyncedItem  {
 	 */
 	public void setSyncTime(Date syncTime) {
 		this.syncTime = syncTime;
+	}
+	
+	public String toString() {
+		String str = "";
+		final  String newline = XSyncTools.NEWLINE;
+		str += "Local ID:" + this.getLocalId() + newline;
+		str += "Local Label:" + this.getLocalLabel() + newline;
+		str += "XsiType:" + this.getXsiType() + newline;
+		str += "Remote ID:" + this.getRemoteId() + newline;
+		str += "Remote Label:" + this.getRemoteLabel() + newline;
+		str += "Message: " + this.getMessage() + newline;
+		str += "Sync Status:" + this.getSyncStatus() + newline;
+		str += "Sync Time:" + this.getSyncTime() + newline;
+		return str;
+	}
+	
+	public void stateChanged() {
+		setChanged();
+		notifyObservers(this);
 	}
 	
 	
