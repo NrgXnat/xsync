@@ -69,6 +69,7 @@ window.XSYNC = getObject(window.XSYNC);
 			xmodal.open({
 				title: 'Xsync History for '+ projectContext + ' on '+ localDate(startDate) + ' ' + localTime(startDate),
 				width: '80%',
+				maxWidth: 1000,
 				height: '95%',
 				overflow: 'auto',
 				maximize: true,
@@ -209,7 +210,10 @@ window.XSYNC = getObject(window.XSYNC);
 			label: tabType + ' Sync Details',
 			footer: false,
 			contents: {
-				history: spawn('div.pad20v', panelContent)
+				history: {
+					tag: 'div.pad20v',
+					content: panelContent
+				}
 			}
 		};
 
