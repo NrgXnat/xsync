@@ -508,7 +508,8 @@ function spawnConfig() {
             options: {
                 daily: 'Daily',
                 weekly: 'Weekly',
-                monthly: 'Monthly'
+                monthly: 'Monthly',
+                'on demand': 'On Demand'
             }
         }
     }
