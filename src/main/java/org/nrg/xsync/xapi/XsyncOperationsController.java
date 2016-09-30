@@ -194,10 +194,10 @@ public class XsyncOperationsController extends AbstractXapiRestController {
     @RequestMapping(value = "remoteREST", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
     public ResponseEntity<String> connectToRemoteRestEndpoint(@RequestBody final RemoteOperation operation) throws URISyntaxException, XsyncCredentialsRequiredException {
-        HttpStatus status = isPermitted();
-        if (status != null) {
-            return new ResponseEntity<>(status);
-        }
+        //HttpStatus status = isPermitted();
+        //if (status != null) {
+        //    return new ResponseEntity<>(status);
+        //}
 
         final String username = operation.getUsername();
         final String password = operation.getPassword();
