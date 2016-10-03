@@ -66,7 +66,6 @@ public class XsyncSetupController extends AbstractXapiRestController {
 					//TODO validate the JSON
 					XsyncUtils xsyncUtils = new XsyncUtils(_serializer, _jdbcTemplate, user);
 					xsyncUtils.loadConfigurationToDB(synchronizationJson);
-//		            save_resource(project,jsonbody);
 					saveConfig(project, jsonbody, projectId);
 					return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
 				}
