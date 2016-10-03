@@ -109,6 +109,8 @@ public class XsyncUtils {
 		syncinfo.setIdentifiers(synchronizationJson.get("identifiers").asText());
 		syncinfo.setRemoteUrl(synchronizationJson.get("remote_url").asText());
 		syncinfo.setRemoteProjectId(synchronizationJson.get("remote_project_id").asText());
+		syncinfo.setSyncStartTime(null);
+		syncinfo.setSyncEndTime(null);		
 		syncProject.setSyncinfo(syncinfo.getItem());
 		syncProject.setSyncScheduledBy(_user.getLogin());
         final ValidationResults vr = syncProject.validate();
