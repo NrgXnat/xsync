@@ -132,18 +132,7 @@ public class RemoteSubject {
 
 
 	private String storeSubject(XnatSubjectdataI remoteSubject) throws Exception {
-		 String subject_remote_id  = null;
-		 if (syncAllStates) { //We know that the flag syncOnlyNew implies that the subject has already been pushed
-			 IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user,projectSyncConfiguration);
-			 subject_remote_id = idMapper.getRemoteAccessionId(localSubject.getId());
-			 if (subject_remote_id == null) {
-				 //Subject has not been synced yet. Sync it now.
-				 subject_remote_id=syncSubjectMetaData(remoteSubject);
-			 }
-		 }else {
-			 subject_remote_id=syncSubjectMetaData(remoteSubject);
-		 }
-		 return subject_remote_id;
+		return syncSubjectMetaData(remoteSubject);
 	}
 
 	private String syncSubjectMetaData(XnatSubjectdataI remoteSubject) throws Exception {
