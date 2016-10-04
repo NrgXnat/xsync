@@ -26,7 +26,13 @@ window.XSYNC = getObject(window.XSYNC);
 		// Displays overview of sync history in table format
 		var xsyncHistory = XNAT.table({ className: 'xnat-table sortable' });
 		xsyncHistory.tr();
-		xsyncHistory.th('Date').th('Status').th('Subjects').th('Experiments').th('Assessments').th('Resources').th('Total Data');
+		xsyncHistory.th({className:'sort', html: 'Date'})
+			.th({className:'sort', html: 'Status'})
+			.th('Subjects')
+			.th('Imaging Sessions')
+			.th('Non-imaging Assessments')
+			.th('Resources')
+			.th({className:'sort', html: 'Total'});
 
 		var getSyncHistory = xhr.getJSON(xsyncUrl('/history/projects/' + projectContext));
 
@@ -45,13 +51,12 @@ window.XSYNC = getObject(window.XSYNC);
 				];
 			});
 
-			xsyncHistory.rows(allHistory);
-
+			xsyncHistory.rows(allHistory.reverse());
 		});
 
 		if (xsyncHistory.rows.length > 0) {
-			$("#xsync-config-div").append("<h2>Sync History</h2>")
-								  .append(xsyncHistory.table);
+			$("#xsync-history-header").show();
+			$("#xsync-history-table").append(xsyncHistory.table);
 		}
 
 		// delegate a single event handler for all rows
@@ -98,10 +103,10 @@ window.XSYNC = getObject(window.XSYNC);
 				name: 'xsyncHistoryTabs',
 				tabs: {
 					overview: generateOverviewTab(history),
-					subjects: generateHistoryTab('Subject', history.subjectHistories),
-					experiments: generateHistoryTab('Experiment', history.experimentHistories),
-					assessors: generateHistoryTab('Assessor', history.assessorHistories),
-					resources: generateHistoryTab('Resource', history.resourceHistories)
+					subjects: generateHistoryTab('Subjects', history.subjectHistories),
+					experiments: generateHistoryTab('Imaging Sessions', history.experimentHistories),
+					assessors: generateHistoryTab('Non-imaging Assessments', history.assessorHistories),
+					resources: generateHistoryTab('Resources', history.resourceHistories)
 				}
 			}
 		}).render(container, 100)
@@ -194,14 +199,13 @@ window.XSYNC = getObject(window.XSYNC);
 			panelContent = XNAT.table.dataTable(data, {
 				id: tabType.toLowerCase() + '-table',
 				items: {
-					localLabel: tabType + " Label",
+					localLabel: "Label",
 					syncStatus: "Status",
 					syncMessage: "Message"
 				}
 			})
 		}
 		else {
-			// panelContent = spawn('i', 'Nothing synced.');
 			panelContent = '<i class="pad20h">Nothing synced.</i>';
 		}
 
@@ -220,7 +224,7 @@ window.XSYNC = getObject(window.XSYNC);
 		return {
 			kind: 'tab',
 			name: tabType.toLowerCase() + ' Tab',
-			label: tabType + 's',
+			label: tabType,
 			contents: {
 				tabTable: tabContent
 			}

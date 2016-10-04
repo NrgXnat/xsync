@@ -59,10 +59,12 @@ XSYNC.xsyncconfig.showConfigPanel = function() {
 
     xsyncConfigDiv.append(
         '<div>' +
-        '<input type="button" class="btn1 xsync-submit-button" id="xsync-edit-config" value="Edit Configuration">' +
-        '<input type="button" class="btn1 xsync-submit-button" id="xsync-credentials" value="Remote Credentials">' +
-        '<input type="button" class="btn1 xsync-submit-button" id="xsync-upload-anonymization" value="Configure Anonymization">' +
-        '</div> ' +
+            '<input type="button" class="btn1 xsync-submit-button" id="xsync-edit-config" value="Edit Configuration">' +
+            '<input type="button" class="btn1 xsync-submit-button" id="xsync-credentials" value="Remote Credentials">' +
+            '<input type="button" class="btn1 xsync-submit-button" id="xsync-upload-anonymization" value="Configure Anonymization">' +
+            '<h2 id="xsync-history-header" style="display:none">Sync History</h2>' +
+            '<div id="xsync-history-table" style="max-height:300px; overflow-y:scroll"></div>' +
+        '</div>' +
         '<br>'
     );
 
@@ -395,7 +397,7 @@ function spawnConfig() {
                             contents: {
                                 subjectAssessorsHeading: {
                                     kind: 'panel.subhead',
-                                    label: 'Subject Assessors'
+                                    label: 'Non-imaging Assessments'
                                 },
                                 subjectAssessorSelect: syncTypeSelector("subject_assessors.xsi_types.sync_type", " "),
                                 subjectAssessorXsiTypes: xsiInput("subject_assessors.xsi_types.types_list"),
