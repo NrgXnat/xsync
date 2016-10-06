@@ -47,7 +47,9 @@ function setOkToSync(projectId,xnat_id, exp_label) {
  #set($checked="checked")
 #end
 
-<input type="checkbox" id="OkToSync" name="OkToSync" value="OkToSync" onclick="javascript:setOkToSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');" $checked>Ok To Sync
+<input type="checkbox" id="OkToSync" name="OkToSync" value="OkToSync"
+	#if(! $data.getSession().getAttribute("userHelper").canDelete($project)) disabled #end
+	onclick="javascript:setOkToSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');" $checked>Ok To Sync
 <br>
 
 	<table>
