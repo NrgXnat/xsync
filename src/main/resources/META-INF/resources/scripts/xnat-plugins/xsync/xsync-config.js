@@ -320,6 +320,7 @@ function spawnConfig() {
                 destProjectId: remoteProject(),
                 frequency: frequency(),
                 identifiers: identifiers(),
+                // anonymize: anonymize(),
 
                 advancedSyncCheckbox: {
                     kind: 'panel.element',
@@ -526,6 +527,15 @@ function spawnConfig() {
                 use_local: 'Local',
                 use_remote: 'Remote'
             }
+        }
+    }
+
+    function anonymize() {
+        return {
+            id: 'xsync-config-anonymize',
+            kind: 'panel.input.checkbox',
+            name: 'anonymize_images', // needs changed when we get final json
+            label: 'Anonymize Images'
         }
     }
 
