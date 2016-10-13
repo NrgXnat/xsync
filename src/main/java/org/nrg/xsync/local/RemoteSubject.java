@@ -132,6 +132,7 @@ public class RemoteSubject {
 
 
 	private String storeSubject(XnatSubjectdataI remoteSubject) throws Exception {
+		//October 3, 2016 - MR - Xsync will push all the subject metadata irrespective of syncNewOnly or not
 		return syncSubjectMetaData(remoteSubject);
 	}
 
@@ -461,7 +462,7 @@ public class RemoteSubject {
 	private boolean imagingSessionNeedsOkToSync(String xsiType) {
 		//return projectSyncConfiguration.getSynchronizationConfiguration().checkImagingSessionOkToSync(xsiType);
 		try {
-			return projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(xsiType).getNeeds_ok_to_sync().booleanValue();
+			return projectSyncConfiguration.getSynchronizationConfiguration().getImagingSession(xsiType).getNeeds_ok_to_sync().booleanValue();
 		}catch(NullPointerException npe) {
 			return false;
 		}

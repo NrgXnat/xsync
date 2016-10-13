@@ -1,5 +1,7 @@
 package org.nrg.xsync.configuration.json;
 
+import org.nrg.xsync.utils.XsyncUtils;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
@@ -8,23 +10,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 
-public class SyncConfigurationImagingSessionAdvancedOption extends SyncConfigurationAdvancedOption{
-	Boolean anonymize;
+public class SyncConfigurationImagingSessionXsiType extends  SyncConfigurationXsiType {
 	SyncConfigurationScanTypes scan_types;
 	SyncConfigurationResource scan_resources;
 	SyncConfigurationSessionAssessor session_assessors;
-	/**
-	 * @return the anonymize
-	 */
-	public Boolean getAnonymize() {
-		return anonymize;
-	}
-	/**
-	 * @param anonymize the anonymize to set
-	 */
-	public void setAnonymize(Boolean anonymize) {
-		this.anonymize = anonymize;
-	}
+	
 	/**
 	 * @return the scan_types
 	 */
@@ -62,12 +52,11 @@ public class SyncConfigurationImagingSessionAdvancedOption extends SyncConfigura
 		this.session_assessors = session_assessors;
 	}
 	
-	public static  SyncConfigurationImagingSessionAdvancedOption GetDefaultImagingSessionSyncConfigurationAdvancedOption(String xsiType) {
-		SyncConfigurationImagingSessionAdvancedOption advOption = new SyncConfigurationImagingSessionAdvancedOption();
+	public static  SyncConfigurationImagingSessionXsiType GetDefaultImagingSessionSyncConfigurationAdvancedOption(String xsiType) {
+		SyncConfigurationImagingSessionXsiType advOption = new SyncConfigurationImagingSessionXsiType();
 		advOption.setXsi_type(xsiType);
 		advOption.setNeeds_ok_to_sync(false);
 		advOption.setResources(SyncConfigurationResource.GetDefaultSyncConfigurationResource());
-		advOption.setAnonymize(false);
 		advOption.setScan_types(SyncConfigurationScanTypes.GetDefaultSyncConfigurationScanTypes());
 		advOption.setScan_resources(SyncConfigurationResource.GetDefaultSyncConfigurationResource());
 		advOption.setSession_assessors(SyncConfigurationSessionAssessor.GetDefaultSyncConfigurationSessionAssessor());
@@ -99,7 +88,7 @@ public class SyncConfigurationImagingSessionAdvancedOption extends SyncConfigura
 		if (session_assessors == null) {
 				isAllowed = true;
 		}else {
-			isAllowed = session_assessors.getXsi_types().isAllowedToSync(assessorXsiType);
+			isAllowed = session_assessors.isAllowedToSync(assessorXsiType);
 		}
 		return isAllowed;
 	}

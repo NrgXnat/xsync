@@ -12,71 +12,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  *
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SyncConfigurationResource {
-	String sync_type;
-	List<String> resource_list;
-
-	/**
-	 * @return the sync_type
-	 */
-	public String getSync_type() {
-		return sync_type;
-	}
-	/**
-	 * @param sync_type the sync_type to set
-	 */
-	public void setSync_type(String sync_type) {
-		this.sync_type = sync_type;
-	}
-	/**
-	 * @return the resources
-	 */
-	public List<String> getResource_list() {
-		return resource_list;
-	}
-	/**
-	 * @param resources the resources to set
-	 */
-	public void setResource_list(List<String> resources) {
-		this.resource_list = resources;
-	}
+public class SyncConfigurationResource extends BaseSyncConfigurationWithItems{
 
 	public static SyncConfigurationResource GetDefaultSyncConfigurationResource() {
 		SyncConfigurationResource resource = new SyncConfigurationResource();
 		resource.setSync_type(XsyncUtils.SYNC_TYPE_ALL);
-		resource.setResource_list(new ArrayList<String>());
+		resource.setItem_list(new ArrayList<String>());
 		return resource;
 	}
 	
-	public boolean isAllowedToSync(String resourceLabel) {
-		boolean isAllowed = false;
-		if (sync_type.equals(XsyncUtils.SYNC_TYPE_ALL)) {
-			isAllowed = true;
-		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_NONE)) {
-			return false;
-		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_INCLUDE)) {
-			if (doesResourceListContainResourceLabel(resourceLabel)) {
-				isAllowed = true;
-			}
-		}else if (sync_type.equals(XsyncUtils.SYNC_TYPE_EXCLUDE)) {
-			if (!doesResourceListContainResourceLabel(resourceLabel)) {
-				isAllowed = true;
-			}
-		}
-		return isAllowed;
-	}
-	
-
-
-	private boolean doesResourceListContainResourceLabel(String label) {
-		boolean contains = false;
-		for (String x:resource_list) {
-			if (x.equals(label)) {
-				contains = true;
-				break;
-			}
-		}
-		return contains;
-	}
 	
 }
