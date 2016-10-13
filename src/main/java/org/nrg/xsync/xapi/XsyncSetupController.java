@@ -1,10 +1,5 @@
 package org.nrg.xsync.xapi;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.config.entities.Configuration;
 import org.nrg.config.services.ConfigService;
@@ -18,7 +13,9 @@ import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -26,7 +23,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.http.MediaType;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 
 /**
  * @author Mohana Ramaratnam
@@ -75,13 +78,15 @@ public class XsyncSetupController extends AbstractXapiRestController {
 		}
 	}
 
-	@ApiOperation(value = "Gets the Xsync project configuration",  response = String.class)
+	@ApiOperation(value = "Gets the Xsync project configuration"  )
 	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
-	@RequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET)
+	@RequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET, produces = "application/json")
 	public ResponseEntity<String> setup(@PathVariable("projectId") final String projectId) {
 		final Configuration conf = _configService.getConfig("xsync", "json", Scope.Project, projectId);
 		final String config = conf != null ? conf.getContents() : null;
-		return StringUtils.isNotBlank(config) ? new ResponseEntity<>(config, HttpStatus.OK) : new ResponseEntity<String>(HttpStatus.NOT_FOUND);
+		final HttpHeaders httpHeaders= new HttpHeaders();
+	    httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+		return StringUtils.isNotBlank(config) ? new ResponseEntity<>(config, httpHeaders, HttpStatus.OK) : new ResponseEntity<String>(HttpStatus.NOT_FOUND);
 	}
 
 	private void saveConfig(XnatProjectdata project, String xsyncConfigJson, String projectId) throws Exception {

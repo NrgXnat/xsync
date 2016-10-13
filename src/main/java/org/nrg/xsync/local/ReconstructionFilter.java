@@ -14,7 +14,7 @@ import org.nrg.xdat.om.XnatReconstructedimagedata;
 import org.nrg.xft.exception.FieldNotFoundException;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
-import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionAdvancedOption;
+import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionXsiType;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,7 @@ public class ReconstructionFilter {
 
 	public void filter(XnatExperimentdata exp, ProjectSyncConfiguration projectSyncConfiguration) throws Exception {
 		if (exp instanceof XnatImagesessiondata) {
-			SyncConfigurationImagingSessionAdvancedOption sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
+			SyncConfigurationImagingSessionXsiType sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSession(exp.getXSIType());
 			List<XnatImagescandataI> scans = ((XnatImagesessiondata) exp).getScans_scan();
 			ArrayList<String> scanTypes = new ArrayList<String>();
 			for (int i = 0; i < scans.size(); i++) {

@@ -18,8 +18,8 @@ import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.configuration.json.SyncConfiguration;
-import org.nrg.xsync.configuration.json.SyncConfigurationAdvancedOption;
-import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionAdvancedOption;
+import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionXsiType;
+import org.nrg.xsync.configuration.json.SyncConfigurationXsiType;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
@@ -68,7 +68,7 @@ public class ProjectSyncConfiguration {
 
     public boolean isSubjectAssessorResourceToBeSynced(String assessorXsiType, String resourceLabel) {
         if (_syncConfiguration.hasSubjectAssessorConfigurationDefinition()) {
-            SyncConfigurationAdvancedOption advOption = _syncConfiguration.getSubjectAssessorAdvancedOptions(assessorXsiType);
+            SyncConfigurationXsiType advOption = _syncConfiguration.getSubjectAssessor(assessorXsiType);
             return advOption.isResourceAllowedToSync(resourceLabel);
         } else {
             return true; //Default - when not specified all is pushed
@@ -77,7 +77,7 @@ public class ProjectSyncConfiguration {
 
     public boolean subjectAssessorNeedsOkToSync(String assessorXsiType) {
         if (_syncConfiguration.hasSubjectAssessorConfigurationDefinition()) {
-            SyncConfigurationAdvancedOption advOption = _syncConfiguration.getSubjectAssessorAdvancedOptions(assessorXsiType);
+            SyncConfigurationXsiType advOption = _syncConfiguration.getSubjectAssessor(assessorXsiType);
             return advOption.getNeeds_ok_to_sync();
         } else {
             return false;
@@ -86,7 +86,7 @@ public class ProjectSyncConfiguration {
 
     public boolean imagingSessionNeedsOkToSync(String xsiType) {
         if (_syncConfiguration.hasImagingSessionConfigurationDefinition()) {
-            SyncConfigurationImagingSessionAdvancedOption advOption = _syncConfiguration.getImagingSessionAdvancedOptions(xsiType);
+            SyncConfigurationImagingSessionXsiType advOption = _syncConfiguration.getImagingSession(xsiType);
             try {
             	return advOption.getNeeds_ok_to_sync();
             }catch(Exception e) {
@@ -99,9 +99,9 @@ public class ProjectSyncConfiguration {
 
     public boolean imagingAssessorNeedsOkToSync(String xsiType, String assessorXsiType) {
         if (_syncConfiguration.hasImagingSessionConfigurationDefinition()) {
-            SyncConfigurationImagingSessionAdvancedOption advOption = _syncConfiguration.getImagingSessionAdvancedOptions(xsiType);
+            SyncConfigurationImagingSessionXsiType advOption = _syncConfiguration.getImagingSession(xsiType);
             try {
-                SyncConfigurationAdvancedOption advSessionAssessorOption = advOption.getSession_assessors().getAdvancedOption(assessorXsiType);
+                SyncConfigurationXsiType advSessionAssessorOption = advOption.getSession_assessors().getXsiType(assessorXsiType);
                 return advSessionAssessorOption.getNeeds_ok_to_sync();
             } catch (NullPointerException npe) {
                 return false; // Not present defaults to ok not required
@@ -127,7 +127,7 @@ public class ProjectSyncConfiguration {
         if (_syncConfiguration == null) {
             return false;
         } else {
-            SyncConfigurationImagingSessionAdvancedOption imgSessionAdvOption = _syncConfiguration.getImagingSessionAdvancedOptions(imagingSessionXsiType);
+            SyncConfigurationImagingSessionXsiType imgSessionAdvOption = _syncConfiguration.getImagingSession(imagingSessionXsiType);
             return imgSessionAdvOption.isAllowedToSyncScan(imagingScanType);
         }
 
@@ -137,7 +137,7 @@ public class ProjectSyncConfiguration {
         if (_syncConfiguration == null) {
             return false;
         }
-        SyncConfigurationImagingSessionAdvancedOption imgSessionAdvOption = _syncConfiguration.getImagingSessionAdvancedOptions(imagingSessionXsiType);
+        SyncConfigurationImagingSessionXsiType imgSessionAdvOption = _syncConfiguration.getImagingSession(imagingSessionXsiType);
         return imgSessionAdvOption.isAllowedToSyncScan(imagingScanType) && imgSessionAdvOption.isAllowedToSyncScanResource(imagingScanResourceName);
     }
 

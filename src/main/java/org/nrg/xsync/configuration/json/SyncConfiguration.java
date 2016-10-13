@@ -26,6 +26,7 @@ public class SyncConfiguration implements Serializable{
 	String remote_project_id;
 	String remote_url;
 	String identifiers;
+	Boolean anonymize;
 	SyncConfigurationResource project_resources;
 	SyncConfigurationResource subject_resources;
 	SyncConfigurationSubjectAssessor subject_assessors;
@@ -56,7 +57,7 @@ public class SyncConfiguration implements Serializable{
 		boolean isAllowed = false;
 		try {
 			if (hasSubjectAssessorConfigurationDefinition()) {
-				isAllowed = subject_assessors.getXsi_types().isAllowedToSync(xsiType);
+				isAllowed = subject_assessors.isAllowedToSync(xsiType);
 			}else {
 				return true; //Anything not configured defaults to sync
 			}
@@ -103,7 +104,7 @@ public class SyncConfiguration implements Serializable{
 		boolean isAllowed = false;
 		try {
 			if (hasImagingSessionConfigurationDefinition()) {
-				isAllowed = imaging_sessions.getXsi_types().isAllowedToSync(xsiType);
+				isAllowed = imaging_sessions.isAllowedToSync(xsiType);
 			}else {
 				return true; //Anything not configured defaults to sync
 			}
@@ -111,34 +112,32 @@ public class SyncConfiguration implements Serializable{
 		return isAllowed;
 	}
 
-	public SyncConfigurationAdvancedOption getSubjectAssessorAdvancedOptions(String xsiType) {
-		SyncConfigurationAdvancedOption advOption = SyncConfigurationAdvancedOption.GetDefaultSyncConfigurationAdvancedOption(xsiType);
+	public SyncConfigurationXsiType getSubjectAssessor(String xsiType) {
+		SyncConfigurationXsiType advOption = SyncConfigurationXsiType.GetDefaultSyncConfiguration(xsiType);
 		if (hasSubjectAssessorConfigurationDefinition()) {
-			//if (isSubjectAssessorAllowedToSync(xsiType)) {
-				List<SyncConfigurationAdvancedOption> advOptions = subject_assessors.getAdvanced_options();
+				List<SyncConfigurationXsiType> advOptions = subject_assessors.getXsi_types();
 				if (advOptions == null || advOptions.size() < 1) {
 					return advOption;
 				}
-				for (SyncConfigurationAdvancedOption aOption : advOptions) {
+				for (SyncConfigurationXsiType aOption : advOptions) {
 					if (xsiType.equals(aOption.getXsi_type())) {
 						advOption = aOption;
 						break;
 					}
 				}
-			//}
 		}
 		return advOption;
 	}
 
-	public SyncConfigurationImagingSessionAdvancedOption getImagingSessionAdvancedOptions(String xsiType) {
-		SyncConfigurationImagingSessionAdvancedOption advOption = SyncConfigurationImagingSessionAdvancedOption.GetDefaultImagingSessionSyncConfigurationAdvancedOption(xsiType);
+	public SyncConfigurationImagingSessionXsiType getImagingSession(String xsiType) {
+		SyncConfigurationImagingSessionXsiType advOption = SyncConfigurationImagingSessionXsiType.GetDefaultImagingSessionSyncConfigurationAdvancedOption(xsiType);
 		if (hasImagingSessionConfigurationDefinition()) {
 			//if (isImagingSessionAllowedToSync(xsiType)) {
-				List<SyncConfigurationImagingSessionAdvancedOption> advOptions = imaging_sessions.getAdvanced_options();
+				List<SyncConfigurationImagingSessionXsiType> advOptions = imaging_sessions.getXsi_types();
 				if (advOptions == null || advOptions.size() < 1){
 					return advOption;
 				}
-				for (SyncConfigurationImagingSessionAdvancedOption aOption : advOptions) {
+				for (SyncConfigurationImagingSessionXsiType aOption : advOptions) {
 					if (xsiType.equals(aOption.getXsi_type())) {
 						advOption = aOption;
 						break;
@@ -304,5 +303,17 @@ public class SyncConfiguration implements Serializable{
 		this.imaging_sessions = imaging_sessions;
 	}
 	
+	/**
+	 * @return the anonymize
+	 */
+	public Boolean getAnonymize() {
+		return anonymize;
+	}
+	/**
+	 * @param anonymize the anonymize to set
+	 */
+	public void setAnonymize(Boolean anonymize) {
+		this.anonymize = anonymize;
+	}	
 
 }

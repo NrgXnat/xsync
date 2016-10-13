@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +23,6 @@ import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImageassessordata;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatReconstructedimagedata;
 import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatResourceseries;
 import org.nrg.xdat.om.XnatSubjectassessordata;
@@ -41,10 +39,10 @@ import org.nrg.xnat.exceptions.InvalidArchiveStructure;
 import org.nrg.xnat.xsync.anonymize.AnonymizerI;
 import org.nrg.xnat.xsync.anonymize.XsyncAnonymizer;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
-import org.nrg.xsync.configuration.json.SyncConfigurationAdvancedOption;
-import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionAdvancedOption;
+import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionXsiType;
 import org.nrg.xsync.configuration.json.SyncConfigurationResource;
 import org.nrg.xsync.configuration.json.SyncConfigurationSessionAssessor;
+import org.nrg.xsync.configuration.json.SyncConfigurationXsiType;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.tools.XsyncXnatInfo;
@@ -522,7 +520,7 @@ public class ExperimentFilter {
 						}
 						
 					}
-					Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType()).getAnonymize(); 
+					Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getAnonymize(); 
 					_log.debug("Exp " + exp.getLabel() + " needs to be anonymized " + isExptToBeAnonymized);
 					if (isExptToBeAnonymized) {
 						_log.debug("About to anonymize " + exp.getLabel());
@@ -570,7 +568,7 @@ public class ExperimentFilter {
 	 */
 	public void filterExperimentResources(XnatExperimentdata exp)
 			throws Exception {
-		SyncConfigurationImagingSessionAdvancedOption session = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
+		SyncConfigurationImagingSessionXsiType session = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSession(exp.getXSIType());
 	    SyncConfigurationResource sessionResources = session.getResources();
 		while (findAndRemoveExperimentResources(exp, sessionResources))	;
 		return;
@@ -638,7 +636,7 @@ public class ExperimentFilter {
 	 */
 	private void filterScantypes(XnatExperimentdata exp)
 			throws IndexOutOfBoundsException, FieldNotFoundException, Exception {
-		SyncConfigurationImagingSessionAdvancedOption sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
+		SyncConfigurationImagingSessionXsiType sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSession(exp.getXSIType());
 		while (findAndRemoveScantypes(exp, sessionOption))
 			;
 		filterScanResources(exp,sessionOption);
@@ -656,7 +654,7 @@ public class ExperimentFilter {
 	 * @throws FieldNotFoundException
 	 *             the field not found exception
 	 */
-	public void filterScanResources(XnatExperimentdata exp,SyncConfigurationImagingSessionAdvancedOption sessionOption)
+	public void filterScanResources(XnatExperimentdata exp,SyncConfigurationImagingSessionXsiType sessionOption)
 			throws IndexOutOfBoundsException, FieldNotFoundException {
 		SyncConfigurationResource rscOption = sessionOption.getScan_resources();
 		if (rscOption == null) return;
@@ -710,7 +708,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	 */
 	private void filterAssessors(XnatExperimentdata orig, XnatExperimentdata exp)
 			throws IndexOutOfBoundsException, FieldNotFoundException {
-		SyncConfigurationImagingSessionAdvancedOption sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSessionAdvancedOptions(exp.getXSIType());
+		SyncConfigurationImagingSessionXsiType sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSession(exp.getXSIType());
 		while (findAndRemoveAssessors(orig, exp, sessionOption))
 			;
 		//Now for each assessor, look at the resources which are configured to be synced
@@ -729,14 +727,14 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	 * @throws FieldNotFoundException
 	 *             the field not found exception
 	 */
-	public void filterAssessorResources(XnatExperimentdata exp,SyncConfigurationImagingSessionAdvancedOption sessionOption)
+	public void filterAssessorResources(XnatExperimentdata exp,SyncConfigurationImagingSessionXsiType sessionOption)
 			throws IndexOutOfBoundsException, FieldNotFoundException {
 		SyncConfigurationSessionAssessor assessorOption = sessionOption.getSession_assessors();
 		if (assessorOption == null) return;
 		List<XnatImageassessordataI> assessors = ((XnatImagesessiondata)exp).getAssessors_assessor();
 		if (assessors == null) return;
 		for (XnatImageassessordataI ass:assessors) {
-			SyncConfigurationAdvancedOption assessorAdvOption = assessorOption.getAdvancedOption(ass.getXSIType());
+			SyncConfigurationXsiType assessorAdvOption = assessorOption.getXsiType(ass.getXSIType());
 			if (assessorAdvOption != null) {
 				while (findAndRemoveAssessorResources(ass, assessorAdvOption.getResources()))
 					;
@@ -758,7 +756,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	 *            Session options.
 	 * @return true, if successful
 	 */
-	private boolean findAndRemoveScantypes(XnatExperimentdata exp, SyncConfigurationImagingSessionAdvancedOption sessionOption) {
+	private boolean findAndRemoveScantypes(XnatExperimentdata exp, SyncConfigurationImagingSessionXsiType sessionOption) {
 		boolean found = false;
 		if (sessionOption == null || sessionOption.getScan_types() == null) {
 			return false;
@@ -782,7 +780,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	 *            the exp
 	 * @return true, if successful
 	 */
-	private boolean findAndRemoveAssessors(XnatExperimentdata orig, XnatExperimentdata exp, SyncConfigurationImagingSessionAdvancedOption sessionOption) {
+	private boolean findAndRemoveAssessors(XnatExperimentdata orig, XnatExperimentdata exp, SyncConfigurationImagingSessionXsiType sessionOption) {
 		boolean found = false;
 		if (sessionOption == null || sessionOption.getSession_assessors() == null) {
 			return false;

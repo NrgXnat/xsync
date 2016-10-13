@@ -11,7 +11,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -24,10 +23,13 @@ import org.nrg.framework.net.AuthenticatedClientHttpRequestFactory;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.om.XnatExperimentdata;
+import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XsyncXsyncassessordata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xdat.rest.AbstractXapiRestController;
+import org.nrg.xdat.security.SecurityManager;
+import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.event.EventMetaI;
@@ -106,12 +108,36 @@ public class XsyncOperationsController extends AbstractXapiRestController {
     @RequestMapping(value = "/projects/{projectId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
     public ResponseEntity<String> exportProject(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
-        final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService, _xnatInfo, projectId, getSessionUser());
+    	//Check user credentials to see if the user is a member or an owner of the project
+        final UserI user = getSessionUser();
+    	try {
+    		HttpStatus status = isPermittedToSync(projectId);
+        	if (status != null) {
+                return new ResponseEntity<>(status);
+        	}
+        }catch(Exception e) {
+            if (_log.isInfoEnabled()) {
+                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
+            }
+        }
+    	final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService, _xnatInfo, projectId, getSessionUser());
         _executorService.submit(projectChange);
         if (_log.isInfoEnabled()) {
             _log.info("Project " + projectId + " is being exported by " + getSessionUser().getUsername());
         }
         return new ResponseEntity<>(projectId + " synchronization started", HttpStatus.OK);
+    }
+    
+    private HttpStatus isPermittedToSync(final String projectId) throws Exception{
+        final UserI user = getSessionUser();
+        if (user == null) {
+            return HttpStatus.UNAUTHORIZED;
+        }
+    	if (Permissions.can(user, XnatProjectdata.SCHEMA_ELEMENT_NAME + "/project", projectId, SecurityManager.EDIT)) {
+            return null;
+        }
+
+        return HttpStatus.FORBIDDEN;
     }
 
     @ApiOperation(value = "Clears the Sync Blocked Status", notes = "Clears the projects block status")
