@@ -30,6 +30,11 @@ XSYNC.xsyncconfig.init = function() {
 XSYNC.xsyncconfig.useDefaultConfig = function() {
     // Use the defaults to populate config dialog
     XSYNC.xsyncconfig.configuration = {};
+    XSYNC.xsyncconfig.configuration.project_resources = {};
+    XSYNC.xsyncconfig.configuration.subject_resources = {};
+    XSYNC.xsyncconfig.configuration.subject_assessors = {};
+    XSYNC.xsyncconfig.configuration.imaging_sessions = {};
+
     XSYNC.xsyncconfig.configuration.enabled = true;
     XSYNC.xsyncconfig.configuration.source_project_id = XNAT.data.context.project;
     XSYNC.xsyncconfig.configuration.sync_frequency = 'weekly';
@@ -37,18 +42,16 @@ XSYNC.xsyncconfig.useDefaultConfig = function() {
     XSYNC.xsyncconfig.configuration.identifiers = 'use_local';
     XSYNC.xsyncconfig.configuration.remote_url = 'http://';
     XSYNC.xsyncconfig.configuration.remote_project_id = '';
-    XSYNC.xsyncconfig.configuration.project_resources = {};
-    XSYNC.xsyncconfig.configuration.subject_resources = {};
-    XSYNC.xsyncconfig.configuration.subject_assessors = {};
-    XSYNC.xsyncconfig.configuration.imaging_sessions = {};
-    XSYNC.xsyncconfig.configuration.subject_assessors.xsi_types = {};
-    XSYNC.xsyncconfig.configuration.imaging_sessions.xsi_types = {};
+    XSYNC.xsyncconfig.configuration.anonymize = false;
+    // XSYNC.xsyncconfig.configuration.ok_to_sync = false;
+
+    // XSYNC.xsyncconfig.configuration.subject_assessors.xsi_types = {};
+    // XSYNC.xsyncconfig.configuration.imaging_sessions.xsi_types = {};
     XSYNC.xsyncconfig.configuration.project_resources.sync_type = 'none';
     XSYNC.xsyncconfig.configuration.subject_resources.sync_type = 'none';
-    XSYNC.xsyncconfig.configuration.subject_assessors.xsi_types.sync_type = 'none';
-    XSYNC.xsyncconfig.configuration.imaging_sessions.xsi_types.sync_type = 'include';
-    XSYNC.xsyncconfig.configuration.imaging_sessions.xsi_types.types_list = ['xnat:mrSessionData'];
-    // XSYNC.xsyncconfig.anonymizationuploadDisabled = 'disabled';
+    XSYNC.xsyncconfig.configuration.subject_assessors.sync_type = 'none';
+    XSYNC.xsyncconfig.configuration.imaging_sessions.sync_type = 'all';
+    // XSYNC.xsyncconfig.configuration.imaging_sessions.xsi_types.types_list = ['xnat:mrSessionData'];
 }
 
 XSYNC.xsyncconfig.initialConfig = function() {
@@ -320,7 +323,8 @@ function spawnConfig() {
                 destProjectId: remoteProject(),
                 frequency: frequency(),
                 identifiers: identifiers(),
-                // anonymize: anonymize(),
+                anonymize: anonymize(),
+                // okToSync: okToSync(),
 
                 advancedSyncCheckbox: {
                     kind: 'panel.element',
@@ -373,8 +377,8 @@ function spawnConfig() {
                                     kind: 'panel.subhead',
                                     label: 'Non-imaging Assessments'
                                 },
-                                subjectAssessorSelect: syncTypeSelector("subject_assessors.xsi_types.sync_type", " "),
-                                subjectAssessorXsiTypes: xsiInput("subject_assessors.xsi_types.types_list"),
+                                subjectAssessorSelect: syncTypeSelector("subject_assessors.sync_type", " "),
+                                // subjectAssessorXsiTypes: xsiInput("subject_assessors.xsi_types.types_list"),
 
                                 // subjectDetailsCheckbox:
                                 //     detailsToggle("subject-assessor-advanced"),
@@ -402,8 +406,8 @@ function spawnConfig() {
                                     kind: 'panel.subhead',
                                     label: 'Imaging Sessions'
                                 },
-                                imagingSessionsSelect: syncTypeSelector("imaging_sessions.xsi_types.sync_type", " "),
-                                imagingSessionsXsiTypes: xsiInput("imaging_sessions.xsi_types.types_list"),
+                                imagingSessionsSelect: syncTypeSelector("imaging_sessions.sync_type", " "),
+                                // imagingSessionsXsiTypes: xsiInput("imaging_sessions.xsi_types.types_list"),
 
                                 // sessionDetailsCheckbox:
                                 //     detailsToggle("imaging-sessions-advanced"),
@@ -525,7 +529,7 @@ function spawnConfig() {
             label: 'Identifiers',
             options: {
                 use_local: 'Local',
-                use_remote: 'Remote'
+                // use_remote: 'Remote'
             }
         }
     }
@@ -534,18 +538,18 @@ function spawnConfig() {
         return {
             id: 'xsync-config-anonymize',
             kind: 'panel.input.checkbox',
-            name: 'anonymize_images', // needs changed when we get final json
+            name: 'anonymize',
             label: 'Anonymize Images'
         }
     }
 
-    // function okToSync(_name) {
-    // 	return {
-    // 		kind: 'panel.input.checkbox',
-    // 		name: _name,
-    // 		label: 'Require QC to Sync'
-    // 	}
-    // }
+    function okToSync(_name) {
+    	return {
+    		kind: 'panel.input.checkbox',
+    		name: _name,
+    		label: 'Require QC to Sync'
+    	}
+    }
 
 
     ///////////////////////////////
@@ -564,9 +568,9 @@ function spawnConfig() {
             label: label,
             options: {
                 all: 'All',
-                none: 'None',
-                include: 'Include',
-                exclude: 'Exclude'
+                none: 'None'
+                // include: 'Include',
+                // exclude: 'Exclude'
             },
             element: {
                 onchange: function() {
