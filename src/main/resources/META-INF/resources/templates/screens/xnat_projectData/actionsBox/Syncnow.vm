@@ -32,8 +32,8 @@ function syncNow(projectId) {
 
 </script>
 
-
+#if($data.getSession().getAttribute("userHelper").canDelete($project))
 <li class="yuimenuitem">
-   <a class="yuimenuitemlabel" href="javascript:syncNow('$!{project.getId()}');">Sync Data</A>
+	<a class="yuimenuitemlabel" href="javascript:syncNow('$!{project.getId()}');">Sync Data</a>
 </li>
-
+#end

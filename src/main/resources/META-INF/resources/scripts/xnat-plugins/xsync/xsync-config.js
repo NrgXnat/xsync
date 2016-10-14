@@ -30,6 +30,11 @@ XSYNC.xsyncconfig.init = function() {
 XSYNC.xsyncconfig.useDefaultConfig = function() {
     // Use the defaults to populate config dialog
     XSYNC.xsyncconfig.configuration = {};
+    XSYNC.xsyncconfig.configuration.project_resources = {};
+    XSYNC.xsyncconfig.configuration.subject_resources = {};
+    XSYNC.xsyncconfig.configuration.subject_assessors = {};
+    XSYNC.xsyncconfig.configuration.imaging_sessions = {};
+
     XSYNC.xsyncconfig.configuration.enabled = true;
     XSYNC.xsyncconfig.configuration.source_project_id = XNAT.data.context.project;
     XSYNC.xsyncconfig.configuration.sync_frequency = 'weekly';
@@ -37,11 +42,16 @@ XSYNC.xsyncconfig.useDefaultConfig = function() {
     XSYNC.xsyncconfig.configuration.identifiers = 'use_local';
     XSYNC.xsyncconfig.configuration.remote_url = 'http://';
     XSYNC.xsyncconfig.configuration.remote_project_id = '';
-    XSYNC.xsyncconfig.configuration.projectresources = [];
-    XSYNC.xsyncconfig.configuration.subjectresources = [];
-    XSYNC.xsyncconfig.configuration.subjectassessors = [];
-    XSYNC.xsyncconfig.configuration.imagingsessions = [];
-    XSYNC.xsyncconfig.anonymizationuploadDisabled = 'disabled';
+    XSYNC.xsyncconfig.configuration.anonymize = false;
+    // XSYNC.xsyncconfig.configuration.ok_to_sync = false;
+
+    // XSYNC.xsyncconfig.configuration.subject_assessors.xsi_types = {};
+    // XSYNC.xsyncconfig.configuration.imaging_sessions.xsi_types = {};
+    XSYNC.xsyncconfig.configuration.project_resources.sync_type = 'none';
+    XSYNC.xsyncconfig.configuration.subject_resources.sync_type = 'none';
+    XSYNC.xsyncconfig.configuration.subject_assessors.sync_type = 'none';
+    XSYNC.xsyncconfig.configuration.imaging_sessions.sync_type = 'all';
+    // XSYNC.xsyncconfig.configuration.imaging_sessions.xsi_types.types_list = ['xnat:mrSessionData'];
 }
 
 XSYNC.xsyncconfig.initialConfig = function() {
@@ -59,10 +69,12 @@ XSYNC.xsyncconfig.showConfigPanel = function() {
 
     xsyncConfigDiv.append(
         '<div>' +
-        '<input type="button" class="btn1 xsync-submit-button" id="xsync-edit-config" value="Edit Configuration">' +
-        '<input type="button" class="btn1 xsync-submit-button" id="xsync-credentials" value="Remote Credentials">' +
-        '<input type="button" class="btn1 xsync-submit-button" id="xsync-upload-anonymization" value="Configure Anonymization">' +
-        '</div> ' +
+            '<input type="button" class="btn1 xsync-submit-button" id="xsync-edit-config" value="Edit Configuration">' +
+            '<input type="button" class="btn1 xsync-submit-button" id="xsync-credentials" value="Remote Credentials">' +
+            '<input type="button" class="btn1 xsync-submit-button" id="xsync-upload-anonymization" value="Configure Anonymization">' +
+            '<h2 id="xsync-history-header" style="display:none">Sync History</h2>' +
+            '<div id="xsync-history-table" style="max-height:300px; overflow-y:scroll"></div>' +
+        '</div>' +
         '<br>'
     );
 
@@ -266,22 +278,6 @@ XSYNC.xsyncconfig.editConfig = function() {
                     // Delete stuff we don't want serialized
                     delete json.subjectDetailsCheckbox;
                     delete json.advancedSyncCheckbox;
-                    // If advanced settings were toggled but then the section is hidden on submit,
-                    // assuming the user doesn't want those saved
-                    if (! $('#advanced-sync-checkbox').checked) {
-                        if (XSYNC.xsyncconfig.configuration.hasOwnProperty('project_resources')) {
-                            delete json.project_resources;
-                        }
-                        if (XSYNC.xsyncconfig.configuration.hasOwnProperty('subject_resources')) {
-                            delete subject_resources;
-                        }
-                        if (XSYNC.xsyncconfig.configuration.hasOwnProperty('subject_assessors')) {
-                            delete subject_assessors;
-                        }
-                        if (XSYNC.xsyncconfig.configuration.hasOwnProperty('imaging_sessions')) {
-                            delete imaging_sessions;
-                        }
-                    }
 
                     XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
                     $(form).triggerHandler('reload-data');
@@ -297,7 +293,7 @@ XSYNC.xsyncconfig.editConfig = function() {
             var $wrapper = obj.$modal.find('#xsync-config-dialog');
             XNAT.spawner.spawn(spawnerConfig).render($wrapper);
 
-            toggleAdvanced();
+            $('#xsync-advanced-settings').show();
 
             // Trigger changes
             var form = obj.$modal.find('form')[0];
@@ -305,27 +301,6 @@ XSYNC.xsyncconfig.editConfig = function() {
             $(form).find('checkbox').trigger('change');
         }
     });
-
-    function toggleAdvanced() {
-        /*
-         Check if any of the advanced settings have been set and toggle appropriately
-         */
-        var $advanced_checkbox = $('#advanced-sync-checkbox');
-        var $advanced_section = $('#xsync-advanced-settings');
-
-        // if (XSYNC.xsyncconfig.configuration.hasOwnProperty("project_resources.resource_list")) {
-        if (XSYNC.xsyncconfig.configuration.hasOwnProperty('project_resources') ||
-            XSYNC.xsyncconfig.configuration.hasOwnProperty('subject_resources') ||
-            XSYNC.xsyncconfig.configuration.hasOwnProperty('subject_assessors') ||
-            XSYNC.xsyncconfig.configuration.hasOwnProperty('imaging_sessions') ) {
-
-            $advanced_checkbox.prop('checked', true);
-            $advanced_section.show();
-        } else {
-            $advanced_checkbox.prop('checked', false);
-            $advanced_section.hide();
-        }
-    }
 }
 
 function spawnConfig() {
@@ -348,17 +323,22 @@ function spawnConfig() {
                 destProjectId: remoteProject(),
                 frequency: frequency(),
                 identifiers: identifiers(),
+                anonymize: anonymize(),
+                // okToSync: okToSync(),
 
                 advancedSyncCheckbox: {
-                    kind: 'panel.input.checkbox',
+                    kind: 'panel.element',
                     name: '',
-                    label: 'Advanced Settings',
+                    label: '',
+                    contents: '<a href=#>Hide Advanced Settings</a>',
                     element: {
-                        $: { change: function() {
-                            if (this.checked) {
+                        $: { click: function() {
+                            if ($("#xsync-advanced-settings").is(":hidden")) {
                                 $('#xsync-advanced-settings').slideDown(400)
+                                $(this).find("a").text("Hide Advanced Settings")
                             } else {
                                 $('#xsync-advanced-settings').slideUp(400)
+                                $(this).find("a").text("Show Advanced Settings")
                             }
                         }}
                     }
@@ -395,10 +375,10 @@ function spawnConfig() {
                             contents: {
                                 subjectAssessorsHeading: {
                                     kind: 'panel.subhead',
-                                    label: 'Subject Assessors'
+                                    label: 'Non-imaging Assessments'
                                 },
-                                subjectAssessorSelect: syncTypeSelector("subject_assessors.xsi_types.sync_type", " "),
-                                subjectAssessorXsiTypes: xsiInput("subject_assessors.xsi_types.types_list"),
+                                subjectAssessorSelect: syncTypeSelector("subject_assessors.sync_type", " "),
+                                // subjectAssessorXsiTypes: xsiInput("subject_assessors.xsi_types.types_list"),
 
                                 // subjectDetailsCheckbox:
                                 //     detailsToggle("subject-assessor-advanced"),
@@ -426,8 +406,8 @@ function spawnConfig() {
                                     kind: 'panel.subhead',
                                     label: 'Imaging Sessions'
                                 },
-                                imagingSessionsSelect: syncTypeSelector("imaging_sessions.xsi_types.sync_type", " "),
-                                imagingSessionsXsiTypes: xsiInput("imaging_sessions.xsi_types.types_list"),
+                                imagingSessionsSelect: syncTypeSelector("imaging_sessions.sync_type", " "),
+                                // imagingSessionsXsiTypes: xsiInput("imaging_sessions.xsi_types.types_list"),
 
                                 // sessionDetailsCheckbox:
                                 //     detailsToggle("imaging-sessions-advanced"),
@@ -508,7 +488,8 @@ function spawnConfig() {
             options: {
                 daily: 'Daily',
                 weekly: 'Weekly',
-                monthly: 'Monthly'
+                monthly: 'Monthly',
+                'on demand': 'On Demand'
             }
         }
     }
@@ -548,18 +529,27 @@ function spawnConfig() {
             label: 'Identifiers',
             options: {
                 use_local: 'Local',
-                use_remote: 'Remote'
+                // use_remote: 'Remote'
             }
         }
     }
 
-    // function okToSync(_name) {
-    // 	return {
-    // 		kind: 'panel.input.checkbox',
-    // 		name: _name,
-    // 		label: 'Require QC to Sync'
-    // 	}
-    // }
+    function anonymize() {
+        return {
+            id: 'xsync-config-anonymize',
+            kind: 'panel.input.checkbox',
+            name: 'anonymize',
+            label: 'Anonymize Images'
+        }
+    }
+
+    function okToSync(_name) {
+    	return {
+    		kind: 'panel.input.checkbox',
+    		name: _name,
+    		label: 'Require QC to Sync'
+    	}
+    }
 
 
     ///////////////////////////////
@@ -578,9 +568,9 @@ function spawnConfig() {
             label: label,
             options: {
                 all: 'All',
-                none: 'None',
-                include: 'Include',
-                exclude: 'Exclude'
+                none: 'None'
+                // include: 'Include',
+                // exclude: 'Exclude'
             },
             element: {
                 onchange: function() {
