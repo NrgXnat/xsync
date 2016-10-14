@@ -133,7 +133,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
         if (user == null) {
             return HttpStatus.UNAUTHORIZED;
         }
-    	if (Permissions.can(user, XnatProjectdata.SCHEMA_ELEMENT_NAME + "/project", projectId, SecurityManager.EDIT)) {
+    	if (Permissions.can(user, XnatProjectdata.SCHEMA_ELEMENT_NAME + "/ID", projectId, SecurityManager.DELETE)) {
             return null;
         }
 
@@ -176,7 +176,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
         }
     }
     
-    @ApiOperation(value = "Exports the indicated project.", notes = "Starts the project export operation for the project with the indicated ID.", response = String.class)
+    @ApiOperation(value = "Sets OK to Sync Status for the experiment.", notes = "Sets OK to Sync Status for the experiment.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
     @RequestMapping(value = "/experiments/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
@@ -259,6 +259,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
         return new ResponseEntity<>(value, HttpStatus.OK);
     }
 
+    @ApiOperation(value = "Gets the log file to display the progress of sync.", notes = "Gets the log file containing sync progress")
     @RequestMapping(value = "/progress/{projectId}",  method = RequestMethod.GET)
     @ResponseBody
     public void getSyncProgress(HttpServletRequest request, HttpServletResponse response, @PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncCredentialsRequiredException {
