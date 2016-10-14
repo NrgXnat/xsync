@@ -33,10 +33,10 @@ public class XsyncFileUtils {
 	public File buildZip(String remoteProjectId,File pathToFiles) throws Exception {
 		File zipFile = null;
 		try {
-
+			String expCachePath = SynchronizationManager.GET_SYNC_FILE_PATH(remoteProjectId);
+			new File(expCachePath).mkdirs();
 			String path = pathToFiles.getAbsolutePath();
 			if (pathToFiles.exists()) {
-				String parentPath = pathToFiles.getParent();
 				ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,pathToFiles.getParent(),0);
 
 				ArrayList<File> files = new ArrayList<File>(FileUtils.listFiles(pathToFiles,null,true));
@@ -47,13 +47,11 @@ public class XsyncFileUtils {
 						fileteredFiles.add(f);
 				}
 				if (fileteredFiles.size()> 0) {
-					String expCachePath = SynchronizationManager.GET_SYNC_FILE_PATH(remoteProjectId);
-					new File(expCachePath).mkdirs();
 					rep.addAllAtRelativeDirectory(path, fileteredFiles);
-					zipFile = new File(expCachePath, (new Date()).getTime()+".zip");
-					zipFile.deleteOnExit();
-					rep.write(new FileOutputStream(zipFile));
 				}
+				zipFile = new File(expCachePath, (new Date()).getTime()+".zip");
+				zipFile.deleteOnExit();
+				rep.write(new FileOutputStream(zipFile));
 			}
 		} catch (Exception e) {
 			_log.debug(e.toString() + "  " + e.getMessage());

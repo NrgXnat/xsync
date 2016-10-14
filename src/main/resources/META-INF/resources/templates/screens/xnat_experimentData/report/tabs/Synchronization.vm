@@ -1,6 +1,21 @@
 <!-- Sequence: 19 -->
 <!-- allowGuest: false -->
 <script type="text/javascript" >
+	$.ajax({
+	  url:XNAT.url.csrfUrl('/xapi/xsync/xsync/setup/projects/'+XNAT.data.context.project),
+	  type:"GET",
+	  success: function(data){
+	      document.getElementById('showDivIfSynchroniztionConfigured').style.visibility="visible";
+	      document.getElementById('showDivIfSynchroniztionNotConfigured').style.visibility="hidden";
+	  },
+	  error: function(data) {
+	      document.getElementById('showDivIfSynchroniztionConfigured').style.visibility="hidden";
+	      document.getElementById('showDivIfSynchroniztionNotConfigured').style.visibility="visible";
+	      
+	  }
+	});
+
+
 function setOkToSync(projectId,xnat_id, exp_label) {
 	var syncChoice = document.getElementById('OkToSync').checked;
 	var exporturl = serverRoot + '/xapi/xsync/experiments/'+xnat_id+'?okToSync='+syncChoice+'&XNAT_CSRF='+csrfToken ;
@@ -47,9 +62,8 @@ function setOkToSync(projectId,xnat_id, exp_label) {
  #set($checked="checked")
 #end
 
+<div id="showDivIfSynchroniztionConfigured">
 <input type="checkbox" id="OkToSync" name="OkToSync" value="OkToSync" onclick="javascript:setOkToSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');" $checked>Ok To Sync
-<br>
-
 	<table>
 	<tr> 
 	<th align="left">Sync Status:</th>
@@ -63,8 +77,16 @@ function setOkToSync(projectId,xnat_id, exp_label) {
 	<th align="left">Authorized On:</th>
 	<td>$!syncAssessor.getDate()</td>
 	</tr>
+	#if ($syncAssessor == "")
+	#else
 	<tr> 
 	<th align="left">Remote Session report:</th>
 	<td><a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a></td>
 	</tr>
+	#end
 	</table>
+</div>
+
+<div id="showDivIfSynchroniztionNotConfigured">
+Project $!om.getProject() is not configured to sync
+</div>
