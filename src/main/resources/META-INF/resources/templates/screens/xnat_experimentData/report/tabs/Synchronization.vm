@@ -1,17 +1,40 @@
 <!-- Sequence: 19 -->
 <!-- allowGuest: false -->
 <script type="text/javascript" >
-	$.ajax({
-	  url:XNAT.url.csrfUrl('/xapi/xsync/xsync/setup/projects/'+XNAT.data.context.project),
+	XNAT.xhr.getJSON({
+	  url:XNAT.url.csrfUrl('/xapi/xsync/setup/projects/'+XNAT.data.context.project),
 	  type:"GET",
 	  success: function(data){
-	      document.getElementById('showDivIfSynchroniztionConfigured').style.visibility="visible";
-	      document.getElementById('showDivIfSynchroniztionNotConfigured').style.visibility="hidden";
+	      var configuration = JSON.parse(data);
+	      var xnatXsiType='$om.getXSIType()';
+	      var visi = 'hidden';
+	      var visibilityShowDoesNotNeedOkToSync = 'hidden';
+	      if (typeof configuration.imaging_sessions === 'undefined') {
+		  visibilityShowDoesNotNeedOkToSync = 'visible';		      
+	      }else {
+		if (typeof configuration.imaging_sessions.xsi_types === 'undefined') {
+		  visibilityShowDoesNotNeedOkToSync = 'visible';		      
+		}else {
+		  for (i = 0; i < configuration.imaging_sessions.xsi_types.length; i++) {
+		     var xsiType = configuration.imaging_sessions.xsi_types[i];
+		     if (xsiType.xsi_type==xnatXsiType) {
+		         if (typeof xsiType.needs_ok_to_sync === 'undefined') {
+		            visibilityShowDoesNotNeedOkToSync = 'visible';		      
+		         }else if (xsiType.needs_ok_to_sync) {
+		            visi = 'visible';
+		         }
+		     }
+		  }
+		}
+	      }
+	      document.getElementById('showDivIfSynchronizationNotConfigured').style.visibility="hidden";
+	      document.getElementById('showDivIfSynchronizationConfigured').style.visibility=visi;
+	      document.getElementById('showDoesNotNeedOkToSync').style.visibility=visibilityShowDoesNotNeedOkToSync;
+
 	  },
-	  error: function(data) {
-	      document.getElementById('showDivIfSynchroniztionConfigured').style.visibility="hidden";
-	      document.getElementById('showDivIfSynchroniztionNotConfigured').style.visibility="visible";
-	      
+	  error: function(o) {
+	      document.getElementById('showDivIfSynchronizationConfigured').style.visibility="hidden";
+	      document.getElementById('showDivIfSynchronizationNotConfigured').style.visibility="visible";
 	  }
 	});
 
@@ -62,11 +85,13 @@ function setOkToSync(projectId,xnat_id, exp_label) {
  #set($checked="checked")
 #end
 
-<div id="showDivIfSynchroniztionConfigured">
+<div id="showDivIfSynchronizationConfigured">
 <input type="checkbox" id="OkToSync" name="OkToSync" value="OkToSync"
-	#if(! $data.getSession().getAttribute("userHelper").canDelete($project)) disabled #end
 	onclick="javascript:setOkToSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');" $checked>Ok To Sync
+
 	<table>
+	#if ($syncAssessor == "")
+	#else
 	<tr> 
 	<th align="left">Sync Status:</th>
 	<td>$!syncAssessor.getSyncStatus()</td>
@@ -79,8 +104,6 @@ function setOkToSync(projectId,xnat_id, exp_label) {
 	<th align="left">Authorized On:</th>
 	<td>$!syncAssessor.getDate()</td>
 	</tr>
-	#if ($syncAssessor == "")
-	#else
 	<tr> 
 	<th align="left">Remote Session report:</th>
 	<td><a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a></td>
@@ -89,6 +112,9 @@ function setOkToSync(projectId,xnat_id, exp_label) {
 	</table>
 </div>
 
-<div id="showDivIfSynchroniztionNotConfigured">
+<div id="showDivIfSynchronizationNotConfigured">
 Project $!om.getProject() is not configured to sync
+</div>
+<div id="showDoesNotNeedOkToSync">
+No action required
 </div>

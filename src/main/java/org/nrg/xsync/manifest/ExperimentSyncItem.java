@@ -113,13 +113,19 @@ public class ExperimentSyncItem extends SyncedItem {
 	public void extractDetails(XnatExperimentdata exp) {
 		if (exp.getResources_resource() != null && exp.getResources_resource().size() > 0) {
 			for (XnatAbstractresourceI r: exp.getResources_resource()) {
-				boolean hasBeenSkipped = r.getFileCount()<0 && (Long)r.getFileSize()<0;
 				ResourceSyncItem rSync = new ResourceSyncItem(r.getLabel(), r.getLabel());
-				rSync.setFileCount(r.getFileCount()>0?r.getFileCount():0);
-				rSync.setFileSize((Long)r.getFileSize()>0?r.getFileSize():new Long(0));
-				if (hasBeenSkipped) {
-					rSync.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+				if (r.getFileCount() != null && r.getFileSize()!=null) {
+					boolean hasBeenSkipped = r.getFileCount()<0 && (Long)r.getFileSize()<0;	
+					rSync.setFileCount(r.getFileCount()>0?r.getFileCount():0);
+					rSync.setFileSize((Long)r.getFileSize()>0?r.getFileSize():new Long(0));
+					if (hasBeenSkipped) {
+						rSync.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+					}
+				}else {
+					rSync.setFileCount(0);
+					rSync.setFileSize(0);
 				}
+				
 				addResources(rSync);
 			}
 		}
@@ -130,12 +136,18 @@ public class ExperimentSyncItem extends SyncedItem {
 					ScanSyncItem scanSync = new ScanSyncItem(scan.getId(), scan.getId());
 					if (scan.getFile() != null && scan.getFile().size() > 0) {
 						for (XnatAbstractresourceI r: scan.getFile()) {
-							boolean hasBeenSkipped = r.getFileCount()<0 && (Long)r.getFileSize()<0;
 							ResourceSyncItem rSync = new ResourceSyncItem(r.getLabel(), r.getLabel());
-							rSync.setFileCount(r.getFileCount()>0?r.getFileCount():0);
-							rSync.setFileSize((Long)r.getFileSize()>0?r.getFileSize():new Long(0));
-							if (hasBeenSkipped) {
-								rSync.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+
+							if (r.getFileCount() != null && r.getFileSize() != null) {
+								boolean hasBeenSkipped = r.getFileCount()<0 && (Long)r.getFileSize()<0;
+								rSync.setFileCount(r.getFileCount()>0?r.getFileCount():0);
+								rSync.setFileSize((Long)r.getFileSize()>0?r.getFileSize():new Long(0));
+								if (hasBeenSkipped) {
+									rSync.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+								}
+							}else {
+								r.setFileCount(0);
+								r.setFileSize(0);
 							}
 							scanSync.addResources(rSync);
 						}
@@ -147,12 +159,17 @@ public class ExperimentSyncItem extends SyncedItem {
 				for (XnatImageassessordataI assessor:imgSession.getAssessors()) {
 					ExperimentSyncItem assessorSync = new ExperimentSyncItem(assessor.getId(), assessor.getLabel());
 					for (XnatAbstractresourceI r: assessor.getOut_file()) {
-						boolean hasBeenSkipped = r.getFileCount()<0 && (Long)r.getFileSize()<0;
 						ResourceSyncItem rSync = new ResourceSyncItem(r.getLabel(), r.getLabel());
-						rSync.setFileCount(r.getFileCount()>0?r.getFileCount():0);
-						rSync.setFileSize((Long)r.getFileSize()>0?r.getFileSize():new Long(0));
-						if (hasBeenSkipped) {
-							rSync.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+						if (r.getFileCount()!=null && r.getFileSize() != null) {
+							boolean hasBeenSkipped = r.getFileCount()<0 && (Long)r.getFileSize()<0;
+							rSync.setFileCount(r.getFileCount()>0?r.getFileCount():0);
+							rSync.setFileSize((Long)r.getFileSize()>0?r.getFileSize():new Long(0));
+							if (hasBeenSkipped) {
+								rSync.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+							}
+						}else {
+							rSync.setFileCount(0);
+							rSync.setFileSize(0);
 						}
 						assessorSync.addResources(rSync);
 					}

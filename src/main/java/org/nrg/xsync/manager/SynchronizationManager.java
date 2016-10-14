@@ -148,7 +148,8 @@ public class SynchronizationManager {
 	}
 
 	public static String GET_SYNC_LOG_FILE_PATH(String projectId) {
-		return SynchronizationManager.GET_SYNC_FILE_PATH(projectId)+projectId+"_sync.log";
+		String timestampFolder = timeToPath(projectSyncStartTime.get(projectId));
+		return SynchronizationManager.GET_SYNC_FILE_PATH(projectId)+projectId+"_sync"+timestampFolder+".log";
 
 	}
 

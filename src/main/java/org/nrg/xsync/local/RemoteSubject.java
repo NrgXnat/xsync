@@ -424,7 +424,7 @@ public class RemoteSubject {
 		} else { //Its a Subject Assessor
 			XnatSubjectassessordata orig = (XnatSubjectassessordata) XnatSubjectassessordata.getXnatSubjectassessordatasById(origId, user, true);
 			if (isSubjectAssessorConfiguredToBeSyned(orig.getXSIType())) {
-				if (subjectAssessorNeedsOkToSync(orig.getXSIType())) {
+			/*	if (subjectAssessorNeedsOkToSync(orig.getXSIType())) {
 					if (hasBeenMarkedOkToSyncAndNotSyncedYet(orig.getId())) {
 						boolean updateOkToSyncAssessorStatus = true;
 						XnatSubjectassessordata cleaned_assessor = (XnatSubjectassessordata)experimentFilter.prepareSubjectAssessorToSync((XnatSubjectdata)localSubject,(XnatSubjectdata)remoteSubject, orig);
@@ -440,14 +440,14 @@ public class RemoteSubject {
 						 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been skipped as it has not been marked ok to sync");
 						 subjectSyncInfo.addExperiment(expSyncItem);
 					}					
-				}else { // NO OKs required, sync it
+				}else { */ // NO OKs required, sync it
 					boolean updateOkToSyncAssessorStatus = false;
 					XnatSubjectassessordata cleaned_assessor = (XnatSubjectassessordata)experimentFilter.prepareSubjectAssessorToSync((XnatSubjectdata)localSubject,(XnatSubjectdata)remoteSubject, orig);
 					cleaned_assessor.setProject(remoteSubject.getProject());
 					boolean stored = storeAssessor(origId, orig, (XnatSubjectdata)remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
 					if (!stored)
 						throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
-				}
+				//}
 			}
 		}
 	}
@@ -592,26 +592,32 @@ public class RemoteSubject {
 
 	private void modifyExptResource(XnatAbstractresourceI resource, XnatExperimentdata orig)  {
 		if (resource instanceof XnatResource) {
-			String path = ((XnatResource) resource).getUri();
-			int exp_label_index = path.indexOf(orig.getLabel());
-			String newURI = path.substring(exp_label_index+orig.getLabel().length());
-			if (newURI.startsWith(File.separator) || newURI.startsWith("/")) {
-				newURI=newURI.substring(1);
+			if (((XnatResource) resource).getUri() != null) {
+				String path = ((XnatResource) resource).getUri();
+				int exp_label_index = path.indexOf(orig.getLabel());
+				String newURI = path.substring(exp_label_index+orig.getLabel().length());
+				if (newURI.startsWith(File.separator) || newURI.startsWith("/")) {
+					newURI=newURI.substring(1);
+				}
+				((XnatResource) resource).setUri(newURI);
 			}
-			((XnatResource) resource).setUri(newURI);
 			//Clear the catalog entries metadata
 		} else if (resource instanceof XnatResourceseries) {
-			String path = ((XnatResourceseries) resource).getPath();
-			int exp_label_index = path.indexOf(orig.getLabel());
-			String newURI = path.substring(exp_label_index+orig.getLabel().length());
-			if (newURI.startsWith(File.separator)) {
-				newURI=newURI.substring(1);
+			if (((XnatResourceseries) resource).getPath() != null) {
+				String path = ((XnatResourceseries) resource).getPath();
+				int exp_label_index = path.indexOf(orig.getLabel());
+				String newURI = path.substring(exp_label_index+orig.getLabel().length());
+				if (newURI.startsWith(File.separator)) {
+					newURI=newURI.substring(1);
+				}
+				((XnatResource) resource).setUri(newURI);
 			}
-			((XnatResource) resource).setUri(newURI);
 		}
 		//Negative values indicate that the resource is being skipped
-		resource.setFileCount(resource.getFileCount()>0?resource.getFileCount():-1*resource.getFileCount());
-		resource.setFileSize((Long)resource.getFileSize()>0?resource.getFileSize():-1*(Long)resource.getFileSize());
+		if (resource.getFileCount() != null )
+			resource.setFileCount(resource.getFileCount()>0?resource.getFileCount():-1*resource.getFileCount());
+		if (resource.getFileSize() != null)
+			resource.setFileSize((Long)resource.getFileSize()>0?resource.getFileSize():-1*(Long)resource.getFileSize());
 	}
 	private void prepareResourceURI(XnatExperimentdata exp){
 		for (final XnatAbstractresourceI res : exp.getResources_resource()) {
