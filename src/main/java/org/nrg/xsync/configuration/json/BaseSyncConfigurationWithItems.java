@@ -1,5 +1,7 @@
 package org.nrg.xsync.configuration.json;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.nrg.xsync.utils.XsyncUtils;
@@ -9,25 +11,26 @@ import org.nrg.xsync.utils.XsyncUtils;
  *
  */
 public class BaseSyncConfigurationWithItems extends BaseSyncConfiguration{
-	List<String> item_list;
+	List<String> items = new ArrayList<String>();
 
 	
 	/**
 	 * @return the items
 	 */
-	public List<String> getItem_list() {
-		return item_list;
+	public List<String> getItems() {
+		return items;
 	}
+	
 	/**
 	 * @param items the items to set
 	 */
-	public void setItem_list(List<String> items) {
-		this.item_list = items;
+	public void setItems(List<String> items) {
+		this.items = items;
 	}
-
+	
 	protected boolean isIncludedInItemList(String label) {
 		boolean contains = false;
-		for (String x:item_list) {
+		for (String x:items) {
 			if (x.equals(label)) {
 				contains = true;
 				break;

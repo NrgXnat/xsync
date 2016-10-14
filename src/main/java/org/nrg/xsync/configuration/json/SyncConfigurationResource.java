@@ -17,7 +17,7 @@ public class SyncConfigurationResource extends BaseSyncConfigurationWithItems{
 	public static SyncConfigurationResource GetDefaultSyncConfigurationResource() {
 		SyncConfigurationResource resource = new SyncConfigurationResource();
 		resource.setSync_type(XsyncUtils.SYNC_TYPE_ALL);
-		resource.setItem_list(new ArrayList<String>());
+		resource.setItems(new ArrayList<String>());
 		return resource;
 	}
 	

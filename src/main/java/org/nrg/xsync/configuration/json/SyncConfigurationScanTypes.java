@@ -17,7 +17,7 @@ public class SyncConfigurationScanTypes extends BaseSyncConfigurationWithItems {
 	public static SyncConfigurationScanTypes GetDefaultSyncConfigurationScanTypes() {
 		SyncConfigurationScanTypes scan = new SyncConfigurationScanTypes();
 		scan.setSync_type(XsyncUtils.SYNC_TYPE_ALL);
-		scan.setItem_list(new ArrayList<String>());
+		scan.setItems(new ArrayList<String>());
 		return scan;
 	}
 	
