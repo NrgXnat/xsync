@@ -5,7 +5,7 @@
 	  url:XNAT.url.csrfUrl('/xapi/xsync/setup/projects/'+XNAT.data.context.project),
 	  type:"GET",
 	  success: function(data){
-	      var configuration = JSON.parse(data);
+	      var configuration = data;
 	      if (configuration.enabled === true) {	
 	        document.getElementById('showSyncData').style.display="";
 	      }else {

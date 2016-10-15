@@ -17,7 +17,7 @@ XSYNC.xsyncconfig.init = function() {
     XNAT.xhr.getJSON({
         url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
         done: function(data) {
-            XSYNC.xsyncconfig.configuration = JSON.parse(data);
+            XSYNC.xsyncconfig.configuration = data;
             XSYNC.xsyncconfig.showConfigPanel()
         },
         fail: function() {
@@ -68,16 +68,23 @@ XSYNC.xsyncconfig.initialConfig = function() {
 
 XSYNC.xsyncconfig.showConfigPanel = function() {
     var xsyncConfigDiv = $("#xsync-config-div");
+	var appendContent =  '<div>' +
+            			    '<input type="button" class="btn1 xsync-submit-button" id="xsync-edit-config" value="Edit Configuration">' +
+          				    '<input type="button" class="btn1 xsync-submit-button" id="xsync-credentials" value="Remote Credentials">';
+	    appendContent +=    '<input type="button" class="btn1 xsync-submit-button" id="xsync-upload-anonymization" value="Configure Anonymization"';
+	if (XSYNC.xsyncconfig.configuration.anonymize === false) {
+	    appendContent += ' disabled > ';
+	} else {
+	    appendContent += ' > ';
+   }
+	    appendContent +=    '<h2 id="xsync-history-header" style="display:none">Sync History</h2>' +
+	                      '<div id="xsync-history-table" style="max-height:300px; overflow-y:scroll"></div>' +
+	                      '</div>' +
+	                      '<br>';
+
 
     xsyncConfigDiv.append(
-        '<div>' +
-            '<input type="button" class="btn1 xsync-submit-button" id="xsync-edit-config" value="Edit Configuration">' +
-            '<input type="button" class="btn1 xsync-submit-button" id="xsync-credentials" value="Remote Credentials">' +
-            '<input type="button" class="btn1 xsync-submit-button" id="xsync-upload-anonymization" value="Configure Anonymization">' +
-            '<h2 id="xsync-history-header" style="display:none">Sync History</h2>' +
-            '<div id="xsync-history-table" style="max-height:300px; overflow-y:scroll"></div>' +
-        '</div>' +
-        '<br>'
+	   appendContent
     );
 
     $("#xsync-edit-config").click( function() {

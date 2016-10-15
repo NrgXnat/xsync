@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,7 +23,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -78,13 +79,25 @@ public class XsyncSetupController extends AbstractXapiRestController {
 		}
 	}
 
+	
 	@ApiOperation(value = "Gets the Xsync project configuration" )
 	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
 	@RequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
-	public ResponseEntity<String> setup(@PathVariable("projectId") final String projectId) {
+	public ResponseEntity<JsonNode> setup(@PathVariable("projectId") final String projectId) {
 		final Configuration conf = _configService.getConfig("xsync", "json", Scope.Project, projectId);
 		final String config = conf != null ? conf.getContents() : null;
-		return StringUtils.isNotBlank(config) ? new ResponseEntity<>(config,  HttpStatus.OK) : new ResponseEntity<String>(HttpStatus.NOT_FOUND);
+		//HACK - to avoid escaped String being sent as response
+		ObjectMapper objectMapper = new ObjectMapper();
+		if (StringUtils.isNotBlank(config)) {
+			try {
+				JsonNode node = objectMapper.readTree(config);
+				return new ResponseEntity<>(node,  HttpStatus.OK);
+			}catch(Exception e) {
+				return new ResponseEntity<JsonNode>(HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		}else {
+			return new ResponseEntity<JsonNode>(HttpStatus.NOT_FOUND);
+		}
 	}
 
 	private void saveConfig(XnatProjectdata project, String xsyncConfigJson, String projectId) throws Exception {
