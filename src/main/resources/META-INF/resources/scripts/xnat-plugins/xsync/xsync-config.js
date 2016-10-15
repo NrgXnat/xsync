@@ -110,9 +110,9 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
     var modalContent =
         '<div>' +
         '<div class = "credentials-header-div credentials-div">' +
-        '<h3 style="text-align:center">Enter credentials for ' + remoteProjectId + '</h3>' +
+        '<h3 style="text-align:center">Enter credentials for ' +  credHost + '</h3>' +
         '</div>' +
-        '<input id="xsync-credentials-host" type="hidden" value="' + remoteProjectId + '">' +
+        '<input id="xsync-credentials-host" type="hidden" value="' + credHost  + '">' +
         '<div class = "credentials-div">' +
         '<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
         '</div>' +
@@ -182,12 +182,12 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                             xmodal.message(
                                 'Credentials saved',' WARNING: ' + jqXHR.responseText + '\n' +
                                 'Successfully saved credentials for remote server ' +
-                                $("#xsync-credentials-host").val()
+                                credHost
                             );
                         }else {
                             xmodal.message(
                                 'Credentials saved','Successfully saved credentials for remote server ' +
-                                $("#xsync-credentials-host").val()
+                                credHost
                             );
                         }
                         modl.close();
@@ -200,7 +200,7 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                     saveCredentials.fail( function( data, textStatus, jqXHR ) {
                         xmodal.message(
                             'Error','Could not save credentials for remote server '  +
-                            $("#xsync-credentials-host").val() + ' Cause: ' + data.statusText + " Details: " + data.responseText
+                            credHost + ' Cause: ' + data.statusText + " Details: " + data.responseText
                         );
                         modl.close();
                     });

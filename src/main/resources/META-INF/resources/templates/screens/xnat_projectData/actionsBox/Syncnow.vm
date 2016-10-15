@@ -1,6 +1,25 @@
 <!-- Sequence: 18 -->
 <!-- allowGuest: false -->
 <script type="text/javascript" >
+	XNAT.xhr.getJSON({
+	  url:XNAT.url.csrfUrl('/xapi/xsync/setup/projects/'+XNAT.data.context.project),
+	  type:"GET",
+	  success: function(data){
+	      var configuration = JSON.parse(data);
+	      if (configuration.enabled === true) {	
+	        document.getElementById('showSyncData').style.display="";
+	      }else {
+	        document.getElementById('showSyncData').style.display="none";
+	      }
+	  },
+	  error: function(o) {
+	      document.getElementById('showSyncData').style.display="none";
+	  }
+	});
+
+
+
+
 function syncNow(projectId) {
 	var exporturl = serverRoot + '/xapi/xsync/projects/'+projectId+'?XNAT_CSRF='+csrfToken ;
 	$.ajax({
@@ -33,7 +52,9 @@ function syncNow(projectId) {
 </script>
 
 #if($data.getSession().getAttribute("userHelper").canDelete($project))
+<div id="showSyncData">
 <li class="yuimenuitem">
 	<a class="yuimenuitemlabel" href="javascript:syncNow('$!{project.getId()}');">Sync Data</a>
 </li>
+</div>
 #end
