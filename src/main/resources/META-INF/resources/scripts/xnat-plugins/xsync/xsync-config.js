@@ -3,6 +3,7 @@ if (typeof XSYNC === 'undefined') {
 }
 if (typeof XSYNC.xsyncconfig === 'undefined') {
     XSYNC.xsyncconfig = {};
+    XSYNC.xsyncconfig.firsttime=false;
 }
 if (typeof XSYNC.credentialsconfig === 'undefined') {
     XSYNC.credentialsconfig = {};
@@ -29,6 +30,7 @@ XSYNC.xsyncconfig.init = function() {
 
 XSYNC.xsyncconfig.useDefaultConfig = function() {
     // Use the defaults to populate config dialog
+    XSYNC.xsyncconfig.firsttime=true;
     XSYNC.xsyncconfig.configuration = {};
     XSYNC.xsyncconfig.configuration.project_resources = {};
     XSYNC.xsyncconfig.configuration.subject_resources = {};
@@ -178,19 +180,21 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                         contentType: "text/plain"
                     });
                     saveCredentials.done( function( data, textStatus, jqXHR ) {
-                        if (jqXHR.status == 202) {
-                            xmodal.message(
-                                'Credentials saved',' WARNING: ' + jqXHR.responseText + '\n' +
-                                'Successfully saved credentials for remote server ' +
-                                credHost
-                            );
-                        }else {
-                            xmodal.message(
-                                'Credentials saved','Successfully saved credentials for remote server ' +
-                                credHost
-                            );
-                        }
-                        modl.close();
+							if (jqXHR.status == 202) {
+								xmodal.message(
+									'Credentials saved',' WARNING: ' + jqXHR.responseText + '\n' +
+									'Successfully saved credentials for remote server ' +
+									credHost
+								);
+							}else {
+								if (XSYNC.xsyncconfig.firsttime === false) {
+									xmodal.message(
+										'Credentials saved','Successfully saved credentials for remote server ' +
+										credHost
+									);
+								}
+							}
+							modl.close();
 
                         // submit the config json again if this was called from submitConfig
                         if (configJson !== undefined) {
