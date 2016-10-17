@@ -300,8 +300,14 @@ public class RemoteSubject {
 		String localProjectArchivePath = localProject.getArchiveRootPath();
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 		ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
-		resourceSyncItem.setFileCount(resource.getFileCount());
-		resourceSyncItem.setFileSize(resource.getFileSize());
+		if (resource.getFileCount() != null)
+			resourceSyncItem.setFileCount(resource.getFileCount());
+		else 
+			resourceSyncItem.setFileCount(0);
+		if (resource.getFileSize() != null)
+			resourceSyncItem.setFileSize(resource.getFileSize());
+		else 
+			resourceSyncItem.setFileSize(new Long(0));
 		try {
 			String archiveDirectory = ((XnatAbstractresource)resource).getFullPath(localProjectArchivePath);
 			File resourcePath = new File(archiveDirectory);

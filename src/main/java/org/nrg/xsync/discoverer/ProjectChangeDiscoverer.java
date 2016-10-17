@@ -1,15 +1,30 @@
 package org.nrg.xsync.discoverer;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
+import org.nrg.xdat.base.BaseElement;
+import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.XnatAbstractresourceI;
+import org.nrg.xdat.model.XnatProjectdataI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatProjectdata;
+import org.nrg.xdat.om.XnatResourcecatalog;
 import org.nrg.xdat.om.XnatSubjectdata;
+import org.nrg.xft.ItemI;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xft.utils.FileUtils;
+import org.nrg.xnat.utils.ResourceUtils;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -33,12 +48,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
 
 /**
  * @author Mohana Ramaratnam
@@ -96,7 +105,9 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         //Write all the files
         //Upload the XAR
         //_log.debug(_projectSyncConfiguration.toString());
-        try {
+    	XnatAbstractresourceI synchronizationResource = null;
+    	XnatProjectdata project = null;
+    	try {
             Boolean isSyncEnabled = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncEnabled();
             if (!isSyncEnabled) {
                 return;
@@ -117,7 +128,8 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             //try {
             //	Thread.sleep(120000);
             //}catch(Exception e){}
-            XnatProjectdata project = _projectSyncConfiguration.getProject();
+            project = _projectSyncConfiguration.getProject();
+            synchronizationResource = createSynchronizationLogResource(project);
             String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
             String remoteHost = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 
@@ -165,7 +177,14 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             saveSyncBlockStatus(Boolean.FALSE);
             XSyncFailureHandler.handle(_mailService, _xnatInfo.getAdminEmail(), _manager.getSiteId(), _projectId, e, "Sync failed");
         }finally{
-        	_observer.close();
+        	_observer.close(synchronizationResource);
+        	if (synchronizationResource != null && project != null) {
+           		//RefreshCatalog
+        	    EventMetaI now = EventUtils.DEFAULT_EVENT(_user, "Synchronization Log Added");
+        		try  {
+        			ResourceUtils.refreshResourceCatalog((XnatAbstractresource)synchronizationResource, project.getArchiveRootPath(), true, true, true, true, _user, now);
+        		}catch(Exception e) {_log.debug("Unable to refresh catalog");}
+        	}
         }
     }
 
@@ -194,6 +213,9 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         String localProjectArchivePath = localProject.getArchiveRootPath();
         for (Map<String, Object> row : resourceRows) {
             String label = (String) row.get("label");
+            if (label.equalsIgnoreCase(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL)) {
+            	continue;
+            }
             _log.debug("Resource " + row.get("label") + " has been modfied since " + this.getLastSyncStartTime());
             if (_projectSyncConfiguration.isResourceToBeSynced(label)) {
                 String status = (String) row.get("status");
@@ -273,8 +295,10 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             XnatAbstractresource resource = getResource(resourceLabel);
             ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, resourceLabel);
     		resourceSyncItem.addObserver(_observer);
-            resourceSyncItem.setFileCount(resource.getFileCount());
-            resourceSyncItem.setFileSize(resource.getFileSize());
+    		if (resource.getFileCount() != null)
+    			resourceSyncItem.setFileCount(resource.getFileCount());
+            if (resource.getFileSize() != null)
+            	resourceSyncItem.setFileSize(resource.getFileSize());
             String archiveDirectory = resource.getFullPath(localProjectArchivePath);
             File resourcePath = new File(archiveDirectory);
             if (resourcePath.exists() && resourcePath.isFile()) {
@@ -417,6 +441,64 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                 SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncItem);
             }
         }
+    }
+    
+    private XnatAbstractresourceI createSynchronizationLogResource(XnatProjectdata project) throws Exception {
+    	boolean synchronizationResourceExists  = false;
+    	for (XnatAbstractresourceI r: project.getResources_resource()) {
+    		if (r.getLabel().equalsIgnoreCase(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL)) {
+    			synchronizationResourceExists = true;
+    		}
+    		if (synchronizationResourceExists) {
+    			return r;
+    		}
+    	}
+    	if (!synchronizationResourceExists) {
+    		//Create the resource
+    		//Create a catalog
+    		Class c = BaseElement.GetGeneratedClass(XnatResourcecatalog.SCHEMA_ELEMENT_NAME);
+    		ItemI o = null;
+            o = (ItemI) c.newInstance();
+
+    		XnatResourcecatalog catResource = (XnatResourcecatalog)BaseElement.GetGeneratedItem(o);
+    		catResource.setLabel(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL);
+    		catResource.setContent(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL);
+    		
+    		String resourceFolder=catResource.getLabel();
+    		String dest_path = FileUtils.AppendRootPath(project.getArchiveRootPath() , "resources/" );
+    		File dest=null;
+    		CatCatalogBean cat = new CatCatalogBean();
+    		cat.setId(catResource.getLabel());
+
+    		if(resourceFolder==null){
+    			dest = new File(new File(dest_path),cat.getId() + "_catalog.xml");
+    		}else{
+    			dest = new File(new File(dest_path,resourceFolder),cat.getId() + "_catalog.xml");
+    		}
+    		dest.getParentFile().mkdirs();
+    		try {
+    			FileWriter fw = new FileWriter(dest);
+    			cat.toXML(fw, true);
+    			fw.close();
+    		} catch (IOException e) {
+    			_log.error("",e);
+    		}
+
+    		catResource.setUri(dest.getAbsolutePath());
+    		project.addResources_resource(catResource);
+	       try {
+	   	        EventMetaI e = EventUtils.DEFAULT_EVENT(_user, "ADMIN_EVENT occurred");
+	            boolean saved = project.save(_user, false, false, e);
+	            if (!saved) {
+	            	_log.error("Unable to save " + project.getId() + ". User " + _user.getLogin() + " may not have sufficient privileges");
+	            }
+	        }catch(Exception e) {
+	        	_log.error("Unable to save " + project.getId() + ". User " + _user.getLogin() + " may not have sufficient privileges");
+	        }
+    	     		
+    		return catResource;
+    	}
+    	return null;
     }
 
 }

@@ -7,6 +7,10 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Observable;
 import java.util.Observer;
+import org.nrg.xdat.model.XnatAbstractresourceI;
+import org.nrg.xft.utils.FileUtils;
+import org.nrg.xdat.om.XnatAbstractresource;
+import org.nrg.xdat.om.XnatResourcecatalog;
 
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.manifest.SyncManifest;
@@ -60,13 +64,22 @@ public class XsyncObserver implements Observer {
 		}
 	}
 	
-	public void close() {
+	
+	public void close(XnatAbstractresourceI syncResource) {
 		try {
 			Date now = new Date();
 	        bWriter.write("-------------------" + now + "------------------------");
 	        bWriter.newLine();
 			bWriter.close();
 			fw.close();
+			
+			if (syncResource != null) {
+				XnatResourcecatalog catalog = (XnatResourcecatalog)syncResource; 
+				File catalogLocation = new File(catalog.getUri()) ;
+				File catalogParent = catalogLocation.getParentFile();
+				File dest = new File(catalogParent.getAbsolutePath() + File.separator + logFile.getName());
+	    		FileUtils.CopyFile(logFile, dest, true);
+ 			}
 		}catch(Exception e) {
 			logger.error("Unable to close file buffers");
 		}

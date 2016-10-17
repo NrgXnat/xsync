@@ -390,8 +390,8 @@ public class ExperimentFilter {
 			if (hasResourceBeenModified) {
 				modifyExptResourceFiles(path, newURI);
 			}else {
-				resource.setFileCount(-1*resource.getFileCount());
-				resource.setFileSize(-1*(Long)resource.getFileSize());
+				resource.setFileCount((resource.getFileCount() != null)?-1*resource.getFileCount():-1);
+				resource.setFileSize((resource.getFileCount() != null)?-1*(Long)resource.getFileSize():-1);
 			}
 		} else if (resource instanceof XnatResourceseries) {
 			String path = ((XnatResourceseries) resource).getPath();
