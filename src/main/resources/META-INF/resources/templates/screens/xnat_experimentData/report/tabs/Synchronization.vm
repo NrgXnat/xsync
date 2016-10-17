@@ -106,7 +106,7 @@ function setOkToSync(projectId,xnat_id, exp_label) {
 	</tr>
 	<tr> 
 	<th align="left">Remote Session report:</th>
-	<td><a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a></td>
+	<td>#if ($syncAssessor.getSyncStatus() == "Waiting to Sync") Not available #else <a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a>#end </td>
 	</tr>
 	#end
 	</table>
