@@ -72,16 +72,20 @@ public class XsyncObserver implements Observer {
 	        bWriter.newLine();
 			bWriter.close();
 			fw.close();
-			
+		}catch(Exception e) {
+			logger.error("Unable to close file buffers");
+		}
 			if (syncResource != null) {
 				XnatResourcecatalog catalog = (XnatResourcecatalog)syncResource; 
 				File catalogLocation = new File(catalog.getUri()) ;
 				File catalogParent = catalogLocation.getParentFile();
 				File dest = new File(catalogParent.getAbsolutePath() + File.separator + logFile.getName());
-	    		FileUtils.CopyFile(logFile, dest, true);
- 			}
-		}catch(Exception e) {
-			logger.error("Unable to close file buffers");
-		}
+				try {			
+					FileUtils.CopyFile(logFile, dest, true);
+				}catch(Exception e) {
+					logger.error("Unable to save file " + logFile.getAbsolutePath() + " to " + dest.getAbsolutePath());
+				}
+			}
+		
 	}
 }
