@@ -58,7 +58,7 @@ public class SyncConfigurationImagingSessions extends BaseSyncConfiguration{
 	protected boolean isIncludedInXsiTypeList(String xsiType) {
 		boolean contains = false;
 		for (SyncConfigurationImagingSessionXsiType x:xsi_types) {
-			if (x.equals(xsiType)) {
+			if (x.xsi_type.equals(xsiType)) {
 				contains = true;
 				break;
 			}

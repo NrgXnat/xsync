@@ -301,7 +301,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
         okToSyncData.setAuthorizedTime(new Date());
         okToSyncData.setSyncStatus("Waiting to Sync");
 
-        okToSyncData.setRemoteUrl("Not available");
+        okToSyncData.setRemoteUrl(syncProjectConfiguration.getSyncinfo().getRemoteUrl());
         okToSyncData.setRemoteProjectId(syncProjectConfiguration.getSyncinfo().getRemoteProjectId());
         if (experiment instanceof XnatSubjectassessordata) {
             okToSyncData.setSubjectId(((XnatSubjectassessordata) experiment).getSubjectId());
