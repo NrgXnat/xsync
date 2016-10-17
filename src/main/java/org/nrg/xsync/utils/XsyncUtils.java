@@ -68,6 +68,7 @@ public class XsyncUtils {
 	public static final String USER_ACCESS_COLLABORATOR= "collaborator";
 	public static final String USER_API_GROUP_ID= "GROUP_ID";
 	public static final String USER_API_LOGIN= "login";
+	public static final String PROJECT_SYNC_LOG_RESOURCE_LABEL="SYNCHRONIZATION_LOGS";
 	
 
 	private static final Logger _log = LoggerFactory.getLogger(XsyncUtils.class);
