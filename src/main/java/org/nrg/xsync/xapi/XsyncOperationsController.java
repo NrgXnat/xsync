@@ -299,7 +299,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
         }
         okToSyncData.setAuthorizedBy(user.getLogin());
         okToSyncData.setAuthorizedTime(new Date());
-        okToSyncData.setSyncStatus("Waiting to Sync");
+        okToSyncData.setSyncStatus(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC);
 
         okToSyncData.setRemoteUrl(syncProjectConfiguration.getSyncinfo().getRemoteUrl());
         okToSyncData.setRemoteProjectId(syncProjectConfiguration.getSyncinfo().getRemoteProjectId());

@@ -47,6 +47,7 @@ import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -193,7 +194,7 @@ public class ExperimentFilter {
 						if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
 							_log.debug("Experiment Marked OK to Sync: " + (String)row.get("id"));
 							XnatExperimentdataI exp = getExperiment((String)row.get("id"));
-							boolean hasBeenSynced = ((String)row.get("sync_status"))==null?false:true;
+							boolean hasBeenSynced = ((String)row.get("sync_status"))==null?false:(((String)row.get("sync_status")==XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC)?false:true);
 							if (hasBeenSynced) {
 								//Was this session modified? Is syncOnlyNew set?
 								if (!syncOnlyNew) {

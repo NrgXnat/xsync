@@ -70,6 +70,8 @@ public class XsyncUtils {
 	public static final String USER_API_LOGIN= "login";
 	public static final String PROJECT_SYNC_LOG_RESOURCE_LABEL="SYNCHRONIZATION_LOGS";
 	
+	public static final String SYNC_STATUS_WAITING_TO_SYNC="Waiting to Sync";
+	
 
 	private static final Logger _log = LoggerFactory.getLogger(XsyncUtils.class);
 
