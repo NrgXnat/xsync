@@ -194,7 +194,13 @@ public class ExperimentFilter {
 						if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
 							_log.debug("Experiment Marked OK to Sync: " + (String)row.get("id"));
 							XnatExperimentdataI exp = getExperiment((String)row.get("id"));
-							boolean hasBeenSynced = ((String)row.get("sync_status"))==null?false:(((String)row.get("sync_status")==XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC)?false:true);
+							String existingSyncStatus = (String)row.get("sync_status");
+							boolean hasBeenSynced = false;
+							if (existingSyncStatus != null)  {
+								if (!XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC.equals(existingSyncStatus))
+									hasBeenSynced = true;
+							}
+								
 							if (hasBeenSynced) {
 								//Was this session modified? Is syncOnlyNew set?
 								if (!syncOnlyNew) {
