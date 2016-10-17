@@ -1,100 +1,93 @@
 {
-  "enabled": true, // new element, used when there's existing config but we want to disable sync
-  "sync_frequency": "daily",
-  "sync_new_only": false, // suggested name change
-  "source_project_id": "TEST1ID", // suggested name change
-  "remote_project_id": "SyncProjectId",
-  "remote_url": "http://localhost:8080/xnat",
-  "identifiers": "use_local",
-
-  "project_resources": {
-    "sync_type": "include",
-    "resource_list": ["RES1"]
-  },
-
-  "subject_resources": {
-    "sync_type": "include",
-    "resource_list": ["S1RESOURCE", "S2RESOURCE"]
-  },
-
-  "subject_assessors": {
-    "xsi_types": {
-      "sync_type": "include",
-      "types_list": ["dpuk:dpukAssessmentData", "hcp:subjectMetaData"]
+    "enabled": true,
+    "sync_frequency": "daily",
+    "sync_new_only": false,
+    "source_project_id": "TEST1ID",
+    "remote_project_id": "SyncProjectId",
+    "remote_url": "http://localhost:8080/xnat",
+    "identifiers": "use_local",
+    "anonymize": true,
+    "project_resources": {
+        "sync_type": "include",
+        "items": [
+            "RES1"
+        ]
     },
-    // if nothing else is specified, include every resource under these assessors
-
-    // but you can also specify an advanced config for each xsiType
-    "advanced_options": [
-      {
-        "xsi_type": "dpuk:dpukAssessmentData",
-        "needs_ok_to_sync": false,
-
-        "resources": {
-          "sync_type": "include",
-          "resource_list": ["DPUK1RESOURCE"]
-        }
-      },
-      {
-        "xsi_type": "hcp:subjectMetaData",
-        "needs_ok_to_sync": false,
-
-        "resources" : {
-          "sync_type": "none"
-        }
-
-      }
-    ]
-  },
-
-  "imaging_sessions": {
-    "xsi_types": {
-      "sync_type": "include",
-      "types_list": ["xnat:mrSessionData", "xnat:megSessiondata"]
+    "subject_resources": {
+        "sync_type": "include",
+        "items": [
+            "S1RESOURCE",
+            "S2RESOURCE"
+        ]
     },
-    // if nothing else is specified, include every assessor and resource under specified sessions
-
-    "advanced_options": [
-      {
-        "xsi_type": "xnat:mrSessionData",
-        "anonymize": true,
-        "needs_ok_to_sync": true,
-
-        "resources": {
-          "sync_type": "exclude",
-          "resource_list": ["MR1RESOURCE", "MR2RESOURCE"]
-        },
-
-        "session_assessors": {
-          "xsi_types": {
-            "sync_type": "include",
-            "types_list": ["qc:qcAssessmentData"]
-          },
-
-          // basically, all assessors could have advanced options
-          "advanced_options": [
+    "subject_assessors": {
+        "sync_type": "include",
+        "xsi_types": [
             {
-              "xsi_type": "qc:qcAssessmentData",
-              "needs_ok_to_sync": false,
-
-              "resources": {
-                "sync_type": "include",
-                "resource_list": ["QCASSESSMENT1"]
-              }
+                "xsi_type": "dpuk:dpukAssessmentData",
+                "needs_ok_to_sync": false,
+                "resources": {
+                    "sync_type": "include",
+                    "items": [
+                        "DPUK1RESOURCE"
+                    ]
+                }
+            },
+            {
+                "xsi_type": "hcp:subjectMetaData",
+                "needs_ok_to_sync": false,
+                "resources": {
+                    "sync_type": "none",
+                    "items": []
+                }
             }
-          ]
-        },
-
-        "scan_types": {
-          "sync_type": "include",
-          "scan_type_list": ["T1w", "T2w", "fMRI", "rMRI"]
-        },
-
-        "scan_resources": {
-          "sync_type": "include",
-          "resource_list": ["DICOM", "NIFTI"]
-        }
-      }
-    ]
-  }
+        ]
+    },
+    "imaging_sessions": {
+        "sync_type": "include",
+        "xsi_types": [
+            {
+                "xsi_type": "xnat:mrSessionData",
+                "needs_ok_to_sync": true,
+                "resources": {
+                    "sync_type": "exclude",
+                    "items": [
+                        "MR1RESOURCE",
+                        "MR2RESOURCE"
+                    ]
+                },
+                "session_assessors": {
+                    "sync_type": "include",
+                    "xsi_types": [
+                        {
+                            "xsi_type": "qc:qcAssessmentData",
+                            "needs_ok_to_sync": false,
+                            "resources": {
+                                "sync_type": "include",
+                                "items": [
+                                    "QCASSESSMENT1"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "scan_types": {
+                    "sync_type": "include",
+                    "items": [
+                        "T1w",
+                        "T2w",
+                        "fMRI",
+                        "rMRI"
+                    ]
+                },
+                "scan_resources": {
+                    "sync_type": "include",
+                    "items": [
+                        "DICOM",
+                        "NIFTI"
+                    ]
+                }
+            }
+        ]
+    }
 }
