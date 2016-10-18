@@ -45,7 +45,7 @@
                 <script>
                     (function(){
 
-                        var jsonUrl = XNAT.url.rootUrl('/xapi/spawner/resolve/xsyncSiteConfiguration/xsyncConfigPage');
+                        var jsonUrl = XNAT.url.rootUrl('/xapi/spawner/resolve/xsyncPlugin/siteSettings');
 
                         $.get({
                             url: jsonUrl,

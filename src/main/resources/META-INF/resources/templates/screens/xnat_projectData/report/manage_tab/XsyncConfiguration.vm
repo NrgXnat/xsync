@@ -1,9 +1,9 @@
 
 #set ($SITE_ROOT = $content.getURI(''))
 
-<link type="text/css" rel="stylesheet" href="${SITE_ROOT}/style/xnat-plugins/xsync.css">
-<script type="text/javascript" src="${SITE_ROOT}/scripts/xnat-plugins/xsync/xsync-config.js"></script>
-<script type="text/javascript" src="${SITE_ROOT}/scripts/xnat-plugins/xsync/xsync-reporting.js"></script>
+<link type="text/css" rel="stylesheet" href="${SITE_ROOT}/style/xnat-plugins/xsyncPlugin/style.css">
+<script type="text/javascript" src="${SITE_ROOT}/scripts/xnat-plugins/xsyncPlugin/xsync-config.js"></script>
+<script type="text/javascript" src="${SITE_ROOT}/scripts/xnat-plugins/xsyncPlugin/xsync-reporting.js"></script>
 <script type="text/javascript" src="${SITE_ROOT}/scripts/xnat/app/codeEditor.js"></script>
 
 <h3>XSync Configuration</h3>
