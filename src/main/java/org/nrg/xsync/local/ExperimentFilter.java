@@ -582,6 +582,25 @@ public class ExperimentFilter {
 	}
 
 	/**
+	 * Filter experiment resources.
+	 *
+	 * @param exp
+	 *            the exp
+	 * @throws IndexOutOfBoundsException
+	 *             the index out of bounds exception
+	 * @throws FieldNotFoundException
+	 *             the field not found exception
+	 */
+	public void filterSubjectAssessorResources(XnatSubjectassessordata exp)
+			throws Exception {
+		SyncConfigurationXsiType session = projectSyncConfiguration.getSynchronizationConfiguration().getSubjectAssessor(exp.getXSIType());
+	    SyncConfigurationResource sessionResources = session.getResources();
+		while (findAndRemoveExperimentResources(exp, sessionResources))	;
+		return;
+	}
+	
+	
+	/**
 	 * Find and remove experiment resources.
 	 *
 	 * @param exp
@@ -819,6 +838,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 			XnatSubjectassessordataI orig)
 					throws Exception {
 		XnatSubjectassessordataI assess = (XnatSubjectassessordataI) correctIDandLabel((XnatSubjectdata)newSubject,(XnatSubjectassessordata)orig);
+		filterSubjectAssessorResources((XnatSubjectassessordata)assess);
 		for (final XnatAbstractresourceI res : assess.getResources_resource()) {
 			//modifySubjectAssessorResource((XnatAbstractresource) res, origSubject, newSubject);
 			modifyExptResource((XnatAbstractresource) res, (XnatExperimentdata)orig);
