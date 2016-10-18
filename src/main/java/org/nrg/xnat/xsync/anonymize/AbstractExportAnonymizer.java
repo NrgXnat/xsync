@@ -44,7 +44,6 @@ public abstract class AbstractExportAnonymizer implements Callable<java.lang.Voi
 		
 		if (StringUtils.isNotEmpty(scriptContent)) {
 			Anonymize.anonymize(f, this.getProjectName(), this.getSubject(), this.getLabel(), true, new Long(0),scriptContent);
-			checkAnonymization(f);
 			if (this.next != null) {
 				this.next.anonymize(f);
 			}
@@ -57,27 +56,6 @@ public abstract class AbstractExportAnonymizer implements Callable<java.lang.Voi
 		}
 	}
 
-	/*
-	 * Must fail if anonymization script is now run successfully.
-	 * 
-	 */
-	void checkAnonymization(File f) {
-		try {
-			DicomObject dcmFile = DicomUtils.read(f);
-			String deident = dcmFile.getString(Tag.DeidentificationMethod);
-			if (deident != null) {
-				boolean anonymizationDone = StringUtils.contains(deident,"XSYNC anonymization script"); 
-				if ( anonymizationDone == false) {
-					logger.error("Cannot find Data DeidentificationMethod in dicom. FAILED!! ");
-					throw new RuntimeException("Cannot find Data DeidentificationMethod in dicom. Anonymization FAILED");
-				}
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			logger.error("",e);
-			throw new RuntimeException("Cannot find Data DeidentificationMethod in dicom. Anonymization FAILED");
-		}
-	}
 
 	/**
 	 * Get the appropriate edit script.
