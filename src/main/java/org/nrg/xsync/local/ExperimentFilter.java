@@ -581,6 +581,8 @@ public class ExperimentFilter {
 		return;
 	}
 
+	
+	
 	/**
 	 * Find and remove experiment resources.
 	 *
@@ -819,6 +821,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 			XnatSubjectassessordataI orig)
 					throws Exception {
 		XnatSubjectassessordataI assess = (XnatSubjectassessordataI) correctIDandLabel((XnatSubjectdata)newSubject,(XnatSubjectassessordata)orig);
+		filterExperimentResources((XnatExperimentdata)assess);
 		for (final XnatAbstractresourceI res : assess.getResources_resource()) {
 			//modifySubjectAssessorResource((XnatAbstractresource) res, origSubject, newSubject);
 			modifyExptResource((XnatAbstractresource) res, (XnatExperimentdata)orig);
