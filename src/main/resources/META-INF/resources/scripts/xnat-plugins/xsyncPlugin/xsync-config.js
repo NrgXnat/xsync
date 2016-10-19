@@ -9,6 +9,12 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
     XSYNC.credentialsconfig = {};
 }
 
+
+XSYNC.xsyncconfig.mergeConfig = function(data){
+    return XSYNC.xsyncconfig.configuration = extend(true, XSYNC.xsyncconfig.configuration||{}, data);
+};
+
+
 /*
  Initialization
 */
@@ -17,7 +23,8 @@ XSYNC.xsyncconfig.init = function() {
     XNAT.xhr.getJSON({
         url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
         done: function(data) {
-            XSYNC.xsyncconfig.configuration = data;
+            XSYNC.xsyncconfig.mergeConfig(data);
+            // XSYNC.xsyncconfig.configuration = data;
             XSYNC.xsyncconfig.showConfigPanel()
         },
         fail: function() {
@@ -31,7 +38,8 @@ XSYNC.xsyncconfig.init = function() {
 XSYNC.xsyncconfig.useDefaultConfig = function() {
     // Use the defaults to populate config dialog
     XSYNC.xsyncconfig.firsttime=true;
-    XSYNC.xsyncconfig.configuration = {};
+    XSYNC.xsyncconfig.mergeConfig({});
+    // XSYNC.xsyncconfig.configuration = {};
     XSYNC.xsyncconfig.configuration.project_resources = {};
     XSYNC.xsyncconfig.configuration.subject_resources = {};
     XSYNC.xsyncconfig.configuration.subject_assessors = {};
@@ -57,48 +65,52 @@ XSYNC.xsyncconfig.useDefaultConfig = function() {
 }
 
 XSYNC.xsyncconfig.initialConfig = function() {
-    $("#xsync-config-div").html(
-        '<input type="button" class="btn1" id="xsync-begin-config" value="Begin Configuration">'
-    );
-    $("#xsync-begin-config").click(function() {
-        XSYNC.xsyncconfig.useDefaultConfig();
-        XSYNC.xsyncconfig.editConfig();
+    $("#xsync-config-div").spawn('button', {
+        type: 'button',
+        className: 'btn1',
+        id: 'xsync-begin-config',
+        html: 'Begin Configuration',
+        $: { on: { click: function(){
+            XSYNC.xsyncconfig.useDefaultConfig();
+            XSYNC.xsyncconfig.editConfig();
+        }}}
     });
-}
+};
 
 XSYNC.xsyncconfig.showConfigPanel = function() {
-    var xsyncConfigDiv = $("#xsync-config-div");
-	var appendContent =  '<div>' +
-            			    '<input type="button" class="btn1 xsync-submit-button" id="xsync-edit-config" value="Edit Configuration">' +
-          				    '<input type="button" class="btn1 xsync-submit-button" id="xsync-credentials" value="Remote Credentials">';
-	    appendContent +=    '<input type="button" class="btn1 xsync-submit-button" id="xsync-upload-anonymization" value="Configure Anonymization"';
-	if (XSYNC.xsyncconfig.configuration.anonymize === false) {
-	    appendContent += ' disabled > ';
-	} else {
-	    appendContent += ' > ';
-   }
-	    appendContent +=    '<h2 id="xsync-history-header" style="display:none">Sync History</h2>' +
-	                      '<div id="xsync-history-table" style="max-height:300px; overflow-y:scroll"></div>' +
-	                      '</div>' +
-	                      '<br>';
 
+    function xsyncSubmitButton(opts){
+        opts = cloneObject(opts);
+        opts.type = 'button';
+        opts.classes = 'btn1 xsync-submit-button';
+        return spawn('button', opts)
+    }
 
-    xsyncConfigDiv.append(
-	   appendContent
-    );
-
-    $("#xsync-edit-config").click( function() {
-        XSYNC.xsyncconfig.editConfig();
-    });
-    $("#xsync-credentials").click( function() {
-        XSYNC.credentialsconfig.enterCredentials();
-    });
-    $("#xsync-upload-anonymization").click( function() {
-        XSYNC.xsyncconfig.submitDICOMAnonymization();
-    });
+    $("#xsync-config-div").spawn('div', [
+        xsyncSubmitButton({
+            id: 'xsync-edit-config',
+            html: 'Edit Configuration',
+            onclick: XSYNC.xsyncconfig.editConfig
+        }),
+        xsyncSubmitButton({
+            id: 'xsync-credentials',
+            html: 'Remote Credentials',
+            onclick: XSYNC.credentialsconfig.enterCredentials
+        }),
+        xsyncSubmitButton({
+            id: 'xsync-upload-anonymization',
+            html: 'Configure Anonymization',
+            disabled: (XSYNC.xsyncconfig.configuration.anonymize === false),
+            onclick: XSYNC.xsyncconfig.submitDICOMAnonymization
+        }),
+        '<h2 id="xsync-history-header" style="display:none">Sync History</h2>',
+        '<div id="xsync-history-table" style="max-height:300px;overflow-y:scroll"></div>',
+        '<br>'
+    ]);
 
     XSYNC.reporting.showHistoryTable();
-}
+
+};
 
 
 /*
@@ -152,11 +164,12 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
 
             var credentialsAjax = $.ajax({
                 type : "POST",
-                url: XNAT.url.csrfUrl('/xapi/xsync/remoteREST?XNAT_CSRF='),
+                url: XNAT.url.csrfUrl('/xapi/xsync/remoteREST'),
                 cache: false,
                 async: true,
                 dataType: 'json',
                 data:  JSON.stringify(tokenData),
+                processData: false,
                 contentType: "application/json; charset=utf-8"
             });
 
@@ -184,7 +197,8 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                         async: true,
                         dataType: 'text',
                         data:  JSON.stringify(formData),
-                        contentType: "text/plain"
+                        processData: false,
+                        contentType: "application/json"
                     });
                     saveCredentials.done( function( data, textStatus, jqXHR ) {
 							if (jqXHR.status == 202) {
@@ -289,6 +303,11 @@ XSYNC.xsyncconfig.editConfig = function() {
                     // Delete stuff we don't want serialized
                     delete json.subjectDetailsCheckbox;
                     delete json.advancedSyncCheckbox;
+
+                    // don't trample on advanced settings that aren't defined in the UI
+                    json = XSYNC.xsyncconfig.mergeConfig(json);
+                    console.log('XSYNC.xsyncconfig.configuration');
+                    console.log(json);
 
                     XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
                     $(form).triggerHandler('reload-data');
@@ -539,7 +558,7 @@ function spawnConfig() {
             name: 'identifiers',
             label: 'Identifiers',
             options: {
-                use_local: 'Local',
+                use_local: 'Local'//,
                 // use_remote: 'Remote'
             }
         }
@@ -716,7 +735,8 @@ XSYNC.xsyncconfig.saveConfig = function(newJson) {
         XNAT.xhr.getJSON({
             url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
             done: function(data) {
-                XSYNC.xsyncconfig.configuration = data;
+                XSYNC.xsyncconfig.mergeConfig(data);
+                // XSYNC.xsyncconfig.configuration = data;
                 // $('#root-panel').setValues(data);
             },
             fail: function() {
