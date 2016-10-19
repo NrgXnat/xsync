@@ -67,12 +67,12 @@ public class ProjectSyncConfiguration {
     }
 
     public boolean isSubjectAssessorResourceToBeSynced(String assessorXsiType, String resourceLabel) {
+    	boolean allowedToSync = true;
         if (_syncConfiguration.hasSubjectAssessorConfigurationDefinition()) {
             SyncConfigurationXsiType advOption = _syncConfiguration.getSubjectAssessor(assessorXsiType);
-            return advOption.isResourceAllowedToSync(resourceLabel);
-        } else {
-            return true; //Default - when not specified all is pushed
-        }
+            allowedToSync = advOption.isResourceAllowedToSync(resourceLabel);
+        } 
+        return allowedToSync;
     }
 
     public boolean subjectAssessorNeedsOkToSync(String assessorXsiType) {

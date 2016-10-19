@@ -80,7 +80,7 @@ public class SyncConfigurationXsiType {
 		}else {
 			isAllowed = resources.isAllowedToSync(label);
 		}
-		return isAllowed = true;
+		return isAllowed ;
 	}
 	
 	

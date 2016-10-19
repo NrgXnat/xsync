@@ -516,19 +516,17 @@ public class RemoteSubject {
 						if (resourcePath.exists() && resourcePath.isFile()) {
 							resourcePath = resourcePath.getParentFile();
 						} 
-						if (resource.getFileCount()!=null && resource.getFileCount().intValue() > 0) {
-						    File zipFile = new XsyncFileUtils().buildZip(remoteProjectId,resourcePath);
-							RemoteConnectionResponse updateResponse = this.updateSubjectAssessorResource(remotesubject, assessor,resource.getLabel(), zipFile);
-							ResourceSyncItem resourceSyncItem = new ResourceSyncItem(null,resource.getLabel());
-							resourceSyncItem.setFileCount(resource.getFileCount());
-							resourceSyncItem.setFileSize(resource.getFileSize());
-							if (updateResponse.wasSuccessful()) {
-								resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-							}else {
-								resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-							}
-							expSyncItem.addResources(resourceSyncItem);
+					    File zipFile = new XsyncFileUtils().buildZip(remoteProjectId,resourcePath);
+						RemoteConnectionResponse updateResponse = this.updateSubjectAssessorResource(remotesubject, assessor,resource.getLabel(), zipFile);
+						ResourceSyncItem resourceSyncItem = new ResourceSyncItem(null,resource.getLabel());
+						resourceSyncItem.setFileCount(resource.getFileCount()!=null?resource.getFileCount():0);
+						resourceSyncItem.setFileSize(resource.getFileSize()!=null?resource.getFileSize():new Long(0));
+						if (updateResponse.wasSuccessful()) {
+							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+						}else {
+							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 						}
+						expSyncItem.addResources(resourceSyncItem);
 					}
 				}
 				if (updateSyncAssessor) {
