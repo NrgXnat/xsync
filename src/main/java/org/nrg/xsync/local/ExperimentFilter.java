@@ -316,6 +316,8 @@ public class ExperimentFilter {
 		return targetExperiment;
 	}
 
+	
+
 	/**
 	 * @param targetsubject    subject for experiment for correction
 	 * @param origExperiment   The original experiment.
@@ -477,6 +479,7 @@ public class ExperimentFilter {
 		XnatImagesessiondata exp = null;
 		try {
 			exp = correctIDandLabel(newSubject,orig);
+			
 			filterExperimentResources(exp);
 			if (!orig.getId().equals(exp.getId())) {
 				for (final XnatAbstractresourceI res : exp.getResources_resource()) {
@@ -508,7 +511,6 @@ public class ExperimentFilter {
 					}
 					filterAssessors(orig, exp);
 					for (final XnatImageassessordataI assess : ((XnatImagesessiondata) exp).getAssessors_assessor()) {
-						assess.setImagesessionId(exp.getLabel());
 						for (XnatExperimentdataShareI share : assess.getSharing_share()) {
 							if (share.getLabel() != null) {
 								share.setLabel("");
@@ -815,7 +817,6 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 		for (int i = 0; i < assessors.size(); i++) {
 			if (!sessionOption.isAllowedToSyncAssessor(assessors.get(i).getXSIType())) {
 				((XnatImagesessiondata) exp).removeAssessors_assessor(i);
-				found = true;
 				return true;
 			}
 		}
