@@ -698,8 +698,9 @@ public class RemoteSubject {
 			}
 			if (target.getAssessors_assessor() != null && target.getAssessors_assessor().size() > 0) {
 				for (XnatImageassessordataI assessor : target.getAssessors_assessor()) {
-					assessor.setImagesessionId(target.getId());
+					assessor.setImagesessionId("");
 					assessor.setProject(target.getProject());
+					assessor.setId("");
 				}
 			}
 			FileWriter fw = new FileWriter(outF);

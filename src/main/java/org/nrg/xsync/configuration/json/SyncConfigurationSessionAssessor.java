@@ -61,7 +61,7 @@ public class SyncConfigurationSessionAssessor   extends BaseSyncConfiguration{
 	protected boolean isIncludedInXsiTypeList(String assessorXsiType) {
 		boolean contains = false;
 		for (SyncConfigurationXsiType x:xsi_types) {
-			if (x.equals(assessorXsiType)) {
+			if (x.getXsi_type().equals(assessorXsiType)) {
 				contains = true;
 				break;
 			}
