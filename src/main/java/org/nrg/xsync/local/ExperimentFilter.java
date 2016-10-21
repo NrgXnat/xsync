@@ -385,36 +385,35 @@ public class ExperimentFilter {
 	 * @throws XFTInitException
 	 *             the XFT init exception
 	 */
-	private void modifyExptResource(XnatAbstractresourceI resource, XnatExperimentdata orig) throws IOException, UnknownPrimaryProjectException, InvalidArchiveStructure,
+	public void modifyExptResource(XnatAbstractresourceI resource, XnatExperimentdata orig) throws IOException, UnknownPrimaryProjectException, InvalidArchiveStructure,
 																									ElementNotFoundException, FieldNotFoundException, XFTInitException, Exception {
-		String filepath = orig.getArchiveRootPath() + "arc001/";// +
-																// orig.getArchiveDirectoryName();
-		String newFilepath = SynchronizationManager.GET_SYNC_FILE_PATH(orig.getProject(),orig);
-		boolean hasResourceBeenModified = hasResourceBeenModified((XnatAbstractresource)resource);
-
-		if (resource instanceof XnatResource) {
-			String path = ((XnatResource) resource).getUri();
-			String newURI = path.replace(filepath, newFilepath);
-			((XnatResource) resource).setUri(newURI);
-			if (hasResourceBeenModified) {
-				modifyExptResourceFiles(path, newURI);
-			}else {
-				resource.setFileCount((resource.getFileCount() != null)?-1*resource.getFileCount():-1);
-				resource.setFileSize((resource.getFileCount() != null)?-1*(Long)resource.getFileSize():-1);
+			String filepath = orig.getArchiveRootPath() + "arc001/";// +
+			// orig.getArchiveDirectoryName();
+			String newFilepath = SynchronizationManager.GET_SYNC_FILE_PATH(orig.getProject(),orig);
+			boolean hasResourceBeenModified = hasResourceBeenModified((XnatAbstractresource)resource);
+			
+			if (resource instanceof XnatResource) {
+				String path = ((XnatResource) resource).getUri();
+				String newURI = path.replace(filepath, newFilepath);
+				((XnatResource) resource).setUri(newURI);
+				if (hasResourceBeenModified) {
+					copyFiles(path, newURI);
+				}else {
+					resource.setFileCount((resource.getFileCount() != null)?-1*resource.getFileCount():-1);
+					resource.setFileSize((resource.getFileSize() != null)?-1*(Long)resource.getFileSize():-1);
+				}
+			} else if (resource instanceof XnatResourceseries) {
+				String path = ((XnatResourceseries) resource).getPath();
+				String newURI = path.replace(filepath, newFilepath);
+				((XnatResourceseries) resource).setPath(newURI);
+				if (hasResourceBeenModified) {
+					copyFiles(path, newURI);
+				}else {
+					resource.setFileCount(-1*resource.getFileCount());
+					resource.setFileSize(-1*(Long)resource.getFileSize());
+				}
 			}
-		} else if (resource instanceof XnatResourceseries) {
-			String path = ((XnatResourceseries) resource).getPath();
-			String newURI = path.replace(filepath, newFilepath);
-			((XnatResourceseries) resource).setPath(newURI);
-			if (hasResourceBeenModified) {
-				modifyExptResourceFiles(path, newURI);
-			}else {
-				resource.setFileCount(-1*resource.getFileCount());
-				resource.setFileSize(-1*(Long)resource.getFileSize());
-			}
-		}
 	}
-
 	
 	/**
 	 * Modify expt resource files.
@@ -436,7 +435,7 @@ public class ExperimentFilter {
 	 * @throws XFTInitException
 	 *             the XFT init exception
 	 */
-	private void modifyExptResourceFiles(String catalogFile, String newCatalogFile)
+	private void copyFiles(String catalogFile, String newCatalogFile)
 			throws IOException, UnknownPrimaryProjectException, InvalidArchiveStructure, ElementNotFoundException,
 			FieldNotFoundException, XFTInitException {
 		// this is path to catalog
@@ -516,6 +515,7 @@ public class ExperimentFilter {
 								share.setLabel("");
 							}
 						}
+						/*
 						for (final XnatAbstractresourceI res : assess.getResources_resource()) {
 							modifyExptResource((XnatAbstractresource) res, orig);
 						}
@@ -527,6 +527,7 @@ public class ExperimentFilter {
 						for (final XnatAbstractresourceI res : assess.getOut_file()) {
 							modifyExptResource((XnatAbstractresource) res, orig);
 						}
+						*/
 						
 					}
 					Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getAnonymize(); 
@@ -648,9 +649,35 @@ public class ExperimentFilter {
 				break;
 			}
 		}
+		
 		return found;
 	}
 
+	/**
+	 * Find and remove experiment resources.
+	 *
+	 * @param assessor
+	 *            the exp
+	 * @param resourcesCfg
+	 *            the resource type
+	 * @return true, if successful
+	 */
+	private boolean findAndRemoveAssessorOutResources(XnatImageassessordataI assessor, SyncConfigurationResource resourcesCfg) {
+		boolean found = false;
+		if (resourcesCfg == null) {
+			return found;
+		}
+		List<XnatAbstractresourceI> resource = assessor.getOut_file();
+		for (int i = 0; i < resource.size(); i++) {
+			if (!resourcesCfg.isAllowedToSync(resource.get(i).getLabel())) {
+				((XnatImageassessordata)assessor).removeOut_file(i);
+				found = true;
+				break;
+			}
+		}
+		
+		return found;
+	}
 	
 	/**
 	 * Filter scantypes.
@@ -765,6 +792,8 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 			SyncConfigurationXsiType assessorAdvOption = assessorOption.getXsiType(ass.getXSIType());
 			if (assessorAdvOption != null) {
 				while (findAndRemoveAssessorResources(ass, assessorAdvOption.getResources()))
+					;
+				while (findAndRemoveAssessorOutResources(ass, assessorAdvOption.getResources()))
 					;
 			}
 		}
