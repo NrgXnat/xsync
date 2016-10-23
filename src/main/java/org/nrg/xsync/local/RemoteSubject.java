@@ -584,6 +584,7 @@ public class RemoteSubject {
 						 targetAss.setProject(target.getProject());
 						 targetAss.setId("");
 						 for (final XnatAbstractresourceI res : targetAss.getResources_resource()) {
+							 System.out.println("Res:"+res.getLabel());
 							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig);
 						 }
 
@@ -593,10 +594,12 @@ public class RemoteSubject {
 
 						 for (final XnatAbstractresourceI res : targetAss.getOut_file()) {
 							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig);
+
 						 }
 						 prepareResourceURIForXar(target,targetAss);
 
 						 final File assXar=buildxar(orig,  origAss, targetAss);
+
 						 final ExperimentSyncItem expAssSyncItem = new ExperimentSyncItem(origAss.getId(),origAss.getLabel());
 						 expAssSyncItem.setXsiType(targetAss.getXSIType());
 						 expAssSyncItem.extractAssessorDetails(targetAss);
@@ -690,6 +693,7 @@ public class RemoteSubject {
 			resource.setFileCount(resource.getFileCount()>0?resource.getFileCount():-1*resource.getFileCount());
 		if (resource.getFileSize() != null)
 			resource.setFileSize((Long)resource.getFileSize()>0?resource.getFileSize():-1*(Long)resource.getFileSize());
+
 	}
 	private void prepareResourceURI(XnatExperimentdata exp){
 		for (final XnatAbstractresourceI res : exp.getResources_resource()) {

@@ -35,6 +35,7 @@ import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteOperation;
 import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
@@ -75,6 +76,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
     private final ConfigService              _configService;
     private final SerializerService          _serializer;
     private final MailService                _mailService;
+    private final CatalogService 	         _catalogService;
     private final XsyncXnatInfo              _xnatInfo;
     private final NamedParameterJdbcTemplate _jdbcTemplate;
 
@@ -84,6 +86,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
                                      final RoleHolder roleHolder,
                                      final ConfigService configService,
                                      final MailService mailService,
+                                     final CatalogService catalogService,
                                      final XsyncXnatInfo xnatInfo, final SerializerService serializer,
                                      final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate,
                                      final Map<String, HttpMessageConverter<?>> converters,
@@ -91,6 +94,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
         super(userManagementService, roleHolder);
         _configService = configService;
         _mailService = mailService;
+        _catalogService = catalogService;
         _xnatInfo = xnatInfo;
         _serializer = serializer;
         _queryResultUtil = queryResultUtil;
@@ -120,7 +124,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
                 _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
             }
         }
-    	final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService, _xnatInfo, projectId, getSessionUser());
+    	final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, projectId, getSessionUser());
         _executorService.submit(projectChange);
         if (_log.isInfoEnabled()) {
             _log.info("Project " + projectId + " is being exported by " + getSessionUser().getUsername());

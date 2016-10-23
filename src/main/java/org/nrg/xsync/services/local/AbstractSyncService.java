@@ -4,6 +4,7 @@ import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
@@ -20,15 +21,17 @@ public abstract class AbstractSyncService {
     private final ConfigService                 _configService;
     private final MailService                   _mailService;
     private final SerializerService             _serializer;
+    private final CatalogService 			    _catalogService;
     private final NamedParameterJdbcTemplate    _jdbcTemplate;
     private final QueryResultUtil               _queryResultUtil;
     private final XsyncXnatInfo                 _xnatInfo;
     private final ThreadPoolExecutorFactoryBean _executorFactoryBean;
 
-    protected AbstractSyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService, final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil, final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean) {
+    protected AbstractSyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService, final CatalogService catalogService, final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil, final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean) {
         _manager = manager;
         _configService = configService;
         _mailService = mailService;
+        _catalogService = catalogService;
         _serializer = serializer;
         _jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         _queryResultUtil = queryResultUtil;
@@ -37,7 +40,7 @@ public abstract class AbstractSyncService {
     }
 
     protected ProjectChangeDiscoverer getProjectChangeDiscoverer(final String projectId, final UserI user) throws XsyncNotConfiguredException {
-        return new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService, _xnatInfo, projectId, user);
+        return new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService, _catalogService,_xnatInfo, projectId, user);
     }
 
     protected RemoteConnectionManager getManager() {

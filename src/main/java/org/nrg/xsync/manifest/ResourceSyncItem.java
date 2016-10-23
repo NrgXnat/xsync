@@ -36,6 +36,8 @@ public class ResourceSyncItem extends SyncedItem{
 	public Object getFileSize() {
 		return fileSize;
 	}
+	
+	
 
 	/**
 	 * @param fileSize the fileSize to set

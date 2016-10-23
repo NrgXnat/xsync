@@ -14,7 +14,6 @@ import org.nrg.mail.services.MailService;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.XnatAbstractresourceI;
-import org.nrg.xdat.model.XnatProjectdataI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatResourcecatalog;
@@ -24,7 +23,7 @@ import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xft.utils.FileUtils;
-import org.nrg.xnat.utils.ResourceUtils;
+import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -49,6 +48,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import com.google.common.collect.Lists;
+
 /**
  * @author Mohana Ramaratnam
  */
@@ -65,6 +66,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     private final QueryResultUtil            _queryResultUtil;
     private final XsyncXnatInfo              _xnatInfo;
     private final SerializerService          _serializer;
+    private final CatalogService 			 _catalogService;
     private final String                     _projectId;
     private final UserI                      _user;
     private       MapSqlParameterSource      _parameters;
@@ -72,13 +74,14 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     private final boolean                    _syncAll;
     private 	  XsyncObserver				 _observer;
 
-    public ProjectChangeDiscoverer(final RemoteConnectionManager manager, final ConfigService configService, final SerializerService serializer, final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, final MailService mailService, final XsyncXnatInfo xnatInfo, final String projectId, final UserI user) throws XsyncNotConfiguredException {
+    public ProjectChangeDiscoverer(final RemoteConnectionManager manager, final ConfigService configService, final SerializerService serializer, final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, final MailService mailService, final CatalogService catalogService, final XsyncXnatInfo xnatInfo, final String projectId, final UserI user) throws XsyncNotConfiguredException {
         _manager = manager;
         _mailService = mailService;
         _queryResultUtil = queryResultUtil;
         _jdbcTemplate = jdbcTemplate;
         _xnatInfo = xnatInfo;
         _serializer = serializer;
+        _catalogService = catalogService;
         _projectId = projectId;
         _user = user;
         _parameters = new MapSqlParameterSource("project", _projectId);
@@ -182,7 +185,11 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
            		//RefreshCatalog
         	    EventMetaI now = EventUtils.DEFAULT_EVENT(_user, "Synchronization Log Added");
         		try  {
-        			ResourceUtils.refreshResourceCatalog((XnatAbstractresource)synchronizationResource, project.getArchiveRootPath(), true, true, true, true, _user, now);
+        			 final List<CatalogService.Operation> _operations  = Lists.newArrayList();
+        			 final String                   _resource   = "/data/projects/"+_projectId+"/resources/"+synchronizationResource.getLabel();
+        			 _operations.addAll(CatalogService.Operation.ALL);
+        			 _catalogService.refreshResourceCatalog(_user, _resource, _operations.toArray(new CatalogService.Operation[_operations.size()]));  
+        			//ResourceUtils.refreshResourceCatalog((XnatAbstractresource)synchronizationResource, project.getArchiveRootPath(), true, true, true, true, _user, now);
         		}catch(Exception e) {_log.debug("Unable to refresh catalog");}
         	}
         }

@@ -6,6 +6,7 @@ import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
+import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -224,7 +225,7 @@ public class SyncManifest{
 					 sb.append("<tr>");
 					 sb.append("<td> ").append(res.localLabel).append(" </td>");
 					 sb.append("<td> ").append(res.getFileCount() == null ? "NA" : res.getFileCount()).append(" </td>");
-					 sb.append("<td> ").append(res.getFileSize() == null ? "NA" : res.getFileSize()).append(" </td>");
+					 sb.append("<td> ").append(res.getFileSize() == null ? "NA" : XsyncFileUtils.getFormattedFileSize((Long)res.getFileSize())).append(" </td>");
 					 sb.append("<td> ").append(res.getSyncStatus()).append(" </td>");
 					 sb.append("<td> ").append(res.getMessage()).append(" </td>");
 					 sb.append("</tr>");

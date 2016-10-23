@@ -29,8 +29,8 @@ window.XSYNC = getObject(window.XSYNC);
 		xsyncHistory.th({className:'sort', html: 'Date'})
 			.th({className:'sort', html: 'Status'})
 			.th('Subjects')
-			.th('Imaging Sessions')
-			.th('Non-imaging Assessments')
+			.th('Subject Assessments')
+			.th('Derived Assessments')
 			.th('Resources')
 			.th({className:'sort', html: 'Total'});
 
@@ -104,8 +104,8 @@ window.XSYNC = getObject(window.XSYNC);
 				tabs: {
 					overview: generateOverviewTab(history),
 					subjects: generateHistoryTab('Subjects', history.subjectHistories),
-					experiments: generateHistoryTab('Imaging Sessions', history.experimentHistories),
-					assessors: generateHistoryTab('Non-imaging Assessments', history.assessorHistories),
+					experiments: generateHistoryTab('Subject Assessments', history.experimentHistories),
+					assessors: generateHistoryTab('Derived Assessments', history.assessorHistories),
 					resources: generateHistoryTab('Resources', history.resourceHistories)
 				}
 			}

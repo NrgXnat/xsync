@@ -6,6 +6,7 @@ import org.hibernate.HibernateException;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xsync.manifest.*;
 import org.nrg.xsync.services.local.SyncManifestService;
+import org.nrg.xsync.utils.XsyncFileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -150,9 +151,14 @@ public class HibernateSyncHistoryService
 
         for (SubjectSyncItem sub : manifest.getSubjects()) {
             setResourceHistoryProps(sub.getResources());
-
             for (ExperimentSyncItem exp : sub.getExperiments()) {
                 setResourceHistoryProps(exp.getResources());
+                for (ScanSyncItem scan : exp.getScans()) {
+                	setResourceHistoryProps(scan.getResources());
+                }                
+                for (ExperimentSyncItem ass : exp.getAssessors()) {
+                	setResourceHistoryProps(ass.getResources());
+                }
             }
         }
     }
@@ -204,6 +210,12 @@ public class HibernateSyncHistoryService
 
             for (ExperimentSyncItem exp : sub.getExperiments()) {
                 resourceCount += exp.getResources().size();
+                for (ScanSyncItem s:exp.getScans()) {
+                	resourceCount += s.getResources().size();
+                }
+                for (ExperimentSyncItem ass:exp.getAssessors()) {
+                	resourceCount += ass.getResources().size();
+                }
             }
         }
         return resourceCount;
@@ -211,15 +223,20 @@ public class HibernateSyncHistoryService
 
     private String calculateTotalData() {
         Long totalBytes = 0L;
-
+        //Project Resources
+        for (ResourceSyncItem r:manifest.getResources()) {
+        	 totalBytes += (Long)r.getFileSize();
+        }
         for (SubjectSyncItem sub : manifest.getSubjects()) {
-            for (ExperimentSyncItem exp : sub.getExperiments()) {
+        	//Subject Resources
+            for (ResourceSyncItem r:sub.getResources()) {
+           	 totalBytes += (Long)r.getFileSize();
+           }
+        	for (ExperimentSyncItem exp : sub.getExperiments()) {
                 totalBytes += exp.getTotalSyncedFileSize();
-                for (ExperimentSyncItem ass : exp.getAssessors()) {
-                    totalBytes += ass.getTotalSyncedFileSize();
-                }
             }
         }
-        return FileUtils.byteCountToDisplaySize(totalBytes);
+        return XsyncFileUtils.getFormattedFileSize(totalBytes);
+        //return FileUtils.byteCountToDisplaySize(totalBytes);
     }
 }

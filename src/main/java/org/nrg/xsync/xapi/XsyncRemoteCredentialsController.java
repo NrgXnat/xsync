@@ -96,7 +96,6 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 
 	        final String userAccessUrl = (host.endsWith("/")? host:host+"/") + "data/archive/projects/"+remoteProjectId+"/users?format=json";
 	        response = userHasRequiredAccessAtRemoteProject(alias,secret,username,userAccessUrl,remoteProjectId,syncNewOnly);
-	        DateFormat format = new SimpleDateFormat("YYYYMMDD_HHmmss");
 	        
 	        if (response != null && (response.getStatusCode().value() == HttpStatus.OK.value() || response.getStatusCode().value() == HttpStatus.ACCEPTED.value() )) {
 				RemoteAliasEntity remoteAliasEntity = _remoteAliasService.getRemoteAliasEntity(localProject, host);
@@ -104,7 +103,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 		        	remoteAliasEntity.setRemote_alias_token(alias);
 		        	remoteAliasEntity.setRemote_alias_password(secret);
 		        	if (estimatedExpirationTime != null) {
-		        		remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
+		        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
 		        	}
 		        	_remoteAliasService.update(remoteAliasEntity);
 		        } else {
@@ -116,7 +115,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 		        	final Date now = new Date();
 		        	remoteAliasEntity.setAcquiredTime(now);
 		        	if (estimatedExpirationTime != null) {
-		        		remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
+		        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
 		        	}
 		        	_remoteAliasService.create(remoteAliasEntity);
 		        }
