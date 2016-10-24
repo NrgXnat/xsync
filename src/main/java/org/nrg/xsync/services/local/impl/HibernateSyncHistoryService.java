@@ -149,7 +149,7 @@ public class HibernateSyncHistoryService
     private void setResourceHistory() {
         setResourceHistoryProps(manifest.getResources());
 
-        for (SubjectSyncItem sub : manifest.getSubjects()) {
+    /*    for (SubjectSyncItem sub : manifest.getSubjects()) {
             setResourceHistoryProps(sub.getResources());
             for (ExperimentSyncItem exp : sub.getExperiments()) {
                 setResourceHistoryProps(exp.getResources());
@@ -161,6 +161,7 @@ public class HibernateSyncHistoryService
                 }
             }
         }
+        */
     }
 
     private void setResourceHistoryProps(List<ResourceSyncItem> resources) {

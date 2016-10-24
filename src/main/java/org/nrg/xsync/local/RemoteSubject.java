@@ -584,7 +584,6 @@ public class RemoteSubject {
 						 targetAss.setProject(target.getProject());
 						 targetAss.setId("");
 						 for (final XnatAbstractresourceI res : targetAss.getResources_resource()) {
-							 System.out.println("Res:"+res.getLabel());
 							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig);
 						 }
 
@@ -597,12 +596,12 @@ public class RemoteSubject {
 
 						 }
 						 prepareResourceURIForXar(target,targetAss);
-
-						 final File assXar=buildxar(orig,  origAss, targetAss);
-
 						 final ExperimentSyncItem expAssSyncItem = new ExperimentSyncItem(origAss.getId(),origAss.getLabel());
 						 expAssSyncItem.setXsiType(targetAss.getXSIType());
 						 expAssSyncItem.extractAssessorDetails(targetAss);
+
+						 final File assXar=buildxar(orig,  origAss, targetAss);
+
 						 if (assXar != null) {
 							 final RemoteConnectionResponse assConnectionResponse = _manager.importXar(connection, assXar);
 							 boolean assStored = assConnectionResponse.wasSuccessful();
@@ -689,11 +688,11 @@ public class RemoteSubject {
 			}
 		}
 		//Negative values indicate that the resource is being skipped
-		if (resource.getFileCount() != null )
+		if (resource.getFileCount() != null ) {
 			resource.setFileCount(resource.getFileCount()>0?resource.getFileCount():-1*resource.getFileCount());
-		if (resource.getFileSize() != null)
+		}if (resource.getFileSize() != null) {
 			resource.setFileSize((Long)resource.getFileSize()>0?resource.getFileSize():-1*(Long)resource.getFileSize());
-
+		}
 	}
 	private void prepareResourceURI(XnatExperimentdata exp){
 		for (final XnatAbstractresourceI res : exp.getResources_resource()) {

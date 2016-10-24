@@ -57,17 +57,14 @@ public class ExperimentSyncItem extends SyncedItem {
 			for (ResourceSyncItem r: resources) {
 				size += (r.getFileSize()!=null?(Long)r.getFileSize():0);
 			}
-			System.out.println("Resource file size:"+ size);
 			for (ScanSyncItem s:scans) {
 				for (ResourceSyncItem r: s.getResources()) {
 					size += (r.getFileSize()!=null?(Long)r.getFileSize():0);
 				}
 			}
-			System.out.println("Resource + Scan size:"+ size);
 			for (ExperimentSyncItem s:assessors) {
 					size += (s.getTotalSyncedFileSize()!=null?(Long)s.getTotalSyncedFileSize():0);
 			}
-			System.out.println("Resource + Scan + Ass size:"+ size);
 		}catch(NullPointerException npe) {
 		}
 		return new Long(size);
@@ -187,7 +184,6 @@ public class ExperimentSyncItem extends SyncedItem {
 			rSync.setFileCount(0);
 			rSync.setFileSize(new Long(0));
 		}
-		System.out.println("Label " + r.getLabel() + " Files " + rSync.getFileCount() + " Size " + rSync.getFileSize());
 		return rSync;
 	}
 	
