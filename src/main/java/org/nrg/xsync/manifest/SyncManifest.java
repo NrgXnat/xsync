@@ -278,7 +278,7 @@ public class SyncManifest{
 						 String fileCntStr = (fileCnt == 0?"NA":fileCnt.toString());
 						 sb.append("<td> ").append(fileCntStr).append(" </td>");
 						 Long fileSize = exp.getTotalSyncedFileSize();
-						 String fileSizeStr = (fileSize == 0?"NA":fileSize.toString());
+						 String fileSizeStr = (fileSize == 0?"NA":XsyncFileUtils.getFormattedFileSize(fileSize));
 						 sb.append("<td> ").append(fileSizeStr).append(" </td>");
 						 sb.append("</tr>");
 					}
