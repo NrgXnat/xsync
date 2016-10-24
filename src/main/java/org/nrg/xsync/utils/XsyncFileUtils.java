@@ -2,22 +2,32 @@ package org.nrg.xsync.utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
+import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.om.XnatResource;
+import org.nrg.xdat.om.XnatResourceseries;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
+import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
+import org.nrg.xft.exception.ElementNotFoundException;
+import org.nrg.xft.exception.FieldNotFoundException;
+import org.nrg.xft.exception.XFTInitException;
 import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXWriter;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.restlet.data.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.nrg.xnat.exceptions.InvalidArchiveStructure;
 import org.nrg.xnat.restlet.representations.ZipRepresentation;
 import org.nrg.xnat.turbine.utils.ArcSpecManager;
 
@@ -68,8 +78,16 @@ public class XsyncFileUtils {
 		path = exp.getCachePath() ;
 		return path;
 	}
+	
+	public static String getFormattedFileSize(Long size) {
+		if (size < 1024) {
+            return size + " B";
+        }
+        int exp = (int) (Math.log(size) / Math.log(1024));
+        return String.format("%.1f %sB", size / Math.pow(1024, exp), "KMGTPE".charAt(exp - 1));
+	}
 
-	public File buildxar(UserI user, XnatExperimentdata orig, String targetproject,XnatSubjectdata targetsubject, XnatExperimentdata target) throws Exception {
+/*	public File buildxar(UserI user, XnatExperimentdata orig, String targetproject,XnatSubjectdata targetsubject, XnatExperimentdata target) throws Exception {
 		File xarFile;
 		try {
 			File experimentPath = new File(orig.getArchiveRootPath() + "arc001/" + orig.getArchiveDirectoryName());
@@ -117,5 +135,5 @@ public class XsyncFileUtils {
 		// return
 
 	}
-
+*/
 }

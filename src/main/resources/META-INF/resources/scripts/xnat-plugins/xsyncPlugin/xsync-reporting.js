@@ -29,9 +29,9 @@ window.XSYNC = getObject(window.XSYNC);
 		xsyncHistory.th({className:'sort', html: 'Date'})
 			.th({className:'sort', html: 'Status'})
 			.th('Subjects')
-			.th('Imaging Sessions')
-			.th('Non-imaging Assessments')
-			.th('Resources')
+			.th('Subject Assessments')
+			.th('Derived Assessments')
+			.th('Project Resources')
 			.th({className:'sort', html: 'Total'});
 
 		var getSyncHistory = xhr.getJSON(xsyncUrl('/history/projects/' + projectContext));
@@ -104,9 +104,9 @@ window.XSYNC = getObject(window.XSYNC);
 				tabs: {
 					overview: generateOverviewTab(history),
 					subjects: generateHistoryTab('Subjects', history.subjectHistories),
-					experiments: generateHistoryTab('Imaging Sessions', history.experimentHistories),
-					assessors: generateHistoryTab('Non-imaging Assessments', history.assessorHistories),
-					resources: generateHistoryTab('Resources', history.resourceHistories)
+					experiments: generateHistoryTab('Subject Assessments', history.experimentHistories),
+					assessors: generateHistoryTab('Derived Assessments', history.assessorHistories),
+					resources: generateHistoryTab('Project Resources', history.resourceHistories)
 				}
 			}
 		}).render(container, 100)
@@ -161,12 +161,12 @@ window.XSYNC = getObject(window.XSYNC);
 						},
 						totalExperiments: {
 							kind: 'panel.element',
-							label: 'Total Experiments',
+							label: 'Total Subject Assessments',
 							contents: history.totalExperiments.toString()
 						},
 						totalAssessors: {
 							kind: 'panel.element',
-							label: 'Total Assessors',
+							label: 'Total Derived Assessments',
 							contents: history.totalAssessors.toString()
 						},
 						totalResources: {
