@@ -84,7 +84,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	        final String localProject = (synchronizationJson.get("localProject")!=null) ? synchronizationJson.get("localProject").asText() : null;
 	        final String username = (synchronizationJson.get("username")!=null) ? synchronizationJson.get("username").asText() : null;
 			final String remoteProjectId = (synchronizationJson.get("remoteProject")!=null) ? synchronizationJson.get("remoteProject").asText() : null;
-			//Only XNAT 1.7 will supply the expiration time. If the Destination server is runnung on < XNAT 1.7, this value would be null
+			//Only XNAT 1.7 will supply the expiration time. If the Destination server is running on < XNAT 1.7, this value would be null
 			final String estimatedExpirationTime = (synchronizationJson.get("estimatedExpirationTime")!=null) ? synchronizationJson.get("estimatedExpirationTime").asText() : null;
 			final boolean syncNewOnly = synchronizationJson.get("syncNewOnly") == null || synchronizationJson.get("syncNewOnly").asBoolean();
 
@@ -114,11 +114,19 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 		        	remoteAliasEntity.setRemote_alias_password(secret);
 		        	final Date now = new Date();
 		        	remoteAliasEntity.setAcquiredTime(now);
-		        	try {
 			        	if (estimatedExpirationTime != null) {
-			        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
+				        	try {
+				        		//1.7.1+ sends the estimatedExpirationTime like so
+				        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
+				        	}catch(Exception e) {
+				        		try {
+				        			//1.6.5 may not send at all and 1.7.0 sends it in this format.
+				        			 DateFormat format = new SimpleDateFormat("YYYYMMDD_HHmmss");
+				        			 remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
+				        		}catch(Exception e1){}
+				        		
+				        	}
 			        	}
-		        	}catch(Exception e) {}
 		        	_remoteAliasService.create(remoteAliasEntity);
 		        }
 				if (response != null && response.getStatusCode().value() == HttpStatus.ACCEPTED.value()) {
