@@ -103,7 +103,16 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 		        	remoteAliasEntity.setRemote_alias_token(alias);
 		        	remoteAliasEntity.setRemote_alias_password(secret);
 		        	if (estimatedExpirationTime != null) {
-		        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
+			        	try {
+			        		//1.7.1+ sends the estimatedExpirationTime like so
+			        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
+			        	}catch(Exception e) {
+			        		try {
+			        			//1.6.5 may not send at all and 1.7.0 sends it in this format.
+			        			 DateFormat format = new SimpleDateFormat("YYYYMMDD_HHmmss");
+			        			 remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
+			        		}catch(Exception e1){}
+			        	}
 		        	}
 		        	_remoteAliasService.update(remoteAliasEntity);
 		        } else {
@@ -141,6 +150,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	           		return new  ResponseEntity<>("XSync saving of remote credentials failed ", HttpStatus.BAD_REQUEST);
 	        }
 		}catch (Exception  exception) {
+			exception.printStackTrace();
         	return new ResponseEntity<>("XSync saving of remote credentials failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
 		return new ResponseEntity<>("XSync remote credentials set.", HttpStatus.OK );
