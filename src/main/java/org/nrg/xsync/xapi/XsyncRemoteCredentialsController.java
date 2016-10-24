@@ -114,9 +114,11 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 		        	remoteAliasEntity.setRemote_alias_password(secret);
 		        	final Date now = new Date();
 		        	remoteAliasEntity.setAcquiredTime(now);
-		        	if (estimatedExpirationTime != null) {
-		        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
-		        	}
+		        	try {
+			        	if (estimatedExpirationTime != null) {
+			        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
+			        	}
+		        	}catch(Exception e) {}
 		        	_remoteAliasService.create(remoteAliasEntity);
 		        }
 				if (response != null && response.getStatusCode().value() == HttpStatus.ACCEPTED.value()) {
