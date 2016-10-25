@@ -92,7 +92,7 @@ div.col2 {
 }
 
 #xsync-history-table td {
-    border: none;
+    /*border: none;*/
 }
 
 .xsync-history-scroll {
@@ -112,4 +112,24 @@ div.xmodal div.panel h3.panel-title {
 
 #xsync-details-modal .xnat-tab-content.side {
     min-height: 600px;
+}
+
+.center,
+.centered {
+    text-align: center;
+}
+
+.align-left,
+.text-left {
+    text-align: left;
+}
+
+.align-right,
+.text-right {
+    text-align: right;
+}
+
+.nowrap,
+.no-wrap {
+    white-space: nowrap;
 }

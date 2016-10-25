@@ -747,9 +747,9 @@ XSYNC.xsyncconfig.saveConfig = function(newJson){
         xmodal.message({
             title: 'Saved',
             content: 'The XSync configuration has been saved',
-            action: function(){
-                window.location.reload();
-            },
+            // action: function(){
+            //     window.location.reload();
+            // },
             onClose: function(){
                 xmodal.loading.closeAll();
             }
@@ -763,7 +763,7 @@ XSYNC.xsyncconfig.saveConfig = function(newJson){
                 XSYNC.xsyncconfig.configuration = data;
                 // $('#root-panel').setValues(data);
                 // refresh the config panel - show the buttons
-                //XSYNC.xsyncconfig.showConfigPanel();
+                XSYNC.xsyncconfig.showConfigPanel();
                 // just reload the whole page
                 //window.location.reload();
             },

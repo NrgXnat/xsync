@@ -26,13 +26,14 @@ window.XSYNC = getObject(window.XSYNC);
 		// Displays overview of sync history in table format
 		var xsyncHistory = XNAT.table({ className: 'xnat-table sortable' });
 		xsyncHistory.tr();
-		xsyncHistory.th({className:'sort', html: 'Date'})
-			.th({className:'sort', html: 'Status'})
-			.th('Subjects')
-			.th('Subject Assessments')
-			.th('Derived Assessments')
-			.th('Project Resources')
-			.th({className:'sort', html: 'Total'});
+		xsyncHistory
+				.th({className:'sort', html: 'Date <i>&nbsp;</i>'})
+				.th({className:'sort', html: 'Status <i>&nbsp;</i>'})
+				.th('Subjects')
+				.th('Subject Assessments')
+				.th('Derived Assessments')
+				.th('Project Resources')
+				.th({className:'sort', html: 'Total <i>&nbsp;</i>'});
 
 		var getSyncHistory = xhr.getJSON(xsyncUrl('/history/projects/' + projectContext));
 
@@ -41,13 +42,13 @@ window.XSYNC = getObject(window.XSYNC);
 			var allHistory = data.map(function(item, i){
 				var date = new Date(item.startDate);
 				return [
-					'<a class="show-details" title="' + item.id + '" href="#!">'+ localDate(date) + ' ' + localTime(date) +'</a>',
+					'<div class="mono"><a class="show-details link" title="' + item.id + '" href="#!">'+ localDate(date) + '<br>' + localTime(date) +'</a></div>',
 					item.syncStatus,
-					item.totalSubjects.toString(),
-					item.totalExperiments.toString(),
-					item.totalAssessors.toString(),
-					item.totalResources.toString(),
-					item.totalDataSynced
+					'<div class="mono centered">' + item.totalSubjects + '</div>',
+					'<div class="mono centered">' + item.totalExperiments + '</div>',
+					'<div class="mono centered">' + item.totalAssessors + '</div>',
+					'<div class="mono centered">' + item.totalResources + '</div>',
+					'<div class="mono">' + item.totalDataSynced + '</div>'
 				];
 			});
 
