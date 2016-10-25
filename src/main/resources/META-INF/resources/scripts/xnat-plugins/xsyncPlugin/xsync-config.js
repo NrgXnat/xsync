@@ -3,41 +3,42 @@ if (typeof XSYNC === 'undefined') {
 }
 if (typeof XSYNC.xsyncconfig === 'undefined') {
     XSYNC.xsyncconfig = {};
-    XSYNC.xsyncconfig.firsttime=false;
+    XSYNC.xsyncconfig.firsttime = false;
 }
 if (typeof XSYNC.credentialsconfig === 'undefined') {
     XSYNC.credentialsconfig = {};
 }
 
 
+// Merge any existing settings and change any modified values
+// without destroying saved 'advanced' settings.
 XSYNC.xsyncconfig.mergeConfig = function(data){
-    return XSYNC.xsyncconfig.configuration = extend(true, XSYNC.xsyncconfig.configuration||{}, data);
+    return XSYNC.xsyncconfig.configuration = extend(true, XSYNC.xsyncconfig.configuration || {}, data);
 };
 
 
 /*
  Initialization
-*/
+ */
 
-XSYNC.xsyncconfig.init = function() {
+XSYNC.xsyncconfig.init = function(){
     XNAT.xhr.getJSON({
-        url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
-        done: function(data) {
+        url: XNAT.url.restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
+        success: function(data){
             XSYNC.xsyncconfig.mergeConfig(data);
             // XSYNC.xsyncconfig.configuration = data;
             XSYNC.xsyncconfig.showConfigPanel()
         },
-        fail: function() {
+        error: function(){
             XSYNC.xsyncconfig.initialConfig()
         }
     })
-}
+};
 
 
-
-XSYNC.xsyncconfig.useDefaultConfig = function() {
+XSYNC.xsyncconfig.useDefaultConfig = function(){
     // Use the defaults to populate config dialog
-    XSYNC.xsyncconfig.firsttime=true;
+    XSYNC.xsyncconfig.firsttime = true;
     XSYNC.xsyncconfig.mergeConfig({});
     // XSYNC.xsyncconfig.configuration = {};
     XSYNC.xsyncconfig.configuration.project_resources = {};
@@ -62,51 +63,38 @@ XSYNC.xsyncconfig.useDefaultConfig = function() {
     XSYNC.xsyncconfig.configuration.subject_assessors.sync_type = 'none';
     XSYNC.xsyncconfig.configuration.imaging_sessions.sync_type = 'all';
     // XSYNC.xsyncconfig.configuration.imaging_sessions.xsi_types.types_list = ['xnat:mrSessionData'];
-}
+};
 
-XSYNC.xsyncconfig.initialConfig = function() {
-    $("#xsync-config-div").spawn('button', {
+XSYNC.xsyncconfig.initialConfig = function(){
+    $("#xsync-config").spawn('button#xsync-begin-config.btn1', {
         type: 'button',
-        className: 'btn1',
-        id: 'xsync-begin-config',
         html: 'Begin Configuration',
-        $: { on: { click: function(){
-            XSYNC.xsyncconfig.useDefaultConfig();
-            XSYNC.xsyncconfig.editConfig();
-        }}}
+        $: {
+            click: function(){
+                XSYNC.xsyncconfig.useDefaultConfig();
+                XSYNC.xsyncconfig.editConfig();
+            }
+        }
     });
 };
 
-XSYNC.xsyncconfig.showConfigPanel = function() {
+XSYNC.xsyncconfig.showConfigPanel = function(){
 
-    function xsyncSubmitButton(opts){
-        opts = cloneObject(opts);
-        opts.type = 'button';
-        opts.classes = 'btn1 xsync-submit-button';
-        return spawn('button', opts)
-    }
-
-    $("#xsync-config-div").spawn('div', [
-        xsyncSubmitButton({
-            id: 'xsync-edit-config',
-            html: 'Edit Configuration',
-            onclick: XSYNC.xsyncconfig.editConfig
-        }),
-        xsyncSubmitButton({
-            id: 'xsync-credentials',
-            html: 'Remote Credentials',
-            onclick: XSYNC.credentialsconfig.enterCredentials
-        }),
-        xsyncSubmitButton({
-            id: 'xsync-upload-anonymization',
-            html: 'Configure Anonymization',
-            disabled: (XSYNC.xsyncconfig.configuration.anonymize === false),
-            onclick: XSYNC.xsyncconfig.submitDICOMAnonymization
-        }),
-        '<h2 id="xsync-history-header" style="display:none">Sync History</h2>',
-        '<div id="xsync-history-table" style="max-height:300px;overflow-y:scroll"></div>',
-        '<br>'
+    $('#xsync-config').empty().append([
+        '<button class="btn1 xsync-submit-button" id="xsync-edit-config" type="button">Edit Configuration</button>' +
+        '<button class="btn1 xsync-submit-button" id="xsync-credentials" type="button">Remote Credentials</button>' +
+        '<button class="btn1 xsync-submit-button" id="xsync-upload-anonymization" type="button">Configure Anonymization</button>' +
+        '<h2 id="xsync-history-header" style="">Sync History</h2>' +
+        '<div id="xsync-history-table" style="max-height:300px;overflow-y:auto"></div>'
     ]);
+
+    $("#xsync-edit-config").click(XSYNC.xsyncconfig.editConfig);
+
+    $("#xsync-credentials").click(XSYNC.credentialsconfig.enterCredentials);
+
+    $("#xsync-upload-anonymization")
+            .prop('disabled', XSYNC.xsyncconfig.configuration.anonymize === false)
+            .click(XSYNC.xsyncconfig.submitDICOMAnonymization);
 
     XSYNC.reporting.showHistoryTable();
 
@@ -123,57 +111,75 @@ XSYNC.xsyncconfig.showConfigPanel = function() {
  * @param {String} optional configuration JSON to submit if initial setup
  */
 
-XSYNC.credentialsconfig.enterCredentials = function(configJson) {
-    var remoteProjectId = XSYNC.xsyncconfig.configuration.remote_project_id || $("#xsync-config-remote-project").val() || "ERROR";
-    var newOnly = $("#xsync-config-newonly").val() || XSYNC.xsyncconfig.configuration.sync_new_only || true;
-    var credHost = XSYNC.xsyncconfig.configuration.remote_url != "http://" ? XSYNC.xsyncconfig.configuration.remote_url : $("#xsync-config-remote-url").val();
+XSYNC.credentialsconfig.enterCredentials = XSYNC.xsyncconfig.enterCredentials = function(configJson){
 
-    var modalContent =
-        '<div>' +
-        '<div class = "credentials-header-div credentials-div">' +
-        '<h3 style="text-align:center">Enter credentials for ' +  credHost + '</h3>' +
-        '</div>' +
-        '<input id="xsync-credentials-host" type="hidden" value="' + credHost  + '">' +
-        '<div class = "credentials-div">' +
-        '<div style="width:100px; float:left;">Username: </div><span><input type="text" size=20 id="xsync-credentials-username">' +
-        '</div>' +
-        '<div class = "credentials-div">' +
-        '<div style="width:100px; float:left;">Password: </div><span><input type="password" size=20 id="xsync-credentials-password">' +
-        '</div>' +
-        "</div>";
+    var remoteProjectId =
+                XSYNC.xsyncconfig.configuration.remote_project_id ||
+                $("#xsync-config-remote-project").val() ||
+                "ERROR";
 
+    var newOnly =
+                $("#xsync-config-newonly").val() ||
+                XSYNC.xsyncconfig.configuration.sync_new_only ||
+                true;
+
+    var credHost =
+                XSYNC.xsyncconfig.configuration.remote_url != "http://" ?
+                        XSYNC.xsyncconfig.configuration.remote_url :
+                        $("#xsync-config-remote-url").val();
+
+    var modalContent = '' +
+            '<form id="xsync-remote-credentials">' +
+                '<h3 class="credentials-header">Enter credentials for: <span class="remote-site">' + credHost + '</span></h3>' +
+                '<input type="hidden" name="host" value="' + credHost + '">' +
+                '<input type="hidden" name="method" value="GET">' +
+                '<label class="credentials-input">' +
+                    '<b>Username: </b>' +
+                    '<input type="text" name="username" size="24">' +
+                '</label>' +
+                '<label class="credentials-input">' +
+                    '<b>Password: </b>' +
+                    '<input type="password" name="password" size="24">' +
+                '</label>' +
+            '</form>' +
+        '';
 
     var pModalOpts = {
-        width: 600,
-        height: 380,
+        width: 480,
+        height: 360,
         id: 'xmodal-enter-credentials',
-        title: "Enter credentials to be used for XSync transfers for this project",
+        title: "Enter remote server credentials",
         content: modalContent,
+        afterShow: function(){
+            this.$modal.find('#xsync-credentials-username').focus();
+        },
         ok: 'show',
         okLabel: 'Continue',
         okAction: function(modl){
-            // var credHost = $("#xsync-config-remote-url").val();
-        	var credUser = $("#xsync-credentials-username").val();
-            var credPassword = $("#xsync-credentials-password").val();
+
+            var $form = modl.$modal.find('#xsync-remote-credentials');
+
+            var credHost = $form.find('[name="host"]').val();
+            var credUser = $form.find('[name="username"]').val();
+            var credPassword = $form.find('[name="password"]').val();
+
             var tokenData = {
-                url: credHost + "/data/services/tokens/issue",
-                method: "GET",
+                url: credHost + '/data/services/tokens/issue',
+                method: 'GET',
                 username: credUser,
                 password: credPassword
             };
 
             var credentialsAjax = $.ajax({
-                type : "POST",
+                type: 'POST',
                 url: XNAT.url.csrfUrl('/xapi/xsync/remoteREST'),
-                cache: false,
-                async: true,
                 dataType: 'json',
-                data:  JSON.stringify(tokenData),
+                data: JSON.stringify(tokenData),
                 processData: false,
-                contentType: "application/json; charset=utf-8"
+                contentType: 'application/json'
             });
 
-            credentialsAjax.done( function( data ) {
+            credentialsAjax.done(function(data){
 
                 if (typeof data !== 'undefined' && typeof data.secret !== 'undefined') {
 
@@ -184,116 +190,145 @@ XSYNC.credentialsconfig.enterCredentials = function(configJson) {
                         syncNewOnly: newOnly,
                         alias: data.alias,
                         secret: data.secret,
-                        username:credUser
+                        username: credUser
                     };
                     try {
-                        formData['estimatedExpirationTime']=data.estimatedExpirationTime
-                    }catch(err){}
+                        formData['estimatedExpirationTime'] = data.estimatedExpirationTime
+                    }
+                    catch (err) {}
 
                     var saveCredentials = $.ajax({
-                        type : "POST",
-                        url: XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project ),
-                        cache: false,
-                        async: true,
+                        type: 'POST',
+                        url: XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project),
                         dataType: 'text',
-                        data:  JSON.stringify(formData),
+                        data: JSON.stringify(formData),
                         processData: false,
-                        contentType: "application/json"
+                        contentType: 'text/plain'
                     });
-                    saveCredentials.done( function( data, textStatus, jqXHR ) {
-							if (jqXHR.status == 202) {
-								xmodal.message(
-									'Credentials saved',' WARNING: ' + jqXHR.responseText + '\n' +
-									'Successfully saved credentials for remote server ' +
-									credHost
-								);
-							}else {
-								if (XSYNC.xsyncconfig.firsttime === false) {
-									xmodal.message(
-										'Credentials saved','Successfully saved credentials for remote server ' +
-										credHost
-									);
-								}
-							}
-							modl.close();
+
+                    saveCredentials.done(function(data, textStatus, jqXHR){
+                        if (jqXHR.status == 202) {
+                            xmodal.message(
+                                    'Credentials saved', ' WARNING: ' + jqXHR.responseText + '\n' +
+                                    'Successfully saved credentials for remote server ' +
+                                    credHost
+                            );
+                        }
+                        else {
+                            if (XSYNC.xsyncconfig.firsttime === false) {
+                                xmodal.message(
+                                        'Credentials saved', 'Successfully saved credentials for remote server ' +
+                                        credHost
+                                );
+                            }
+                        }
+                        modl.close();
 
                         // submit the config json again if this was called from submitConfig
                         if (configJson !== undefined) {
                             XSYNC.xsyncconfig.submitConfig(configJson)
                         }
                     });
-                    saveCredentials.fail( function( data, textStatus, jqXHR ) {
+
+                    saveCredentials.fail(function(data, textStatus, jqXHR){
                         xmodal.message(
-                            'Error','Could not save credentials for remote server '  +
-                            credHost + ' Cause: ' + data.statusText + " Details: " + data.responseText
+                                'Error', 'Could not save credentials for remote server ' +
+                                credHost + ' Cause: ' + data.statusText + " Details: " + data.responseText
                         );
                         modl.close();
                     });
 
-                } else {
+                }
+                else {
                     console.log(XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project));
-                    xmodal.message('Error','ERROR:  Could not get alias token.  Please check username and password and try again.');
+                    xmodal.message('Error', 'ERROR:  Could not get alias token.  Please check username and password and try again.');
                 }
 
             });
-            credentialsAjax.fail( function( data, textStatus, error ) {
+            credentialsAjax.fail(function(data, textStatus, error){
                 console.log(XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project));
-                xmodal.message('Error','ERROR:  Could not get alias token.  Please check username and password and try again.');
+                xmodal.message('Error', 'ERROR:  Could not get alias token.  Please check username and password and try again.');
             });
 
         },
         okClose: false,
         cancel: 'Cancel',
         cancelLabel: 'Cancel',
-        cancelAction: function() {
+        cancelAction: function(){
             xmodal.close(XNAT.app.abu.abuConfigs.modalOpts.id);
         },
         closeBtn: 'hide'
     };
-    xmodal.open(pModalOpts);
-    $('#xsync-credentials-username').focus();
-}
 
-XSYNC.xsyncconfig.checkCredentials = function() {
+    xmodal.open(pModalOpts);
+
+};
+
+
+XSYNC.xsyncconfig.checkCredentials = function(){
 
     this.checkCredentialsResult = false;
+
     var formData = {
         host: $('#xsync-config-remote-url').val(),
         localProject: XNAT.data.context.project
     };
+
     var saveCredentials = $.ajax({
-        type : "POST",
-        url: XNAT.url.csrfUrl('/xapi/xsync/credentials/check/projects/' + XNAT.data.context.project ),
+        type: "POST",
+        url: XNAT.url.csrfUrl('/xapi/xsync/credentials/check/projects/' + XNAT.data.context.project),
         cache: false,
         async: false,
         dataType: 'text',
-        data:  JSON.stringify(formData),
+        data: JSON.stringify(formData),
+        processData: false,
         contentType: "text/plain"
     });
-    saveCredentials.done( function( data, textStatus, jqXHR ) {
+
+    saveCredentials.done(function(data, textStatus, jqXHR){
         XSYNC.xsyncconfig.checkCredentialsResult = true;
     });
-    saveCredentials.fail( function( data, textStatus ) {
+
+    saveCredentials.fail(function(data, textStatus){
         console.log(textStatus + " - Failed to save credentials")
     });
+
     return this.checkCredentialsResult;
-}
+
+};
+
 
 /*
  Configuration Settings
  */
 
-XSYNC.xsyncconfig.editConfig = function() {
+XSYNC.xsyncconfig.editConfig = function(){
+    var $form;
     XSYNC.xsyncconfig.modal = xmodal.open({
         title: "Project Sync Settings for " + XNAT.data.context.project,
         content: '<div id="xsync-config-dialog"></div>',
         height: '90%',
+        beforeShow: function(obj){
+            // Spawn everything
+            var spawnerConfig = spawnConfig();
+            var $wrapper = obj.$modal.find('#xsync-config-dialog');
+            XNAT.spawner.spawn(spawnerConfig).render($wrapper);
+
+            $('#xsync-advanced-settings').show();
+
+            // save <form> reference
+            $form = obj.$modal.find('form');
+
+            // Trigger changes
+            $form.find('select').trigger('change');
+            $form.find('checkbox').trigger('change');
+
+        },
         buttons: {
             submit: {
                 label: "Submit",
-                action: function(obj) {
-                    var form = obj.$modal.find('form')[0];
-
+                isDefault: true,
+                action: function(obj){
                     // Only include visible fields and checkboxes, which are of type 'hidden'
                     var json = form2js($('#root-panel').find(':input').filter(':visible, [type="hidden"]').toArray());
 
@@ -310,36 +345,23 @@ XSYNC.xsyncconfig.editConfig = function() {
                     console.log(json);
 
                     XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
-                    $(form).triggerHandler('reload-data');
+                    $form.triggerHandler('reload-data');
                 }
             },
             close: {
                 label: "Cancel"
             }
-        },
-        beforeShow: function(obj) {
-            // Spawn everything
-            var spawnerConfig = spawnConfig();
-            var $wrapper = obj.$modal.find('#xsync-config-dialog');
-            XNAT.spawner.spawn(spawnerConfig).render($wrapper);
-
-            $('#xsync-advanced-settings').show();
-
-            // Trigger changes
-            var form = obj.$modal.find('form')[0];
-            $(form).find('select').trigger('change');
-            $(form).find('checkbox').trigger('change');
         }
     });
-}
+};
 
-function spawnConfig() {
+function spawnConfig(){
 
     ////////////////////
     // Parent element //
     ////////////////////
 
-    function configPanel() {
+    function configPanel(){
         return {
             kind: 'panel.form',
             title: 'XSync Configuration',
@@ -362,15 +384,18 @@ function spawnConfig() {
                     label: '',
                     contents: '<a href=#>Hide Advanced Settings</a>',
                     element: {
-                        $: { click: function() {
-                            if ($("#xsync-advanced-settings").is(":hidden")) {
-                                $('#xsync-advanced-settings').slideDown(400)
-                                $(this).find("a").text("Hide Advanced Settings")
-                            } else {
-                                $('#xsync-advanced-settings').slideUp(400)
-                                $(this).find("a").text("Show Advanced Settings")
+                        $: {
+                            click: function(){
+                                if ($("#xsync-advanced-settings").is(":hidden")) {
+                                    $('#xsync-advanced-settings').slideDown(400);
+                                    $(this).find("a").text("Hide Advanced Settings")
+                                }
+                                else {
+                                    $('#xsync-advanced-settings').slideUp(400);
+                                    $(this).find("a").text("Show Advanced Settings")
+                                }
                             }
-                        }}
+                        }
                     }
                 },
                 advancedSettings: {
@@ -407,18 +432,14 @@ function spawnConfig() {
                                     kind: 'panel.subhead',
                                     label: 'Non-imaging Assessments'
                                 },
-                                subjectAssessorSelect: syncTypeSelector("subject_assessors.sync_type", " "),
+                                subjectAssessorSelect: syncTypeSelector("subject_assessors.sync_type", " ")//,
                                 // subjectAssessorXsiTypes: xsiInput("subject_assessors.xsi_types.types_list"),
-
-                                // subjectDetailsCheckbox:
-                                //     detailsToggle("subject-assessor-advanced"),
+                                // subjectDetailsCheckbox: detailsToggle("subject-assessor-advanced"),
                                 // xsiTypeAdvanced: {
                                 //     tag: "div#subject-assessor-advanced",
                                 //     contents: {
-                                //         subAssessorSelect:
-                                //             syncTypeSelector("subject_assessors.advanced_options.resources.sync_type", "Assessor Resources"),
-                                //         subAssessessorResources:
-                                //             resourceInput("subject_assessors.advanced_options.resources.resource_list"),
+                                //         subAssessorSelect: syncTypeSelector("subject_assessors.advanced_options.resources.sync_type", "Assessor Resources"),
+                                //         subAssessessorResources: resourceInput("subject_assessors.advanced_options.resources.resource_list"),
                                 //         okToSync: {
                                 //             kind: 'panel.input.checkbox',
                                 //             name: "subject_assessors.advanced_options.needs_ok_to_sync",
@@ -436,11 +457,9 @@ function spawnConfig() {
                                     kind: 'panel.subhead',
                                     label: 'Imaging Sessions'
                                 },
-                                imagingSessionsSelect: syncTypeSelector("imaging_sessions.sync_type", " "),
-                                // imagingSessionsXsiTypes: xsiInput("imaging_sessions.xsi_types.types_list"),
-
-                                // sessionDetailsCheckbox:
-                                //     detailsToggle("imaging-sessions-advanced"),
+                                imagingSessionsSelect: syncTypeSelector("imaging_sessions.sync_type", " ")//,
+                                // imagingSessionsXsiTypes: xsiInput("imaging_sessions.xsi_types.types_list")//
+                                // sessionDetailsCheckbox: detailsToggle("imaging-sessions-advanced"),
                                 // imagingAdvanced: {
                                 //     tag: "div#imaging-sessions-advanced",
                                 //     contents: {
@@ -454,39 +473,25 @@ function spawnConfig() {
                                 //             name: "imaging_sessions.advance_options.anonymize",
                                 //             label: 'Anonymize DICOM'
                                 //         },
-                                //         imageResourceSelect:
-                                //             syncTypeSelector("imaging_sessions.advanced_options.resources.sync_type", "Session Resources"),
-                                //         imageResourcesInput:
-                                //             resourceInput("imaging_sessions.advanced_options.resources.resource_list"),
-                                //         scanTypeSelect:
-                                //             syncTypeSelector("imaging_sessions.advanced_options.scan_types.sync_type", "Scan Types"),
-                                //         scanTypeInput:
-                                //             resourceInput("imaging_sessions.advanced_options.scan_types.sync_type_list"),
-                                //         scanResourceSelect:
-                                //             syncTypeSelector("imaging_sessions.advanced_options.scan_resources.sync_type", "Scan Resources"),
-                                //         scanResourceInput:
-                                //             resourceInput("imaging_sessions.advanced_options.scan_types.resource_list"),
-                                //
-                                //         imagingAssessorHeading: {
-                                //             kind: 'panel.subhead',
-                                //             label: 'Imaging Assessors'
-                                //         },
-                                //         assessorsSelect:
-                                //             syncTypeSelector("imaging_sessions.advanced_options.session_assessors.xsy_types.sync_type", " "),
-                                //         assessorsInput:
-                                //             xsiInput("imaging_sessions.advanced_options.session_assessors.xsi_types.types_list"),
+                                //         imageResourceSelect: syncTypeSelector("imaging_sessions.advanced_options.resources.sync_type", "Session Resources"),
+                                //         imageResourcesInput: resourceInput("imaging_sessions.advanced_options.resources.resource_list"),
+                                //         scanTypeSelect: syncTypeSelector("imaging_sessions.advanced_options.scan_types.sync_type", "Scan Types"),
+                                //         scanTypeInput: resourceInput("imaging_sessions.advanced_options.scan_types.sync_type_list"),
+                                //         scanResourceSelect: syncTypeSelector("imaging_sessions.advanced_options.scan_resources.sync_type", "Scan Resources"),
+                                //         scanResourceInput: resourceInput("imaging_sessions.advanced_options.scan_types.resource_list"),
+                                //         imagingAssessorHeading: {kind: 'panel.subhead', label: 'Imaging Assessors'},
+                                //         assessorsSelect: syncTypeSelector("imaging_sessions.advanced_options.session_assessors.xsy_types.sync_type", " "),
+                                //         assessorsInput: xsiInput("imaging_sessions.advanced_options.session_assessors.xsi_types.types_list"),
                                 //         okToSyncAss: {
                                 //             kind: 'panel.input.checkbox',
                                 //             name: "imaging_sessions.advanced_options.session_assessors.advanced_options.needs_ok_to_sync",
                                 //             label: 'Require QC to Sync'
                                 //         },
-                                //
-                                //         imageAssessorResourceSelect:
-                                //             syncTypeSelector("imaging_sessions.advanced_options.session_assessors.advanced_options.sync_type", "Assessor Resources"),
-                                //         imageAssessorResourcesInput:
-                                //             resourceInput("imaging_sessions.advanced_options.session_assessors.advanced_options.resource_list")
+                                //         imageAssessorResourceSelect: syncTypeSelector("imaging_sessions.advanced_options.session_assessors.advanced_options.sync_type", "Assessor Resources"),
+                                //         imageAssessorResourcesInput: resourceInput("imaging_sessions.advanced_options.session_assessors.advanced_options.resource_list")
                                 //     }
                                 // }
+
                             }
                         }
                     }
@@ -500,7 +505,7 @@ function spawnConfig() {
     // Basic config elements //
     ///////////////////////////
 
-    function enabled() {
+    function enabled(){
         return {
             id: 'enabled',
             kind: 'panel.input.checkbox',
@@ -509,7 +514,7 @@ function spawnConfig() {
         }
     }
 
-    function frequency() {
+    function frequency(){
         return {
             kind: 'panel.select.menu',
             id: 'sync_frequency',
@@ -524,7 +529,7 @@ function spawnConfig() {
         }
     }
 
-    function syncNewOnly() {
+    function syncNewOnly(){
         return {
             id: 'xsync-config-newonly',
             kind: 'panel.input.checkbox',
@@ -533,7 +538,7 @@ function spawnConfig() {
         }
     }
 
-    function remoteUrl() {
+    function remoteUrl(){
         return {
             kind: 'panel.input.text',
             id: 'xsync-config-remote-url',
@@ -542,7 +547,7 @@ function spawnConfig() {
         }
     }
 
-    function remoteProject() {
+    function remoteProject(){
         return {
             kind: 'panel.input.text',
             id: 'xsync-config-remote-project',
@@ -551,7 +556,7 @@ function spawnConfig() {
         }
     }
 
-    function identifiers() {
+    function identifiers(){
         return {
             kind: 'panel.select.menu',
             id: 'xsync-config-identifiers',
@@ -564,7 +569,7 @@ function spawnConfig() {
         }
     }
 
-    function anonymize() {
+    function anonymize(){
         return {
             id: 'xsync-config-anonymize',
             kind: 'panel.input.checkbox',
@@ -573,12 +578,12 @@ function spawnConfig() {
         }
     }
 
-    function okToSync(_name) {
-    	return {
-    		kind: 'panel.input.checkbox',
-    		name: _name,
-    		label: 'Require QC to Sync'
-    	}
+    function okToSync(_name){
+        return {
+            kind: 'panel.input.checkbox',
+            name: _name,
+            label: 'Require QC to Sync'
+        }
     }
 
 
@@ -589,21 +594,22 @@ function spawnConfig() {
     // Function level map to keep track of which text inputs should be visible
     var showTextInput = {};
 
-    function syncTypeSelector(name, label) {
+    function syncTypeSelector(name, label){
         // imaging_sessions.advanced_options.resources.sync_type
         return {
             kind: 'panel.select.menu',
             name: name,
             id: name.replace(/\./g, '_') + '_select_menu_id',
             label: label,
+            // value: 'all', // don't we want 'all' to be selected by default?
             options: {
                 all: 'All',
-                none: 'None'
+                none: 'None'//,
                 // include: 'Include',
                 // exclude: 'Exclude'
             },
             element: {
-                onchange: function() {
+                onchange: function(){
                     // TODO - Get rid of nasty hack
                     var inputName;
                     if (name.indexOf('resource') > -1) {
@@ -618,7 +624,7 @@ function spawnConfig() {
         }
     }
 
-    function resourceInput(name, label) {
+    function resourceInput(name, label){
         var inputId = name.replace(/\./g, '_') + '_input_text_id';
         // Initialize show input to false
         showTextInput[name] = false;
@@ -634,7 +640,7 @@ function spawnConfig() {
         }
     }
 
-    function xsiInput(name) {
+    function xsiInput(name){
         var inputId = name.replace(/\./g, '_') + '_input_text_id';
         // Initialize show input to false
         showTextInput[name] = false;
@@ -645,9 +651,12 @@ function spawnConfig() {
             name: name,
             label: 'XSI Types',
             rows: 2,
-            description: "Comma separated list of XSI types, e.g., xnat:mrSessionData,hcp:subjectMetadata. You can get a list of XSI types in the <a href=" + XNAT.url.rootUrl('app/template/XDATScreen_dataTypes.vm')+ " target='_blank'>admin section</a>",
+            description: "" +
+            "Comma separated list of XSI types, e.g., xnat:mrSessionData,hcp:subjectMetadata. You can get " +
+            "a list of XSI types in the <a href=" + XNAT.url.rootUrl('app/template/XDATScreen_dataTypes.vm') +
+            " target='_blank'>admin section</a>",
             element: {
-                onblur: function() {
+                onblur: function(){
                     var xsiTypes = $(this).val().split(',');
                     console.log(xsiTypes);
                     // split the list on comma
@@ -658,17 +667,18 @@ function spawnConfig() {
         }
     }
 
-    function detailsToggle(divId) {
+    function detailsToggle(divId){
         return {
             kind: 'panel.input.checkbox',
             name: '',
             label: 'More details',
             element: {
-                onchange: function() {
+                onchange: function(){
                     if ($(this).is(':checked')) {
-                        $('#'+divId).slideDown(400)
-                    } else {
-                        $('#'+divId).slideUp(400)
+                        $('#' + divId).slideDown(400)
+                    }
+                    else {
+                        $('#' + divId).slideUp(400)
                     }
                 }
             }
@@ -681,90 +691,110 @@ function spawnConfig() {
     // Config UI Helpers //
     ///////////////////////
 
-    function showHideInput(selector, name) {
+    function showHideInput(selector, name){
         // jquery doesn't like to select ids with periods
         var inputId = name.replace(/\./g, '_') + '_input_text_id';
-        var $textInput = $('#'+inputId);
+        var $textInput = $('#' + inputId);
 
         // show or hide input text box
         if ((selector.value == "include" || selector.value == "exclude") && !showTextInput[name]) {
-            $('[data-name="'+name+'"]').fadeIn(400);
+            $('[data-name="' + name + '"]').fadeIn(400);
             showTextInput[name] = true;
-        } else if ((selector.value == "all" || selector.value == "none") || selector.value == "") {
+        }
+        else if ((selector.value == "all" || selector.value == "none") || selector.value == "") {
             // remove input contents and hide
-            $('[data-name="'+name+'"]').hide();
+            $('[data-name="' + name + '"]').hide();
             $textInput.val("");
             showTextInput[name] = false;
         }
     }
 
-    function showHideAdvanced(selector, name) {}
+    function showHideAdvanced(selector, name){}
 
     return {
         root: configPanel()
     };
 }
 
-XSYNC.xsyncconfig.submitConfig = function(jsonString) {
+XSYNC.xsyncconfig.submitConfig = function(jsonString){
     var authenticated = XSYNC.xsyncconfig.checkCredentials();
-
     if (authenticated) {
         XSYNC.xsyncconfig.saveConfig(jsonString);
-    } else {
+    }
+    else {
         // pass json to enterCredentials so it can be submitted again if successful auth
         XSYNC.credentialsconfig.enterCredentials(jsonString);
     }
-}
+};
 
-XSYNC.xsyncconfig.saveConfig = function(newJson) {
+XSYNC.xsyncconfig.saveConfig = function(newJson){
+
+    var saveWait = xmodal.loading.open();
+
     var xsyncConfigAjax = $.ajax({
         type: "POST",
         url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
-        cache: false,
-        async: true,
         data: newJson,
         contentType: "text/plain"
     });
 
-    xsyncConfigAjax.done( function( data, textStatus, jqXHR ) {
+    xsyncConfigAjax.done(function(data, textStatus, jqXHR){
+
         $("#xsync-annon_add-config").attr("disabled", false);
-        xmodal.message('Saved','The XSync configuration has been saved');
-        XSYNC.xsyncconfig.modal.close();
+
+        //saveWait.close();
+
+        xmodal.message({
+            title: 'Saved',
+            content: 'The XSync configuration has been saved',
+            action: function(){
+                window.location.reload();
+            },
+            onClose: function(){
+                saveWait.close();
+            }
+        });
 
         // Reload the data on successful save
         XNAT.xhr.getJSON({
-            url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
-            done: function(data) {
-                XSYNC.xsyncconfig.mergeConfig(data);
-                // XSYNC.xsyncconfig.configuration = data;
+            url: XNAT.url.restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
+            success: function(data){
+                XSYNC.xsyncconfig.modal.close();
+                XSYNC.xsyncconfig.configuration = data;
                 // $('#root-panel').setValues(data);
+                // refresh the config panel - show the buttons
+                //XSYNC.xsyncconfig.showConfigPanel();
+                // just reload the whole page
+                //window.location.reload();
             },
-            fail: function() {
+            error: function(){
                 console.log("Failed to reload XSync config data after submission.")
             }
         })
 
     });
 
-    xsyncConfigAjax.fail( function( data, textStatus, error ) {
+    xsyncConfigAjax.fail(function(data, textStatus, error){
         console.log("XSync config submission failed");
         console.log(newJson);
-        xmodal.message('Error',  'Configuration was not successfully saved (' + error + ')');
+        saveWait.close();
+        xmodal.message('Error', 'Configuration was not successfully saved (' + error + ')');
     });
-}
+
+};
 
 /*
  DICOM Anonymization
  */
 
-XSYNC.xsyncconfig.submitDICOMAnonymization = function() {
-    var getAnonymizationScript = $.ajax({
-        type : "GET",
-        url: XNAT.url.csrfUrl('/xapi/xsync/setup/presyncanonymization/projects/'+XNAT.data.context.project),
+XSYNC.xsyncconfig.submitDICOMAnonymization = function(){
+
+    var getAnonymizationScript = $.get({
+        url: XNAT.url.restUrl('/xapi/xsync/setup/presyncanonymization/projects/' + XNAT.data.context.project),
         dataType: 'text'
     });
 
-    getAnonymizationScript.done(function (data) {
+    getAnonymizationScript.done(function(data){
 
         var tempDiv = spawn('div', data);
 
@@ -780,21 +810,24 @@ XSYNC.xsyncconfig.submitDICOMAnonymization = function() {
             id: "xsync-dicom-anonymization",
             title: "Pre-Sync DICOM Anonymization Script",
             before: '<p>This anonymization script will be applied when Sync Anonymization is enabled.</p>',
-            after: '<small>Submit to save changes</small>',
-            width: 680,
-            height: 400,
+            footerContent: 'Submit to save changes',
+            //width: 680,
+            height: 600,
             buttons: {
                 save: {
                     label: 'Submit',
-                    action: function (modal) {
+                    action: function(modal){
                         var code = editor.getValue().code;
-                        XSYNC.xsyncconfig.uploadDicomAnonymization(code);
-                        modal.close()
+                        var upload = XSYNC.xsyncconfig.uploadDicomAnonymization(code);
+                        upload.done(function(){
+                            XNAT.ui.banner.top(2000, 'Anonymization script saved.');
+                            modal.close();
+                        });
                     }
                 },
                 cancel: {
                     label: 'Cancel',
-                    action: function (modal) {
+                    action: function(modal){
                         modal.close()
                     }
                 }
@@ -803,25 +836,28 @@ XSYNC.xsyncconfig.submitDICOMAnonymization = function() {
         });
     });
 
-    getAnonymizationScript.fail( function( data, textStatus, error ) {
+    getAnonymizationScript.fail(function(data, textStatus, error){
         xmodal.message('Error', textStatus + ': Could not retrieve pre-sync DICOM anonymization script (' + error + ')');
     });
-}
 
-XSYNC.xsyncconfig.uploadDicomAnonymization = function(editorContents) {
+};
+
+XSYNC.xsyncconfig.uploadDicomAnonymization = function(editorContents){
+
     var uploadDICOMscriptAjax = $.ajax({
         type: "PUT",
-        url: XNAT.url.csrfUrl('/xapi/xsync/setup/presyncanonymization/projects/' + XNAT.data.context.project ),
+        url: XNAT.url.csrfUrl('/xapi/xsync/setup/presyncanonymization/projects/' + XNAT.data.context.project),
         data: editorContents
     });
 
-    uploadDICOMscriptAjax.done( function( data, textStatus, jqXHR ) {
-        xmodal.message('Saved','The Pre-Sync DICOM Anonymization has been saved');
+    uploadDICOMscriptAjax.done(function(data, textStatus, jqXHR){
+        xmodal.message('Saved', 'The Pre-Sync DICOM Anonymization has been saved');
         XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Update Pre Sync DICOM Anonymization Script';
         $("#xsync-annon_add-config").attr('value', XSYNC.xsyncconfig.anonymizationuploadBtnText);
     });
 
-    uploadDICOMscriptAjax.fail( function( data, textStatus, error ) {
+    uploadDICOMscriptAjax.fail(function(data, textStatus, error){
         xmodal.message('Error', textStatus + ': Pre-Sync DICOM Anonymization was not successfully saved (' + error + ')');
     });
-}
+
+};

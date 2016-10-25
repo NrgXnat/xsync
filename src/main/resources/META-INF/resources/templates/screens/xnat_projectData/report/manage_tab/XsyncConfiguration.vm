@@ -8,8 +8,7 @@
 
 <h3>XSync Configuration</h3>
 <div>
-    <div id='xsync-config-div'>
-    </div>
+    <div id="xsync-config"></div>
     <script type="text/javascript">
         $(XSYNC.xsyncconfig.init);
     </script>
@@ -17,7 +16,7 @@
 
 ##<h3>XSync Credentials</h3>
 ##<div>
-##    <div id='xsync-credentials-div'>
+##    <div id='xsync-credentials-input'>
 ##    </div>
 ##    <script type="text/javascript">
 ##        $.ready(XSYNC.credentialsconfig.initialize());
