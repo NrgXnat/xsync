@@ -751,7 +751,7 @@ XSYNC.xsyncconfig.saveConfig = function(newJson){
                 window.location.reload();
             },
             onClose: function(){
-                saveWait.close();
+                xmodal.loading.closeAll();
             }
         });
 
@@ -816,11 +816,12 @@ XSYNC.xsyncconfig.submitDICOMAnonymization = function(){
             buttons: {
                 save: {
                     label: 'Submit',
+                    isDefault: true,
                     action: function(modal){
                         var code = editor.getValue().code;
                         var upload = XSYNC.xsyncconfig.uploadDicomAnonymization(code);
                         upload.done(function(){
-                            XNAT.ui.banner.top(2000, 'Anonymization script saved.');
+                            // XNAT.ui.banner.top(2000, 'Anonymization script saved.');
                             modal.close();
                         });
                     }
@@ -852,6 +853,7 @@ XSYNC.xsyncconfig.uploadDicomAnonymization = function(editorContents){
 
     uploadDICOMscriptAjax.done(function(data, textStatus, jqXHR){
         xmodal.message('Saved', 'The Pre-Sync DICOM Anonymization has been saved');
+        // XNAT.ui.banner.top(2000, 'Anonymization script saved.');
         XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Update Pre Sync DICOM Anonymization Script';
         $("#xsync-annon_add-config").attr('value', XSYNC.xsyncconfig.anonymizationuploadBtnText);
     });
@@ -859,5 +861,7 @@ XSYNC.xsyncconfig.uploadDicomAnonymization = function(editorContents){
     uploadDICOMscriptAjax.fail(function(data, textStatus, error){
         xmodal.message('Error', textStatus + ': Pre-Sync DICOM Anonymization was not successfully saved (' + error + ')');
     });
+
+    return uploadDICOMscriptAjax;
 
 };
