@@ -1,60 +1,77 @@
 <!-- Sequence: 18 -->
 <!-- allowGuest: false -->
-<script type="text/javascript" >
-	XNAT.xhr.getJSON({
-	  url:XNAT.url.csrfUrl('/xapi/xsync/setup/projects/'+XNAT.data.context.project),
-	  type:"GET",
-	  success: function(data){
-	      var configuration = data;
-	      if (configuration.enabled === true) {	
-	        document.getElementById('showSyncData').style.display="";
-	      }else {
-	        document.getElementById('showSyncData').style.display="none";
-	      }
-	  },
-	  error: function(o) {
-	      document.getElementById('showSyncData').style.display="none";
-	  }
-	});
 
+#if($data.getSession().getAttribute("userHelper").canDelete($project))
 
+<div id="showSyncData">
+    <li class="yuimenuitem">
+        <a id="sync-data-start" class="yuimenuitemlabel" href="#!">Sync Data</a>
+    </li>
+</div>
 
+<script type="text/javascript">
 
-function syncNow(projectId) {
-	var exporturl = serverRoot + '/xapi/xsync/projects/'+projectId+'?XNAT_CSRF='+csrfToken ;
-	$.ajax({
-	  url:exporturl,
-	  type:"POST",
-	  success: function(data){
-			  xmodal.alert({
-					title: 'Project Synchronization',
-					content: 'Project ' + projectId + ' synchronization has started. An email notification will be sent once synchronization is complete.',
-					label: 'OK'
-				});
-	  
-	  },
-	  error: ajaxCallFailed
-	});
-};
+    (function(){
 
-	function ajaxCallFailed(o) {
-		xmodal.loading.close();
-		if (!window.leaving) {
-			//alert(o.status + " " + o.statusText + " " +  o.responseText);
-			if (o.status == "417") {
-		    		xModalMessage('Unable to initiate project synchronization', 'Project is not configured for synchronization. Please setup synchronization first');
-			}else 
-		    		xModalMessage('Unable to initiate project synchronization', 'Unable to initiate project synchronization');
-		}
+        var projectId = XNAT.data.context.project,
+            showSyncData$ = $('#showSyncData').hide();
 
-	};
+        // only show the 'Sync Data' button if this project is configured to do so
+        XNAT.xhr.getJSON({
+            url: XNAT.url.restUrl('/xapi/xsync/setup/projects/' + projectId),
+            success: function(config){
+                showSyncData$[config.enabled === true ? 'show' : 'hide']();
+            },
+            error: function(o){
+                showSyncData$.hide();
+            }
+        });
+
+        function ajaxCallFailed(o){
+            xmodal.loading.close();
+            if (!window.leaving) {
+                //alert(o.status + " " + o.statusText + " " +  o.responseText);
+                if (o.status == "417") {
+                    xmodal.message('Unable to initiate project synchronization', 'Project is not configured for synchronization. Please setup synchronization first');
+                }
+                else {
+                    xmodal.message('Unable to initiate project synchronization', 'Unable to initiate project synchronization');
+                }
+            }
+        };
+
+        function syncNow(){
+            var exporturl = XNAT.url.csrfUrl('/xapi/xsync/projects/' + projectId);
+            XNAT.xhr.post({
+                url: exporturl,
+                success: function(){
+                    XNAT.ui.banner.top(2000, 'Synchronization started.', 'success');
+//                    xmodal.alert({
+//                        title: 'Project Synchronization',
+//                        content: 'Project ' + projectId + ' synchronization has started. An email notification will be sent once synchronization is complete.',
+//                        label: 'OK'
+//                    });
+                },
+                error: ajaxCallFailed
+            });
+        };
+
+        // show a confirmation dialog BEFORE starting the sync
+        function confirmSync(){
+            xmodal.confirm({
+                title: 'Confirm Project Synchronization',
+                content: 'Click "OK" to begin synchronization. An email notification will be sent once synchronization is complete.',
+                okAction: syncNow
+            });
+        }
+
+        $('#sync-data-start').on('click', function(e){
+            e.preventDefault();
+            confirmSync();
+        });
+
+    })();
 
 </script>
 
-#if($data.getSession().getAttribute("userHelper").canDelete($project))
-<div id="showSyncData">
-<li class="yuimenuitem">
-	<a class="yuimenuitemlabel" href="javascript:syncNow('$!{project.getId()}');">Sync Data</a>
-</li>
-</div>
 #end

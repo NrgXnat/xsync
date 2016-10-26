@@ -170,6 +170,14 @@ XSYNC.credentialsconfig.enterCredentials = XSYNC.xsyncconfig.enterCredentials = 
                 password: credPassword
             };
 
+            // sample tokenData JSON
+            var tokenDataSample = {
+                "url": "http://10.1.100.170/data/services/tokens/issue",
+                "method": "GET",
+                "username": "bob",
+                "password": "blahblah"
+            };
+
             var credentialsAjax = $.ajax({
                 type: 'POST',
                 url: XNAT.url.csrfUrl('/xapi/xsync/remoteREST'),
@@ -178,6 +186,20 @@ XSYNC.credentialsconfig.enterCredentials = XSYNC.xsyncconfig.enterCredentials = 
                 processData: false,
                 contentType: 'application/json'
             });
+
+            // sample credentials JSON
+            var credentialsSample = {
+                "xdatUserId": "bob",
+                "alias": "a8174140-acb3-4b28-ba3d-006dd68be980",
+                "secret": "QuVoGllg591PTMIcYcnNoEJDcYefbfwmadlESyHFDGaec29yxpGEJb0r8cXZigRF",
+                "singleUse": false,
+                "estimatedExpirationTime": 1477178868198,
+                "enabled": true,
+                "created": 1477006068199,
+                "id": 36,
+                "disabled": 0,
+                "timestamp": 1477006068199
+            };
 
             credentialsAjax.done(function(data){
 
@@ -272,6 +294,18 @@ XSYNC.xsyncconfig.checkCredentials = function(){
     var formData = {
         host: $('#xsync-config-remote-url').val(),
         localProject: XNAT.data.context.project
+    };
+
+    // sample JSON for valid credentials check
+    var formDataSample = {
+        "host": "http://10.1.100.170",
+        "localProject": "Xa",
+        "remoteProject": "Xb",
+        "syncNewOnly": true,
+        "alias": "a8174140-acb3-4b28-ba3d-006dd68be980",
+        "secret": "QuVoGllg591PTMIcYcnNoEJDcYefbfwmadlESyHFDGaec29yxpGEJb0r8cXZigRF",
+        "username": "bob",
+        "estimatedExpirationTime": 1477178868198
     };
 
     var saveCredentials = $.ajax({
