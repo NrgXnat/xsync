@@ -576,13 +576,14 @@ public class RemoteSubject {
 				 if (remote_id == null) {
 					 throw new XsyncStoreException("Could not locate Accession Id for " + target.getLabel() + " in project " + remoteProjectId);
 				 }else {
+					 ExperimentFilter experimentFilter = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);
+
 					 for (int i=0; i<assessors.size();i++) {
 						 XnatImageassessordata origAss = (XnatImageassessordata)assessors.get(i);
 						 XFTItem item = origAss.getItem().copy();
 						 XnatImageassessordata targetAss = (XnatImageassessordata) BaseElement.GetGeneratedItem(item);
-						 targetAss.setImagesessionId(remote_id);
-						 targetAss.setProject(target.getProject());
-						 targetAss.setId("");
+						 experimentFilter.correctIDandLabel(targetAss, origAss, remote_id, target.getProject());
+
 						 for (final XnatAbstractresourceI res : targetAss.getResources_resource()) {
 							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig);
 						 }
@@ -611,6 +612,7 @@ public class RemoteSubject {
 								 expAssSyncItem.setRemoteId(remoteAssId);
 								 expAssSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
 								 expAssSyncItem.setMessage("Image session " + orig.getLabel() + " Image Assessor " + target.getLabel() + " has been synced.");
+								 saveSyncDetails(origAss.getId(),remoteAssId,XsyncUtils.SYNC_STATUS_SYNCED,origAss.getXSIType());
 							 }else {
 								 expAssSyncItem.setRemoteId(null);
 								 expAssSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);

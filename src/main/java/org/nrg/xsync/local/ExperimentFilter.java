@@ -316,6 +316,32 @@ public class ExperimentFilter {
 		return targetExperiment;
 	}
 
+	/**
+	 * @param targetsubject
+	 *            subject for experiment for correction
+	 * @param origExperiment
+	 *            experiment for correction
+	 * @throws Exception
+	 */
+	public void correctIDandLabel(XnatImageassessordata targetAssessor,XnatImageassessordata origAss,String remoteImageSessionId, String remoteProjectId) throws Exception {
+		String newid = "";
+		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
+		String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origAss.getId());
+		if (alreadyAssignedRemoteId != null) {
+			newid = alreadyAssignedRemoteId;
+		}
+		targetAssessor.setId(newid);
+		targetAssessor.setImagesessionId(remoteImageSessionId);
+		targetAssessor.setProject(remoteProjectId);
+
+		// correct shared projects
+		for (XnatExperimentdataShareI share : targetAssessor.getSharing_share()) {
+			if (share.getLabel() != null) {
+				share.setLabel("");
+			}
+		}
+		return;
+	}
 	
 
 	/**
@@ -328,10 +354,10 @@ public class ExperimentFilter {
 		XnatSubjectassessordata targetExperiment = (XnatSubjectassessordata) BaseElement.GetGeneratedItem(item);
 		String newid = "";
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
-		//String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origExperiment.getId());
-		//if (alreadyAssignedRemoteId != null) {
-		//	newid = alreadyAssignedRemoteId;
-		//}
+		String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origExperiment.getId());
+		if (alreadyAssignedRemoteId != null) {
+			newid = alreadyAssignedRemoteId;
+		}
 		targetExperiment.setId(newid);
 		//targetExperiment.setProject(targetsubject.getProject());
 		targetExperiment.setSubjectId(targetsubject.getLabel());
@@ -394,7 +420,7 @@ public class ExperimentFilter {
 			
 			if (resource instanceof XnatResource) {
 				String path = ((XnatResource) resource).getUri();
-				String newURI = path.replace(filepath, newFilepath);
+				String newURI = path.replace(File.pathSeparator, "/").replace(filepath, newFilepath);
 				((XnatResource) resource).setUri(newURI);
 				if (hasResourceBeenModified) {
 					copyFiles(path, newURI);
@@ -439,14 +465,14 @@ public class ExperimentFilter {
 			throws IOException, UnknownPrimaryProjectException, InvalidArchiveStructure, ElementNotFoundException,
 			FieldNotFoundException, XFTInitException {
 		// this is path to catalog
-		String newCatalogFileParentDir = newCatalogFile.substring(0, newCatalogFile.lastIndexOf(File.separatorChar));
-		new File(newCatalogFileParentDir).mkdirs();
+		//String newCatalogFileParentDir = newCatalogFile.substring(0, newCatalogFile.lastIndexOf(File.separatorChar));
+		//new File(newCatalogFileParentDir).mkdirs();
 		File sourceCatalog = new File(catalogFile);
 		File destCatalog = new File(newCatalogFile);
 
 		File source = sourceCatalog.getParentFile();
 		File dest = destCatalog.getParentFile();
-
+		if (!dest.exists()) dest.mkdirs();
 		// copy the actual files for resource and catalog.
 		try {
 			if (source.exists()) {
@@ -551,19 +577,38 @@ public class ExperimentFilter {
 	
 	private void anonymize(XnatImagesessiondata exp, String destProject) throws Exception {
 		if (exp.getScans_scan() != null && exp.getScans_scan().size() > 0) {
-			try {
-				File sessionDir = exp.getSessionDir();
-				if (sessionDir != null) {
-					AnonymizerI simpleExportAnonymizer = new XsyncAnonymizer(_xsyncXnatInfo);
-					simpleExportAnonymizer.anonymize((XnatImagesessiondata) exp, destProject);
-				}else {
-					_log.debug("There are no files to anonymize");
+			//Check to see if there are any files which have been copied. If there are any, anonymization needs to be performed
+			boolean hasDataToBeAnonymized = checkIfHasDataToBeAnonymized(exp);
+			if (hasDataToBeAnonymized) {
+				try {
+					File sessionDir = exp.getSessionDir();
+					if (sessionDir != null) {
+						AnonymizerI simpleExportAnonymizer = new XsyncAnonymizer(_xsyncXnatInfo);
+						simpleExportAnonymizer.anonymize((XnatImagesessiondata) exp, destProject);
+					}else {
+						_log.debug("There are no files to anonymize");
+					}
+				}catch(Exception e) {
+					_log.error(e.getMessage());
+					throw e;
 				}
-			}catch(Exception e) {
-				_log.error(e.getMessage());
-				throw e;
 			}
 		}
+	}
+	
+	
+	private boolean checkIfHasDataToBeAnonymized(XnatImagesessiondata exp) {
+		boolean hasData = false;
+		for (final XnatImagescandataI scan : ((XnatImagesessiondata) exp).getScans_scan()) {
+			for (final XnatAbstractresourceI res : scan.getFile()) {
+				if (res.getFileCount() != null  && res.getFileCount() > 0  ) {
+					hasData = true;
+					break;
+				}
+			}
+			if (hasData) break;
+		}
+		return hasData;
 	}
 	
 	/**
