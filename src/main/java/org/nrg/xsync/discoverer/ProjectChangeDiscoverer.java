@@ -128,9 +128,6 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                 return;
             }
             saveSyncBlockStatus(Boolean.TRUE);
-            //try {
-            //	Thread.sleep(120000);
-            //}catch(Exception e){}
             project = _projectSyncConfiguration.getProject();
             synchronizationResource = createSynchronizationLogResource(project);
             String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
@@ -220,7 +217,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         String localProjectArchivePath = localProject.getArchiveRootPath();
         for (Map<String, Object> row : resourceRows) {
             String label = (String) row.get("label");
-            if (label.equalsIgnoreCase(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL)) {
+            if (label != null && label.equalsIgnoreCase(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL)) {
             	continue;
             }
             _log.debug("Resource " + row.get("label") + " has been modfied since " + this.getLastSyncStartTime());
@@ -264,33 +261,35 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     }
 
     private void deleteProjectResource(String resourceLabel) {
-        try {
+        String rLabel = resourceLabel == null ?  XsyncUtils.RESOURCE_NO_LABEL:resourceLabel;
+    	try {
             String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+
             RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
             RemoteConnection connection = remoteConnectionHandler.getConnection(_projectId, _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-
+            
             RemoteConnectionResponse response = _manager.deleteProjectResource(connection, remoteProjectId, resourceLabel);
-            ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, resourceLabel);
+            ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, rLabel);
     		resourceSyncItem.addObserver(_observer);
             if (response.wasSuccessful()) {
                 resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_DELETED);
-                resourceSyncItem.setMessage("Project resource " + resourceLabel + " deleted ");
+                resourceSyncItem.setMessage("Project resource " + rLabel + " deleted ");
                 resourceSyncItem.stateChanged();
                 //Remove the entry from the remote map table; so that in the future we can have same named resource
                 XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
                 xsyncTools.deleteXsyncRemoteEntry(_projectId, resourceLabel);
             } else {
                 resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-                resourceSyncItem.setMessage("Project resource " + resourceLabel + " could not be deleted. Cause: " + response.getResponseBody());
+                resourceSyncItem.setMessage("Project resource " + rLabel + " could not be deleted. Cause: " + response.getResponseBody());
                 resourceSyncItem.stateChanged();
             }
             SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
         } catch (Exception e) {
             _log.error(e.toString());
-            ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, resourceLabel);
+            ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, rLabel);
     		resourceSyncItem.addObserver(_observer);
             resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-            resourceSyncItem.setMessage("Project resource " + resourceLabel + " could not be deleted. Cause: " + e.getMessage());
+            resourceSyncItem.setMessage("Project resource " + rLabel + " could not be deleted. Cause: " + e.getMessage());
             resourceSyncItem.stateChanged();
             SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
         }
@@ -298,9 +297,10 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
 
     private void updateProjectResource(String localProjectArchivePath, String resourceLabel) {
         String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+        String rLabel = resourceLabel == null ?  XsyncUtils.RESOURCE_NO_LABEL:resourceLabel;
         try {
             XnatAbstractresource resource = getResource(resourceLabel);
-            ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, resourceLabel);
+            ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, rLabel);
     		resourceSyncItem.addObserver(_observer);
     		if (resource.getFileCount() != null)
     			resourceSyncItem.setFileCount(resource.getFileCount());
@@ -319,13 +319,13 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                         zipFile.delete();
                     }
                     resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-                    resourceSyncItem.setMessage("Project resource " + resourceLabel + " updated ");
+                    resourceSyncItem.setMessage("Project resource " + rLabel + " updated ");
                     resourceSyncItem.stateChanged();
                     XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
                     xsyncTools.saveSyncDetails(_projectId, resource.getLabel(), resource.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED, resource.getXSIType(),remoteProjectId);
                 } else {
                     resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-                    resourceSyncItem.setMessage("Project resource " + resourceLabel + " could not be updated. Cause: " + response.getResponseBody());
+                    resourceSyncItem.setMessage("Project resource " + rLabel + " could not be updated. Cause: " + response.getResponseBody());
                     resourceSyncItem.stateChanged();
                 }
                 SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
@@ -335,7 +335,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, resourceLabel);
     		resourceSyncItem.addObserver(_observer);
             resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-            resourceSyncItem.setMessage("Project resource " + resourceLabel + " could not be updated. Cause: " + e.getMessage());
+            resourceSyncItem.setMessage("Project resource " + rLabel + " could not be updated. Cause: " + e.getMessage());
             resourceSyncItem.stateChanged();
             SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
         }
@@ -346,7 +346,10 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         XnatAbstractresource projectResource = null;
         List<XnatAbstractresourceI> resources = project.getResources_resource();
         for (XnatAbstractresourceI resource : resources) {
-            if (resource.getLabel().equals(resourceLabel)) {
+            if (resource.getLabel() != null && resource.getLabel().equals(resourceLabel)) {
+                projectResource = (XnatAbstractresource) resource;
+                break;
+            }else if (resource.getLabel() == null && resourceLabel == null) { //NO LABEL case
                 projectResource = (XnatAbstractresource) resource;
                 break;
             }
@@ -453,7 +456,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     private XnatAbstractresourceI createSynchronizationLogResource(XnatProjectdata project) throws Exception {
     	boolean synchronizationResourceExists  = false;
     	for (XnatAbstractresourceI r: project.getResources_resource()) {
-    		if (r.getLabel().equalsIgnoreCase(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL)) {
+    		if (r.getLabel()!= null && r.getLabel().equalsIgnoreCase(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL)) {
     			synchronizationResourceExists = true;
     		}
     		if (synchronizationResourceExists) {

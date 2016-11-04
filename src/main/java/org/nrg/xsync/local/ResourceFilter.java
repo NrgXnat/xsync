@@ -153,18 +153,32 @@ public class ResourceFilter {
 		}
 		query = _queryResultUtil.getParametrizedQueryForFetchingConfiguredSubjectResourcesChangedSinceLastSync();
 		List<Map<String,Object>> changedResources = null;
+		boolean hasNoLabelResource = false;
 		if (resourcesToBeSynced.size() > 0) {
 			//Have the existing resources been modified
 			List<String> resourceLabels = new ArrayList<>();
 			for (XnatAbstractresourceI rsc:resourcesToBeSynced) {
-				resourceLabels.add(rsc.getLabel());
+				if (rsc.getLabel() == null) {
+					hasNoLabelResource = true;
+				}else 
+				  resourceLabels.add(rsc.getLabel());
 			}
+			String baseQuery = query;
+			boolean getQueryResults = false;
 			if (resourceLabels.size() > 0 ) { 
 				parameters.addValue("resources", resourceLabels);
+				query += " where label in (:resources) ";
+				getQueryResults = true;
 			}
-			if (resourceLabels.size() > 0 ) { 
-				query += " where label in (:resources)";
-				//Columns
+			if (hasNoLabelResource) {
+					if (getQueryResults)
+						query += " UNION " + baseQuery + " where label is null";
+					else
+						query += " where label is null";
+					getQueryResults = true;
+			}
+			if (getQueryResults) {
+			//Columns
 				//a.xnat_abstractresource_id,a.label, p.id, am.status, am.last_modified,xsi.sync_end_time,am.insert_date
 				changedResources = _jdbcTemplate.queryForList(query, parameters);
 			}
@@ -209,7 +223,9 @@ public class ResourceFilter {
 		if (rows != null && rows.size() > 0) {
 			for (Map<String,Object> row: rows) {
 				 String label = (String)row.get("label");
-				 if (!accountedResources.containsKey(label)) {
+				 if (label != null && !accountedResources.containsKey(label)) {
+					 unaccountedRows.add(row);
+				 }else if (label == null) { //Assumption being there cannt be two instances of NO LABEL resources
 					 unaccountedRows.add(row);
 				 }
 			}	

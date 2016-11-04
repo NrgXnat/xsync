@@ -299,7 +299,8 @@ public class RemoteSubject {
 		XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
 		String localProjectArchivePath = localProject.getArchiveRootPath();
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-		ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
+		String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
+		ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),rLabel);
 		if (resource.getFileCount() != null)
 			resourceSyncItem.setFileCount(resource.getFileCount());
 		else 
@@ -318,16 +319,16 @@ public class RemoteSubject {
 			RemoteConnectionResponse updateResponse = this.updateSubjectResource(remoteSubject,resource.getLabel(), zipFile);
 			if (updateResponse.wasSuccessful()) {
 				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " updated. " );
+				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " updated. " );
 			}else {
 				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be updated. " + updateResponse.getResponseBody() );
+				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + updateResponse.getResponseBody() );
 			}
 			subjectSyncInfo.addResources(resourceSyncItem);
 		}catch(Exception e) {
 			_log.error("Could not update resource " + resource.getLabel() + " for subject " + remoteSubject.getId());
 			resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-			resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be updated. " + e.getMessage() );
+			resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + e.getMessage() );
 			subjectSyncInfo.addResources(resourceSyncItem);
 		}
 	}
