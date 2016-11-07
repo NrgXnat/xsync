@@ -1,5 +1,6 @@
 package org.nrg.xsync.utils;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
@@ -38,7 +39,7 @@ public class XSyncFailureHandler {
 		}
 		subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 		subjectSyncInfo.setXsiType(xsiType);
-		subjectSyncInfo.setMessage(e.getMessage());
+		subjectSyncInfo.setMessage(ExceptionUtils.getStackTrace(e));
 		SynchronizationManager.UPDATE_MANIFEST(project, subjectSyncInfo);
 
 	}
