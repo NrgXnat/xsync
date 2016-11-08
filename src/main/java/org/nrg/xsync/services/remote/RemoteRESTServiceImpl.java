@@ -72,13 +72,13 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.importXarWithoutRetry(connection, xar);
 		    } catch (RuntimeException e) {
 		    	try {
-		    		logger.error("importXar: retrycount "+ count);
-					Thread.sleep(sleep);
+		    		logger.error("importXar: retrycount "+ count + " out of " + maxTries);
+					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
 		        // handle exception
-		        if (++count == maxTries) throw e;
+		        if (maxTries == 0 || ++count == maxTries) throw e;
 		    }
 		}
 	}
@@ -193,16 +193,18 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    	try {
 		    		e.printStackTrace();
 		    		logger.debug("Exception " + e.getMessage());
-			    	logger.error("importSubject: retrycount "+ count);
-			    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
-			    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());
-			    	logger.error("Sleeping for " + sleep + " milliseconds");
-					Thread.sleep(sleep);
+			    	if (maxTries > 0) {
+				    	logger.error("importSubject: retrycount "+ count);
+				    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
+				    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());
+				    	logger.error("Sleeping for " + sleep + " milliseconds");
+			    		Thread.sleep(sleep);
+			    	}
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
 		        // handle exception
-		        if (++count == maxTries) throw e;
+		        if (maxTries == 0 || ++count == maxTries) throw e;
 		    }
 		}
 	}
@@ -223,12 +225,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    } catch (RuntimeException e) {
 		    	try {
 			    	logger.error("deleteSubject: retrycount "+ count);
-					Thread.sleep(sleep);
+					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
 		        // handle exception
-		        if (++count == maxTries) throw e;
+		        if (maxTries == 0 || ++count == maxTries) throw e;
 		    }
 		}
 	}
@@ -258,12 +260,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    } catch (Exception e) {
 		    	try {
 			    	logger.error("deleteSubject: retrycount "+ count);
-					Thread.sleep(sleep);
+					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
 		        // handle exception
-		        if (++count == maxTries) throw e;
+		        if (maxTries == 0 || ++count == maxTries) throw e;
 		    }
 		}
 	}
@@ -284,12 +286,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    } catch (RuntimeException e) {
 		    	try {
 			    	logger.error("deleteSubject: retrycount "+ count);
-					Thread.sleep(sleep);
+					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
 		        // handle exception
-		        if (++count == maxTries) throw e;
+		        if (maxTries == 0 || ++count == maxTries) throw e;
 		    }
 		}
 	}
@@ -310,12 +312,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    } catch (RuntimeException e) {
 		    	try {
 			    	logger.error("deleteProjectResource: retrycount "+ count);
-					Thread.sleep(sleep);
+					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
 		        // handle exception
-		        if (++count == maxTries) throw e;
+		        if (maxTries == 0 || ++count == maxTries) throw e;
 		    }
 		}
 	}
@@ -340,12 +342,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    } catch (RuntimeException e) {
 		    	try {
 			    	logger.error("importsubjectresource: retrycount "+ count);
-					Thread.sleep(sleep);
+					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
 		        // handle exception
-		        if (++count == maxTries) throw e;
+		        if (maxTries == 0 || ++count == maxTries) throw e;
 		    }
 		}
 	}
@@ -366,12 +368,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    } catch (RuntimeException e) {
 		    	try {
 			    	logger.error("importsubjectresource: retrycount "+ count);
-					Thread.sleep(sleep);
+					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
 		        // handle exception
-		        if (++count == maxTries) throw e;
+		        if (maxTries == 0 || ++count == maxTries) throw e;
 		    }
 		}
 	}
@@ -394,12 +396,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    } catch (RuntimeException e) {
 		    	try {
 			    	logger.error("importsubjectresource: retrycount "+ count);
-					Thread.sleep(sleep);
+					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
 		        // handle exception
-		        if (++count == maxTries) throw e;
+		        if (maxTries == 0 || ++count == maxTries) throw e;
 		    }
 		}
 	}
@@ -490,12 +492,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			    } catch (RuntimeException e) {
 			    	try {
 				    	logger.error("importSubjectAssessor: retrycount "+ count);
-						Thread.sleep(sleep);
+						if (maxTries > 0) Thread.sleep(sleep);
 					} catch (InterruptedException e1) {
 						e1.printStackTrace();
 					}
 			        // handle exception
-			        if (++count == maxTries) throw e;
+			        if (maxTries == 0 || ++count == maxTries) throw e;
 			    }
 			}
 		}

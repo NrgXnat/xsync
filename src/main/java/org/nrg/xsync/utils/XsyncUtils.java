@@ -72,6 +72,8 @@ public class XsyncUtils {
 	
 	public static final String SYNC_STATUS_WAITING_TO_SYNC="Waiting to Sync";
 	
+	public static final String RESOURCE_NO_LABEL = "NO LABEL";
+	
 
 	private static final Logger _log = LoggerFactory.getLogger(XsyncUtils.class);
 

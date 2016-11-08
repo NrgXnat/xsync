@@ -111,6 +111,7 @@ public class RemoteSubject {
 			if (subject_remote_id != null) {
 				newSubject.setId(subject_remote_id);
 				saveSyncDetails(localSubject.getId(),subject_remote_id,newSubject.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED,localSubject.getXSIType());
+
 				//Now among the ones which are configured and not deleted
 				//Change the ids
 				//Check the ImagingSessions
@@ -120,6 +121,7 @@ public class RemoteSubject {
 				//   Anonymize the resources
 				syncResources(newSubject,resourcesToBeSynced);
 				syncExperiments(newSubject,experimentsToBeSynced);
+				subjectSyncInfo.stateChanged();
 			}	
 		}catch(Exception e) {
 			_log.error("Error syncing subject " + newSubject.getLabel() + "  " + e.getMessage());
@@ -299,7 +301,8 @@ public class RemoteSubject {
 		XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
 		String localProjectArchivePath = localProject.getArchiveRootPath();
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-		ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
+		String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
+		ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),rLabel);
 		if (resource.getFileCount() != null)
 			resourceSyncItem.setFileCount(resource.getFileCount());
 		else 
@@ -318,16 +321,16 @@ public class RemoteSubject {
 			RemoteConnectionResponse updateResponse = this.updateSubjectResource(remoteSubject,resource.getLabel(), zipFile);
 			if (updateResponse.wasSuccessful()) {
 				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " updated. " );
+				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " updated. " );
 			}else {
 				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be updated. " + updateResponse.getResponseBody() );
+				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + updateResponse.getResponseBody() );
 			}
 			subjectSyncInfo.addResources(resourceSyncItem);
 		}catch(Exception e) {
 			_log.error("Could not update resource " + resource.getLabel() + " for subject " + remoteSubject.getId());
 			resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-			resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be updated. " + e.getMessage() );
+			resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + e.getMessage() );
 			subjectSyncInfo.addResources(resourceSyncItem);
 		}
 	}
@@ -576,13 +579,14 @@ public class RemoteSubject {
 				 if (remote_id == null) {
 					 throw new XsyncStoreException("Could not locate Accession Id for " + target.getLabel() + " in project " + remoteProjectId);
 				 }else {
+					 ExperimentFilter experimentFilter = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);
+
 					 for (int i=0; i<assessors.size();i++) {
 						 XnatImageassessordata origAss = (XnatImageassessordata)assessors.get(i);
 						 XFTItem item = origAss.getItem().copy();
 						 XnatImageassessordata targetAss = (XnatImageassessordata) BaseElement.GetGeneratedItem(item);
-						 targetAss.setImagesessionId(remote_id);
-						 targetAss.setProject(target.getProject());
-						 targetAss.setId("");
+						 experimentFilter.correctIDandLabel(targetAss, origAss, remote_id, target.getProject());
+
 						 for (final XnatAbstractresourceI res : targetAss.getResources_resource()) {
 							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig);
 						 }
@@ -611,6 +615,7 @@ public class RemoteSubject {
 								 expAssSyncItem.setRemoteId(remoteAssId);
 								 expAssSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
 								 expAssSyncItem.setMessage("Image session " + orig.getLabel() + " Image Assessor " + target.getLabel() + " has been synced.");
+								 saveSyncDetails(origAss.getId(),remoteAssId,XsyncUtils.SYNC_STATUS_SYNCED,origAss.getXSIType());
 							 }else {
 								 expAssSyncItem.setRemoteId(null);
 								 expAssSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
