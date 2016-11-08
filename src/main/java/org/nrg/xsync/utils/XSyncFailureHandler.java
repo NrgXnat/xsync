@@ -40,6 +40,7 @@ public class XSyncFailureHandler {
 		subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 		subjectSyncInfo.setXsiType(xsiType);
 		subjectSyncInfo.setMessage(ExceptionUtils.getStackTrace(e));
+		subjectSyncInfo.stateChanged();
 		SynchronizationManager.UPDATE_MANIFEST(project, subjectSyncInfo);
 
 	}

@@ -183,7 +183,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         	    EventMetaI now = EventUtils.DEFAULT_EVENT(_user, "Synchronization Log Added");
         		try  {
         			 final List<CatalogService.Operation> _operations  = Lists.newArrayList();
-        			 final String                   _resource   = "/data/projects/"+_projectId+"/resources/"+synchronizationResource.getLabel();
+        			 final String                   _resource   = "/data/archive/projects/"+_projectId+"/resources/"+synchronizationResource.getLabel();
         			 _operations.addAll(CatalogService.Operation.ALL);
         			 _catalogService.refreshResourceCatalog(_user, _resource, _operations.toArray(new CatalogService.Operation[_operations.size()]));  
         			//ResourceUtils.refreshResourceCatalog((XnatAbstractresource)synchronizationResource, project.getArchiveRootPath(), true, true, true, true, _user, now);

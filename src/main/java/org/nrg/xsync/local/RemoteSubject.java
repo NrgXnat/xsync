@@ -120,6 +120,9 @@ public class RemoteSubject {
 				//   Anonymize the resources
 				syncResources(newSubject,resourcesToBeSynced);
 				syncExperiments(newSubject,experimentsToBeSynced);
+				if (resourcesToBeSynced != null && resourcesToBeSynced.size() < 1 && experimentsToBeSynced != null && experimentsToBeSynced.size()<1) {
+					subjectSyncInfo.stateChanged();
+				}
 			}	
 		}catch(Exception e) {
 			_log.error("Error syncing subject " + newSubject.getLabel() + "  " + e.getMessage());
