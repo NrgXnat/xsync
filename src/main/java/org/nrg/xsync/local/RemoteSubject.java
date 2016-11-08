@@ -111,6 +111,7 @@ public class RemoteSubject {
 			if (subject_remote_id != null) {
 				newSubject.setId(subject_remote_id);
 				saveSyncDetails(localSubject.getId(),subject_remote_id,newSubject.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED,localSubject.getXSIType());
+
 				//Now among the ones which are configured and not deleted
 				//Change the ids
 				//Check the ImagingSessions
@@ -120,9 +121,7 @@ public class RemoteSubject {
 				//   Anonymize the resources
 				syncResources(newSubject,resourcesToBeSynced);
 				syncExperiments(newSubject,experimentsToBeSynced);
-				if (resourcesToBeSynced != null && resourcesToBeSynced.size() < 1 && experimentsToBeSynced != null && experimentsToBeSynced.size()<1) {
-					subjectSyncInfo.stateChanged();
-				}
+				subjectSyncInfo.stateChanged();
 			}	
 		}catch(Exception e) {
 			_log.error("Error syncing subject " + newSubject.getLabel() + "  " + e.getMessage());

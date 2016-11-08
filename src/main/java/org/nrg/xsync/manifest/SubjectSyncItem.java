@@ -30,7 +30,7 @@ public class SubjectSyncItem extends SyncedItem {
 
 	public void addResources(ResourceSyncItem resource) {
 		resources.add(resource);
-		stateChanged();
+		//stateChanged();
 	}
 
 	/**
@@ -50,7 +50,7 @@ public class SubjectSyncItem extends SyncedItem {
 
 	public void addExperiment(ExperimentSyncItem experiment) {
 		experiments.add(experiment);
-		stateChanged();
+		//stateChanged();
 	}
 
 	
