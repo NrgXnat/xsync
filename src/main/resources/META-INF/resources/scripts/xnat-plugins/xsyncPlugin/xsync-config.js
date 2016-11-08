@@ -88,17 +88,17 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             '<div id="xsync-history-table" style="max-height:300px;overflow-y:auto"></div>'
         ]);
 
-        $("#xsync-edit-config").click(function(){
+        $("#xsync-edit-config").on('click', function(){
             XSYNC.xsyncconfig.editConfig();
         });
 
-        $("#xsync-credentials").click(function(){
+        $("#xsync-credentials").on('click', function(){
             XSYNC.credentialsconfig.enterCredentials();
         });
 
         $("#xsync-upload-anonymization")
                 .prop('disabled', XSYNC.xsyncconfig.configuration.anonymize === false)
-                .click(function(){
+                .on('click', function(){
                     XSYNC.xsyncconfig.submitDICOMAnonymization();
                 });
 
@@ -374,6 +374,8 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 $form.find('select').trigger('change');
                 $form.find('checkbox').trigger('change');
 
+                XSYNC.xsyncconfig.$form = $form;
+
             },
             buttons: {
                 submit: {
@@ -397,7 +399,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                         console.log(json);
 
                         XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
-                        $form.triggerHandler('reload-data');
+                        // $form.triggerHandler('reload-data');
                     }
                 },
                 close: {
@@ -808,27 +810,28 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 //     window.location.reload();
                 // },
                 onClose: function(){
-                    //xmodal.loading.closeAll();
-                    window.location.reload();
+                    xmodal.loading.closeAll();
+                    //window.location.reload();
                 }
             });
 
             // // Reload the data on successful save
-            // XNAT.xhr.getJSON({
-            //     url: XNAT.url.restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
-            //     success: function(data){
-            //         XSYNC.xsyncconfig.modal.close();
-            //         XSYNC.xsyncconfig.configuration = data;
-            //         // $('#root-panel').setValues(data);
-            //         // refresh the config panel - show the buttons
-            //         XSYNC.xsyncconfig.showConfigPanel();
-            //         // just reload the whole page
-            //         window.location.reload();
-            //     },
-            //     error: function(){
-            //         console.log("Failed to reload XSync config data after submission.")
-            //     }
-            // })
+            XNAT.xhr.getJSON({
+                url: XNAT.url.restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
+                success: function(data){
+                    XSYNC.xsyncconfig.modal.close();
+                    XSYNC.xsyncconfig.configuration = data;
+                    // $('#root-panel').setValues(data);
+                    // refresh the config panel - show the buttons
+                    XSYNC.xsyncconfig.showConfigPanel();
+                    $('#showSyncData').show();
+                    // or just reload the whole page
+                    // window.location.reload();
+                },
+                error: function(){
+                    console.log("Failed to reload XSync config data after submission.")
+                }
+            })
 
         });
 
