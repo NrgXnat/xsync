@@ -80,11 +80,13 @@ public class XsyncFileUtils {
 	}
 	
 	public static String getFormattedFileSize(Long size) {
-		if (size < 1024) {
-            return size + " B";
-        }
-        int exp = (int) (Math.log(size) / Math.log(1024));
-        return String.format("%.1f %sB", size / Math.pow(1024, exp), "KMGTPE".charAt(exp - 1));
+		//Note: MR Nov 9, 2016 - UI will take for units, this will enable sorting on UI
+		//if (size < 1024) {
+        //    return size + " B";
+        //}
+        //int exp = (int) (Math.log(size) / Math.log(1024));
+        //return String.format("%.1f %sB", size / Math.pow(1024, exp), "KMGTPE".charAt(exp - 1));
+		return size.toString();
 	}
 
 /*	public File buildxar(UserI user, XnatExperimentdata orig, String targetproject,XnatSubjectdata targetsubject, XnatExperimentdata target) throws Exception {

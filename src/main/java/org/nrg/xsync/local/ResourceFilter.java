@@ -23,6 +23,7 @@ import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.configuration.json.SyncConfigurationResource;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -199,7 +200,8 @@ public class ResourceFilter {
 		Hashtable<String,String> labelHash = new Hashtable<>();
 		if (rscs != null && rscs.size() > 0) {
 			for (XnatAbstractresourceI rsc: rscs) {
-				labelHash.put(rsc.getLabel(),rsc.getLabel());
+				String label = rsc.getLabel()==null?XsyncUtils.RESOURCE_NO_LABEL:rsc.getLabel();
+				labelHash.put(label,label);
 			}
 		}
 		return labelHash;
