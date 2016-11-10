@@ -40,25 +40,44 @@ window.XSYNC = getObject(window.XSYNC);
 		getSyncHistory.done(function(data) {
 
 			var allHistory = data.map(function(item, i){
+
 				var date = new Date(item.startDate);
+
 				return [
-					'<div class="mono"><a class="show-details link" title="' + item.id + '" href="#!">'+ localDate(date) + '<br>' + localTime(date) +'</a></div>',
+					'<div class="mono">' +
+						'<i class="hidden start-time">' + item.startDate + '</i>' +
+						'<a class="show-details link" title="' + item.id + '" href="#!">'+ localDate(date) + '<br>' + localTime(date) +'</a>' +
+					'</div>',
+
 					item.syncStatus,
+
 					'<div class="mono centered">' + item.totalSubjects + '</div>',
+
 					'<div class="mono centered">' + item.totalExperiments + '</div>',
+
 					'<div class="mono centered">' + item.totalAssessors + '</div>',
+
 					'<div class="mono centered">' + item.totalResources + '</div>',
-					'<div class="mono">' + item.totalDataSynced + '</div>'
+
+					'<div class="mono align-right">' +
+						'<i class="hidden total-data-synced">' + item.totalDataSynced + '</i>' +
+						sizeFormat(item.totalDataSynced, 2) +
+					'</div>'
+
 				];
 			});
 
 			xsyncHistory.rows(allHistory.reverse());
-		});
 
-		if (xsyncHistory.rows.length > 0) {
-			$("#xsync-history-header").show();
-			$("#xsync-history-table").append(xsyncHistory.table);
-		}
+			if (data.length) {
+				$("#xsync-history-header").show();
+				$("#xsync-history-table").append(xsyncHistory.table);
+			}
+			else {
+				$("#xsync-history-table").spawn('p', 'No sync history.')
+			}
+
+		});
 
 		// delegate a single event handler for all rows
 		$(xsyncHistory.table).on('click', 'a.show-details', function(e){
