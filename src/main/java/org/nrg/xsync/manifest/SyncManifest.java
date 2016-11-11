@@ -225,7 +225,7 @@ public class SyncManifest{
 					 sb.append("<tr>");
 					 sb.append("<td> ").append(res.localLabel).append(" </td>");
 					 sb.append("<td> ").append(res.getFileCount() == null ? "NA" : res.getFileCount()).append(" </td>");
-					 sb.append("<td> ").append(res.getFileSize() == null ? "NA" : XsyncFileUtils.getFormattedFileSize((Long)res.getFileSize())).append(" </td>");
+					 sb.append("<td> ").append(res.getFileSize() == null ? "NA" : XsyncFileUtils.getHumanReadableFileSize((Long)res.getFileSize())).append(" </td>");
 					 sb.append("<td> ").append(res.getSyncStatus()).append(" </td>");
 					 sb.append("<td> ").append(res.getMessage()).append(" </td>");
 					 sb.append("</tr>");
@@ -278,7 +278,7 @@ public class SyncManifest{
 						 String fileCntStr = (fileCnt == 0?"NA":fileCnt.toString());
 						 sb.append("<td> ").append(fileCntStr).append(" </td>");
 						 Long fileSize = exp.getTotalSyncedFileSize();
-						 String fileSizeStr = (fileSize == 0?"NA":XsyncFileUtils.getFormattedFileSize(fileSize));
+						 String fileSizeStr = (fileSize == 0?"NA":XsyncFileUtils.getHumanReadableFileSize(fileSize));
 						 sb.append("<td> ").append(fileSizeStr).append(" </td>");
 						 sb.append("</tr>");
 					}

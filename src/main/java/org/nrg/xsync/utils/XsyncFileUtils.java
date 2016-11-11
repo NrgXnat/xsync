@@ -89,6 +89,15 @@ public class XsyncFileUtils {
 		return size.toString();
 	}
 
+	public static String getHumanReadableFileSize(Long size) {
+		if (size < 1024) {
+            return size + " B";
+        }
+        int exp = (int) (Math.log(size) / Math.log(1024));
+        return String.format("%.1f %sB", size / Math.pow(1024, exp), "KMGTPE".charAt(exp - 1));
+	}
+
+	
 /*	public File buildxar(UserI user, XnatExperimentdata orig, String targetproject,XnatSubjectdata targetsubject, XnatExperimentdata target) throws Exception {
 		File xarFile;
 		try {
