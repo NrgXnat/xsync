@@ -34,7 +34,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.0"
+        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.1-SNAPSHOT"
     }
     configurations {
         all*.exclude group: 'avalon-framework'
@@ -249,38 +249,4 @@ dependencies {
 
     testCompile "junit:junit:${vJunit}"
     testCompile "org.springframework:spring-test:${vSpring}"
-}
-
-sourceSets {
-    main {
-            java {
-                srcDir 'src/beans/java'
-                srcDir 'src/generated/java'
-                srcDir 'src/main/java'
-            }
-            resources {
-                srcDir 'src/beans/resources'
-                srcDir 'src/generated/resources'
-                srcDir 'src/main/resources'
-            }
-    }
-}
-
-task beanJar(type: Jar) {
-    baseName = "${project.name}-beans"
-    from(sourceSets.main.output) {
-        include "org/nrg/xdat/bean/**"
-        include "org/nrg/xdat/model/**"
-    }
-}
-
-
-task mainJar(type: Jar) {
-    baseName = "${project.name}-plugin"
-    from sourceSets.main.output
-}
-
-artifacts {
-    archives mainJar
-    archives beanJar
 }
