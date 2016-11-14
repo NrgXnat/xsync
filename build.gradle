@@ -36,44 +36,6 @@ buildscript {
     dependencies {
         classpath "org.nrg.xnat.build:xnat-data-builder:1.7.1-SNAPSHOT"
     }
-    configurations {
-        all*.exclude group: 'avalon-framework'
-        all*.exclude group: 'avalon-logkit'
-        all*.exclude group: 'com.metaparadigm'
-        all*.exclude group: 'com.sun.mail'
-        all*.exclude group: 'excalibur-component'
-        all*.exclude group: 'excalibur-instrument'
-        all*.exclude group: 'excalibur-logger'
-        all*.exclude group: 'excalibur-pool'
-        all*.exclude group: 'fop'
-        all*.exclude group: 'geronimo-spec'
-        all*.exclude group: 'hsqldb'
-        all*.exclude group: 'imagej'
-        all*.exclude group: 'jamon'
-        all*.exclude group: 'jakarta-regexp'
-        all*.exclude group: 'org.apache.geronimo.specs'
-        all*.exclude group: 'velocity'
-        all*.exclude group: 'xmlrpc'
-        all*.exclude group: 'ant', module: 'ant'
-        all*.exclude group: 'commons-email', module: 'commons-email'
-        all*.exclude group: 'edu.ucar', module: 'netcdf'
-        all*.exclude group: 'javax.jms', module: 'jms'
-        all*.exclude group: 'javax.mail', module: 'mail'
-        all*.exclude group: 'javax.servlet', module: 'servlet-api'
-        all*.exclude group: 'javax.sql', module: 'jdbc-stdext'
-        all*.exclude group: 'javax.transaction', module: 'jta'
-        all*.exclude group: 'jdbc', module: 'jdbc'
-        all*.exclude group: 'jms', module: 'jms'
-        all*.exclude group: 'jython', module: 'jython'
-        all*.exclude group: 'org.nrg', module: 'nrg'
-        all*.exclude group: 'net.sf.saxon', module: 'saxon'
-        all*.exclude group: 'stax', module: 'stax-api'
-        all*.exclude group: 'xml-apis', module: 'xml-apis'
-        all*.exclude module: 'commons-beanutils-core'
-        all*.exclude module: 'log4j-slf4j-impl'
-        all*.exclude module: 'pipelineCNDAXNAT'
-        all*.exclude module: 'slf4j-simple'
-    }
 }
 
 repositories {
@@ -117,46 +79,6 @@ if (hasProperty("rt.17.jar")) {
     logger.warn "No value was set for the rt.17.jar build property, using the default bootstrap class path. You should consider setting rt.17.jar to indicate a jar file containing the Java 1.7 run-time library:\n"
     logger.warn "  ./gradlew -Prt.17.jar=rt-1.7.0_45.jar war\n"
 }
-
-configurations {
-    all*.exclude group: 'avalon-framework'
-    all*.exclude group: 'avalon-logkit'
-    all*.exclude group: 'com.metaparadigm'
-    all*.exclude group: 'com.sun.mail'
-    all*.exclude group: 'excalibur-component'
-    all*.exclude group: 'excalibur-instrument'
-    all*.exclude group: 'excalibur-logger'
-    all*.exclude group: 'excalibur-pool'
-    all*.exclude group: 'fop'
-    all*.exclude group: 'geronimo-spec'
-    all*.exclude group: 'hsqldb'
-    all*.exclude group: 'imagej'
-    all*.exclude group: 'jamon'
-    all*.exclude group: 'jakarta-regexp'
-    all*.exclude group: 'org.apache.geronimo.specs'
-    all*.exclude group: 'velocity'
-    all*.exclude group: 'xmlrpc'
-    all*.exclude group: 'ant', module: 'ant'
-    all*.exclude group: 'commons-email', module: 'commons-email'
-    all*.exclude group: 'edu.ucar', module: 'netcdf'
-    all*.exclude group: 'javax.jms', module: 'jms'
-    all*.exclude group: 'javax.mail', module: 'mail'
-    all*.exclude group: 'javax.servlet', module: 'servlet-api'
-    all*.exclude group: 'javax.sql', module: 'jdbc-stdext'
-    all*.exclude group: 'javax.transaction', module: 'jta'
-    all*.exclude group: 'jdbc', module: 'jdbc'
-    all*.exclude group: 'jms', module: 'jms'
-    all*.exclude group: 'jython', module: 'jython'
-    all*.exclude group: 'org.nrg', module: 'nrg'
-    all*.exclude group: 'net.sf.saxon', module: 'saxon'
-    all*.exclude group: 'stax', module: 'stax-api'
-    all*.exclude group: 'xml-apis', module: 'xml-apis'
-    all*.exclude module: 'commons-beanutils-core'
-    all*.exclude module: 'log4j-slf4j-impl'
-    all*.exclude module: 'pipelineCNDAXNAT'
-    all*.exclude module: 'slf4j-simple'
-}
-
 
 dependencies {
     compile("org.nrg.xnat:web:${vXnat}") {
