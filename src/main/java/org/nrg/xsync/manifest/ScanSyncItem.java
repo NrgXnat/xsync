@@ -1,6 +1,9 @@
 package org.nrg.xsync.manifest;
 
 import java.util.ArrayList;
+import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.model.XnatAbstractresourceI;
+
 
 /**
  * @author Mohana Ramaratnam
@@ -33,5 +36,14 @@ public class ScanSyncItem extends SyncedItem{
 		this.resources = resources;
 	}
 
+	public void extractDetails(XnatImagescandata scan) {
+		if (scan.getFile() != null && scan.getFile().size() > 0) {
+			for (XnatAbstractresourceI r: scan.getFile()) {
+				ResourceSyncItem rSync = getResourceSyncItem(r);
+				addResources(rSync);
+			}
+		}
+
+	}
 
 }

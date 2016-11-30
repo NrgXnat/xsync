@@ -171,20 +171,6 @@ public class ExperimentSyncItem extends SyncedItem {
 	}
 	
 
-	private ResourceSyncItem getResourceSyncItem(XnatAbstractresourceI r) {
-		ResourceSyncItem rSync = new ResourceSyncItem(r.getLabel(), r.getLabel());
-		if (r.getFileCount() != null && r.getFileSize()!=null) {
-			boolean hasBeenSkipped = r.getFileCount()<0 && (Long)r.getFileSize()<0;	
-			rSync.setFileCount(r.getFileCount()>0?r.getFileCount():0);
-			rSync.setFileSize((Long)r.getFileSize()>0?r.getFileSize():new Long(0));
-			if (hasBeenSkipped) {
-				rSync.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
-			}
-		}else {
-			rSync.setFileCount(0);
-			rSync.setFileSize(new Long(0));
-		}
-		return rSync;
-	}
+
 	
 }

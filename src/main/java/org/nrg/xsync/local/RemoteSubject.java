@@ -10,10 +10,12 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.nrg.xdat.base.BaseElement;
+import org.nrg.xsync.manifest.ScanSyncItem;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatImageassessordataI;
 import org.nrg.xdat.model.XnatImagescandataI;
+import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.model.XnatReconstructedimagedataI;
 import org.nrg.xdat.model.XnatSubjectdataI;
 import org.nrg.xdat.om.XnatAbstractresource;
@@ -565,7 +567,8 @@ public class RemoteSubject {
 			 removeAssessors(target);
 			 prepareResourceURIForXar(target);
 
-			 final File xar=buildxar(orig, targetproject, targetsubject, target);
+			 //Store the ImageSession with only its resources in the XAR
+			 final File xar=buildImagingSessionXar(orig, targetproject, targetsubject, target);
 
 			 final RemoteConnectionResponse connectionResponse = _manager.importXar(connection, xar);
 			 stored = connectionResponse.wasSuccessful();
@@ -579,6 +582,37 @@ public class RemoteSubject {
 				 if (remote_id == null) {
 					 throw new XsyncStoreException("Could not locate Accession Id for " + target.getLabel() + " in project " + remoteProjectId);
 				 }else {
+					 //For each scan in the session, store the scan XML with its resources
+					 List<XnatImagescandataI> scans = target.getScans_scan();
+					 for (int i=0; i<scans.size(); i++) {
+						 XnatImagescandata scan = (XnatImagescandata)scans.get(i);
+						 scan.setImageSessionId(remote_id);
+						 scan.setProject(target.getProject());
+						 final ScanSyncItem scanSyncItem = new ScanSyncItem(scan.getId(),scan.getType());
+						 scanSyncItem.setXsiType(scan.getXSIType());
+						 scanSyncItem.extractDetails(scan);
+
+						 final File scanXar=buildImagingScanXar(orig, targetproject, targetsubject, target,scan);
+
+						 if (scanXar != null) {
+							 final RemoteConnectionResponse scanConnectionResponse = _manager.importXar(connection, scanXar);
+							 boolean scanStored = scanConnectionResponse.wasSuccessful();
+							 if (scanStored) {
+								 scanXar.delete();
+								 String remoteScanId = getRemoteAssignedId(scanConnectionResponse);
+								 scanSyncItem.setRemoteId(remoteScanId);
+								 scanSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+								 scanSyncItem.setMessage("Image session " + orig.getLabel() + " Image Scan " + scan.getId() + " has been synced.");
+								 //saveSyncDetails(origAss.getId(),remoteScanId,XsyncUtils.SYNC_STATUS_SYNCED,origAss.getXSIType());
+							 }else {
+								 scanSyncItem.setRemoteId(null);
+								 scanSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+								 scanSyncItem.setMessage(scanConnectionResponse.getResponseBody());
+							 }
+							 expSyncItem.addScan(scanSyncItem);
+						 }
+					 }
+					 
 					 ExperimentFilter experimentFilter = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);
 
 					 for (int i=0; i<assessors.size();i++) {
@@ -662,6 +696,19 @@ public class RemoteSubject {
 	private boolean removeSingleAssessor(XnatImagesessiondata target) {
 		if (target.getAssessors_assessor().size() > 0) {
 			target.removeAssessors_assessor(0);
+			return true;
+		}else 
+			return false;
+	}
+
+	
+	private void removeScans(XnatImagesessiondata target) {
+		while (removeSingleScan(target));
+	}
+
+	private boolean removeSingleScan(XnatImagesessiondata target) {
+		if (target.getScans_scan().size() > 0) {
+			target.removeScans_scan(0);
 			return true;
 		}else 
 			return false;
@@ -796,6 +843,104 @@ public class RemoteSubject {
 			}
 			
 			rep.setDownloadName(target.getLabel()+".xar");
+			xarFile = new File(expCachePath, (new Date()).getTime()+".xar");
+			rep.write(new FileOutputStream(xarFile));
+		} catch (Exception e) {
+			_log.debug(e.toString() + "  " + e.getMessage());
+			//e.printStackTrace();
+			throw new Exception("Unable to retrieve/save session XML."+e.getMessage());
+		}
+		return xarFile;
+		
+
+		// return
+
+	}
+
+	
+	File buildImagingSessionXar(XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata targetOrig) throws Exception {
+		File xarFile;
+		String anonymizedSessionPath = getAnonymizedSessionPath(orig);
+		XFTItem item = targetOrig.getItem().copy();
+		XnatImagesessiondata targetExperiment = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
+
+		try {
+			targetExperiment.setProject(targetExperiment.getProject());
+			targetExperiment.setSubjectId(targetsubject.getLabel());
+			if (targetExperiment.getScans_scan() != null && targetExperiment.getScans_scan().size() > 0) {
+				removeScans(targetExperiment);
+			}			
+
+			
+			File experimentPath = new File(anonymizedSessionPath);
+			ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,(orig).getArchiveDirectoryName(),0);
+			List<File> files = new ArrayList<File>();
+			if (experimentPath.exists()) {
+				File experimentResourcePath = new File(anonymizedSessionPath+"RESOURCES");
+				if (experimentResourcePath.exists()) {
+					files = (List<File>) FileUtils.listFiles(experimentResourcePath,null,true);
+				}
+			}
+			String expCachePath = SynchronizationManager.GET_SYNC_XAR_PATH(targetproject,orig);
+			new File(expCachePath).mkdirs();
+			File outF = new File(expCachePath, "expt_" + (new Date()).getTime() + ".xml");
+
+			outF.deleteOnExit();
+			
+			FileWriter fw = new FileWriter(outF);
+			targetExperiment.toXML(fw, false);
+			fw.close();
+			
+			rep.addEntry(((XnatSubjectassessordata)targetExperiment).getLabel() + ".xml",outF);
+			if (files.size() > 0) {
+				rep.addAll(files);
+			}
+			
+			rep.setDownloadName(targetExperiment.getLabel()+".xar");
+			xarFile = new File(expCachePath, (new Date()).getTime()+".xar");
+			rep.write(new FileOutputStream(xarFile));
+		} catch (Exception e) {
+			_log.debug(e.toString() + "  " + e.getMessage());
+			//e.printStackTrace();
+			throw new Exception("Unable to retrieve/save session XML."+e.getMessage());
+		}
+		return xarFile;
+		
+
+		// return
+
+	}
+
+	File buildImagingScanXar(XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target,XnatImagescandata scan) throws Exception {
+		File xarFile;
+		String anonymizedSessionPath = getAnonymizedSessionPath(orig);
+
+		try {
+			File experimentPath = new File(anonymizedSessionPath);
+			ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,(orig).getArchiveDirectoryName(),0);
+			List<File> files = new ArrayList<File>();
+			if (experimentPath.exists()) {
+				File experimentScanPath = new File(anonymizedSessionPath+"SCANS"+File.separator+scan.getId());
+				if (experimentScanPath.exists()) {
+					files = (List<File>) FileUtils.listFiles(experimentScanPath,null,true);
+				}
+			}
+			String expCachePath = SynchronizationManager.GET_SYNC_XAR_PATH(targetproject,orig);
+			new File(expCachePath).mkdirs();
+			File outF = new File(expCachePath, target.getLabel()+"_scan_" + (new Date()).getTime() + ".xml");
+
+			outF.deleteOnExit();
+			
+			FileWriter fw = new FileWriter(outF);
+			scan.toXML(fw, false);
+			fw.close();
+			
+			rep.addEntry(target.getLabel()+"_"+scan.getId() + ".xml",outF);
+			if (files.size() > 0) {
+				rep.addAll(files);
+			}
+			
+			rep.setDownloadName(target.getLabel()+"_"+scan.getId()+".xar");
 			xarFile = new File(expCachePath, (new Date()).getTime()+".xar");
 			rep.write(new FileOutputStream(xarFile));
 		} catch (Exception e) {
