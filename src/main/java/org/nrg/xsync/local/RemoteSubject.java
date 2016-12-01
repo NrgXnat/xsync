@@ -766,6 +766,23 @@ public class RemoteSubject {
 		}
 
 	}
+
+	private void modifyExptScanResource(XnatAbstractresourceI resource, String scanid)  {
+		if (resource instanceof XnatResource) {
+			if (((XnatResource) resource).getUri() != null) {
+				String path = ((XnatResource) resource).getUri();
+				String search_string = "SCANS/"+ scanid+"/";
+				int scan_id_label_index = path.indexOf(search_string);
+				if (scan_id_label_index != -1) {
+					String newURI = path.substring(search_string.length());
+					if (newURI.startsWith(File.separator) || newURI.startsWith("/")) {
+						newURI=newURI.substring(1);
+					}
+					((XnatResource) resource).setUri(newURI);
+				}
+			}
+		}
+	}
 	
 	private void prepareResourceURIForXar(XnatImagesessiondata exp){
 		for (final XnatAbstractresourceI res : exp.getResources_resource()) {
@@ -915,9 +932,10 @@ public class RemoteSubject {
 		File xarFile;
 		String anonymizedSessionPath = getAnonymizedSessionPath(orig);
 
+		
 		try {
 			File experimentPath = new File(anonymizedSessionPath);
-			ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,(orig).getArchiveDirectoryName(),0);
+			ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,scan.getId(),0);
 			List<File> files = new ArrayList<File>();
 			if (experimentPath.exists()) {
 				File experimentScanPath = new File(anonymizedSessionPath+"SCANS"+File.separator+scan.getId());
@@ -927,13 +945,19 @@ public class RemoteSubject {
 			}
 			String expCachePath = SynchronizationManager.GET_SYNC_XAR_PATH(targetproject,orig);
 			new File(expCachePath).mkdirs();
-			File outF = new File(expCachePath, target.getLabel()+"_scan_" + (new Date()).getTime() + ".xml");
+			File outF = new File(expCachePath, target.getLabel()+"_scan_"+ scan.getId()+"_" + (new Date()).getTime() + ".xml");
 
+			for (final XnatAbstractresourceI res : scan.getFile()) {
+				modifyExptScanResource((XnatAbstractresource) res,scan.getId());
+			}
+			
 			outF.deleteOnExit();
 			
 			FileWriter fw = new FileWriter(outF);
 			scan.toXML(fw, false);
 			fw.close();
+			
+		
 			
 			rep.addEntry(target.getLabel()+"_"+scan.getId() + ".xml",outF);
 			if (files.size() > 0) {
