@@ -22,6 +22,7 @@ public class XsyncResourceHistory extends AbstractHibernateEntity {
     private int fileCount;
     private Long fileSize;
     private String syncStatus;
+    @Column(columnDefinition = "TEXT")
     private String syncMessage;
 
     public String getLocalLabel() {

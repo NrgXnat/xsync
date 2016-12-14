@@ -1,9 +1,10 @@
 package org.nrg.xsync.manifest;
 
-import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
-
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 
 /**
@@ -20,6 +21,7 @@ public class XsyncAssessorHistory extends AbstractHibernateEntity {
     private String subjectLabel;
     private String experimentLabel;
     private String syncStatus;
+    @Column(columnDefinition = "TEXT")
     private String syncMessage;
 
     public String getLocalLabel() {

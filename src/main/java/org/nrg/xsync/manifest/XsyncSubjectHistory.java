@@ -18,6 +18,7 @@ public class XsyncSubjectHistory extends AbstractHibernateEntity {
 
     private String localLabel;
     private String syncStatus;
+    @Column(columnDefinition = "TEXT")
     private String syncMessage;
 
 
