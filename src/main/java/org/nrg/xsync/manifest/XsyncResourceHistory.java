@@ -4,6 +4,7 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import javax.persistence.Column;
 
 
 /**
