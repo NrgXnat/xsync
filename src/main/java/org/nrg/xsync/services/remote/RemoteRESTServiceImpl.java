@@ -4,6 +4,8 @@ package org.nrg.xsync.services.remote;
 import java.io.File;
 import java.io.FileWriter;
 
+import javax.annotation.PostConstruct;
+
 import org.apache.log4j.Logger;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
@@ -17,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.NestedRuntimeException;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,8 +28,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-
-import javax.annotation.PostConstruct;
 
 
 /**
@@ -104,12 +105,17 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		ResponseEntity<String> response;
 		try {
 			try {
-				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection, true));
+				HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, true);
+				header.setContentLength(xar.length());
+				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
 				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
 			} catch (XsyncHttpAuthenticationException authex) {
-				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
+				HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, false, true);
+				header.setContentLength(xar.length());
+				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
 				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
 			}
+			logger.info("POST file length: " + xar.length());
 			logger.info(response);
 			logger.info(response.getBody());
 			logger.info(response.getHeaders().get("Set-Cookie"));
