@@ -117,6 +117,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
 				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
 			}
+			logger.info("importXar"+xar.getAbsolutePath());
 			logger.info("POST file length: " + xar.length());
 			logger.info(response);
 			logger.info(response.getBody());
@@ -128,7 +129,6 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 						 (response.getStatusCode().value()==HttpStatus.INTERNAL_SERVER_ERROR.value()) ||
 						 (response.getStatusCode().value()==HttpStatus.BAD_REQUEST.value())
 						 )?true:false;
-			logger.warn("importXar"+xar.getName());
 			if(!status){
 				throw new RuntimeException("importXar request failed. Retrying...");
 			}else{

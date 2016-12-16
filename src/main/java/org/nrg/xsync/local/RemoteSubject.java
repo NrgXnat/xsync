@@ -676,6 +676,12 @@ public class RemoteSubject {
 			 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
 			 stored = false;
+		 }finally {
+				String anonymizedSessionPath = getAnonymizedSessionPath(orig);
+				File localPath = new File(anonymizedSessionPath);
+				if (localPath.exists()) {
+					localPath.delete();
+				}
 		 }
 		 subjectSyncInfo.addExperiment(expSyncItem);
 		 return stored;
