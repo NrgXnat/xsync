@@ -6,6 +6,7 @@ import java.io.FileWriter;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
@@ -73,6 +74,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.importXarWithoutRetry(connection, xar);
 		    } catch (RuntimeException e) {
 		    	try {
+		    		logger.error(ExceptionUtils.getStackTrace(e));
 		    		logger.error("importXar: retrycount "+ count + " out of " + maxTries);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
