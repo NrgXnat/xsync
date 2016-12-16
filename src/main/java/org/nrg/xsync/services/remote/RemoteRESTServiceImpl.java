@@ -108,12 +108,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		try {
 			try {
 				HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, true);
-				header.setContentLength(xar.length());
+				//header.setContentLength(xar.length());
 				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
 				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
 			} catch (XsyncHttpAuthenticationException authex) {
 				HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, false, true);
-				header.setContentLength(xar.length());
+				//header.setContentLength(xar.length());
 				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
 				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
 			}
