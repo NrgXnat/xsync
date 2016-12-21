@@ -20,6 +20,7 @@ public interface RemoteRESTService {
 	public RemoteConnectionResponse deleteSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception;
 	public RemoteConnectionResponse deleteSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel) throws Exception;
 	public RemoteConnectionResponse importSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel, File zipFile) throws Exception;
+	public RemoteConnectionResponse importImageSessionResource(RemoteConnection connection, XnatExperimentdata experiment, String resourceLabel, File zipFile) throws Exception;
 
 	public RemoteConnectionResponse deleteExperiment(RemoteConnection connection, XnatExperimentdata experiment) throws Exception;
 	public RemoteConnectionResponse importSubjectAssessor(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ) throws Exception;

@@ -386,6 +386,31 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		}
 	}
 
+	/**
+	 * import Project Resource with retry.
+	 *
+	 * @param connection the connection
+	 * @param projectId the Project ID
+	 * @return response
+	 */
+	public RemoteConnectionResponse importImageSessionResource(RemoteConnection connection,XnatExperimentdata experiment, String resourceLabel, File zipFile ) throws Exception{
+		int count = 0;
+		while(true) {
+		    try {
+		    	 String uri = connection.getUrl()+"/data/archive/experiments/"+experiment.getId()+"/resources/"+ resourceLabel +"/files?overwrite=true&extract=true";
+		         return this.importZipWithoutRetry( connection, uri, zipFile);
+		    } catch (RuntimeException e) {
+		    	try {
+			    	logger.error("importsubjectresource: retrycount "+ count);
+					if (maxTries > 0) Thread.sleep(sleep);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
+		        // handle exception
+		        if (maxTries == 0 || ++count == maxTries) throw e;
+		    }
+		}
+	}
 	
 	/**
 	 * import SubjectAssessor Resource with retry.

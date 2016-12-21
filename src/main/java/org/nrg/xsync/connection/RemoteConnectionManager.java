@@ -256,6 +256,21 @@ public class RemoteConnectionManager {
 	}
 
 	/**
+	 * Import MRSession resource.
+	 *
+	 * @param connection the connection
+	 * @param experiment the experiment
+	 * @param resourceLabel the resource label
+	 * @param zipFile the zip file
+	 * @return the remote connection response
+	 * @throws Exception the exception
+	 */
+	public RemoteConnectionResponse importImageSessionResource(RemoteConnection connection, XnatExperimentdata subject, String resourceLabel, File zipFile) throws Exception{
+		return _remoteRESTService.importImageSessionResource(connection, subject, resourceLabel, zipFile);
+	}
+
+	
+	/**
 	 * Delete experiment.
 	 *
 	 * @param connection the connection

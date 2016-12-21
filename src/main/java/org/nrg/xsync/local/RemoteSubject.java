@@ -7,20 +7,21 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipFile;
 
 import org.apache.commons.io.FileUtils;
 import org.nrg.xdat.base.BaseElement;
-import org.nrg.xsync.manifest.ScanSyncItem;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatImageassessordataI;
+import org.nrg.xdat.model.XnatImagesessiondataI;
 import org.nrg.xdat.model.XnatImagescandataI;
-import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.model.XnatReconstructedimagedataI;
 import org.nrg.xdat.model.XnatSubjectdataI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImageassessordata;
+import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatResource;
@@ -40,6 +41,7 @@ import org.nrg.xsync.exception.XsyncStoreException;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.manifest.ResourceSyncItem;
+import org.nrg.xsync.manifest.ScanSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncObserver;
@@ -174,6 +176,18 @@ public class RemoteSubject {
 			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 
 			 return _manager.importSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel, zipFile);
+		 }catch(Exception e) {
+			 _log.error(e.toString());
+			 throw e;
+		 }
+		}
+
+	private RemoteConnectionResponse updateImagingSessionResource(XnatImagesessiondataI remoteImagingSession, String resourceLabel, File zipFile) throws Exception {
+		 try {
+			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
+			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+
+			 return _manager.importImageSessionResource(connection, (XnatImagesessiondata)remoteImagingSession, resourceLabel, zipFile);
 		 }catch(Exception e) {
 			 _log.error(e.toString());
 			 throw e;
@@ -319,16 +333,23 @@ public class RemoteSubject {
 			if (resourcePath.exists() && resourcePath.isFile()) {
 				resourcePath = resourcePath.getParentFile();
 			}
-			File zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
-			RemoteConnectionResponse updateResponse = this.updateSubjectResource(remoteSubject,resource.getLabel(), zipFile);
-			if (updateResponse.wasSuccessful()) {
-				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " updated. " );
-			}else {
-				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-				resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + updateResponse.getResponseBody() );
+			File zipFile = null;
+			try {
+				zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
+				RemoteConnectionResponse updateResponse = this.updateSubjectResource(remoteSubject,resource.getLabel(), zipFile);
+				if (updateResponse.wasSuccessful()) {
+					resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+					resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " updated. " );
+				}else {
+					resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+					resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + updateResponse.getResponseBody() );
+				}
+				subjectSyncInfo.addResources(resourceSyncItem);
+			}catch(Exception e) {
+				throw(e);
+			}finally {
+				if (zipFile != null) zipFile.delete();
 			}
-			subjectSyncInfo.addResources(resourceSyncItem);
 		}catch(Exception e) {
 			_log.error("Could not update resource " + resource.getLabel() + " for subject " + remoteSubject.getId());
 			resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
@@ -336,6 +357,59 @@ public class RemoteSubject {
 			subjectSyncInfo.addResources(resourceSyncItem);
 		}
 	}
+	
+	private void pushImagingSessionResource( String remoteProjectId,XnatSubjectdata targetsubject,XnatImagesessiondata orig, XnatImagesessiondata target,ExperimentSyncItem expSyncItem,XnatAbstractresourceI resource) {
+		XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
+		String localProjectArchivePath = localProject.getArchiveRootPath();
+		String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
+		ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),rLabel);
+		if (resource.getFileCount() != null)
+			resourceSyncItem.setFileCount(resource.getFileCount());
+		else 
+			resourceSyncItem.setFileCount(0);
+		if (resource.getFileSize() != null)
+			resourceSyncItem.setFileSize(resource.getFileSize());
+		else 
+			resourceSyncItem.setFileSize(new Long(0));
+		try {
+			String filepath = orig.getArchiveRootPath() + "arc001/";
+			//Fix what is done in ExperimnetFilter. modifyExptResource
+			String newFilepath = SynchronizationManager.GET_SYNC_FILE_PATH(orig.getProject(),orig);
+			newFilepath = newFilepath.replace(File.pathSeparator,"/").replace("\\","/");
+			String archiveDirectory = ((XnatAbstractresource)resource).getFullPath(orig.getArchiveRootPath());
+			if (archiveDirectory.startsWith(newFilepath)) {
+				archiveDirectory = archiveDirectory.replace(newFilepath, filepath);
+			}
+			File resourcePath = new File(archiveDirectory);
+			if (resourcePath.exists() && resourcePath.isFile()) {
+				resourcePath = resourcePath.getParentFile();
+			}
+			File zipFile = null;
+			try {
+				zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
+				RemoteConnectionResponse updateResponse = this.updateImagingSessionResource(target,resource.getLabel(), zipFile);
+				if (updateResponse.wasSuccessful()) {
+					resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+					resourceSyncItem.setMessage("Exoeriment " + target.getLabel() + " resource " + rLabel + " updated. " );
+				}else {
+					resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+					resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " could not be updated. " + updateResponse.getResponseBody() );
+				}
+				expSyncItem.addResources(resourceSyncItem);
+			}catch(Exception e) {
+				throw(e);
+			}finally {
+				if (zipFile != null) 
+					zipFile.delete();
+			}
+		}catch(Exception e) {
+			_log.error("Could not update resource " + resource.getLabel() + " for experiment " + target.getId());
+			resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+			resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " could not be updated. " + e.getMessage() );
+			expSyncItem.addResources(resourceSyncItem);
+		}
+	}
+
 	
 	private void syncExperiments(XnatSubjectdataI remoteSubject,Map<String,List<XnatExperimentdataI>> experimentsToBeSynced) throws Exception{
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
@@ -524,17 +598,25 @@ public class RemoteSubject {
 						if (resourcePath.exists() && resourcePath.isFile()) {
 							resourcePath = resourcePath.getParentFile();
 						} 
-					    File zipFile = new XsyncFileUtils().buildZip(remoteProjectId,resourcePath);
-						RemoteConnectionResponse updateResponse = this.updateSubjectAssessorResource(remotesubject, assessor,resource.getLabel(), zipFile);
-						ResourceSyncItem resourceSyncItem = new ResourceSyncItem(null,resource.getLabel());
-						resourceSyncItem.setFileCount(resource.getFileCount()!=null?resource.getFileCount():0);
-						resourceSyncItem.setFileSize(resource.getFileSize()!=null?resource.getFileSize():new Long(0));
-						if (updateResponse.wasSuccessful()) {
-							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-						}else {
-							resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+						File zipFile =null;
+						try {
+						    zipFile = new XsyncFileUtils().buildZip(remoteProjectId,resourcePath);
+							RemoteConnectionResponse updateResponse = this.updateSubjectAssessorResource(remotesubject, assessor,resource.getLabel(), zipFile);
+							ResourceSyncItem resourceSyncItem = new ResourceSyncItem(null,resource.getLabel());
+							resourceSyncItem.setFileCount(resource.getFileCount()!=null?resource.getFileCount():0);
+							resourceSyncItem.setFileSize(resource.getFileSize()!=null?resource.getFileSize():new Long(0));
+							if (updateResponse.wasSuccessful()) {
+								resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+							}else {
+								resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+							}
+							expSyncItem.addResources(resourceSyncItem);
+						}catch(Exception e) {
+							throw(e);
+						}finally {
+							if (zipFile != null) zipFile.delete();
 						}
-						expSyncItem.addResources(resourceSyncItem);
+						
 					}
 				}
 				if (updateSyncAssessor) {
@@ -559,7 +641,8 @@ public class RemoteSubject {
 		 final RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 		 final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
 		 List<XnatImageassessordataI> assessors = target.getAssessors_assessor();
-
+		 List<XnatAbstractresourceI>  resources	= getExperimentResources(target);
+		 
 		 expSyncItem.setXsiType(orig.getXSIType());
 		 expSyncItem.extractDetails(target);
 		 
@@ -567,7 +650,8 @@ public class RemoteSubject {
 			 removeAssessors(target);
 			 prepareResourceURIForXar(target);
 
-			 //Store the ImageSession with only its resources in the XAR
+			 //Store the ImageSession with only its meta-data in the XAR. Resources, Scans and Assessors 
+			 //would be pushed as separate transactions.
 			 final File xar=buildImagingSessionXar(orig, targetproject, targetsubject, target);
 
 			 final RemoteConnectionResponse connectionResponse = _manager.importXar(connection, xar);
@@ -582,6 +666,14 @@ public class RemoteSubject {
 				 if (remote_id == null) {
 					 throw new XsyncStoreException("Could not locate Accession Id for " + target.getLabel() + " in project " + remoteProjectId);
 				 }else {
+					XFTItem item = target.getItem().copy();
+					XnatImagesessiondata targetWithRemoteId = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
+					targetWithRemoteId.setId(remote_id);
+					 //For each resource store the resource
+					 for (int i=0; i<resources.size(); i++) {
+						 XnatAbstractresource resource = (XnatAbstractresource)resources.get(i);
+					     pushImagingSessionResource(remoteProjectId,targetsubject,orig,  targetWithRemoteId,expSyncItem,resource);
+					 }					 
 					 //For each scan in the session, store the scan XML with its resources
 					 List<XnatImagescandataI> scans = target.getScans_scan();
 					 for (int i=0; i<scans.size(); i++) {
@@ -617,20 +709,20 @@ public class RemoteSubject {
 
 					 for (int i=0; i<assessors.size();i++) {
 						 XnatImageassessordata origAss = (XnatImageassessordata)assessors.get(i);
-						 XFTItem item = origAss.getItem().copy();
+						 item = origAss.getItem().copy();
 						 XnatImageassessordata targetAss = (XnatImageassessordata) BaseElement.GetGeneratedItem(item);
 						 experimentFilter.correctIDandLabel(targetAss, origAss, remote_id, target.getProject());
 
 						 for (final XnatAbstractresourceI res : targetAss.getResources_resource()) {
-							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig);
+							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig,true);
 						 }
 
 						 for (final XnatAbstractresourceI res : targetAss.getIn_file()) {
-							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig);
+							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig,true);
 						 }
 
 						 for (final XnatAbstractresourceI res : targetAss.getOut_file()) {
-							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig);
+							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig,true);
 
 						 }
 						 prepareResourceURIForXar(target,targetAss);
@@ -686,6 +778,14 @@ public class RemoteSubject {
 		 subjectSyncInfo.addExperiment(expSyncItem);
 		 return stored;
 	}
+
+	private List<XnatAbstractresourceI> getExperimentResources(XnatImagesessiondata orig) {
+		 List<XnatAbstractresourceI> resources = null;
+		 XFTItem item = orig.getItem().copy();
+		 XnatImagesessiondata targetExperiment = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
+		 resources = targetExperiment.getResources_resource();
+		 return resources;
+	}
 	
 	private String getRemoteAssignedId(final RemoteConnectionResponse connectionResponse) {
 		 String remote_id_with_line_breaks = connectionResponse.getResponseBody();
@@ -720,6 +820,19 @@ public class RemoteSubject {
 			return false;
 	}
 
+	private void removeResources(XnatImagesessiondata target) {
+		while (removeSingleResource(target));
+	}
+
+	private boolean removeSingleResource(XnatImagesessiondata target) {
+		if (target.getResources_resource().size() > 0) {
+			target.removeResources_resource(0);
+			return true;
+		}else 
+			return false;
+	}
+
+	
 	private void modifyExptResource(XnatAbstractresourceI resource, XnatExperimentdata orig)  {
 		if (resource instanceof XnatResource) {
 			if (((XnatResource) resource).getUri() != null) {
@@ -890,20 +1003,25 @@ public class RemoteSubject {
 		try {
 			targetExperiment.setProject(targetExperiment.getProject());
 			targetExperiment.setSubjectId(targetsubject.getLabel());
+			if (targetExperiment.getResources_resource() != null && targetExperiment.getResources_resource().size() > 0) {
+				removeResources(targetExperiment);
+			}			
+
 			if (targetExperiment.getScans_scan() != null && targetExperiment.getScans_scan().size() > 0) {
 				removeScans(targetExperiment);
 			}			
+
 
 			
 			File experimentPath = new File(anonymizedSessionPath);
 			ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,(orig).getArchiveDirectoryName(),0);
 			List<File> files = new ArrayList<File>();
-			if (experimentPath.exists()) {
-				File experimentResourcePath = new File(anonymizedSessionPath+"RESOURCES");
-				if (experimentResourcePath.exists()) {
-					files = (List<File>) FileUtils.listFiles(experimentResourcePath,null,true);
-				}
-			}
+			//if (experimentPath.exists()) {
+			//	File experimentResourcePath = new File(anonymizedSessionPath+"RESOURCES");
+			//	if (experimentResourcePath.exists()) {
+			//		files = (List<File>) FileUtils.listFiles(experimentResourcePath,null,true);
+			//	}
+			//}
 			String expCachePath = SynchronizationManager.GET_SYNC_XAR_PATH(targetproject,orig);
 			new File(expCachePath).mkdirs();
 			File outF = new File(expCachePath, "expt_" + (new Date()).getTime() + ".xml");

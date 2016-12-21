@@ -110,7 +110,7 @@ public class XsyncAnonymizer implements AnonymizerI {
 	}
 
 	
-	private void copyScanFiles(final XnatImagesessiondata session, File cachePath) throws IOException {
+/*	private void copyScanFiles(final XnatImagesessiondata session, File cachePath) throws IOException {
 		for(final XnatImagescandataI scan: session.getScans_scan()) {
 			for (final XnatAbstractresourceI res:scan.getFile()) {
 				if (res instanceof XnatResource) {
@@ -130,6 +130,7 @@ public class XsyncAnonymizer implements AnonymizerI {
 			}
 		}
 	}
+*/	
 	
 	/**
 	 * Apply anonymization script.
