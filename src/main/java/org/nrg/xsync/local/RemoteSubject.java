@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.zip.ZipFile;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatExperimentdataI;
@@ -404,7 +405,7 @@ public class RemoteSubject {
 		}catch(Exception e) {
 			_log.error("Could not update resource " + resource.getLabel() + " for experiment " + target.getId());
 			resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-			resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " could not be updated. " + e.getMessage() );
+			resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " could not be updated. " + ExceptionUtils.getFullStackTrace(e) );
 			expSyncItem.addResources(resourceSyncItem);
 		}
 	}
@@ -761,9 +762,7 @@ public class RemoteSubject {
 						 }
 					 }
 					 expSyncItem.setRemoteId(remote_id);
-					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been synced.");
-//					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been synced. " );
+					 expSyncItem.updateSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED,"Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been synced.");
 
 					 if (updateSyncAssessor) {
 						 XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);

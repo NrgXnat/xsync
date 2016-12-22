@@ -33,6 +33,45 @@ public class ExperimentSyncItem extends SyncedItem {
 		assessors = new ArrayList<ExperimentSyncItem>();
 	}
 	
+	
+	public void updateSyncStatus(String status, String msg) {
+		boolean someSyncFailed = false;
+		String message = "";
+		if (resources != null && resources.size() > 0) {
+			for (ResourceSyncItem r: resources) {
+				if (r.getSyncStatus()!=null && r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
+					someSyncFailed = true;
+					message += " Resource " + r.getLocalLabel() + " failed to sync. ";
+				}
+			}
+		}
+		if (scans != null && scans.size() > 0) {
+			for (ScanSyncItem r: scans) {
+				if (r.getSyncStatus() != null && r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
+					someSyncFailed = true;
+					message += " Scan " + r.getLocalLabel() + " failed to sync. ";
+				}
+			}
+		}
+		if (assessors != null && assessors.size() > 0) {
+			for (ExperimentSyncItem r: assessors) {
+				if (r.getSyncStatus() != null && r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
+					someSyncFailed = true;
+					message += " Assessor " + r.getLocalLabel() + " failed to sync. ";
+				}
+			}
+		}
+		if (someSyncFailed) {
+			setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+			setMessage("Sync failed. " + message);
+		}else {
+			setSyncStatus(status);
+			setMessage(msg);
+		}
+		
+		return;
+	}
+	
 	public Integer getTotalSyncedFileCount() {
 		int count = 0;
 		try {
