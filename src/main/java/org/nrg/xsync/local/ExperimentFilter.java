@@ -422,18 +422,18 @@ public class ExperimentFilter {
 			String path = ((XnatResource) resource).getUri();
 			String newURI = path.replace(File.pathSeparator, "/").replace(filepath, newFilepath);
 			((XnatResource) resource).setUri(newURI);
-			if (hasResourceBeenModified && copy) {
-				copyFiles(path, newURI);
+			if (hasResourceBeenModified) {
+				if (copy) copyFiles(path, newURI);
 			}else {
-				resource.setFileCount((resource.getFileCount() != null)?-1*resource.getFileCount():-1);
-				resource.setFileSize((resource.getFileSize() != null)?-1*(Long)resource.getFileSize():-1);
+					resource.setFileCount((resource.getFileCount() != null)?-1*resource.getFileCount():-1);
+					resource.setFileSize((resource.getFileSize() != null)?-1*(Long)resource.getFileSize():-1);
 			}
 		} else if (resource instanceof XnatResourceseries) {
 			String path = ((XnatResourceseries) resource).getPath();
 			String newURI = path.replace(filepath, newFilepath);
 			((XnatResourceseries) resource).setPath(newURI);
-			if (hasResourceBeenModified && copy) {
-				copyFiles(path, newURI);
+			if (hasResourceBeenModified) {
+				if (copy) copyFiles(path, newURI);
 			}else {
 				resource.setFileCount(-1*resource.getFileCount());
 				resource.setFileSize(-1*(Long)resource.getFileSize());
@@ -924,82 +924,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 		
 	}
 
-	/**
-	 * Modify subject resource.
-	 *
-	 * @param resource
-	 *            the resource
-	 * @param subject
-	 *            the subject
-	 * @param newSubject
-	 *            the new subject
-	 * @throws IOException
-	 *             Signals that an I/O exception has occurred.
-	 * @throws UnknownPrimaryProjectException
-	 *             the unknown primary project exception
-	 * @throws InvalidArchiveStructure
-	 *             the invalid archive structure
-	 * @throws ElementNotFoundException
-	 *             the element not found exception
-	 * @throws FieldNotFoundException
-	 *             the field not found exception
-	 * @throws XFTInitException
-	 *             the XFT init exception
-	 */
-	private void modifySubjectAssessorResource(XnatAbstractresourceI resource, XnatSubjectdata subject,
-			XnatSubjectdata newSubject) throws IOException, UnknownPrimaryProjectException, InvalidArchiveStructure,
-					ElementNotFoundException, FieldNotFoundException, XFTInitException {
 
-		String filepath = subject.getArchiveRootPath() + "subjects/" + subject.getArchiveDirectoryName();
-		String newFilepath = SynchronizationManager.GET_SYNC_FILE_PATH(subject.getProject(), subject);
-
-		if (resource instanceof XnatResource) {
-			String path = ((XnatResource) resource).getUri();
-			String newURI = path.replace(filepath, newFilepath);
-			((XnatResource) resource).setUri(newURI);
-			//modifySubjResourceFiles(path, newURI);
-
-		} else if (resource instanceof XnatResourceseries) {
-			String path = ((XnatResourceseries) resource).getPath();
-			String newURI = path.replace(filepath, newFilepath);
-			((XnatResourceseries) resource).setPath(newURI);
-			//modifySubjResourceFiles(path, newURI);
-		}
-
-	}
-
-	/**
-	 * Modify subj resource files.
-	 *
-	 * @param catalogFile
-	 *            the catalog file
-	 * @param newCatalogFile
-	 *            the new catalog file
-	 * @throws IOException
-	 *             Signals that an I/O exception has occurred.
-	 */
-	private void modifySubjResourceFiles(String catalogFile, String newCatalogFile)
-			throws IOException {
-
-		String newCatalogFileParentDir = newCatalogFile.substring(0, newCatalogFile.lastIndexOf(File.separatorChar));
-		new File(newCatalogFileParentDir).mkdirs();
-		File sourceCatalog = new File(catalogFile);
-		File destCatalog = new File(newCatalogFile);
-
-		File source = sourceCatalog.getParentFile();
-		File dest = destCatalog.getParentFile();
-
-		// copy the actual files
-		try {
-			if (source.exists()) {
-				FileUtils.copyDirectory(source, dest);
-			}
-		} catch (IOException e) {
-			_log.error("", e);
-			throw e;
-			// don't continue if the file copy failed
-		}
-	}
 
 
 }

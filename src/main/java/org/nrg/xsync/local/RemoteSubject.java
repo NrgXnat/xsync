@@ -360,15 +360,14 @@ public class RemoteSubject {
 	
 	private void pushImagingSessionResource( String remoteProjectId,XnatSubjectdata targetsubject,XnatImagesessiondata orig, XnatImagesessiondata target,ExperimentSyncItem expSyncItem,XnatAbstractresourceI resource) {
 		XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
-		String localProjectArchivePath = localProject.getArchiveRootPath();
 		String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
-		ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),rLabel);
+		ResourceSyncItem resourceSyncItem = new ResourceSyncItem(orig.getLabel(),rLabel);
 		if (resource.getFileCount() != null)
-			resourceSyncItem.setFileCount(resource.getFileCount());
+			resourceSyncItem.setFileCount(resource.getFileCount()>0?resource.getFileCount():0);
 		else 
 			resourceSyncItem.setFileCount(0);
 		if (resource.getFileSize() != null)
-			resourceSyncItem.setFileSize(resource.getFileSize());
+			resourceSyncItem.setFileSize((Long)resource.getFileSize()>0?resource.getFileSize():new Long(0));
 		else 
 			resourceSyncItem.setFileSize(new Long(0));
 		try {
@@ -644,7 +643,7 @@ public class RemoteSubject {
 		 List<XnatAbstractresourceI>  resources	= getExperimentResources(target);
 		 
 		 expSyncItem.setXsiType(orig.getXSIType());
-		 expSyncItem.extractDetails(target);
+		 //expSyncItem.extractDetails(target);
 		 
 		 try {
 			 removeAssessors(target);
@@ -672,7 +671,18 @@ public class RemoteSubject {
 					 //For each resource store the resource
 					 for (int i=0; i<resources.size(); i++) {
 						 XnatAbstractresource resource = (XnatAbstractresource)resources.get(i);
-					     pushImagingSessionResource(remoteProjectId,targetsubject,orig,  targetWithRemoteId,expSyncItem,resource);
+						 String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
+						 ResourceSyncItem resourceSyncItem = new ResourceSyncItem(target.getLabel(),rLabel);
+						 if (resource.getFileCount() != null && resource.getFileSize()!=null) {
+							 boolean hasBeenSkipped = resource.getFileCount()<0 && (Long)resource.getFileSize()<0;
+							 if (hasBeenSkipped) {
+								    resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+								    resourceSyncItem.setFileCount(0);
+									resourceSyncItem.setFileSize(new Long(0));
+									expSyncItem.addResources(resourceSyncItem);
+							 } else	 
+								 pushImagingSessionResource(remoteProjectId,targetsubject,orig,  targetWithRemoteId,expSyncItem,resource);
+						 }
 					 }					 
 					 //For each scan in the session, store the scan XML with its resources
 					 List<XnatImagescandataI> scans = target.getScans_scan();
