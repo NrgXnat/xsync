@@ -223,7 +223,7 @@ window.XSYNC = getObject(window.XSYNC);
 					syncStatus: "Status",
 					syncMessage: "Message"
 				}
-			})
+			}).get
 		}
 		else {
 			panelContent = '<i class="pad20h">Nothing synced.</i>';
