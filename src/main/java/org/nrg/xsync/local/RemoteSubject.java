@@ -781,7 +781,11 @@ public class RemoteSubject {
 				String anonymizedSessionPath = getAnonymizedSessionPath(orig);
 				File localPath = new File(anonymizedSessionPath);
 				if (localPath.exists() && localPath.isDirectory()) {
-					FileUtils.deleteDirectory(localPath);
+					try {
+						FileUtils.deleteDirectory(localPath);
+					}catch(Exception ioe) {
+						
+					}
 				} 
 					
 		 }
