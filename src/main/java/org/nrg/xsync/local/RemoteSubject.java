@@ -780,9 +780,10 @@ public class RemoteSubject {
 		 }finally {
 				String anonymizedSessionPath = getAnonymizedSessionPath(orig);
 				File localPath = new File(anonymizedSessionPath);
-				if (localPath.exists()) {
-					localPath.delete();
-				}
+				if (localPath.exists() && localPath.isDirectory()) {
+					FileUtils.deleteDirectory(localPath);
+				} 
+					
 		 }
 		 subjectSyncInfo.addExperiment(expSyncItem);
 		 return stored;
