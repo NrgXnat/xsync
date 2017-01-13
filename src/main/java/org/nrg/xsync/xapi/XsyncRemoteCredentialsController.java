@@ -8,16 +8,16 @@ import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.services.SerializerService;
-import org.nrg.xdat.rest.AbstractXapiRestController;
+import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
+import org.nrg.xft.security.UserI;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -46,7 +46,7 @@ import io.swagger.annotations.ApiResponses;
 @XapiRestController
 @RequestMapping(value = "/xsync/credentials")
 @Api(description = "XSync Credentials API")
-public class XsyncRemoteCredentialsController extends AbstractXapiRestController {
+public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestController {
 	
 	private final RemoteAliasService 		_remoteAliasService;
 	private final ConfigService              _configService;
@@ -93,7 +93,13 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	        	return new ResponseEntity<>("Could not save remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );
 	        	
 	        }
+			final UserI user = getSessionUser();
+	    	final HttpStatus status = canEditProject(localProject);
+	        if (status != null) {
+	            return new ResponseEntity<>(status);
+	        }
 
+	        
 	        final String userAccessUrl = (host.endsWith("/")? host:host+"/") + "data/archive/projects/"+remoteProjectId+"/users?format=json";
 	        response = userHasRequiredAccessAtRemoteProject(alias,secret,username,userAccessUrl,remoteProjectId,syncNewOnly);
 	        
@@ -227,6 +233,13 @@ public class XsyncRemoteCredentialsController extends AbstractXapiRestController
 	        if (host==null || host.length()<1 || localProject==null || localProject.length()<1) {
 	        	return new ResponseEntity<>("Could not check remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );
 	        }
+			final UserI user = getSessionUser();
+	    	final HttpStatus status = canEditProject(localProject);
+	        if (status != null) {
+	            return new ResponseEntity<>(status);
+	        }
+
+	        
 	        RemoteAliasEntity remoteAliasEntity = _remoteAliasService.getRemoteAliasEntity(localProject, host);
 			
 	        try {

@@ -488,7 +488,8 @@ public class RemoteSubject {
 					}else { //Needs OKToSync which has not been marked yet. So Skip
 						 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
 						 expSyncItem.setXsiType(orig.getXSIType());
-						 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+						 //expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+						 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC);
 						 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been skipped as it has not been marked ok to sync");
 						 subjectSyncInfo.addExperiment(expSyncItem);
 					}

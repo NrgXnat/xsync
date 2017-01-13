@@ -140,6 +140,7 @@ public class XsyncUtils {
 	
 	
 	
+	
 	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedDaily() {
 		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<XsyncXsyncprojectdata>();
 		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();

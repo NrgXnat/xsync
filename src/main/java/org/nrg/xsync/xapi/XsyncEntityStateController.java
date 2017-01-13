@@ -1,15 +1,11 @@
 package org.nrg.xsync.xapi;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.annotations.XapiRestController;
-import org.nrg.xdat.rest.AbstractXapiRestController;
+import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
+import org.nrg.xft.security.UserI;
 import org.nrg.xsync.discoverer.ProjectInformation;
 import org.nrg.xsync.exception.XsyncNoProjectEntitiesSpecifiedException;
 import org.nrg.xsync.exception.XsyncNoProjectSpecifiedException;
@@ -22,12 +18,23 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 
 @Api(description = "XSync Entity State API")
 @XapiRestController
 @RequestMapping(value = "/xsync/information")
-public class XsyncEntityStateController extends AbstractXapiRestController {
+public class XsyncEntityStateController extends AbstractXapiProjectRestController {
     @Autowired
     public XsyncEntityStateController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate) {
         super(userManagementService, roleHolder);
@@ -39,8 +46,14 @@ public class XsyncEntityStateController extends AbstractXapiRestController {
     @ApiResponses({@ApiResponse(code = 200, message = "The project information was successfully retrieved."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to access indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
     @RequestMapping(value = "/projects/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<ObjectNode> getProjectInformation(@PathVariable("projectId") final String projectId, @RequestParam("listChoices") final String listChoices) throws XsyncNoProjectSpecifiedException, XsyncNoProjectEntitiesSpecifiedException {
-        if (StringUtils.isBlank(projectId)) {
+    public ResponseEntity<ObjectNode> getProjectInformation(@PathVariable("projectId") final String projectId, @RequestParam("listChoices") final String listChoices) throws XsyncNoProjectSpecifiedException, XsyncNoProjectEntitiesSpecifiedException, Exception {
+    	final UserI user = getSessionUser();
+    	final HttpStatus status = canReadProject(projectId);
+        if (status != null) {
+            return new ResponseEntity<>(status);
+        }
+
+    	if (StringUtils.isBlank(projectId)) {
             throw new XsyncNoProjectSpecifiedException();
         }
         if (StringUtils.isBlank(listChoices)) {
@@ -50,6 +63,7 @@ public class XsyncEntityStateController extends AbstractXapiRestController {
         if (_log.isDebugEnabled()) {
             _log.debug("Returning project information details for project " + projectId + ": " + listChoices);
         }
+
         final ObjectNode objectNode = (new ProjectInformation(_queryResultUtil, _jdbcTemplate, projectId)).getInformation(listChoices);
         return new ResponseEntity<>(objectNode, HttpStatus.OK);
     }

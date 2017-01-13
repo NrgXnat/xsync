@@ -22,14 +22,12 @@ import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.net.AuthenticatedClientHttpRequestFactory;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
+import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xdat.om.XnatExperimentdata;
-import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XsyncXsyncassessordata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
-import org.nrg.xdat.rest.AbstractXapiRestController;
-import org.nrg.xdat.security.SecurityManager;
-import org.nrg.xdat.security.helpers.Permissions;
+
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.event.EventMetaI;
@@ -71,7 +69,7 @@ import io.swagger.annotations.ApiResponses;
 @Api(description = "XNAT XSync Operations API")
 @XapiRestController
 @RequestMapping(value = "/xsync")
-public class XsyncOperationsController extends AbstractXapiRestController {
+public class XsyncOperationsController extends AbstractXapiProjectRestController {
     private final QueryResultUtil            _queryResultUtil;
     private final ConfigService              _configService;
     private final SerializerService          _serializer;
@@ -115,10 +113,10 @@ public class XsyncOperationsController extends AbstractXapiRestController {
     	//Check user credentials to see if the user is a member or an owner of the project
         final UserI user = getSessionUser();
     	try {
-    		HttpStatus status = isPermittedToSync(projectId);
-        	if (status != null) {
+        	final HttpStatus status = canDeleteProject(projectId);
+            if (status != null) {
                 return new ResponseEntity<>(status);
-        	}
+            }
         }catch(Exception e) {
             if (_log.isInfoEnabled()) {
                 _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
@@ -132,17 +130,7 @@ public class XsyncOperationsController extends AbstractXapiRestController {
         return new ResponseEntity<>(projectId + " synchronization started", HttpStatus.OK);
     }
     
-    private HttpStatus isPermittedToSync(final String projectId) throws Exception{
-        final UserI user = getSessionUser();
-        if (user == null) {
-            return HttpStatus.UNAUTHORIZED;
-        }
-    	if (Permissions.can(user, XnatProjectdata.SCHEMA_ELEMENT_NAME + "/ID", projectId, SecurityManager.DELETE)) {
-            return null;
-        }
-
-        return HttpStatus.FORBIDDEN;
-    }
+    
 
     @ApiOperation(value = "Clears the Sync Blocked Status", notes = "Clears the projects block status")
     @ApiResponses({@ApiResponse(code = 200, message = "The project was unblocked"), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to  unblock the indicated project."), @ApiResponse(code = 404, message = "Project not configured to sync yet."),@ApiResponse(code = 500, message = "Unexpected error")})
@@ -150,6 +138,16 @@ public class XsyncOperationsController extends AbstractXapiRestController {
     @ResponseBody
     public ResponseEntity<String> unblock(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
         final UserI user = getSessionUser();
+    	try {
+        	final HttpStatus status = canEditProject(projectId);
+            if (status != null) {
+                return new ResponseEntity<>(status);
+            }
+        }catch(Exception e) {
+            if (_log.isInfoEnabled()) {
+                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
+            }
+        }
 
         final List<XsyncXsyncprojectdata> syncProjectDatas = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/source_project_id",projectId, user, true);
         final XsyncXsyncprojectdata syncProjectData;
@@ -187,18 +185,33 @@ public class XsyncOperationsController extends AbstractXapiRestController {
     public ResponseEntity<String> exportExperiment(@PathVariable("experimentId") final String experimentId, @RequestParam("okToSync") final boolean okToSync) throws URISyntaxException, XsyncNotConfiguredException {
         //If the OkToSync Assessor already exists, update that
         //If it does not exist, create one.
-
         final UserI user = getSessionUser();
+    	try {
+            final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
+        	final HttpStatus status = canEditProject(experiment.getProject());
+            if (status != null) {
+                return new ResponseEntity<>(status);
+            }
+        }catch(Exception e) {
+            if (_log.isInfoEnabled()) {
+                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
+            }
+        }
 
         final List<XsyncXsyncassessordata> okToSyncDatas = XsyncXsyncassessordata.getXsyncXsyncassessordatasByField("xsync:xsyncAssessorData/synced_experiment_id", experimentId, user, true);
 
         final XsyncXsyncassessordata okToSyncData;
 
         try {
-            if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
+            final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
+        	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
+        	if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
                 okToSyncData = okToSyncDatas.get(0);
                 if (okToSyncData.getOktosync() != okToSync) {
                     okToSyncData.setOktosync(okToSync);
+                    okToSyncData.setSyncStatus(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC);
+                    okToSyncData.setRemoteUrl(syncProjectConfiguration.getSyncinfo().getRemoteUrl());
+                    okToSyncData.setRemoteProjectId(syncProjectConfiguration.getSyncinfo().getRemoteProjectId());
                 }
             } else {
                 okToSyncData = createNewXsyncassessor(experimentId, okToSync, user);
@@ -267,11 +280,19 @@ public class XsyncOperationsController extends AbstractXapiRestController {
     @RequestMapping(value = "/progress/{projectId}",  method = RequestMethod.GET)
     @ResponseBody
     public void getSyncProgress(HttpServletRequest request, HttpServletResponse response, @PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncCredentialsRequiredException {
-        HttpStatus status = isPermitted();
-        if (status != null) {
-            //return new ResponseEntity<>(status);
+        final UserI user = getSessionUser();
+    	try {
+        	final HttpStatus status = canReadProject(projectId);
+            if (status != null) {
+                return ;
+            }
+        }catch(Exception e) {
+            if (_log.isInfoEnabled()) {
+                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
+            }
         }
-        String syncStatusFilePath = SynchronizationManager.GET_SYNC_LOG_FILE_PATH(projectId);
+
+    	String syncStatusFilePath = SynchronizationManager.GET_SYNC_LOG_FILE_PATH(projectId);
         Path file = Paths.get(syncStatusFilePath);
         if (Files.exists(file)) 
         {

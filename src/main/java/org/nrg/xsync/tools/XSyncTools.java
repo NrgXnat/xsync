@@ -7,6 +7,7 @@ import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;

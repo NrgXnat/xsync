@@ -24,8 +24,7 @@
     							</xs:appinfo>
     						</xs:annotation>
     					</xs:element>
- 			<xs:element name="okToSync" type="xs:boolean" maxOccurs="1"
-    			minOccurs="1"></xs:element>
+ 			<xs:element name="okToSync" type="xs:boolean" maxOccurs="1" minOccurs="1"></xs:element>
  			<xs:element name="authorized_by" type="xs:string" maxOccurs="1" minOccurs="1">
    						<xs:annotation>
     							<xs:appinfo>
@@ -35,23 +34,24 @@
  			</xs:element>
 			<xs:element name="authorized_time" type="xs:dateTime" maxOccurs="1" minOccurs="1">
  			</xs:element>
- 			<xs:element name="remote_project_id" type="xs:string" maxOccurs="1"
-    			minOccurs="0"></xs:element>
- 			<xs:element name="remote_id" type="xs:string" maxOccurs="1"
-    			minOccurs="0"></xs:element>
-  			<xs:element name="remote_url" type="xs:string" maxOccurs="1"
-     			minOccurs="0">
+ 			<xs:element name="remote_project_id" type="xs:string" maxOccurs="1" minOccurs="0">
+			<xs:annotation>
+				<xs:appinfo>
+					<xdat:field uniqueComposite="OK_SYNC"/>
+				</xs:appinfo>
+			</xs:annotation>
+ 			</xs:element>
+ 			<xs:element name="remote_id" type="xs:string" maxOccurs="1" minOccurs="0"></xs:element>
+  			<xs:element name="remote_url" type="xs:string" maxOccurs="1" minOccurs="0">
 			<xs:annotation>
 				<xs:appinfo>
 					<xdat:field uniqueComposite="OK_SYNC"/>
 				</xs:appinfo>
 			</xs:annotation>
      			</xs:element>
- 		 <xs:element name="sync_time" type="xs:dateTime" maxOccurs="1"
-    			minOccurs="0"></xs:element>
-    		<xs:element name="sync_status" type="xs:string" maxOccurs="1"
-    			minOccurs="0"></xs:element>
-    				</xs:sequence>
+ 		       <xs:element name="sync_time" type="xs:dateTime" maxOccurs="1"  minOccurs="0"></xs:element>
+    		       <xs:element name="sync_status" type="xs:string" maxOccurs="1" 	minOccurs="0"></xs:element>
+    		  </xs:sequence>
     			</xs:extension>
     		</xs:complexContent>
 	</xs:complexType>

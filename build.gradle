@@ -3,9 +3,9 @@ def pluginVersion = '0.1-SNAPSHOT'
 group 'org.nrg.xsync'
 version pluginVersion
 
-def vXnat = '1.7.2-SNAPSHOT'
+def vXnat = '1.7.2'
 def vXnatTasks = '1.7.0-SNAPSHOT'
-def vXnatStable = '1.7.1'
+def vXnatStable = '1.7.2'
 def vJunit = '4.12'
 def vSpring = '4.2.9.RELEASE'
 def vSlf4j = '1.7.21'

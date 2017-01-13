@@ -22,6 +22,10 @@ import org.springframework.stereotype.Component;
 public class QueryResultUtil {
 	
 	public static final String PROJECT_QUERY_PARAMETER_NAME="project";
+	public static final String REMOTE_PROJECT_QUERY_PARAMETER_NAME="remote_project";
+	public static final String REMOTE_URL_QUERY_PARAMETER_NAME="remote_url";
+	
+		
 	public static final String SUBJECT_QUERY_PARAMETER_NAME="subject";
 	
 	public static final String EXPERIMENT_IDS = "expertment_ids";
@@ -181,7 +185,7 @@ public class QueryResultUtil {
 		query += " left join xnat_subjectassessordata sa ON sa.id=e.id "; 
 		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";  
-		query += " where sa.subject_id=:" +  this.SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME + "  and xok.oktosync=1 "  + " and e.id in (:"+EXPERIMENT_IDS+") ";
+		query += " where sa.subject_id=:" +  this.SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +  "  and xok.remote_project_id=:" + REMOTE_PROJECT_QUERY_PARAMETER_NAME +  "  and xok.remote_url=:" + REMOTE_URL_QUERY_PARAMETER_NAME + "  and xok.oktosync=1 "  + " and e.id in (:"+EXPERIMENT_IDS+") ";
 		return query;
 	}
 	
@@ -382,6 +386,7 @@ public class QueryResultUtil {
 		//query += " and pr.xsitype=:XSITYPE " ;
 		return query;
 	}
+
 	
 	public String getAllRemoteConnections() {
 		String query = "select * from xhbm_remote_alias_entity";

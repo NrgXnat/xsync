@@ -205,7 +205,7 @@ public class XsyncAnonymizer implements AnonymizerI {
 	 * @throws FileNotFoundException the file not found exception
 	 */
 	DicomObject getHeader(File f) throws IOException, FileNotFoundException {
-
+		System.out.println("Reading file " + f.getAbsolutePath());
 		IOException ioexception = null;
 		final DicomInputStream dis = new DicomInputStream(f);
 		try {
@@ -288,6 +288,7 @@ public class XsyncAnonymizer implements AnonymizerI {
 	 * @param dcmObj the dcm obj
 	 */
 	private void populateTags(Map<String, String> header, DicomObject dcmObj) {
+		System.out.println("dcmObj is null " + dcmObj==null?"Yes":"Not null");
 		if (dcmObj != null) {
 			header.put(StudyInstanceUID, dcmObj.getString(Tag.StudyInstanceUID));
 			header.put(AccessionNumber, dcmObj.getString(Tag.AccessionNumber));
@@ -296,8 +297,10 @@ public class XsyncAnonymizer implements AnonymizerI {
 			header.put(PatientBirthDate, dcmObj.getString(Tag.PatientBirthDate));
 			header.put(SeriesInstanceUID, dcmObj.getString(Tag.SeriesInstanceUID));
 			header.put(ScanDate, dcmObj.getString(Tag.Date));
+			System.out.println("DCMObj: " + dcmObj.getString(Tag.SeriesInstanceUID));
 
 		}
+		System.out.println("header.get(SeriesInstanceUID): " + header.get(SeriesInstanceUID));
 		return;
 	}
 

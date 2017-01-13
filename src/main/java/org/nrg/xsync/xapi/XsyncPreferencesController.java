@@ -50,6 +50,10 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
     @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences set."), @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> setPreferences(@RequestBody String jsonbody) {
 		try {
+			final HttpStatus status = isPermitted();
+	        if (status != null) {
+	            return new ResponseEntity<>(status);
+	        }    	
 			//Store the JSON to the Synchronization table
 			final ObjectMapper objectMapper = new ObjectMapper();
 			final JsonNode synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
@@ -88,6 +92,10 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
     @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences retrieved."),
 				   @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<Properties> getPreferences() throws NrgServiceException {
+		final HttpStatus status = isPermitted();
+        if (status != null) {
+            return new ResponseEntity<>(status);
+        }    			
 		try {
 			final Properties preferences = new Properties();
 			preferences.setProperty("tokenRefreshInterval", _prefs.getTokenRefreshInterval());

@@ -132,6 +132,7 @@ public class ExperimentFilter {
 		parameters.addValue(QueryResultUtil.PROJECT_QUERY_PARAMETER_NAME, projectSyncConfiguration.getSynchronizationConfiguration().getSource_project_id());
 		parameters.addValue(QueryResultUtil.SUBJECT_QUERY_PARAMETER_NAME, localSubjectId);
 
+		
 		// Subject has no experiments which are configured to be synced. Have any been deleted?
 		String query = _queryResultUtil.getQueryForFetchingSubjectExperimentsDeletedSinceLastSync();
 		//Columns
@@ -176,7 +177,10 @@ public class ExperimentFilter {
 			}
 		}
 		if (experimentIds.size() > 0) {
-				parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, experimentIds);
+			   parameters.addValue(QueryResultUtil.REMOTE_PROJECT_QUERY_PARAMETER_NAME, projectSyncConfiguration.getSynchronizationConfiguration().getRemote_project_id());
+			   parameters.addValue(QueryResultUtil.REMOTE_URL_QUERY_PARAMETER_NAME, projectSyncConfiguration.getSynchronizationConfiguration().getRemote_url());
+
+			   parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, experimentIds);
 				//Look for experiments which may have been marked ok to sync
 				//If the sync_only_new flag is set, if the experiment was synced once
 				//it will be skipped.
@@ -184,7 +188,7 @@ public class ExperimentFilter {
 				 boolean syncOnlyNew = projectSyncConfiguration.isSetToSyncNewOnly();
 				 if (syncOnlyNew) {
 					//Never synced before
-					 query += " and xok.sync_status is  NULL "; 
+					 query += " and xok.sync_status='"+XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC+"'"; 
 				 }
 					//Columns
 					// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		

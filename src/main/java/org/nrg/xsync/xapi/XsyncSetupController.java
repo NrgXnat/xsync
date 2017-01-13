@@ -6,8 +6,8 @@ import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.constants.Scope;
 import org.nrg.framework.services.SerializerService;
+import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.xdat.rest.AbstractXapiRestController;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -40,7 +39,7 @@ import io.swagger.annotations.ApiResponses;
 @XapiRestController
 @RequestMapping(value = "/xsync/setup")
 @Api(description = "XSync Management API")
-public class XsyncSetupController extends AbstractXapiRestController {
+public class XsyncSetupController extends AbstractXapiProjectRestController {
 	@Autowired
 	public XsyncSetupController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ConfigService configService, final SerializerService serializer, final JdbcTemplate jdbcTemplate) {
 		super(userManagementService, roleHolder);
@@ -55,7 +54,12 @@ public class XsyncSetupController extends AbstractXapiRestController {
 	public ResponseEntity<String> setup(@PathVariable("projectId") String projectId, @RequestBody String jsonbody) {
 		//curl -H "Content-Type: application/json" -X POST -d '{  "project":"TEST1ID",  "sync_frequency":"daily",  "auto_sync":"false",  "identifiers":"use_local",  "remote_url":"http://localhost:8080/xnat",  "remote_project_id":"SyncProjectId"}' -u admin  "http://localhost:8080/xnat/xapi/xsync/setup?project=TEST1ID"
 		try {
-			UserI user = getSessionUser();
+			final UserI user = getSessionUser();
+	    	final HttpStatus status = canDeleteProject(projectId);
+	        if (status != null) {
+	            return new ResponseEntity<>(status);
+	        }
+			
 			//Store the JSON to the Synchronization table
 			final JsonNode synchronizationJson = _serializer.deserializeJson(jsonbody, JsonNode.class);
 			projectId = synchronizationJson.get(XsyncUtils.PROJECT_ELEMENT_JSON_NAME).asText();
@@ -83,7 +87,12 @@ public class XsyncSetupController extends AbstractXapiRestController {
 	@ApiOperation(value = "Gets the Xsync project configuration" )
 	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
 	@RequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
-	public ResponseEntity<JsonNode> setup(@PathVariable("projectId") final String projectId) {
+	public ResponseEntity<JsonNode> setup(@PathVariable("projectId") final String projectId) throws Exception{
+		final UserI user = getSessionUser();
+    	final HttpStatus status = canReadProject(projectId);
+        if (status != null) {
+            return new ResponseEntity<>(status);
+        }		
 		final Configuration conf = _configService.getConfig("xsync", "json", Scope.Project, projectId);
 		final String config = conf != null ? conf.getContents() : null;
 		//HACK - to avoid escaped String being sent as response
@@ -112,8 +121,12 @@ public class XsyncSetupController extends AbstractXapiRestController {
 	@RequestMapping(path="/presyncanonymization/projects/{projectId}", method = RequestMethod.PUT)
 	@ApiOperation(value = "Adds Pre-Sync project specific DICOM Anonyzation",  response = String.class)
 	@ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
-	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId, @RequestBody(required=false) String anonymizationScript) {
-		UserI user = getSessionUser();
+	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId, @RequestBody(required=false) String anonymizationScript) throws Exception{
+		final UserI user = getSessionUser();
+    	final HttpStatus status = canDeleteProject(projectId);
+        if (status != null) {
+            return new ResponseEntity<>(status);
+        }		
 		try {
 	        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
             if (project == null) {
@@ -133,9 +146,16 @@ public class XsyncSetupController extends AbstractXapiRestController {
 			       @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> getDICOMAnonymization(@PathVariable("projectId") String projectId) {
 		try {
+			final UserI user = getSessionUser();
+	    	final HttpStatus status = canReadProject(projectId);
+	        if (status != null) {
+	            return new ResponseEntity<>(status);
+	        }			
 			String config = _configService.getConfig("xsync", "presyncanonymization", Scope.Project, projectId).getContents();
 			return new ResponseEntity<>(config, HttpStatus.OK);
 		} catch(NullPointerException e) {
+			return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
+		} catch(Exception e) {
 			return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
 		}
 	}
