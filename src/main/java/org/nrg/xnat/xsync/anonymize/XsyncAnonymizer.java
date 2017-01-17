@@ -166,10 +166,12 @@ public class XsyncAnonymizer implements AnonymizerI {
 		final List<XnatResourcecatalogI> resources = scan.getFile();
 
 		final List<File> files = Lists.newArrayList();
+		boolean foundDicom = false;
 		for (XnatResourcecatalogI resource : resources) {
 
 			final String type = resource.getLabel();
 			if ("DICOM".equals(type)) {
+				foundDicom = true;
 				final File catalogFile = CatalogUtils.getCatalogFile(rootpath, resource);
 				CatCatalogBean cat = CatalogUtils.getCatalog(catalogFile);
 				for (CatEntryI match : CatalogUtils.getEntriesByRegex(cat, ".*.dcm")) {
@@ -191,7 +193,35 @@ public class XsyncAnonymizer implements AnonymizerI {
 					}
 				}
 			}
+		}
+		//If no DICOMs exist, check to see if secondary image exists
+		if (!foundDicom) {
+			for (XnatResourcecatalogI resource : resources) {
 
+				final String type = resource.getLabel();
+				if ("secondary".equals(type)) {
+					final File catalogFile = CatalogUtils.getCatalogFile(rootpath, resource);
+					CatCatalogBean cat = CatalogUtils.getCatalog(catalogFile);
+					for (CatEntryI match : CatalogUtils.getEntriesByRegex(cat, ".*.dcm")) {
+						String parentPath = (new File(resource.getUri())).getParent();
+						files.add(CatalogUtils.getFile(match, parentPath));
+
+						if (files.size() >= 1) {
+							DicomObject dcmObject = null;
+							try {
+								dcmObject = this.getHeader(files.get(0));
+							} catch (FileNotFoundException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							return dcmObject;
+						}
+					}
+				}
+			}
 		}
 		return null;
 	}
