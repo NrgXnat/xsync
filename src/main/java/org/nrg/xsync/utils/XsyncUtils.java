@@ -101,10 +101,15 @@ public class XsyncUtils {
         XsyncXsyncprojectdata syncProject = new XsyncXsyncprojectdata(item);
         XsyncXsyncprojectdata existing = null;
         ArrayList<XsyncXsyncprojectdata> list = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField(XsyncXsyncprojectdata.SCHEMA_ELEMENT_NAME+"/source_project_id", sourceProjectId, _user, true);
+        boolean hasExisting = false;
+        XsyncXsyncinfodata existingSyncInfo = null;
         if (list != null && list.size() > 0) {
         	existing = list.get(0);
         	syncProject.setItem(existing.getItem());
+        	hasExisting = true;
+        	existingSyncInfo = syncProject.getSyncinfo();
         }
+        
 		syncProject.setSourceProjectId(synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText());
 		syncProject.setSyncEnabled(new Boolean(synchronizationJson.get("enabled").asBoolean()));
 		item = XFTItem.NewItem(XsyncXsyncinfodata.SCHEMA_ELEMENT_NAME, _user);
@@ -114,8 +119,21 @@ public class XsyncUtils {
 		syncinfo.setIdentifiers(synchronizationJson.get("identifiers").asText());
 		syncinfo.setRemoteUrl(synchronizationJson.get("remote_url").asText());
 		syncinfo.setRemoteProjectId(synchronizationJson.get("remote_project_id").asText());
-		syncinfo.setSyncStartTime(null);
-		syncinfo.setSyncEndTime(null);		
+		boolean destinationChange = false;
+		if (hasExisting && existingSyncInfo != null) {
+			if (!syncinfo.getRemoteUrl().equals(existingSyncInfo.getRemoteUrl())) 
+				destinationChange = true;
+			if (!syncinfo.getRemoteProjectId().equals(existingSyncInfo.getRemoteProjectId())) 
+				destinationChange = true;
+		}
+		//Did the configuration change to a different Remote Project and a different Remote URL?
+		if (destinationChange) {
+			syncinfo.setSyncStartTime(null);
+			syncinfo.setSyncEndTime(null);
+		}else {
+			syncinfo.setSyncStartTime(existingSyncInfo.getSyncStartTime());
+			syncinfo.setSyncEndTime(existingSyncInfo.getSyncEndTime());
+		}
 		syncProject.setSyncinfo(syncinfo.getItem());
 		syncProject.setSyncScheduledBy(_user.getLogin());
         final ValidationResults vr = syncProject.validate();
