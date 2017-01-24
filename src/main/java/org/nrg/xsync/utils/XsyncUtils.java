@@ -131,8 +131,13 @@ public class XsyncUtils {
 			syncinfo.setSyncStartTime(null);
 			syncinfo.setSyncEndTime(null);
 		}else {
-			syncinfo.setSyncStartTime(existingSyncInfo.getSyncStartTime());
-			syncinfo.setSyncEndTime(existingSyncInfo.getSyncEndTime());
+			if (existingSyncInfo != null) {
+				syncinfo.setSyncStartTime(existingSyncInfo.getSyncStartTime());
+				syncinfo.setSyncEndTime(existingSyncInfo.getSyncEndTime());
+			}else {
+				syncinfo.setSyncStartTime(null);
+				syncinfo.setSyncEndTime(null);
+			}
 		}
 		syncProject.setSyncinfo(syncinfo.getItem());
 		syncProject.setSyncScheduledBy(_user.getLogin());

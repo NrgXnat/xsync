@@ -59,7 +59,7 @@ public class XsyncScheduler {
     @Bean
     //Run Hourly sync at 30 minutes past the hour, every hour
     public TriggerTask syncProjectsMarkedAsHourlySync(final HourlySyncService hourlyService) {
-        return new TriggerTask(new HourlySync(hourlyService), new CronTrigger("0 30 0/1 * * ?"));
+        return new TriggerTask(new HourlySync(hourlyService), new CronTrigger("0 30 * * * ?"));
     }
 
     
