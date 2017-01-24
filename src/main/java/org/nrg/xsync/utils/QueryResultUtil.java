@@ -371,6 +371,11 @@ public class QueryResultUtil {
 		return getProjectsTobeSynced("daily");
 	}
 
+	public List<Map<String,Object>> getProjectsTobeSyncedHourly() {
+		return getProjectsTobeSynced("hourly");
+	}
+
+	
 	public List<Map<String,Object>> getProjectsTobeSyncedMonthly() {
 		return getProjectsTobeSynced("monthly");
 	}

@@ -576,6 +576,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 name: 'sync_frequency',
                 label: 'Sync Frequency',
                 options: {
+                	hourly: 'Hourly',
                     daily: 'Daily',
                     weekly: 'Weekly',
                     monthly: 'Monthly',

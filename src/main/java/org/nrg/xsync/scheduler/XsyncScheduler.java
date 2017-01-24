@@ -1,14 +1,15 @@
 package org.nrg.xsync.scheduler;
 
-import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.framework.configuration.ConfigPaths;
 import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
 import org.nrg.xsync.services.local.DailySyncService;
+import org.nrg.xsync.services.local.HourlySyncService;
 import org.nrg.xsync.services.local.MonthlySyncService;
 import org.nrg.xsync.services.local.WeeklySyncService;
 import org.nrg.xsync.services.local.XsyncAliasRefreshService;
 import org.nrg.xsync.services.local.impl.DailySync;
+import org.nrg.xsync.services.local.impl.HourlySync;
 import org.nrg.xsync.services.local.impl.MonthlySync;
 import org.nrg.xsync.services.local.impl.WeeklySync;
 import org.nrg.xsync.services.local.impl.XSyncAliasTokenRefresh;
@@ -55,6 +56,13 @@ public class XsyncScheduler {
                                                     XsyncSitePreferencesBean.DEFAULT_TOKEN_REFRESH_INTERVAL_MILLIS)));
     }
 
+    @Bean
+    //Run Hourly sync at 30 minutes past the hour, every hour
+    public TriggerTask syncProjectsMarkedAsHourlySync(final HourlySyncService hourlyService) {
+        return new TriggerTask(new HourlySync(hourlyService), new CronTrigger("0 30 0/1 * * ?"));
+    }
+
+    
     @Bean
     //Run Daily sync everyday at 00:00 hours
     public TriggerTask syncProjectsMarkedAsDailySync(final DailySyncService dailyService) {

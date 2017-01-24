@@ -98,6 +98,7 @@
     			minOccurs="1">
     			<xs:simpleType>
     				<xs:restriction base="xs:string">
+    				    <xs:enumeration value="hourly"></xs:enumeration>
     					<xs:enumeration value="daily"></xs:enumeration>
     					<xs:enumeration value="weekly"></xs:enumeration>
     					<xs:enumeration value="on demand"></xs:enumeration>
