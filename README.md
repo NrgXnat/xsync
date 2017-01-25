@@ -2,9 +2,7 @@
 
  XSYNC implemented as a XNAT 1.7 plugin.
 
-This plugin enables scheduled syncing of data between a project on a XNAT host and another project on another XNAT host. The source XNAT host must be deployed using XNAT 1.7, the destination XNAT could be on version 1.6* but the data-types which are being synced must exist on both XNAT hosts.
-
-Optionally, DICOM data can be anonymized before its sent over to the destination project. 
+Xsync plugin enables automatic synchronization of data from a project in one XNAT system to a project in a second system. Xsync is configurable to ensure that only the desired data is delivered, and if required, data is properly de-identified, and that it is delivered on a pre-set schedule. 
 
 
 # Building #
@@ -25,121 +23,151 @@ If you haven't previously run this build, it may take a while for all of the dep
 
 You can verify your completed build by looking in the folder **build/libs**. It should contain a file named something like **xsync-plugin-0.1-SNAPSHOT.jar**. This is the plugin jar that you can install in your XNAT's **plugins** folder.
 
-## Installing the plugin ##
+# System Requirements #
 
-Installing the plugin is as simple as stopping the Tomcat server running your XNAT 1.7 application, copying the plugin jar into your **plugins** folder, and restarting Tomcat. To verify that the data type from the sample plugin installed correctly:
+Source and Destination XNAT must be running  XNAT version 1.7.2 or higher.
 
-## Setting up XSync for a project ##
+# Getting Started #
 
-In order to sync data between a project, say SOURCE, on a XNAT instance, say XNAT_SOURCE, to a project, say DESTINATION, on a XNAT instance, say XNAT_DESTINATION, perform the following steps
+* Deploy Xsync Plugin on Source XNAT
 
-STEP 1:
+  * Build Xsync Plugin jar, 
 
-Deploy Xsync Plugin on XNAT_SOURCE host.
+  * Stop Tomcat,
 
-STEP 2:
+  * Copy the Xsync Plugin jar file into the folder <XNAT_HOME>/plugins,   
 
-Create a project SOURCE on XNAT_SOURCE
+  * Restart Tomcat.
 
-STEP 3:
+* Create a Project on the Destination XNAT
 
-Create a project DESTINATION on XNAT_DESTINATION
+* Login to Source XNAT as a Source Project owner
 
-STEP 4:
+  * Navigate to Manage Tab on the project report page.
 
-Create a copy of the file xsync_plugin\src\main\resources\sync_config.json. 
+  * From the Manage Tab, navigate to Xsync Configuration
 
-Modify the following fields:
+  * Click on Begin Configuration
 
-remote_url : set this to the URL of XNAT_DESTINATION host
+    * Enabled is selected by default. This option allows for sync operation to be carried out at scheduled time. 
 
-STEP 5 (temporary until XSync Setup UI is available):
+    * New Data Only is selected by default. This option results in syncing of only data that is new since the last sync. Modification to data (update or delete) is not reflected on the destination project. 
 
-Login to XNAT_SOURCE as admin user, navigate to Administer -> Site Administration -> Other -> Miscellaneous -> Swagger.
+    * Enter the URL of Destination XNAT in Destination XNAT (be sure you're specifying the protocol for the destination XNAT in the URL, that is, specify https://myxnat.org, not just myxnat.org)
 
-Click on xsync-setup-controller
+    * Enter the Destination Project.
 
-Click on POST /xapi/xsync/projects/{projectId}
+    * Select desired Sync frequency. The choices are:
 
-Set the projectId to SOURCE
+       * Hourly - Sync starts at 30 minutes past the hour, every hour,
 
-Set the jsonbody to the JSON text from the modified sync_config.json file
+       * Daily - Sync starts at midnight,
 
-Submit using the "Try it out!" button. 
+       * Weekly - Sync starts on Saturdays at 1am,
 
-STEP 6 - OPTIONAL (temporary until XSync Setup UI is available):
+       * Monthly - Sync starts on 1st of the Month at 2am,
 
-In case pre-sync DICOM anonymization is required, a sample DICOM anonymization script is available at xsync_plugin\src\main\resources\anon.das. Create a copy of this file to set the DICOM anonymization rules for project SOURCE.
+       * On Demand - Sync can be manually started using Sync Data Action
 
-Login to XNAT_SOURCE as admin user, navigate to Administer -> Site Administration -> Other -> Miscellaneous -> Swagger.
+     * Select Anonymize Images if you want DICOM files to be anonymized before they are synced.
 
-Click on xsync-setup-controller
+     * Click Submit.
 
-Click on PUT /xapi/xsync/projects/{projectId}/presyncanonymization
+     * Enter login credentials for the Destination XNAT. (If the user on the Destination XNAT does not have owner level access to the Destination Project, deletion of data in the Source Project will not be reflected on the Destination Project).
 
-Set the projectId to SOURCE
+     * Click Submit.
 
-Set the anonymizationScript to the  text from the modified anon.das file
+     * If Anonymize Images was selected, enter the desired XNAT Anonymization script. A sample script is here. 
 
-Submit using the "Try it out!" button. 
+     * At this stage, basic Xsync configuration is complete. Depending on when the sync is scheduled,  data in Source Project would be synced to the Destination Project. The basic Xsync configuration syncs all Imaging Sessions (all resources, all scan and their files and Imaging Assessors) and none of Project resources, Subject Assessors. One can restrict entities that get synced using Show Advanced Settings. (See Xsync Advanced Features).
 
-STEP 7: 
+* After the sync operation completes
 
-Navigate to SOURCE project report, under the Manage tab, select XSync Credentials to enter the XNAT_DESTINATION host login credentials. 
+  * An email is sent to the user who configured Xsync. The email contains details of data that was synced.
 
-STEP 8: 
+  * A Xsync history report is available in Manage Tab -> Xsync Configuration.  
 
-Depending on the XSync configuration, sync operation will be performed either Daily at 00.00 hours, Weekly (Every Saturday at 01.00 hours) or Monthly (1st of the month at 02.00 hours).
+  * Log file with sync details is saved as a Source Project resource file. These files are never synced.
 
-One could trigger the sync operation using the Sync Data link on the SOURCE project report Action Box.
+# Xsync Advanced Features #
 
-STEP 9:
+As of Xsync Version 1.0, Xsync configuration UI does not expose all the configuration properties. In order to use the advanced features, Source XNAT Administrators can use XAPI Webservices. The Xsync configuration behind the scenes, is a JSON. 
 
-Once the sync operation completes, it sends out an email and also, creates a HTML file on the XNAT_CACHE_FOLDER/SYNCHRONIZATION/PROJECT_NAME/SYNC_START_TIMESTAMP folder.
+* XNAT Data Model
 
-## More about the Xsync configuration JSON ##
+  XNAT organises its data into Projects, Subjects, Subject Assessors (eg Clinical Data), Imaging Sessions (eg MR data), Imaging Session Assessors (eg Freesurfer data).
 
-XSync is uses the fields in the JSON to decide what and when to sync over to the remote site. 
+  Each element in the XNAT data hierarchy can have resources (ie files).  One can have Project resources, Subject resources, Subject Assessor Resources, Imaging Session Resources and Imaging Session Assessor Resources. Each of these resources is identified by a label (aka resource label). 
 
-The field, sync_new_only, decides at sync time which of the SOURCE project entities will be synced. 
+  Each data-type in XNAT is identified internally by its xsiType. For example, MR Session data is identified as xnat:mrSessionData. 
 
-If sync_new_only is set to true, this implies that only those entities which are new since last sync end-time will be synced. Any entity which has been deleted or updated will be ignored. 
+* Xsync configurable elements
 
-One can define which of the project level resources are to be synced. This is done using the field:
+  * Project resources to sync (by resource labels)
 
-project_resources
+  * Subject assessors to sync (by xsiTypes)
 
-One can define which of the subject level resources are to be synced. This is done using the field:
+  * Subject assessor resources to sync (by resource labels)
 
-subject_resources
+  * Imaging Session to sync (by xsiTypes)
+    
+      * Should the Imaging Session be marked as Ok to Sync before its sent over to the Destination Project. This feature of Xsync is very useful to make sure that curated sessions are synced.
+    
+      * Imaging Session resources to sync (by resource labels)
+    
+      * Scans to sync (by scan-types)
+    
+      * Scan resources to sync (by resource labels)
+    
+      * Imaging Session Assessors to sync (by xsiTypes)
+    
+      * For each of the above choices, Xsync uses the property sync-type, whose possible values are include, exclude, all, none, to decide what to sync. If this property is not specified, sync-type defaults to all.
 
-One can define which of the subject assessors (which are not imaging sessions) are to be synced. This is done using the field:
+* Marking an Imaging Session OK to Sync
 
-subject_assessors
+  When the needs_ok_to_sync flag is set to true for an Imaging Session, the Imaging Session is synced only when someone marks the session as Ok to Sync. This feature is useful when QC is to be done to make sure only curated data is sent over to the destination. 
 
-One can define which of the imaging sessions, their resources, their scans, their scan resources and their assessors are to be synced. This is done using the field:
+  If needs_ok_to_sync flag is set to true for an Imaging session, say MR Session (xnat:mrSessionData), on the MR Session report page, Synchronization tab enables marking the session as Ok To Sync. If the MR Session is not flagged as Ok to Sync, the MR Session will be skipped. 
+      
+      POST to /xapi/xsync/experiments/{experimentId} for marking sessions in bulk as Ok to Sync.
+ 
+# Xsync  XAPI Web-Services #
 
-imaging_sessions
+Source XNAT Administrators can access the Xsync XAPI Services via Administrator -> Site Administration. From the Site Administration page, navigate to Miscellaneous. Click on "View the Swagger Page".
 
-The fiels sync_type can have one of the four values viz., all, none, include, exclude
+XNAT web-services can be used from the Swagger page itself  or invoked in a script or invoked by tools like curl.
 
-For example, if scan_types field for xnat:mrSessionData is set to:
+Among the xsync-*-controller listed, the two most required ones are:
 
-	{
-          "sync_type": "include",
-          "scan_type_list": ["T1w", "T2w"]
-        },
-        
-this implies that ONLY scan types T1w and T2w will be synced. All other scan-types will be ignored. If an imaging session has no such scan type, then only the session metadata will be synced. On the other hand, 
+xsync-operations-controller : XNAT XSync Operations API
 
-	{
-          "sync_type": "exclude",
-          "scan_type_list": ["T1w", "T2w"]
-        },
+   POST  /xapi/xsync/experiments/{experimentId} : sets OK to Sync Status for the experiment 
 
-implies that ALL scans except T1w and T2w are to be synced. 
+   GET    /xapi/xsync/progress/{projectId}       : While the sync is in progress, this URI returns the log file that is created by Xsync. 
+ 
+   POST /xapi/xsync/projects/{projectId}        : starts syncing the project 
+   
+   POST /xapi/xsync/unblock/{projectId}         : Xsync blocks a project while a sync is in progress. For some reason, if the sync fails, the block may be left on.
 
+xsync-setup-controller : XSync Management API
 
-The subfield, needs_ok_to_sync, of advanced_options, is to be used for situations when one wants a manual check before an imaging session is synced. If set to true, all imaging session will be ignored unless they are marked Ok to Sync. 
+   GET /xapi/xsync/setup/projects/{projectId}          : Returns the Xsync Configuration JSON
 
-To mark an imaging session Ok to Sync, from the imaging session report page, use the Synchronization tab. 
+   POST /xapi/xsync/setup/projects/{projectId}         : Sets the Xsync Configuration JSON.
+
+# Xsync Site Level Configuration #
+ 
+ Source XNAT Administartors can use Administrators -> Plugin Settings to
+
+  set the Sync Retry Interval and Maximum Retries in case Xsync encounters problems communicating with the Destination XNAT. These default to 2 Hours and 2 respectively. 
+
+  set the Token Refresh Interval. Xsync uses tokens from the Destination XNAT to communicate. These tokens are refreshed by default every 10 hours. 
+
+# Other Tips #
+
+The Destination XNAT must have all the data-types deployed that the Source is attempting to sync.
+
+ 	 
+# Bugs #
+
+Report bugs to bugs@xnat.org
