@@ -4,9 +4,11 @@
 
 Xsync plugin enables automatic synchronization of data from a project in one XNAT system to a project in a second system. Xsync is configurable to ensure that only the desired data is delivered, and if required, data is properly de-identified, and that it is delivered on a pre-set schedule. 
 
-# Downloading #
+# Download #
 
-[ ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bintray.com/nrgxnat/xnat-plugins/XSync/_latestVersion)
+[ ![Download Xsync Bean Jar](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-beans-1.0.jar)
+
+[ ![Download Xsync Jar](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-1.0.jar)
 
 
 # Building #
