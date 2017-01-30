@@ -6,9 +6,10 @@ Xsync plugin enables automatic synchronization of data from a project in one XNA
 
 # Download #
 
-[ ![Download Xsync Bean Jar](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-beans-1.0.jar)
+[ Xsync Jar ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-1.0.jar)
 
-[ ![Download Xsync Jar](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-1.0.jar)
+[ Xsync Bean Jar ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-beans-1.0.jar)
+
 
 
 # Building #
