@@ -4,6 +4,10 @@
 
 Xsync plugin enables automatic synchronization of data from a project in one XNAT system to a project in a second system. Xsync is configurable to ensure that only the desired data is delivered, and if required, data is properly de-identified, and that it is delivered on a pre-set schedule. 
 
+# Downloading #
+
+[ ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bintray.com/nrgxnat/xnat-plugins/XSync/_latestVersion)
+
 
 # Building #
 
@@ -21,7 +25,7 @@ gradlew clean jar
 
 If you haven't previously run this build, it may take a while for all of the dependencies to download.
 
-You can verify your completed build by looking in the folder **build/libs**. It should contain a file named something like **xsync-plugin-0.1-SNAPSHOT.jar**. This is the plugin jar that you can install in your XNAT's **plugins** folder.
+You can verify your completed build by looking in the folder **build/libs**. It should contain a files named something like **xsync-plugin-*-1.0.jar**. This is the plugin jar that you can install in your XNAT's **plugins** folder.
 
 # System Requirements #
 
@@ -31,53 +35,53 @@ Source and Destination XNAT must be running  XNAT version 1.7.2 or higher.
 
 * Deploy Xsync Plugin on Source XNAT
 
-  * Build Xsync Plugin jar, 
+ 	 * Build Xsync Plugin jar, 
+	
+ 	 * Stop Tomcat,
+	
+ 	 * Copy the Xsync Plugin jar file into the folder <XNAT_HOME>/plugins,   
 
-  * Stop Tomcat,
-
-  * Copy the Xsync Plugin jar file into the folder <XNAT_HOME>/plugins,   
-
-  * Restart Tomcat.
+ 	 * Restart Tomcat.
 
 * Create a Project on the Destination XNAT
 
 * Login to Source XNAT as a Source Project owner
 
-  * Navigate to Manage Tab on the project report page.
+ 	 * Navigate to Manage Tab on the project report page.
+	
+ 	 * From the Manage Tab, navigate to Xsync Configuration
 
-  * From the Manage Tab, navigate to Xsync Configuration
+ 	 * Click on Begin Configuration
 
-  * Click on Begin Configuration
+ 	 * Enabled is selected by default. This option allows for sync operation to be carried out at scheduled time. 
 
-    * Enabled is selected by default. This option allows for sync operation to be carried out at scheduled time. 
+    	 * New Data Only is selected by default. This option results in syncing of only data that is new since the last sync. Modification to data (update or delete) is not reflected on the destination project. 
 
-    * New Data Only is selected by default. This option results in syncing of only data that is new since the last sync. Modification to data (update or delete) is not reflected on the destination project. 
+         * Enter the URL of Destination XNAT in Destination XNAT (be sure you're specifying the protocol for the destination XNAT in the URL, that is, specify https://myxnat.org, not just myxnat.org)
 
-    * Enter the URL of Destination XNAT in Destination XNAT (be sure you're specifying the protocol for the destination XNAT in the URL, that is, specify https://myxnat.org, not just myxnat.org)
+         * Enter the Destination Project.
 
-    * Enter the Destination Project.
+         * Select desired Sync frequency. The choices are:
 
-    * Select desired Sync frequency. The choices are:
+    	     * Hourly - Sync starts at 30 minutes past the hour, every hour,
 
-       * Hourly - Sync starts at 30 minutes past the hour, every hour,
+    	     * Daily - Sync starts at midnight,
 
-       * Daily - Sync starts at midnight,
+    	     * Weekly - Sync starts on Saturdays at 1am,
 
-       * Weekly - Sync starts on Saturdays at 1am,
+    	     * Monthly - Sync starts on 1st of the Month at 2am,
 
-       * Monthly - Sync starts on 1st of the Month at 2am,
+    	     * On Demand - Sync can be manually started using Sync Data Action
 
-       * On Demand - Sync can be manually started using Sync Data Action
+         * Select Anonymize Images if you want DICOM files to be anonymized before they are synced.
 
-     * Select Anonymize Images if you want DICOM files to be anonymized before they are synced.
+         * Click Submit.
 
-     * Click Submit.
+     	 * Enter login credentials for the Destination XNAT. (If the user on the Destination XNAT does not have owner level access to the Destination Project, deletion of data in the Source Project will not be reflected on the Destination Project).
 
-     * Enter login credentials for the Destination XNAT. (If the user on the Destination XNAT does not have owner level access to the Destination Project, deletion of data in the Source Project will not be reflected on the Destination Project).
+         * Click Submit.
 
-     * Click Submit.
-
-     * If Anonymize Images was selected, enter the desired XNAT Anonymization script. A sample script is here. 
+         * If Anonymize Images was selected, enter the desired XNAT Anonymization script. A sample script is here. 
 
      * At this stage, basic Xsync configuration is complete. Depending on when the sync is scheduled,  data in Source Project would be synced to the Destination Project. The basic Xsync configuration syncs all Imaging Sessions (all resources, all scan and their files and Imaging Assessors) and none of Project resources, Subject Assessors. One can restrict entities that get synced using Show Advanced Settings. (See Xsync Advanced Features).
 
@@ -125,11 +129,11 @@ As of Xsync Version 1.0, Xsync configuration UI does not expose all the configur
 
 * Marking an Imaging Session OK to Sync
 
-  When the needs_ok_to_sync flag is set to true for an Imaging Session, the Imaging Session is synced only when someone marks the session as Ok to Sync. This feature is useful when QC is to be done to make sure only curated data is sent over to the destination. 
+  When the _needs_ok_to_sync_ flag is set to true for an Imaging Session, the Imaging Session is synced only when someone marks the session as _Ok to Sync_. This feature is useful when QC is to be done to make sure only curated data is sent over to the destination. 
 
-  If needs_ok_to_sync flag is set to true for an Imaging session, say MR Session (xnat:mrSessionData), on the MR Session report page, Synchronization tab enables marking the session as Ok To Sync. If the MR Session is not flagged as Ok to Sync, the MR Session will be skipped. 
+  If _needs_ok_to_sync_ flag is set to true for an Imaging session, say MR Session (xnat:mrSessionData), on the MR Session report page, Synchronization tab enables marking the session as _Ok To Sync_. If the MR Session is not flagged as _Ok to Sync_, the MR Session will be skipped. 
       
-      POST to /xapi/xsync/experiments/{experimentId} for marking sessions in bulk as Ok to Sync.
+      POST to /xapi/xsync/experiments/{experimentId} for marking sessions in bulk as _Ok to Sync_.
  
 # Xsync  XAPI Web-Services #
 
@@ -139,29 +143,29 @@ XNAT web-services can be used from the Swagger page itself  or invoked in a scri
 
 Among the xsync-*-controller listed, the two most required ones are:
 
-xsync-operations-controller : XNAT XSync Operations API
+  * xsync-operations-controller : XNAT XSync Operations API
 
-   POST  /xapi/xsync/experiments/{experimentId} : sets OK to Sync Status for the experiment 
+     * POST  /xapi/xsync/experiments/{experimentId} : sets OK to Sync Status for the experiment 
 
-   GET    /xapi/xsync/progress/{projectId}       : While the sync is in progress, this URI returns the log file that is created by Xsync. 
+     * GET    /xapi/xsync/progress/{projectId}       : While the sync is in progress, this URI returns the log file that is created by Xsync. 
  
-   POST /xapi/xsync/projects/{projectId}        : starts syncing the project 
+     * POST /xapi/xsync/projects/{projectId}        : starts syncing the project 
    
-   POST /xapi/xsync/unblock/{projectId}         : Xsync blocks a project while a sync is in progress. For some reason, if the sync fails, the block may be left on.
+     * POST /xapi/xsync/unblock/{projectId}         : Xsync blocks a project while a sync is in progress. For some reason, if the sync fails, the block may be left on.
 
-xsync-setup-controller : XSync Management API
+  * xsync-setup-controller : XSync Management API
 
-   GET /xapi/xsync/setup/projects/{projectId}          : Returns the Xsync Configuration JSON
+     * GET /xapi/xsync/setup/projects/{projectId}          : Returns the Xsync Configuration JSON
 
-   POST /xapi/xsync/setup/projects/{projectId}         : Sets the Xsync Configuration JSON.
+     * POST /xapi/xsync/setup/projects/{projectId}         : Sets the Xsync Configuration JSON.
 
 # Xsync Site Level Configuration #
  
  Source XNAT Administartors can use Administrators -> Plugin Settings to
 
-  set the Sync Retry Interval and Maximum Retries in case Xsync encounters problems communicating with the Destination XNAT. These default to 2 Hours and 2 respectively. 
+   * set the Sync Retry Interval and Maximum Retries in case Xsync encounters problems communicating with the Destination XNAT. These default to 2 Hours and 2 respectively. 
 
-  set the Token Refresh Interval. Xsync uses tokens from the Destination XNAT to communicate. These tokens are refreshed by default every 10 hours. 
+   * set the Token Refresh Interval. Xsync uses tokens from the Destination XNAT to communicate. These tokens are refreshed by default every 10 hours. 
 
 # Other Tips #
 
