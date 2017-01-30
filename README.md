@@ -28,7 +28,7 @@ gradlew clean jar
 
 If you haven't previously run this build, it may take a while for all of the dependencies to download.
 
-You can verify your completed build by looking in the folder **build/libs**. It should contain a files named something like **xsync-plugin-*-1.0.jar**. This is the plugin jar that you can install in your XNAT's **plugins** folder.
+You can verify your completed build by looking in the folder **build/libs**. It should contain  files named something like **xsync-plugin-*-1.0.jar**. This is the plugin jar that you can install in your XNAT's **plugins** folder.
 
 # System Requirements #
 
@@ -38,11 +38,11 @@ Source and Destination XNAT must be running  XNAT version 1.7.2 or higher.
 
 * Deploy Xsync Plugin on Source XNAT
 
- 	 * Build Xsync Plugin jar, 
+ 	 * Build Xsync Plugin jar or Use the Download link to download the two xsync jars, 
 	
  	 * Stop Tomcat,
 	
- 	 * Copy the Xsync Plugin jar file into the folder <XNAT_HOME>/plugins,   
+ 	 * Copy the Xsync Plugin jars file into the folder <XNAT_HOME>/plugins,   
 
  	 * Restart Tomcat.
 
