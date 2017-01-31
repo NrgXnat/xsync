@@ -176,12 +176,12 @@ public class SyncManifest{
 		if (subjects != null && subjects.size() > 0) {
 			for (SubjectSyncItem sub : subjects) {
 				ArrayList<ExperimentSyncItem> exps = sub.getExperiments();
-				if (exps.size() > 0) {
+				if (exps != null && exps.size() > 0) {
 					shouldNotify = true;
 					break;
 				}
 				ArrayList<ResourceSyncItem> subResources = sub.getResources();
-				if (subResources.size() > 0) {
+				if (subResources != null && subResources.size() > 0) {
 					shouldNotify = true;
 					break;
 				}
