@@ -168,6 +168,28 @@ public class SyncManifest{
 		return remoteProjectId;
 	}
 
+	public boolean shouldNotify() {
+		boolean shouldNotify = false;
+		if (resources != null && resources.size() > 0 ) {
+			shouldNotify = true;
+		}
+		if (subjects != null && subjects.size() > 0) {
+			for (SubjectSyncItem sub : subjects) {
+				ArrayList<ExperimentSyncItem> exps = sub.getExperiments();
+				if (exps.size() > 0) {
+					shouldNotify = true;
+					break;
+				}
+				ArrayList<ResourceSyncItem> subResources = sub.getResources();
+				if (subResources.size() > 0) {
+					shouldNotify = true;
+					break;
+				}
+			}
+		}
+		return shouldNotify;	
+	}
+	
 	public void informUser() {
 		final Hashtable<String, String> info = syncInfoAsHTML();
 		try {

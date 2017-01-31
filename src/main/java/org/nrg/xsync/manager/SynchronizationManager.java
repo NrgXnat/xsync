@@ -99,7 +99,8 @@ public class SynchronizationManager {
 				_log.debug("Unable to save synchronization  details for project: " + projectId + " Cause:" + e.getMessage());
 
 			}
-			manifest.informUser();
+			if (manifest.shouldNotify())
+				manifest.informUser();
 			File syncInfoFilePath = new File(GET_SYNC_FILE_PATH(projectId)+projectId+"_sync.html");
 			manifest.syncInfoToFile(syncInfoFilePath);
 			manifest.syncInfoToDatabase();
