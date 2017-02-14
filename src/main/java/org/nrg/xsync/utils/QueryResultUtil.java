@@ -359,6 +359,20 @@ public class QueryResultUtil {
 		query += "  where xi.sync_frequency=:SYNC_FREQUENCY ";
 		return query;
 	}
+	
+	public String getProjectSyncDetails() {
+		String query = "select pr.source_project_id, pr.sync_blocked, pr.sync_enabled from xsync_xsyncprojectdata pr  ";
+		query += "  where pr.source_project_id=:LOCAL_PROJECT ";
+		return query;
+	}
+
+	public List<Map<String,Object>> getProjectSyncDetails(String projectId) {
+		 String query = getProjectSyncDetails();
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue("LOCAL_PROJECT", projectId);
+		return _jdbcTemplate.queryForList(query, parameters);
+	}
+
 
 	public List<Map<String,Object>> getProjectsTobeSynced(String frequency) {
 		 String query = getProjectsToSync();
