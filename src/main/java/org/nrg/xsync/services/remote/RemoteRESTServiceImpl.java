@@ -8,6 +8,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
+import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
@@ -184,6 +185,81 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		}
 	}
 
+
+	/**
+	 * Create Workflow with retry.
+	 *
+	 * @param connection the connection
+	 * @return response
+	 */
+	public RemoteConnectionResponse createWorkflow(RemoteConnection connection,WrkWorkflowdata wrk ) throws Exception{
+		int count = 0;
+		while(true) {
+		    try {
+		         return this.createWorkflowWithoutRetry( connection, wrk );
+		    } catch (RuntimeException e) {
+		    	try {
+		    		logger.debug("Exception " + e.getMessage());
+			    	if (maxTries > 0) {
+				    	logger.error("createWorkflow: retrycount "+ count);
+				    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
+				    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());
+				    	logger.error("Sleeping for " + sleep + " milliseconds");
+			    		Thread.sleep(sleep);
+			    	}
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
+		        // handle exception
+		        if (maxTries == 0 || ++count == maxTries) throw e;
+		    }
+		}
+	}
+
+	/**
+	 * Create Workflow without retry.
+	 *
+	 * @param connection the connection
+	 * @param payload the payload
+	 * @param wrk the Workflow
+	 * @return true, if successful
+	 */
+	//TODO @Retryable(maxAttempts=5) update to retry when we upgrade spring to 4
+	private RemoteConnectionResponse createWorkflowWithoutRetry(RemoteConnection connection,WrkWorkflowdata wrk ) throws Exception{
+		//do we need the assessor data and how.
+		//MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();     
+		final String wrkXml=wrk.getItem().toXML_String();
+		
+		ResponseEntity<String> response;
+		try {
+			logger.debug("URL: " + connection.getUrl()+"/data/workflows?req_format=xml");
+			final HttpEntity<?> httpEntity = new HttpEntity<String>(wrkXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
+			response = getResttemplate().exchange(connection.getUrl()+"/data/workflows?req_format=xml", HttpMethod.PUT, httpEntity, String.class);
+			logger.debug(response);
+		} catch (XsyncHttpAuthenticationException authex) {
+			try {
+				final HttpEntity<?> httpEntity = new HttpEntity<String>(wrkXml, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
+				response = getResttemplate().exchange(connection.getUrl()+"/data/workflows?req_format=xml", HttpMethod.PUT, httpEntity, String.class);
+				logger.debug(response);
+			}catch(Exception e) {
+				logger.debug("Error while storing workflow " + e.getMessage());
+				String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(wrk.getExternalid());
+				File wrkF = new File(cachePath + "failed_" + wrk.getId()+".xml");
+				if (!wrkF.getParentFile().exists())
+					wrkF.getParentFile().mkdirs();
+				FileWriter fw = new FileWriter(wrkF);
+				wrk.toXML(fw, false);
+				fw.close();
+				throw e;
+			}
+		}
+		
+		logger.debug(response);
+		//return 	((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
+		return new RemoteConnectionResponse(response);
+	}
+
+	
 	
 	/**
 	 * Import Subject with retry.

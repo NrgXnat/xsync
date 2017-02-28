@@ -87,7 +87,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 			//Only XNAT 1.7 will supply the expiration time. If the Destination server is running on < XNAT 1.7, this value would be null
 			final String estimatedExpirationTime = (synchronizationJson.get("estimatedExpirationTime")!=null) ? synchronizationJson.get("estimatedExpirationTime").asText() : null;
 			final boolean syncNewOnly = synchronizationJson.get("syncNewOnly") == null || synchronizationJson.get("syncNewOnly").asBoolean();
-
+			
 	        if (host==null || host.length()<1 || alias==null || alias.length()<1 || secret==null ||
 	        		secret.length()<1 || localProject==null || localProject.length()<1 || username==null || username.length()<1) {
 	        	return new ResponseEntity<>("Could not save remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );

@@ -4,10 +4,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.ZipFile;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -15,10 +15,11 @@ import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatImageassessordataI;
-import org.nrg.xdat.model.XnatImagesessiondataI;
 import org.nrg.xdat.model.XnatImagescandataI;
+import org.nrg.xdat.model.XnatImagesessiondataI;
 import org.nrg.xdat.model.XnatReconstructedimagedataI;
 import org.nrg.xdat.model.XnatSubjectdataI;
+import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImageassessordata;
@@ -29,6 +30,7 @@ import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatResourceseries;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
+import org.nrg.xft.ItemI;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.representations.ZipRepresentation;
@@ -56,6 +58,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 
 /**
  * @author Mohana Ramaratnam
@@ -137,6 +141,7 @@ public class RemoteSubject {
 		_log.debug("Syncing subject END: " + localSubject.getLabel());
 	}
 
+	
 
 	private String storeSubject(XnatSubjectdataI remoteSubject) throws Exception {
 		//October 3, 2016 - MR - Xsync will push all the subject metadata irrespective of syncNewOnly or not
@@ -149,9 +154,10 @@ public class RemoteSubject {
 			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 			 RemoteConnectionResponse response = _manager.importSubject(connection, (XnatSubjectdata)remoteSubject);
-			 if (response.wasSuccessful()) 
+			 if (response.wasSuccessful()) {
 				 subject_remote_id = response.getResponseBody();
-			 else 
+				 createWorkflowAtRemote((XnatSubjectdata)remoteSubject,subject_remote_id,remoteSubject.getProject(),"Complete");
+			 } else 
 				 XSyncFailureHandler.handle(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(),localSubject.getId(),localSubject.getXSIType(),null, subjectSyncInfo, response);
 			 return subject_remote_id;
 		 }catch(Exception e) {
@@ -764,7 +770,7 @@ public class RemoteSubject {
 					 }
 					 expSyncItem.setRemoteId(remote_id);
 					 expSyncItem.updateSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED,"Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been synced.");
-
+					 createWorkflowAtRemote(orig,remote_id,remoteProjectId,"Complete");
 					 if (updateSyncAssessor) {
 						 XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 						 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
@@ -794,6 +800,49 @@ public class RemoteSubject {
 		 return stored;
 	}
 
+	private void createWorkflowAtRemote(XnatImagesessiondata img, String remoteId,String remoteProject, String status) {
+		Class c = BaseElement.GetGeneratedClass(WrkWorkflowdata.SCHEMA_ELEMENT_NAME);
+		ItemI o = null;
+		try {
+            o = (ItemI) c.newInstance();
+            WrkWorkflowdata workFlowData = new WrkWorkflowdata(o);
+  	        workFlowData.setLaunchTime(java.util.Calendar.getInstance().getTime());
+            workFlowData.setDataType(img.getXSIType());
+            workFlowData.setId(remoteId);
+            workFlowData.setPipelineName("Xsync");
+            workFlowData.setStatus(status);
+            workFlowData.setExternalid(remoteProject);
+			RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
+			RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+			RemoteConnectionResponse response = _manager.createWorkflow(connection, workFlowData);
+            
+		}catch(Exception e) {
+        	_log.debug("Could not instantiate the workflow for " + img.getLabel());
+        }
+	}
+
+	private void createWorkflowAtRemote(XnatSubjectdata sub, String remoteId,String remoteProject, String status) {
+		Class c = BaseElement.GetGeneratedClass(WrkWorkflowdata.SCHEMA_ELEMENT_NAME);
+		ItemI o = null;
+		try {
+            o = (ItemI) c.newInstance();
+            WrkWorkflowdata workFlowData = new WrkWorkflowdata(o);
+  	        workFlowData.setLaunchTime(java.util.Calendar.getInstance().getTime());
+            workFlowData.setDataType(sub.getXSIType());
+            workFlowData.setId(remoteId);
+            workFlowData.setPipelineName("Xsync");
+            workFlowData.setStatus(status);
+            workFlowData.setExternalid(remoteProject);
+			RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
+			RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+			RemoteConnectionResponse response = _manager.createWorkflow(connection, workFlowData);
+            
+		}catch(Exception e) {
+        	_log.debug("Could not instantiate the workflow for " + sub.getLabel());
+        }
+	}
+
+	
 	private List<XnatAbstractresourceI> getExperimentResources(XnatImagesessiondata orig) {
 		 List<XnatAbstractresourceI> resources = null;
 		 XFTItem item = orig.getItem().copy();

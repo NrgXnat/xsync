@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
+import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
@@ -189,6 +190,19 @@ public class RemoteConnectionManager {
 		return _remoteRESTService.importSubject(connection, subject);
 	}
 
+	/**
+	 * Create Workflow.
+	 *
+	 * @param connection the connection
+	 * @param wrk the Workflow
+	 * @return the remote connection response
+	 * @throws Exception the exception
+	 */
+	public RemoteConnectionResponse createWorkflow(RemoteConnection connection, WrkWorkflowdata wrk) throws Exception {
+		return _remoteRESTService.createWorkflow(connection, wrk);
+	}
+
+	
 	/**
 	 * Delete subject.
 	 *

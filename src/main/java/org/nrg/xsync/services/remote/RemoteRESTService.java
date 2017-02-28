@@ -2,6 +2,7 @@ package org.nrg.xsync.services.remote;
 
 import java.io.File;
 
+import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
@@ -15,6 +16,8 @@ import org.nrg.xsync.connection.RemoteConnectionResponse;
 public interface RemoteRESTService {
 	public RemoteConnectionResponse deleteProjectResource(RemoteConnection connection, String projectId, String resourceLabel) throws Exception;
 	public RemoteConnectionResponse importProjectResource(RemoteConnection connection, String projectId, String resourceLabel, File zipFile) throws Exception;
+	public RemoteConnectionResponse createWorkflow(RemoteConnection connection, WrkWorkflowdata wrk) throws Exception;
+
 	
 	public RemoteConnectionResponse importSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception;
 	public RemoteConnectionResponse deleteSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception;
