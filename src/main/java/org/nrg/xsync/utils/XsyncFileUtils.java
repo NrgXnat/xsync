@@ -2,22 +2,32 @@ package org.nrg.xsync.utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
+import org.nrg.xft.utils.FileUtils;
+
+//import org.apache.commons.io.FileUtils;
+import org.nrg.xdat.base.BaseElement;
+import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatResource;
+import org.nrg.xdat.om.XnatResourcecatalog;
 import org.nrg.xdat.om.XnatResourceseries;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
+import org.nrg.xft.ItemI;
+import org.nrg.xft.event.EventMetaI;
+import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.FieldNotFoundException;
 import org.nrg.xft.exception.XFTInitException;
@@ -49,7 +59,7 @@ public class XsyncFileUtils {
 			if (pathToFiles.exists()) {
 				ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,pathToFiles.getParent(),0);
 
-				ArrayList<File> files = new ArrayList<File>(FileUtils.listFiles(pathToFiles,null,true));
+				ArrayList<File> files = new ArrayList<File>(org.apache.commons.io.FileUtils.listFiles(pathToFiles,null,true));
 				ArrayList<File> fileteredFiles = new ArrayList<File>();
 				//Hack
 				for (File f:files) {
@@ -98,53 +108,68 @@ public class XsyncFileUtils {
 	}
 
 	
-/*	public File buildxar(UserI user, XnatExperimentdata orig, String targetproject,XnatSubjectdata targetsubject, XnatExperimentdata target) throws Exception {
-		File xarFile;
-		try {
-			File experimentPath = new File(orig.getArchiveRootPath() + "arc001/" + orig.getArchiveDirectoryName());
-
-			ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,(orig).getArchiveDirectoryName(),0);
-
-			List<File> files = (List<File>) FileUtils.listFiles(experimentPath,null,true);
-
-			String expCachePath = ArcSpecManager.GetFreshInstance().getGlobalCachePath() + targetproject + File.separator+ user.getID()+File.separator+orig.getId()+File.separator+(new Date()).getTime();
-			new File(expCachePath).mkdirs();
-			File outF = new File(expCachePath, "expt_" + (new Date()).getTime() + ".xml");
-			outF.deleteOnExit();
-			FileOutputStream fos = new FileOutputStream(outF);
-			SAXWriter writer = new SAXWriter(fos, true);
-			writer.setAllowSchemaLocation(true);
-			writer.setLocation(expCachePath);
-			writer.setRelativizePath(((XnatSubjectassessordata) orig).getArchiveDirectoryName() + "/");
-
-			orig.setId("");
-			orig.setProject(target.getProject());
-			if (orig instanceof XnatSubjectassessordata) {
-				((XnatSubjectassessordata)orig).setSubjectId(targetsubject.getLabel());
-			}
-			if (orig instanceof XnatImagesessiondata) {
-				for (XnatImagescandataI scan : ((XnatImagesessiondata)orig).getScans_scan()) {
-					scan.setImageSessionId("");
-				}
-			}
-			writer.write(orig.getItem());
-			
-			rep.addEntry(((XnatSubjectassessordata)target).getLabel() + ".xml",outF);
-			rep.addAll(files);
-			
-			rep.setDownloadName(orig.getId()+".xar");
-			xarFile = new File(expCachePath, (new Date()).getTime()+".xar");
-			xarFile.deleteOnExit();
-			rep.write(new FileOutputStream(xarFile));
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new Exception("Unable to retrieve/save session XML."+e.getMessage());
-		}
-		return xarFile;
-		
-
-		// return
+	public static String getAnonymizedSessionPath(XnatExperimentdata orig) {
+		return SynchronizationManager.GET_SYNC_FILE_PATH_TO_SESSION(orig.getProject(),orig) ;
 
 	}
-*/
+
+	public static XnatAbstractresourceI createSynchronizationLogResource(XnatProjectdata project, final UserI _user) throws Exception {
+	    	boolean synchronizationResourceExists  = false;
+	    	for (XnatAbstractresourceI r: project.getResources_resource()) {
+	    		if (r.getLabel()!= null && r.getLabel().equalsIgnoreCase(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL)) {
+	    			synchronizationResourceExists = true;
+	    		}
+	    		if (synchronizationResourceExists) {
+	    			return r;
+	    		}
+	    	}
+	    	if (!synchronizationResourceExists) {
+	    		//Create the resource
+	    		//Create a catalog
+	    		Class c = BaseElement.GetGeneratedClass(XnatResourcecatalog.SCHEMA_ELEMENT_NAME);
+	    		ItemI o = null;
+	            o = (ItemI) c.newInstance();
+
+	    		XnatResourcecatalog catResource = (XnatResourcecatalog)BaseElement.GetGeneratedItem(o);
+	    		catResource.setLabel(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL);
+	    		catResource.setContent(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL);
+	    		
+	    		String resourceFolder=catResource.getLabel();
+	    		String dest_path = org.nrg.xft.utils.FileUtils.AppendRootPath(project.getArchiveRootPath() , "resources/" );
+	    		File dest=null;
+	    		CatCatalogBean cat = new CatCatalogBean();
+	    		cat.setId(catResource.getLabel());
+
+	    		if(resourceFolder==null){
+	    			dest = new File(new File(dest_path),cat.getId() + "_catalog.xml");
+	    		}else{
+	    			dest = new File(new File(dest_path,resourceFolder),cat.getId() + "_catalog.xml");
+	    		}
+	    		dest.getParentFile().mkdirs();
+	    		try {
+	    			FileWriter fw = new FileWriter(dest);
+	    			cat.toXML(fw, true);
+	    			fw.close();
+	    		} catch (IOException e) {
+	    			_log.error("",e);
+	    		}
+
+	    		catResource.setUri(dest.getAbsolutePath());
+	    		project.addResources_resource(catResource);
+		       try {
+		   	        EventMetaI e = EventUtils.DEFAULT_EVENT(_user, "ADMIN_EVENT occurred");
+		            boolean saved = project.save(_user, false, false, e);
+		            if (!saved) {
+		            	_log.error("Unable to save " + project.getId() + ". User " + _user.getLogin() + " may not have sufficient privileges");
+		            }
+		        }catch(Exception e) {
+		        	_log.error("Unable to save " + project.getId() + ". User " + _user.getLogin() + " may not have sufficient privileges");
+		        }
+	    	     		
+	    		return catResource;
+	    	}
+	    	return null;
+	    }
+	
+
 }

@@ -1,6 +1,7 @@
 package org.nrg.xsync.services.local.impl;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Map;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -63,10 +64,14 @@ public class DefaultXsyncAliasRefresherForAProject implements Runnable{
 				final Map<String, String> token = _serializer.deserializeJsonToMapOfStrings(remoteResponse.getResponse().getBody());
 				final String alias = token.get("alias");
 				final String secret = token.get("secret");
+				final String expirationTime = token.get("estimatedExpirationTime");
+				Long l = Long.parseLong(expirationTime);
 				_conn.setUsername(alias);
 				_conn.setPassword(secret);
 				_connEntity.setRemote_alias_token(alias);
-				_connEntity.setRemote_alias_password(secret);				
+				_connEntity.setRemote_alias_password(secret);	
+				Date expirationDate = new Date(l);
+				_connEntity.setEstimatedExpirationTime(expirationDate);
 		    } catch (RuntimeException re) {
 		    	try {
 		    		logger.error(ExceptionUtils.getStackTrace(re));

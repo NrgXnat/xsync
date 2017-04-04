@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.nrg.xsync.local.SingleExperimentTransfer;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -130,6 +131,40 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         return new ResponseEntity<>(projectId + " synchronization started", HttpStatus.OK);
     }
     
+    
+    @ApiOperation(value = "Exports the indicated experiment.", notes = "Starts the Experiment export operation as indicated by the ID. WARNING: Will overwrite remote data", response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "The experiment export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
+    @RequestMapping(value = "/syncexperiment/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
+    @ResponseBody
+    public ResponseEntity<String> syncSingleExperiment(@PathVariable("experimentId") final String experimentId) throws URISyntaxException, XsyncNotConfiguredException {
+        final UserI user = getSessionUser();
+        
+    	//Is the experiment ID in the DB
+    	XnatExperimentdata exp = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
+    	if (exp == null) {
+    		//Incorrect Experiment ID
+    		return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    	}
+    	//Get the project id
+    	String projectId = exp.getProject(); 
+    	//Check user credentials to see if the user is a member or an owner of the project
+    	try {
+        	final HttpStatus status = canDeleteProject(projectId);
+            if (status != null) {
+                return new ResponseEntity<>(status);
+            }
+        }catch(Exception e) {
+            if (_log.isInfoEnabled()) {
+                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
+            }
+        }
+    	final SingleExperimentTransfer singleExperimentTransfer = new SingleExperimentTransfer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, projectId, user, exp.getId());
+        _executorService.submit(singleExperimentTransfer);
+        if (_log.isInfoEnabled()) {
+            _log.info("Experiment[ " + exp.getLabel() + "@" + projectId +"]" + experimentId + " is being exported by " + getSessionUser().getUsername());
+        }
+        return new ResponseEntity<>(experimentId + " synchronization started", HttpStatus.OK);
+    }
     
 
     @ApiOperation(value = "Clears the Sync Blocked Status", notes = "Clears the projects block status")

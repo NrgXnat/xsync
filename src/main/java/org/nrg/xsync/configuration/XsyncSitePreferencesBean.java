@@ -31,7 +31,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	/** The Constant DEFAULT_TOKEN_REFRESH_INTERVAL. */
 	private static final String DEFAULT_TOKEN_REFRESH_INTERVAL = "10 hours";
 	
-	/** The Constant DEFAULT_TOKEN_REFRESH_INTERVAL_MILLIS. */
+	/** The Constant DEFAULT_TOKEN_REFRESH_INTERVAL_MILLIS. 10 Hours */
 	public static final long DEFAULT_TOKEN_REFRESH_INTERVAL_MILLIS = 10*60*60*1000;
 
 	private static final String DEFAULT_SYNC_RETRY_INTERVAL = "2 hours";

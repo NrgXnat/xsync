@@ -72,7 +72,7 @@ public class SynchronizationManager {
 	    }		
 	}
 	
-	public static void END_SYNC(final SerializerService serializer, String projectId, final NamedParameterJdbcTemplate jdbcTemplate) {
+	public static void END_SYNC(final SerializerService serializer, String projectId, final NamedParameterJdbcTemplate jdbcTemplate, boolean save) {
 		Date now = new Date();
 //		projectSyncEndTime.put(projectId,now);
 	    SyncManifest manifest = syncManifests.get(projectId);
@@ -93,11 +93,12 @@ public class SynchronizationManager {
 			}
 			try {
 				//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
-				EventMetaI c = EventUtils.DEFAULT_EVENT(manifest.getSync_user(),"ADMIN_EVENT occurred");
-				syncProjectConfiguration.save(manifest.getSync_user(), false, true,c);
+				if (save) {
+					EventMetaI c = EventUtils.DEFAULT_EVENT(manifest.getSync_user(),"ADMIN_EVENT occurred");
+					syncProjectConfiguration.save(manifest.getSync_user(), false, true,c);
+				}
 			}catch(Exception e) {
 				_log.debug("Unable to save synchronization  details for project: " + projectId + " Cause:" + e.getMessage());
-
 			}
 			if (manifest.shouldNotify())
 				manifest.informUser();
