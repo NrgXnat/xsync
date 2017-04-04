@@ -7,6 +7,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
+import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
@@ -46,8 +47,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             @ApiResponse(code=200, message="OK"),
             @ApiResponse(code=401, message="Not Found")
     })
-
-    @RequestMapping(method=RequestMethod.GET)
+    @XapiRequestMapping(method=RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<List<XsyncProjectHistory>> getAllSyncHistory() {
     	final HttpStatus status = isPermitted();
@@ -57,7 +57,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         return new ResponseEntity<>(_service.getAll(), HttpStatus.OK);
     }
 
-    @RequestMapping(method=RequestMethod.GET, value="{id}")
+    @XapiRequestMapping(method=RequestMethod.GET, value="{id}")
     @ResponseBody
     public ResponseEntity<XsyncProjectHistory> getSyncHistoryById(@PathVariable final long id) {
     	final HttpStatus status = isPermitted();
@@ -67,7 +67,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         return new ResponseEntity<>(_service.retrieve(id), HttpStatus.OK);
     }
 
-    @RequestMapping(value="/projects/{projectId}", method=RequestMethod.GET)
+    @XapiRequestMapping(value="/projects/{projectId}", method=RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<List<XsyncProjectHistory>> getSyncHistoryByProject(@PathVariable("projectId") String projectId) throws Exception {
     	final UserI user = getSessionUser();
