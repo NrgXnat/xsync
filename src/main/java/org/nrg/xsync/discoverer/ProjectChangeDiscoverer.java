@@ -74,6 +74,8 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     private final ProjectSyncConfiguration   _projectSyncConfiguration;
     private final boolean                    _syncAll;
     private 	  XsyncObserver				 _observer;
+    // TODO:  This parameter should be configurable
+    private final Integer 					 MAX_FAILURES = 5;
 
     public ProjectChangeDiscoverer(final RemoteConnectionManager manager, final ConfigService configService, final SerializerService serializer, final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, final MailService mailService, final CatalogService catalogService, final XsyncXnatInfo xnatInfo, final String projectId, final UserI user) throws XsyncNotConfiguredException {
         _manager = manager;
@@ -144,14 +146,22 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             for (Map<String, Object> row : subjectRows) {
                 subjectIds.add((String) row.get("id"));
             }
+            int failCount = 0;
             for (Map<String, Object> row : subjectRows) {
                 _log.debug("Subject " + row.get("id") + " has been modfied since " + this.getLastSyncStartTime());
-                XnatSubjectdata localSubject = XnatSubjectdata.getXnatSubjectdatasById(row.get("id"), _user, true);
-                if (localSubject == null) {
-                    //Local Subject has been deleted; Delete the remote subject
-                    deleteSubject((String) row.get("id"), (String) row.get("label"));
-                } else {
-                    syncSubject(localSubject);
+                try {
+                	XnatSubjectdata localSubject = XnatSubjectdata.getXnatSubjectdatasById(row.get("id"), _user, true);
+                	if (localSubject == null) {
+                		//Local Subject has been deleted; Delete the remote subject
+                		deleteSubject((String) row.get("id"), (String) row.get("label"));
+                	} else {
+                		syncSubject(localSubject);
+                	}
+                } catch (Exception e) {
+                	failCount++;
+                	if (failCount>MAX_FAILURES) {
+                		throw e;
+                	}
                 }
             }
             //Mark the shared subjects as skipped

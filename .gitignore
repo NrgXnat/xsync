@@ -2,6 +2,8 @@ src/generated/
 src/beans/
 /.gradle
 /.idea
+/.project
+/.classpath
+/.settings
 /build
 /bin
-
