@@ -74,7 +74,7 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 				continue;
 			}
 			logger.info("Refreshing Alias for " + conn.getUrl());
-			DefaultXsyncAliasRefresherForAProject myRunnable = new DefaultXsyncAliasRefresherForAProject(connEntity, conn,_restService,_serializer);
+			final DefaultXsyncAliasRefresherForAProject myRunnable = new DefaultXsyncAliasRefresherForAProject(connEntity, conn,_restService,_serializer,_aliasService);
 		    Thread t = new Thread(myRunnable);
 		    t.start();
 		}
@@ -83,11 +83,11 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 	
 	private boolean isProjectSyncEnabled(String sourceProjectId) {
 		boolean isEnabled = false;
-		List<Map<String,Object>> results = _queryResultUtil.getProjectSyncDetails(sourceProjectId);
+		final List<Map<String,Object>> results = _queryResultUtil.getProjectSyncDetails(sourceProjectId);
 		if (results!=null && results.size()>0) {
-			Map<String,Object> syncProjectData = results.get(0);
+			final Map<String,Object> syncProjectData = results.get(0);
 			try {
-				isEnabled = ((Integer)syncProjectData.get("sync_enabled")).intValue()==1?true:false;
+				isEnabled = (((Integer)syncProjectData.get("sync_enabled")).intValue()==1);
 			}catch(Exception e) {
 				e.printStackTrace();
 			}
