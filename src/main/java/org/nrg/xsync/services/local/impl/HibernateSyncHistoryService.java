@@ -7,6 +7,7 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xsync.manifest.*;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.utils.XsyncFileUtils;
+import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -66,6 +67,12 @@ public class HibernateSyncHistoryService
         String syncStatus = "Complete";
         if (!manifest.wasSyncSuccessfull()) {
             syncStatus = "Fail";
+        } 
+        String overAllSyncStatus = manifest.getOverAllSyncStatusWhenSucessfull();
+        if (overAllSyncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+        	syncStatus += " [Verified]";
+        }else if (overAllSyncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED)) {
+        	syncStatus += " [NOT Verified]";
         }
         syncHistory.setSyncStatus(syncStatus);
         syncHistory.setStartDate(manifest.getSync_start_time());

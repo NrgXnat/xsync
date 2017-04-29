@@ -41,6 +41,7 @@ public class XsyncObserver implements Observer {
 		try {
 			fw = new FileWriter(logFile);
 			bWriter = new BufferedWriter(fw);
+			//bWriter= new BufferedWriter(new OutputStreamWriter(new FileOutputStream(logFile,true)));
 		} catch (IOException e) {
 			logger.error("Unable to write to file " + e.getMessage());
 		}

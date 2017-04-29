@@ -3,19 +3,15 @@ package org.nrg.xsync.utils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 
-import com.google.common.base.Joiner;
-import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xdat.om.XsyncXsyncremotemapdata;
+
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventMetaI;
@@ -28,12 +24,10 @@ import org.nrg.xft.utils.ValidationUtils.ValidationResults;
 import org.nrg.xnat.utils.WorkflowUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Mohana Ramaratnam
@@ -46,14 +40,22 @@ public class XsyncUtils {
 	public static final String SYNC_FREQUENCY_MONTHLY = "monthly";
 	public static final String SYNC_FREQUENCY_ON_DEMAND = "on demand";
 	
-	public static final String SYNC_STATUS_SYNCED = "SYNCED";
+	public static final String SYNC_STATUS_SYNCED_AND_NOT_VERIFIED = "SYNCED_AND_NOT_VERIFIED";
+	public static final String SYNC_STATUS_SYNCED_AND_VERIFIED = "SYNCED_AND_VERIFIED";
+
 	public static final String SYNC_STATUS_FAILED = "FAILED";
 	public static final String SYNC_STATUS_SKIPPED = "SKIPPED";
+	public static final String SYNC_STATUS_INCOMPLETE = "INCOMPLETE";
+	public static final String SYNC_STATUS_FAILED_TO_VERIFY = "FAILED_TO_VERIFY";
 	
 	public static final String SYNC_STATUS_INTERRUPTED = "INTERRUPTED";
 	public static final String SYNC_STATUS_CONNECTION_FAILED = "CONNECTION FAILED";
-	public static final String SYNC_STATUS_DELETED = "DELETED";
 	
+	public static final String SYNC_STATUS_DELETED = "DELETED";
+	public static final String SYNC_STATUS_WAITING_TO_SYNC="Waiting to Sync";
+
+	public static final String SYNC_STATUS_BEGINING="PREPARING TO SYNC";
+
 	public static final String SYNC_TYPE_ALL = "all";
 	public static final String SYNC_TYPE_NONE = "none";
 	public static final String SYNC_TYPE_INCLUDE = "include";
@@ -70,11 +72,19 @@ public class XsyncUtils {
 	public static final String USER_API_LOGIN= "login";
 	public static final String PROJECT_SYNC_LOG_RESOURCE_LABEL="SYNCHRONIZATION_LOGS";
 	
-	public static final String SYNC_STATUS_WAITING_TO_SYNC="Waiting to Sync";
 	
 	public static final String RESOURCE_NO_LABEL = "NO LABEL";
 	
+	public static final String XSYNC_VERIFICATION_STATUS = "XSYNC_VERIFICATION_STATUS";
+	public static final String XSYNC_VERIFICATION_STATUS_MISSING_FILES = "MISSING_FILES";
+	public static final String XSYNC_VERIFICATION_STATUS_VERIFIED_AND_COMPLETE = "VERIFIED_AND_COMPLETE";
+	public static final String XSYNC_VERIFICATION_STATUS_FAILED_TO_CONNECT = "FAILED_TO_CONNECT";
+	public static final String XSYNC_VERIFICATION_STATUS_FAILED_DUE_TO_EXCEPTION = "FAILED_DUE_TO_EXCEPTION";
 
+	public static final long GLOBAL_SLEEP_IN_MILLIS = 900000; //15 Minutes
+	public static final int GLOBAL_RETRY_COUNTS = 3; //15 Minutes
+
+	
 	private static final Logger _log = LoggerFactory.getLogger(XsyncUtils.class);
 
 	private final SerializerService          _serializer;
@@ -262,8 +272,6 @@ public class XsyncUtils {
 		return remoteId;
 	}
 	
-
-
 
 
 }

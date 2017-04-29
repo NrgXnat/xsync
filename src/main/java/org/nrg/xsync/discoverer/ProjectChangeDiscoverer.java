@@ -1,9 +1,8 @@
 package org.nrg.xsync.discoverer;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -11,19 +10,15 @@ import java.util.concurrent.Callable;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
-import org.nrg.xdat.base.BaseElement;
-import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.xdat.om.XnatResourcecatalog;
 import org.nrg.xdat.om.XnatSubjectdata;
-import org.nrg.xft.ItemI;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
-import org.nrg.xft.utils.FileUtils;
 import org.nrg.xnat.services.archive.CatalogService;
+import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -32,7 +27,6 @@ import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
 import org.nrg.xsync.local.IdMapper;
 import org.nrg.xsync.local.RemoteSubject;
-import org.nrg.xsync.utils.SyncStatusUpdater;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
@@ -40,6 +34,8 @@ import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncObserver;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.ResourceUtils;
+import org.nrg.xsync.utils.SyncStatusUpdater;
 import org.nrg.xsync.utils.XSyncFailureHandler;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -76,7 +72,9 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     private 	  XsyncObserver				 _observer;
     // TODO:  This parameter should be configurable
     private final Integer 					 MAX_FAILURES = 5;
-
+    private XnatProjectdata 			 localProject;
+    private List<XnatAbstractresource> projectResourcesToVerify = new ArrayList<XnatAbstractresource>();
+    
     public ProjectChangeDiscoverer(final RemoteConnectionManager manager, final ConfigService configService, final SerializerService serializer, final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, final MailService mailService, final CatalogService catalogService, final XsyncXnatInfo xnatInfo, final String projectId, final UserI user) throws XsyncNotConfiguredException {
         _manager = manager;
         _mailService = mailService;
@@ -90,7 +88,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         _parameters = new MapSqlParameterSource("project", _projectId);
         _projectSyncConfiguration = new ProjectSyncConfiguration(configService, serializer, (JdbcTemplate) jdbcTemplate.getJdbcOperations(), _projectId, _user);
         _syncAll = !_projectSyncConfiguration.isSetToSyncNewOnly();
-
+        localProject=null;
     }
 
     /**
@@ -112,6 +110,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         //Upload the XAR
         //_log.debug(_projectSyncConfiguration.toString());
     	XnatAbstractresourceI synchronizationResource = null;
+        localProject = XnatProjectdata.getXnatProjectdatasById(_projectId, _user, false);
 
     	XnatProjectdata project = null;
     	SyncStatusUpdater syncStatusUpdater = new SyncStatusUpdater(_projectId, _projectSyncConfiguration, _user);
@@ -137,7 +136,11 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             synchronizationResource = XsyncFileUtils.createSynchronizationLogResource(project,_user);
             String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
             String remoteHost = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
-
+            
+            //Get the Last Sync Details
+            //If the sync status is other can Complete - this implies some in the batch of last sync have failed to sync
+            //Out of the list of those that are gathered to be synced. Check if they have already been synced.
+            
             SynchronizationManager.BEGIN_SYNC(_manager.getSyncManifestService(), _xnatInfo, project.getId(), remoteProjectId, remoteHost, _user, _mailService);
     		_observer  = new XsyncObserver(_projectId);
             syncProjectResources();
@@ -179,7 +182,9 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         		subjectSyncInfo.stateChanged();
         		SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncInfo);
 
-            }            
+            }          
+            //Verify All the Transfers went through
+            verifyProjectResources();
             //Save into the DB the starttime and end-time
             //Clear the time logs
             syncStatusUpdater.saveSyncBlockStatus(Boolean.FALSE);
@@ -210,12 +215,15 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     //Change the implementation to use the ResourceFilter class -
     //This class returns  NEW, UPDATED and DELETED lists of resources
     private void syncProjectResources() {
-        List<Map<String, Object>> resourceRows = getProjectResourcesModifiedSinceLastSync();
+        ResourceUtils resourceUtils = new ResourceUtils(_projectSyncConfiguration);
+
+    	List<Map<String, Object>> resourceRows = getProjectResourcesModifiedSinceLastSync();
         if (resourceRows == null || resourceRows.size() < 1) {
             return;
         }
         String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-        XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(_projectId, _user, false);
+        String remoteUrl = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+
         String localProjectArchivePath = localProject.getArchiveRootPath();
         for (Map<String, Object> row : resourceRows) {
             String label = (String) row.get("label");
@@ -243,8 +251,8 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                     } else {
                         //Check if its a new resource or an updated resource
                         XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
-                        XnatAbstractresource resource = getResource(label);
-                        if (xsyncTools.hasBeenSyncedAlready(_projectId, label, resource.getXSIType(),remoteProjectId)) {
+                        XnatAbstractresource resource = resourceUtils.getResource(label);
+                        if (xsyncTools.hasBeenSyncedAlready(_projectId, label, resource.getXSIType(),remoteProjectId,remoteUrl )) {
                             //This is an instance of Update and auto-update is set to false; skip this resource
                             ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, label);
                     		resourceSyncItem.addObserver(_observer);
@@ -300,14 +308,10 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     private void updateProjectResource(String localProjectArchivePath, String resourceLabel) {
         String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
         String rLabel = resourceLabel == null ?  XsyncUtils.RESOURCE_NO_LABEL:resourceLabel;
+        ResourceUtils resourceUtils = new ResourceUtils(_projectSyncConfiguration);
+
         try {
-            XnatAbstractresource resource = getResource(resourceLabel);
-            ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, rLabel);
-    		resourceSyncItem.addObserver(_observer);
-    		if (resource.getFileCount() != null)
-    			resourceSyncItem.setFileCount(resource.getFileCount());
-            if (resource.getFileSize() != null)
-            	resourceSyncItem.setFileSize(resource.getFileSize());
+            XnatAbstractresource resource = resourceUtils.getResource(resourceLabel);
             String archiveDirectory = resource.getFullPath(localProjectArchivePath);
             File resourcePath = new File(archiveDirectory);
             if (resourcePath.exists() && resourcePath.isFile()) {
@@ -320,17 +324,19 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                     if (zipFile.exists()) {
                         zipFile.delete();
                     }
-                    resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-                    resourceSyncItem.setMessage("Project resource " + rLabel + " updated ");
-                    resourceSyncItem.stateChanged();
-                    XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
-                    xsyncTools.saveSyncDetails(_projectId, resource.getLabel(), resource.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED, resource.getXSIType(),remoteProjectId);
+                    projectResourcesToVerify.add(resource);
                 } else {
-                    resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+                    ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, rLabel);
+            		resourceSyncItem.addObserver(_observer);
+            		if (resource.getFileCount() != null)
+            			resourceSyncItem.setFileCount(resource.getFileCount());
+                    if (resource.getFileSize() != null)
+                    	resourceSyncItem.setFileSize(resource.getFileSize());
+                	resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
                     resourceSyncItem.setMessage("Project resource " + rLabel + " could not be updated. Cause: " + response.getResponseBody());
                     resourceSyncItem.stateChanged();
+                    SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
                 }
-                SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
             }
         } catch (Exception e) {
             _log.error(e.toString());
@@ -343,21 +349,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         }
     }
 
-    private XnatAbstractresource getResource(String resourceLabel) {
-        XnatProjectdata project = _projectSyncConfiguration.getProject();
-        XnatAbstractresource projectResource = null;
-        List<XnatAbstractresourceI> resources = project.getResources_resource();
-        for (XnatAbstractresourceI resource : resources) {
-            if (resource.getLabel() != null && resource.getLabel().equals(resourceLabel)) {
-                projectResource = (XnatAbstractresource) resource;
-                break;
-            }else if (resource.getLabel() == null && resourceLabel == null) { //NO LABEL case
-                projectResource = (XnatAbstractresource) resource;
-                break;
-            }
-        }
-        return projectResource;
-    }
+  
 
     private List<Map<String, Object>> getSubjectsModifiedSinceLastSync() {
         //Any entity  that is derived from the subject or linked to the subject
@@ -393,7 +385,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
 
     private void syncSubject(XnatSubjectdata localSubject) throws Exception {
         _log.debug("Exporting " + localSubject.getId());
-        RemoteSubject remoteSubject = new RemoteSubject(_manager, _xnatInfo, _queryResultUtil, (JdbcTemplate) _jdbcTemplate.getJdbcOperations(), localSubject, _projectSyncConfiguration, _user, _syncAll, _observer);
+        RemoteSubject remoteSubject = new RemoteSubject(_manager, _xnatInfo, _queryResultUtil, (JdbcTemplate) _jdbcTemplate.getJdbcOperations(), localSubject, _projectSyncConfiguration, _user, _syncAll, _observer, _serializer);
         remoteSubject.sync();
     }
 
@@ -401,6 +393,8 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         //Get the remote ID
         //If it exists; delete the remote subject
         String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+        String remoteUrl = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+
         IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, _projectSyncConfiguration);
         String remoteId = idMapper.getRemoteAccessionId(deletedSubjectLocalId);
         if (_syncAll) {
@@ -412,7 +406,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                 _log.debug("Deleting subject " + subject.getId() + " from remote project " + subject.getProject());
                 try {
                     RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
-                    RemoteConnection connection = remoteConnectionHandler.getConnection(_projectId, _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+                    RemoteConnection connection = remoteConnectionHandler.getConnection(_projectId, remoteUrl);
                     RemoteConnectionResponse response = _manager.deleteSubject(connection, subject);
                     if (response.wasSuccessful()) {
                         SubjectSyncItem subjectSyncItem = new SubjectSyncItem(deletedSubjectLocalId, deletedSubjectLabel);
@@ -422,7 +416,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                         subjectSyncItem.stateChanged();
                         SynchronizationManager.UPDATE_MANIFEST(_projectId, subjectSyncItem);
                         XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
-                        xsyncTools.saveSyncDetails(_projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), deletedSubjectLocalId, remoteId, XsyncUtils.SYNC_STATUS_DELETED, subject.getXSIType(),remoteProjectId);
+                        xsyncTools.saveSyncDetails(_projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), deletedSubjectLocalId, remoteId, XsyncUtils.SYNC_STATUS_DELETED, subject.getXSIType(),remoteProjectId, remoteUrl);
                         xsyncTools.deleteXsyncRemoteEntry(_projectId, deletedSubjectLocalId);
                     }
                 } catch (Exception e) {
@@ -454,6 +448,39 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             }
         }
     }
-    
+
+    private void verifyProjectResources() {
+        ResourceUtils resourceUtils = new ResourceUtils(_projectSyncConfiguration);
+        String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		final String remoteUrl = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+
+        XsyncProjectVerifier projectResourceVerifier = new XsyncProjectVerifier(_manager,_queryResultUtil,_jdbcTemplate, _projectSyncConfiguration, _serializer);
+        String localProjectArchivePath = localProject.getArchiveRootPath();
+
+        for (XnatAbstractresource rsc:projectResourcesToVerify) {
+            String rLabel = rsc.getLabel() == null ?  XsyncUtils.RESOURCE_NO_LABEL:rsc.getLabel();
+
+        	ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, rLabel);
+    		resourceSyncItem.addObserver(_observer);
+    		if (rsc.getFileCount() != null)
+    			resourceSyncItem.setFileCount(rsc.getFileCount());
+            if (rsc.getFileSize() != null)
+            	resourceSyncItem.setFileSize(rsc.getFileSize());
+            String archiveDirectory = rsc.getFullPath(localProjectArchivePath);
+		    final String uri = remoteUrl+"/data/archive/projects/"+remoteProjectId+"/resources/"+rsc.getLabel() + "/files?format=JSON";
+		    Map<String,String> fileComparison;
+		    try {
+	            fileComparison = projectResourceVerifier.verify(archiveDirectory, remoteProjectId , rsc.getLabel(),uri);
+		    }catch(Exception e) {
+	 			fileComparison = new HashMap<String,String>();
+				fileComparison.put(XsyncUtils.XSYNC_VERIFICATION_STATUS, XsyncUtils.XSYNC_VERIFICATION_STATUS_FAILED_TO_CONNECT);
+		    }
+            resourceUtils.setSyncStatus(fileComparison, resourceSyncItem, "Project resource " + rLabel);
+            resourceSyncItem.stateChanged();
+            XSyncTools xsyncTools = new XSyncTools(_user, _jdbcTemplate, _queryResultUtil);
+            xsyncTools.saveSyncDetails(_projectId, rLabel, rLabel, resourceSyncItem.getSyncStatus(), rsc.getXSIType(),remoteProjectId, remoteUrl);
+            SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
+        }
+    }
  
 }

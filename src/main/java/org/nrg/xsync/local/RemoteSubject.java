@@ -6,11 +6,13 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatExperimentdataI;
@@ -34,6 +36,7 @@ import org.nrg.xft.ItemI;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.representations.ZipRepresentation;
+import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -50,6 +53,7 @@ import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncObserver;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.ResourceUtils;
 import org.nrg.xsync.utils.XSyncFailureHandler;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -78,8 +82,12 @@ public class RemoteSubject {
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
 	private final RemoteConnectionManager _manager;
 	private final QueryResultUtil _queryResultUtil;
+	private List<XnatAbstractresource> subjectResourcesToBeVerified = new ArrayList<XnatAbstractresource>();
+	private XnatProjectdata localProject;
+    private final SerializerService          _serializer;
+
 	
-	public RemoteSubject(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate, XnatSubjectdataI localSubject, ProjectSyncConfiguration projectSyncConfiguration, UserI user, boolean syncAll, XsyncObserver observer) {
+	public RemoteSubject(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate, XnatSubjectdataI localSubject, ProjectSyncConfiguration projectSyncConfiguration, UserI user, boolean syncAll, XsyncObserver observer, SerializerService serializer) {
 		this.localSubject = localSubject;
 		this.user = user;
 		this.projectSyncConfiguration = projectSyncConfiguration; 
@@ -90,6 +98,8 @@ public class RemoteSubject {
 		_manager = manager;
 		_xnatInfo = xnatInfo;
 		_queryResultUtil = queryResultUtil;
+		localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
+		_serializer = serializer;
 	}
 	
 	
@@ -106,7 +116,7 @@ public class RemoteSubject {
 			remoteSubject = syncSubject();
 			String subject_remote_id = remoteSubject.getId();
 			if (subject_remote_id != null) {
-				pushExperiment(experiment,remoteSubject);
+				pushExperiment(experiment,remoteSubject, false);
 				subjectSyncInfo.stateChanged();
 			}	
 		}catch(Exception e) {
@@ -142,7 +152,7 @@ public class RemoteSubject {
 		String subject_remote_id=storeSubject(newSubject);
 		if (subject_remote_id != null) {
 			newSubject.setId(subject_remote_id);
-			saveSyncDetails(localSubject.getId(),subject_remote_id,newSubject.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED,localSubject.getXSIType());
+			saveSyncDetails(localSubject.getId(),subject_remote_id,newSubject.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,localSubject.getXSIType());
 
 			//Now among the ones which are configured and not deleted
 			//Change the ids
@@ -166,7 +176,9 @@ public class RemoteSubject {
 		XnatSubjectdata newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
 		newSubject.setProject(remoteProjectId);
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
-
+		String subject_remote_id = null;
+		subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_BEGINING);
+		subjectSyncInfo.stateChanged();
 		try {
 			
 			idMapper.correctIDandLabel(newSubject);
@@ -182,10 +194,10 @@ public class RemoteSubject {
 			//Get its remote id
 			//Store the remote id
 
-			String subject_remote_id=storeSubject(newSubject);
+			subject_remote_id=storeSubject(newSubject);
 			if (subject_remote_id != null) {
 				newSubject.setId(subject_remote_id);
-				saveSyncDetails(localSubject.getId(),subject_remote_id,newSubject.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED,localSubject.getXSIType());
+				saveSyncDetails(localSubject.getId(),subject_remote_id,newSubject.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,localSubject.getXSIType());
 
 				//Now among the ones which are configured and not deleted
 				//Change the ids
@@ -196,13 +208,16 @@ public class RemoteSubject {
 				//   Anonymize the resources
 				syncResources(newSubject,resourcesToBeSynced);
 				syncExperiments(newSubject,experimentsToBeSynced);
-				subjectSyncInfo.stateChanged();
+//				subjectSyncInfo.stateChanged();
 			}	
 		}catch(Exception e) {
 			_log.error("Error syncing subject " + newSubject.getLabel() + "  " + e.getMessage());
 			XSyncFailureHandler.handle(localSubject.getProject(),localSubject.getId(),localSubject.getXSIType(),idMapper.getRemoteAccessionId(this.localSubject.getId()), subjectSyncInfo, e);
 			throw e;
 		}
+		verifySubjectResources(subject_remote_id);
+		subjectSyncInfo.updateSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,"Subject " + localSubject.getLabel() );
+		subjectSyncInfo.stateChanged();
 		SynchronizationManager.UPDATE_MANIFEST(localSubject.getProject(), subjectSyncInfo);
 		_log.debug("Syncing subject END: " + localSubject.getLabel());	
 	}
@@ -222,8 +237,8 @@ public class RemoteSubject {
 			 RemoteConnectionResponse response = _manager.importSubject(connection, (XnatSubjectdata)remoteSubject);
 			 if (response.wasSuccessful()) {
 				 subject_remote_id = response.getResponseBody();
-				 WorkFlowUtils wrkFlowUtils = new WorkFlowUtils(_manager, _queryResultUtil,_jdbcTemplate, projectSyncConfiguration);
-				 wrkFlowUtils.createWorkflowAtRemote((XnatSubjectdata)remoteSubject,subject_remote_id,remoteSubject.getProject(),"Complete");
+				 //WorkFlowUtils wrkFlowUtils = new WorkFlowUtils(_manager, _queryResultUtil,_jdbcTemplate, projectSyncConfiguration);
+				 //wrkFlowUtils.createWorkflowAtRemote((XnatSubjectdata)remoteSubject,subject_remote_id,remoteSubject.getProject(),"Complete");
 			 } else 
 				 XSyncFailureHandler.handle(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(),localSubject.getId(),localSubject.getXSIType(),null, subjectSyncInfo, response);
 			 return subject_remote_id;
@@ -233,6 +248,7 @@ public class RemoteSubject {
 		 }
 		
 	}
+	
 	private RemoteConnectionResponse deleteSubjectResource(XnatSubjectdataI remoteSubject, String resourceLabel) throws Exception {
 		 try {
 			 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
@@ -301,8 +317,10 @@ public class RemoteSubject {
 		subjectSyncInfo.setXsiType(xsiType);
 		subjectSyncInfo.setRemoteLabel(remote_label);
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+		
 		XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
-		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType,remoteProjectId);
+		xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType,remoteProjectId, remoteUrl);
 	}
 
 
@@ -361,19 +379,9 @@ public class RemoteSubject {
 	}
 
 	private void pushResource(XnatSubjectdataI remoteSubject,XnatAbstractresourceI resource) {
-		XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
 		String localProjectArchivePath = localProject.getArchiveRootPath();
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 		String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
-		ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),rLabel);
-		if (resource.getFileCount() != null)
-			resourceSyncItem.setFileCount(resource.getFileCount());
-		else 
-			resourceSyncItem.setFileCount(0);
-		if (resource.getFileSize() != null)
-			resourceSyncItem.setFileSize(resource.getFileSize());
-		else 
-			resourceSyncItem.setFileSize(new Long(0));
 		try {
 			String archiveDirectory = ((XnatAbstractresource)resource).getFullPath(localProjectArchivePath);
 			File resourcePath = new File(archiveDirectory);
@@ -385,13 +393,21 @@ public class RemoteSubject {
 				zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
 				RemoteConnectionResponse updateResponse = this.updateSubjectResource(remoteSubject,resource.getLabel(), zipFile);
 				if (updateResponse.wasSuccessful()) {
-					resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-					resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " updated. " );
+					subjectResourcesToBeVerified.add((XnatAbstractresource)resource);
 				}else {
+					ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),rLabel);
+					if (resource.getFileCount() != null)
+						resourceSyncItem.setFileCount(resource.getFileCount());
+					else 
+						resourceSyncItem.setFileCount(0);
+					if (resource.getFileSize() != null)
+						resourceSyncItem.setFileSize(resource.getFileSize());
+					else 
+						resourceSyncItem.setFileSize(new Long(0));
 					resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 					resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + updateResponse.getResponseBody() );
+					subjectSyncInfo.addResources(resourceSyncItem);
 				}
-				subjectSyncInfo.addResources(resourceSyncItem);
 			}catch(Exception e) {
 				throw(e);
 			}finally {
@@ -399,6 +415,15 @@ public class RemoteSubject {
 			}
 		}catch(Exception e) {
 			_log.error("Could not update resource " + resource.getLabel() + " for subject " + remoteSubject.getId());
+			ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),rLabel);
+			if (resource.getFileCount() != null)
+				resourceSyncItem.setFileCount(resource.getFileCount());
+			else 
+				resourceSyncItem.setFileCount(0);
+			if (resource.getFileSize() != null)
+				resourceSyncItem.setFileSize(resource.getFileSize());
+			else 
+				resourceSyncItem.setFileSize(new Long(0));
 			resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 			resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + e.getMessage() );
 			subjectSyncInfo.addResources(resourceSyncItem);
@@ -434,26 +459,26 @@ public class RemoteSubject {
 			//Update the modified experiments
 			if (updatedExperiments != null && updatedExperiments.size() > 0) {
 				for (XnatExperimentdataI experiment:updatedExperiments) {
-					pushExperiment(experiment,remoteSubject);
+					pushExperiment(experiment,remoteSubject,false);
 				}
 			}
 		}
 		//Push the new experiments
 		if (newExperiments != null && newExperiments.size() > 0) {
 			for (XnatExperimentdataI experiment:newExperiments) {
-				pushExperiment(experiment,remoteSubject);
+				pushExperiment(experiment,remoteSubject, true);
 			}
 		}
 		//Irrespective of the syncOnlyNwew Flag, the OK to Sync experiments must be pushed
 		if (okToSyncExperiments != null && okToSyncExperiments.size() > 0) {
 			for (XnatExperimentdataI experiment:okToSyncExperiments) {
-				pushExperiment(experiment,remoteSubject);
+				pushExperiment(experiment,remoteSubject,false);
 			}
 		}
 	}
 	
-	private void pushExperiment(XnatExperimentdataI assess, XnatSubjectdataI remoteSubject) throws Exception {
-		XsyncExperimentTransfer syncExptransfer = new XsyncExperimentTransfer(_manager,_xnatInfo, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration, user, subjectSyncInfo, localSubject);
+	private void pushExperiment(XnatExperimentdataI assess, XnatSubjectdataI remoteSubject, boolean syncIfNotSyncedInPast) throws Exception {
+		XsyncExperimentTransfer syncExptransfer = new XsyncExperimentTransfer(_manager,_xnatInfo, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration, user, subjectSyncInfo, localSubject, _serializer, localProject, syncIfNotSyncedInPast);
 		syncExptransfer.syncExperiment(assess, remoteSubject);
 
 	}
@@ -491,7 +516,35 @@ public class RemoteSubject {
 	}
 
 	
-	
+    private void verifySubjectResources(String remoteSubjectId) {
+        ResourceUtils resourceUtils = new ResourceUtils(projectSyncConfiguration);
+        String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+
+        XsyncProjectVerifier projectResourceVerifier = new XsyncProjectVerifier(_manager,_queryResultUtil,_jdbcTemplate, projectSyncConfiguration, _serializer);
+        String localProjectArchivePath = localProject.getArchiveRootPath();
+
+        for (XnatAbstractresource rsc:subjectResourcesToBeVerified) {
+            String rLabel = rsc.getLabel() == null ?  XsyncUtils.RESOURCE_NO_LABEL:rsc.getLabel();
+        	ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localProject.getId(), rLabel);
+    		if (rsc.getFileCount() != null)
+    			resourceSyncItem.setFileCount(rsc.getFileCount());
+            if (rsc.getFileSize() != null)
+            	resourceSyncItem.setFileSize(rsc.getFileSize());
+            String archiveDirectory = rsc.getFullPath(localProjectArchivePath);
+		    final String uri = remoteUrl+"/data/archive/projects/"+remoteProjectId+"/subjects/"+ remoteSubjectId  + "/resources/"+rsc.getLabel() + "/files?format=JSON";
+		    Map<String,String> fileComparison;
+		    try {
+			    fileComparison = projectResourceVerifier.verify(archiveDirectory, remoteProjectId , rsc.getLabel(), uri);
+		    }catch(Exception e) {
+	 			fileComparison = new HashMap<String,String>();
+				fileComparison.put(XsyncUtils.XSYNC_VERIFICATION_STATUS, XsyncUtils.XSYNC_VERIFICATION_STATUS_FAILED_TO_CONNECT);
+		    }
+            resourceUtils.setSyncStatus(fileComparison, resourceSyncItem, "Subject " + localSubject.getLabel() + "  resource " + rLabel);
+			subjectSyncInfo.addResources(resourceSyncItem);
+        }
+    }
+
 	
 
 }

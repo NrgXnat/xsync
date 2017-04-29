@@ -35,7 +35,7 @@ public class XSyncTools {
         _queryResultUtil = queryResultUtil;
     }
 
-    public void saveSyncDetails(String localProjectId, String local_id, String remote_id, String syncStatus, String xsiType, String remote_project_id) {
+    public void saveSyncDetails(String localProjectId, String local_id, String remote_id, String syncStatus, String xsiType, String remote_project_id, String remoteUrl) {
         XsyncXsyncremotemapdata subjectRemoteMap = new XsyncXsyncremotemapdata();
         subjectRemoteMap.setSourceProjectId(localProjectId);
         subjectRemoteMap.setLocalXnatId(local_id);
@@ -43,6 +43,7 @@ public class XSyncTools {
         subjectRemoteMap.setRemoteXnatId(remote_id);
         subjectRemoteMap.setSyncStatus(syncStatus);
         subjectRemoteMap.setRemoteProjectId(remote_project_id);
+        subjectRemoteMap.setRemoteHostUrl(remoteUrl);
         try {
             //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
             EventMetaI c = EventUtils.DEFAULT_EVENT(_user, "ADMIN_EVENT occurred");
@@ -53,7 +54,7 @@ public class XSyncTools {
         }
     }
 
-    public boolean hasBeenSyncedAlready(String localProjectId, String local_id, String xsiType, String remoteProject) {
+    public boolean hasBeenSyncedAlready(String localProjectId, String local_id, String xsiType, String remoteProject, String remoteUrl) {
         boolean hasBeenSyncedAlready = false;
         String query = _queryResultUtil.getXsyncRemoteMapQueryString();
         MapSqlParameterSource parameters = new MapSqlParameterSource();
@@ -61,6 +62,8 @@ public class XSyncTools {
         parameters.addValue("LOCAL_XNAT_ID", local_id);
         parameters.addValue("XSITYPE", xsiType);
         parameters.addValue("REMOTE_PROJECT", remoteProject);
+        parameters.addValue("REMOTE_URL", remoteUrl);
+
         List<Map<String, Object>> syncMapRows = _jdbcTemplate.queryForList(query, parameters);
         if (syncMapRows != null && syncMapRows.size() > 0) {
             hasBeenSyncedAlready = true;
@@ -119,5 +122,29 @@ public class XSyncTools {
         }
         return assessor;
     }
+    
+	public boolean hasExperimentBeenSuccessfullySyncedInThePast(String localProjectId, String local_id, String xsiType, String remoteProject, String remoteUrl) {
+	       boolean hasBeenSyncedAlready = false;
+	        String query = _queryResultUtil.getXsyncRemoteMapQueryString();
+
+	        MapSqlParameterSource parameters = new MapSqlParameterSource();
+	        parameters.addValue("PROJECT_ID", localProjectId);
+	        parameters.addValue("LOCAL_XNAT_ID", local_id);
+	        parameters.addValue("XSITYPE", xsiType);
+	        parameters.addValue("REMOTE_PROJECT", remoteProject);
+	        parameters.addValue("REMOTE_URL", remoteUrl);
+	        
+	        List<Map<String, Object>> syncMapRows = _jdbcTemplate.queryForList(query, parameters);
+	        if (syncMapRows != null && syncMapRows.size() > 0) {
+	            hasBeenSyncedAlready = true;
+	            Map<String, Object> row = syncMapRows.get(0);
+	            String syncStatus = (String)row.get("sync_status");
+	            if (syncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+	            	hasBeenSyncedAlready = true;
+	            }
+	        }
+	        return hasBeenSyncedAlready;
+	}
+
 
 }

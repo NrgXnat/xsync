@@ -143,7 +143,7 @@ public class SyncManifest{
 		boolean wasSuccessful = true;
 		if (resources.size() > 0) {
 			for (SyncedItem sync:resources) {
-				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED) &&  !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_DELETED) ) {
+				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED) &&  !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_DELETED) ) {
 					wasSuccessful = false;
 					break;
 				}
@@ -151,7 +151,7 @@ public class SyncManifest{
 		}
 		if (subjects.size()>0 && wasSuccessful) {
 			for (SyncedItem sync:subjects) {
-				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED) &&  !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_DELETED) ) {
+				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED) &&  !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_DELETED) ) {
 					wasSuccessful = false;
 					break;
 				}
@@ -159,6 +159,28 @@ public class SyncManifest{
 		}
 		return wasSuccessful;
 	}
+	
+	public String getOverAllSyncStatusWhenSucessfull() {
+		String overAllStatus = XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED;
+		if (resources.size() > 0) {
+			for (SyncedItem sync:resources) {
+				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED))  {
+					overAllStatus = sync.getSyncStatus();
+					break;
+				}
+			}
+		}
+		if (subjects.size()>0 && overAllStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+			for (SyncedItem sync:subjects) {
+				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED) ) {
+					overAllStatus = sync.getSyncStatus();
+					break;
+				}
+			}
+		}
+		return overAllStatus;
+	}
+	
 
 	public String getSyncHost() {
 		return syncHost;

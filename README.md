@@ -6,11 +6,23 @@ Xsync plugin enables automatic synchronization of data from a project in one XNA
 
 # Download #
 
-[ Xsync Jar ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-1.0.jar)
+[ Xsync Jar ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-1.2.jar)
 
-[ Xsync Bean Jar ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-beans-1.0.jar)
+[ Xsync Bean Jar ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-beans-1.2.jar)
 
+# ChangeLog #
 
+Version 1.2 May 3, 2017
+
+Xsync Token Refresh Issue fixed
+
+Xsync File Transfer verification added. This results in new Sync statuses, viz., 
+
+SYNCED_AND_NOT_VERIFIED
+SYNCED_AND_VERIFIED
+INCOMPLETE
+
+Ability to sync a single experiment out of sync cycle.
 
 # Building #
 

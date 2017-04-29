@@ -1,17 +1,41 @@
 package org.nrg.xsync.local;
 
-import org.restlet.data.MediaType;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.nrg.framework.services.SerializerService;
+import org.nrg.xdat.base.BaseElement;
+import org.nrg.xdat.model.XnatAbstractresourceI;
+import org.nrg.xdat.model.XnatExperimentdataI;
+import org.nrg.xdat.model.XnatImageassessordataI;
+import org.nrg.xdat.model.XnatImagescandataI;
+import org.nrg.xdat.model.XnatImagesessiondataI;
+import org.nrg.xdat.model.XnatSubjectdataI;
+import org.nrg.xdat.om.XnatAbstractresource;
+import org.nrg.xdat.om.XnatImageassessordata;
+import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.om.XnatProjectdata;
+import org.nrg.xdat.om.XnatResource;
+import org.nrg.xdat.om.XnatSubjectassessordata;
+import org.nrg.xdat.om.XnatSubjectdata;
+import org.nrg.xft.XFTItem;
+import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXReader;
+import org.nrg.xft.security.UserI;
+import org.nrg.xnat.restlet.representations.ZipRepresentation;
+import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -25,39 +49,21 @@ import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.ScanSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.nrg.xsync.tools.XSyncTools;
+import org.nrg.xsync.tools.XsyncURIUtils;
 import org.nrg.xsync.tools.XsyncXnatInfo;
+import org.nrg.xsync.utils.JSONUtils;
 import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.ResourceUtils;
+import org.nrg.xsync.utils.WorkFlowUtils;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
+import org.restlet.data.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.xml.sax.SAXException;
 
-import org.nrg.xdat.base.BaseElement;
-import org.nrg.xdat.model.XnatAbstractresourceI;
-import org.nrg.xdat.model.XnatExperimentdataI;
-import org.nrg.xdat.model.XnatImageassessordataI;
-import org.nrg.xdat.model.XnatImagescandataI;
-import org.nrg.xdat.model.XnatImagesessiondataI;
-import org.nrg.xdat.model.XnatReconstructedimagedataI;
-import org.nrg.xdat.model.XnatSubjectdataI;
-import org.nrg.xdat.om.WrkWorkflowdata;
-import org.nrg.xdat.om.XnatAbstractresource;
-import org.nrg.xdat.om.XnatExperimentdata;
-import org.nrg.xdat.om.XnatImageassessordata;
-import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.xdat.om.XnatResource;
-import org.nrg.xdat.om.XnatResourceseries;
-import org.nrg.xdat.om.XnatSubjectassessordata;
-import org.nrg.xdat.om.XnatSubjectdata;
-import org.nrg.xft.ItemI;
-import org.nrg.xft.XFTItem;
-import org.nrg.xft.security.UserI;
-import org.nrg.xnat.restlet.representations.ZipRepresentation;
-import org.nrg.xsync.configuration.ProjectSyncConfiguration;
-import org.nrg.xsync.tools.XsyncURIUtils;
-import org.nrg.xsync.utils.WorkFlowUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 
 
 /**
@@ -76,8 +82,11 @@ public class XsyncExperimentTransfer {
 	private final RemoteConnectionManager _manager;
 	private final QueryResultUtil _queryResultUtil;
 	private XnatSubjectdataI localSubject;
+    private final SerializerService          _serializer;
+    private final XnatProjectdata _localProject;
+    private final boolean _syncIfNotSyncedInPast;
 	
-	public XsyncExperimentTransfer(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil,  NamedParameterJdbcTemplate jdbcTemplate,  ProjectSyncConfiguration projectSyncConfiguration, UserI user,SubjectSyncItem subjectSyncInfo,XnatSubjectdataI localSubject) {
+	public XsyncExperimentTransfer(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil,  NamedParameterJdbcTemplate jdbcTemplate,  ProjectSyncConfiguration projectSyncConfiguration, UserI user,SubjectSyncItem subjectSyncInfo,XnatSubjectdataI localSubject, SerializerService serializer, XnatProjectdata localProject, boolean syncIfNotSyncedInPast) {
 		this.user = user;
 		this.subjectSyncInfo = subjectSyncInfo;
 		this.localSubject = localSubject;
@@ -86,6 +95,9 @@ public class XsyncExperimentTransfer {
 		_manager = manager;
 		_xnatInfo = xnatInfo;
 		_queryResultUtil = queryResultUtil;
+		_serializer = serializer;
+		_localProject = localProject;
+		_syncIfNotSyncedInPast = syncIfNotSyncedInPast;
 	}
 	
 	
@@ -101,6 +113,19 @@ public class XsyncExperimentTransfer {
 		}
 		if (assess instanceof XnatImagesessiondata) {
 			XnatImagesessiondata orig = (XnatImagesessiondata) XnatImagesessiondata.getXnatImagesessiondatasById(origId, user, true);
+			if (_syncIfNotSyncedInPast) {
+				//Has this entity been synced in the past?
+				boolean syncedInPast = hasExperimentBeenSuccessfullySyncedInThePast(orig.getProject(), orig.getId(), orig.getXSIType());
+				//If yes, skip it
+				if (syncedInPast) {
+					 final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
+					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+					 expSyncItem.setMessage("Experiment " + orig.getLabel() + " skipped as it has been synced successfully in the past.");
+					 subjectSyncInfo.addExperiment(expSyncItem);
+					 return;
+				}
+				
+			}
 			if (isImagingSessionConfiguredToBeSyned(orig.getXSIType())) {
 				if (imagingSessionNeedsOkToSync(orig.getXSIType())) {
 					boolean updateOkToSyncAssessorStatus = true;
@@ -204,6 +229,15 @@ public class XsyncExperimentTransfer {
 		return xsyncTools.hasBeenMarkedOkToSyncAndNotSyncedYet(expId, projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 	}
 	
+	private boolean hasExperimentBeenSuccessfullySyncedInThePast(String localProjectId, String local_id, String xsiType ) {
+		String remoteProject = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+		
+		XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
+		return  xsyncTools.hasExperimentBeenSuccessfullySyncedInThePast(localProjectId, local_id, xsiType, remoteProject,remoteUrl); 
+	}
+	
+	
 	private boolean storeAssessor(String origId, XnatSubjectassessordata orig, XnatSubjectdata remotesubject, XnatSubjectassessordata assessor, boolean updateSyncAssessor) {
 		 boolean stored = false;
 		 String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
@@ -221,11 +255,10 @@ public class XsyncExperimentTransfer {
 			 String remote_id = connectionResponse.getResponseBody();
 			 if (stored) {
 				 expSyncItem.setRemoteId(remote_id);
-				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
 				 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " assessor " + orig.getLabel() + " has been synced. Remote Id:" + connectionResponse.getResponseBody());
 				 String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 
-				 saveSyncDetails(origId,remote_id,XsyncUtils.SYNC_STATUS_SYNCED,assessor.getXSIType());
 				//Store the resources of the assessor
 				String localProjectArchivePath = localProject.getArchiveRootPath();
 
@@ -244,7 +277,7 @@ public class XsyncExperimentTransfer {
 							resourceSyncItem.setFileCount(resource.getFileCount()!=null?resource.getFileCount():0);
 							resourceSyncItem.setFileSize(resource.getFileSize()!=null?resource.getFileSize():new Long(0));
 							if (updateResponse.wasSuccessful()) {
-								resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+								resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
 							}else {
 								resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 							}
@@ -257,27 +290,35 @@ public class XsyncExperimentTransfer {
 						
 					}
 				}
-				if (updateSyncAssessor) {
-					XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
-					 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
-				}
+				 verifySync(remoteProjectId,expSyncItem, orig, remotesubject,updateSyncAssessor);
 			 }
 		 }catch(Exception e) {
 			 _log.debug("Unable to store assessor " + assessor.getLabel() + " " + e.getLocalizedMessage());
-			 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " assessor " + orig.getLabel() + " could not be  synced. " + e.getLocalizedMessage());
+			 //Did we get a 500 - Duplicate Error?
+			 //Check if the session exists at the remote site
+			 boolean exists = lookForSessionAtDestination(orig,expSyncItem);
+			 if (!exists) {
+				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+				 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
+				 stored = false;
+			 }
+
 		 }
 		 subjectSyncInfo.addExperiment(expSyncItem);
 		 return stored;
 	}
 
 	private boolean storeXar( XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor) throws XsyncRemoteConnectionException{
-		 boolean stored;
+		 boolean stored = false;
 		 final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 		 final String remoteProjectId = targetproject;
 		 final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 		 final RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 		 final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
+		 expSyncItem.setRemoteLabel(target.getLabel());
+
+		 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_BEGINING);
+		 expSyncItem.stateChanged();
 		 List<XnatImageassessordataI> assessors = target.getAssessors_assessor();
 		 List<XnatAbstractresourceI>  resources	= getExperimentResources(target);
 		 
@@ -308,7 +349,8 @@ public class XsyncExperimentTransfer {
 					XFTItem item = target.getItem().copy();
 					XnatImagesessiondata targetWithRemoteId = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
 					targetWithRemoteId.setId(remote_id);
-					 //For each resource store the resource
+					expSyncItem.setRemoteId(remote_id);
+					//For each resource store the resource
 					 for (int i=0; i<resources.size(); i++) {
 						 XnatAbstractresource resource = (XnatAbstractresource)resources.get(i);
 						 String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
@@ -343,7 +385,8 @@ public class XsyncExperimentTransfer {
 								 scanXar.delete();
 								 String remoteScanId = xsyncUriUtils.getRemoteAssignedId(scanConnectionResponse);
 								 scanSyncItem.setRemoteId(remoteScanId);
-								 scanSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+								 scanSyncItem.updateResourceStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
+								 scanSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
 								 scanSyncItem.setMessage("Image session " + orig.getLabel() + " Image Scan " + scan.getId() + " has been synced.");
 								 //saveSyncDetails(origAss.getId(),remoteScanId,XsyncUtils.SYNC_STATUS_SYNCED,origAss.getXSIType());
 							 }else {
@@ -389,9 +432,8 @@ public class XsyncExperimentTransfer {
 								 assXar.delete();
 								 String remoteAssId = xsyncUriUtils.getRemoteAssignedId(assConnectionResponse);
 								 expAssSyncItem.setRemoteId(remoteAssId);
-								 expAssSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+								 expAssSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
 								 expAssSyncItem.setMessage("Image session " + orig.getLabel() + " Image Assessor " + target.getLabel() + " has been synced.");
-								 saveSyncDetails(origAss.getId(),remoteAssId,XsyncUtils.SYNC_STATUS_SYNCED,origAss.getXSIType());
 							 }else {
 								 expAssSyncItem.setRemoteId(null);
 								 expAssSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
@@ -400,23 +442,19 @@ public class XsyncExperimentTransfer {
 							 expSyncItem.addAssessor(expAssSyncItem);
 						 }
 					 }
-					 expSyncItem.setRemoteId(remote_id);
-					 expSyncItem.updateSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED,"Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been synced.");
-					 WorkFlowUtils wrkFlowUtils = new WorkFlowUtils(_manager,_queryResultUtil,_jdbcTemplate,projectSyncConfiguration);
-					 wrkFlowUtils.createWorkflowAtRemote(orig,remote_id,remoteProjectId,"Complete");
-					 if (updateSyncAssessor) {
-						 XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
-						 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
-					 }
-
-					 saveSyncDetails(orig.getId(),remote_id,XsyncUtils.SYNC_STATUS_SYNCED,orig.getXSIType());
+					 verifySync(remoteProjectId,expSyncItem, orig, targetsubject,updateSyncAssessor);
 				 }
 			 }
 		 }catch(Exception e) {
 			 _log.error(e.getMessage());
-			 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
-			 stored = false;
+			 //Did we get a 500 - Duplicate Error?
+			 //Check if the session exists at the remote site
+			 boolean exists = lookForSessionAtDestination(orig,expSyncItem);
+			 if (!exists) {
+				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+				 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
+				 stored = false;
+			 }
 		 }finally {
 				String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
 				File localPath = new File(anonymizedSessionPath);
@@ -433,6 +471,252 @@ public class XsyncExperimentTransfer {
 		 return stored;
 	}
 
+
+	private boolean lookForSessionAtDestination(XnatSubjectassessordata orig, ExperimentSyncItem expSyncItem) {
+		final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+		final String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		boolean exists = false;
+		try {
+			boolean didXsyncSync = hasExperimentBeenSuccessfullySyncedInThePast(orig.getProject(),expSyncItem.getLocalId(), expSyncItem.getXsiType() );
+			if (!didXsyncSync) {
+				XsyncProjectVerifier projectVerifier = new XsyncProjectVerifier(_manager,_queryResultUtil,_jdbcTemplate, projectSyncConfiguration, _serializer);
+				//TODO - include DICOM UID here
+				final String uri = remoteUrl+"/data/archive/experiments?xnat:imagesessiondata/project=" + remoteProjectId + "&xnat:mrsessiondata/label=" + expSyncItem.getRemoteLabel() + "&format=json" ;
+			    RemoteConnectionResponse response = projectVerifier.get(uri);
+				if (response.wasSuccessful()) {
+					try {
+						JSONUtils jsonUtils = new JSONUtils(_serializer);
+						JsonNode rootNode = jsonUtils.toJSONNode(response.getResponseBody());
+					    JsonNode resultSetNode = rootNode.get("ResultSet");
+					    int totalRecords = resultSetNode.get("totalRecords").asInt();
+					    if (totalRecords == 1) {
+					       JsonNode resultNode = resultSetNode.get("Result");
+					       Iterator<JsonNode> iterator = resultNode.elements();
+					       String remoteId = null;
+					       while (iterator.hasNext()) {
+					            JsonNode expNode = iterator.next();
+					            remoteId = expNode.get("ID").asText();
+					            break;
+					       }
+					       if (remoteId != null) {
+					    	   //Insert the remote id to db
+					    	   expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+					    	   expSyncItem.setMessage("Appears that the session was transferred without using Xsync");
+							   saveSyncDetails(orig.getId(),remoteId,expSyncItem.getSyncStatus(),orig.getXSIType());
+								  exists = true;
+					       }
+					    }
+					}catch(Exception e) {
+						_log.debug(e.getMessage());
+					}
+				}
+				}
+			}catch(Exception e) {
+				_log.debug(e.getMessage());
+			}
+		 return exists;
+	}
+	
+	private void verifySync(String remoteProjectId,ExperimentSyncItem expSyncItem, XnatImagesessiondata orig, XnatSubjectdata remoteSubject, boolean updateSyncAssessor)  {
+		String remote_id=expSyncItem.getRemoteId();
+		final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+
+		//Verify each resource
+		ArrayList<ResourceSyncItem> syncedResources = expSyncItem.getResources();
+		for (ResourceSyncItem rscItem: syncedResources) {
+			if (rscItem.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED)) {
+				verifyResource(orig,expSyncItem,rscItem);
+			}
+		}
+		//Verify each Scan and its resources
+		//Get the remote ImageSession Document
+		try {
+			XsyncProjectVerifier projectVerifier = new XsyncProjectVerifier(_manager,_queryResultUtil,_jdbcTemplate, projectSyncConfiguration, _serializer);
+		    final String uri = remoteUrl+"/data/archive/projects/" + remoteProjectId + "/subjects/" + remoteSubject.getLabel() +  "/experiments/"+ expSyncItem.getRemoteId() +"?format=xml";
+	        RemoteConnectionResponse response = projectVerifier.get(uri);
+	        XnatImagesessiondata remoteImageSession = null;
+			if (response.wasSuccessful()) {
+				String xml = response.getResponseBody();
+				remoteImageSession = readXML(xml);
+				
+			}else {
+				expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
+			}
+			
+			ArrayList<ScanSyncItem> syncedScans = expSyncItem.getScans();
+			for (ScanSyncItem scanItem: syncedScans) {
+				if (scanItem.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED)) {
+					if (remoteImageSession != null) {
+						XnatImagescandata scanFromRemote = remoteImageSession.getScanById(scanItem.getLocalId());
+						if (scanFromRemote != null) {
+							scanItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED);
+							scanItem.setMessage("Experiment " + expSyncItem.getLocalLabel() + " Scan " + scanItem.getLocalLabel() );
+						}
+					}
+					verifyScanResource(orig,expSyncItem,remoteSubject,scanItem);
+					scanItem.updateSyncStatus();
+				}
+			}
+			//Verify Each Assessor and its resources
+			for (ExperimentSyncItem assExpItem : expSyncItem.getAssessors()) {
+				if (remoteImageSession != null) {
+					XnatImageassessordata assessorFromRemote = remoteImageSession.getAssessorById(assExpItem.getRemoteId());
+					if (assessorFromRemote != null) {
+						assExpItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED);
+						saveSyncDetails(assExpItem.getLocalId(),assExpItem.getRemoteId(),XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED,assExpItem.getXsiType());
+					}else {
+						saveSyncDetails(assExpItem.getLocalId(),assExpItem.getRemoteId(),XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,assExpItem.getXsiType());
+					}
+				}
+				verifyAssessorResource(orig,expSyncItem,remoteSubject,assExpItem);
+			}
+			
+		}catch(Exception e) {
+			
+		}finally {
+			expSyncItem.updateSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,"Subject " + localSubject.getLabel() + " experiment " + expSyncItem.getLocalLabel() + " ");
+			WorkFlowUtils wrkFlowUtils = new WorkFlowUtils(_manager,_queryResultUtil,_jdbcTemplate,projectSyncConfiguration);
+			wrkFlowUtils.createWorkflowAtRemote(orig,remote_id,remoteProjectId,expSyncItem.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)?"Complete":expSyncItem.getSyncStatus());
+
+			if (updateSyncAssessor) {
+				try {
+					XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
+					 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
+				} catch(Exception e) {_log.debug("Failed to update sync assessor " + e.getMessage());}
+			 }
+			 saveSyncDetails(orig.getId(),remote_id,expSyncItem.getSyncStatus(),orig.getXSIType());
+		}
+	}
+	
+	private void verifySync(String remoteProjectId,ExperimentSyncItem expSyncItem, XnatSubjectassessordata orig, XnatSubjectdata remoteSubject, boolean updateSyncAssessor) {
+		String remote_id=expSyncItem.getRemoteId();
+		final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+
+		//Verify each resource
+		ArrayList<ResourceSyncItem> syncedResources = expSyncItem.getResources();
+		for (ResourceSyncItem rscItem: syncedResources) {
+			if (rscItem.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED)) {
+				verifyResource(orig,expSyncItem,rscItem);
+			}
+		}
+		
+		expSyncItem.updateSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,"Subject " + localSubject.getLabel() + " experiment " + expSyncItem.getLocalLabel() + " has been synced.");
+		if (updateSyncAssessor) {
+			try {
+			 XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
+			 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
+			}catch(Exception e) {_log.debug("Failed to update sync assessor " + e.getMessage());}
+		 }
+		saveSyncDetails(orig.getId(),remote_id,expSyncItem.getSyncStatus(),expSyncItem.getXsiType());
+	}
+	
+	private XnatImagesessiondata readXML(String xml) throws IOException, SAXException {
+		final SAXReader reader = new SAXReader(user);
+		InputStream is = new ByteArrayInputStream(xml.getBytes());
+        final XFTItem item = reader.parse(is);
+        XnatImagesessiondata imageSessionData =(XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
+        is.close();
+        return imageSessionData;
+
+	}
+	
+    private void verifyResource(XnatSubjectassessordata orig,ExperimentSyncItem expSyncItem,ResourceSyncItem rscItem) {
+        ResourceUtils resourceUtils = new ResourceUtils(projectSyncConfiguration);
+        String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+
+        XsyncProjectVerifier projectResourceVerifier = new XsyncProjectVerifier(_manager,_queryResultUtil,_jdbcTemplate, projectSyncConfiguration, _serializer);
+        String localProjectArchivePath = _localProject.getArchiveRootPath();
+        
+        XnatAbstractresource rsc = null;
+        for (XnatAbstractresourceI r: orig.getResources_resource()) {
+        	if (rsc.getLabel().equals(rscItem.getLocalLabel())) {
+        		rsc = (XnatAbstractresource)r;
+        		break;
+        	}
+        }
+        if (rsc != null) {
+            String rLabel = rsc.getLabel() == null ?  XsyncUtils.RESOURCE_NO_LABEL:rsc.getLabel();
+            String archiveDirectory = rsc.getFullPath(localProjectArchivePath);
+		    final String uri = remoteUrl+"/data/archive/experiments/"+ expSyncItem.getRemoteId() +"/resources/"+rsc.getLabel() + "/files?format=JSON";
+		    Map<String,String> fileComparison;
+		    try {
+			   fileComparison = projectResourceVerifier.verify(archiveDirectory, remoteProjectId , rsc.getLabel(), uri);
+		    }catch(Exception e) {
+	 			fileComparison = new HashMap<String,String>();
+				fileComparison.put(XsyncUtils.XSYNC_VERIFICATION_STATUS, XsyncUtils.XSYNC_VERIFICATION_STATUS_FAILED_TO_CONNECT);
+		    }
+            resourceUtils.setSyncStatus(fileComparison, rscItem, "Experiment " + orig.getLabel() + "  resource " + rLabel);
+        }
+    }
+
+    private void verifyScanResource(XnatImagesessiondata orig,ExperimentSyncItem expSyncItem,XnatSubjectdata remoteSubject, ScanSyncItem scanItem) {
+        ResourceUtils resourceUtils = new ResourceUtils(projectSyncConfiguration);
+        String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+
+        XsyncProjectVerifier projectResourceVerifier = new XsyncProjectVerifier(_manager,_queryResultUtil,_jdbcTemplate, projectSyncConfiguration, _serializer);
+        String localProjectArchivePath = _localProject.getArchiveRootPath();
+        XnatImagescandata scan = orig.getScanById(scanItem.getLocalId());
+        
+        for (ResourceSyncItem rscItem: scanItem.getResources()) {
+            XnatAbstractresource rscAbsRsc = null;
+        	if (rscItem.getSyncStatus() != null && !rscItem.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED)) {
+        		for (XnatAbstractresourceI r: scan.getFile()) {
+        			if (r.getLabel().equals(rscItem.getLocalLabel())) {
+        				rscAbsRsc = (XnatAbstractresource)r;
+    		            String rLabel = rscAbsRsc.getLabel() == null ?  XsyncUtils.RESOURCE_NO_LABEL:rscAbsRsc.getLabel();
+    		            String archiveDirectory = rscAbsRsc.getFullPath(localProjectArchivePath);
+    				    final String uri = remoteUrl+"/data/archive/projects/" + remoteProjectId + "/subjects/" + remoteSubject.getLabel() +  "/experiments/"+ expSyncItem.getRemoteId() +"/scans/"+ scan.getId() + "/resources/"+rscAbsRsc.getLabel() + "/files?format=JSON";
+    				    Map<String,String> fileComparison;
+    				    try {
+        				    fileComparison = projectResourceVerifier.verify(archiveDirectory, remoteProjectId , rscAbsRsc.getLabel(), uri);
+    				    }catch(Exception e) {
+    			 			fileComparison = new HashMap<String,String>();
+    						fileComparison.put(XsyncUtils.XSYNC_VERIFICATION_STATUS, XsyncUtils.XSYNC_VERIFICATION_STATUS_FAILED_TO_CONNECT);
+    				    }
+    		            resourceUtils.setSyncStatus(fileComparison, rscItem, "Experiment " + orig.getLabel() + " Scan " + scanItem.getLocalId() + "  resource " + rLabel);
+        				break;
+        			}
+        		}
+        	}
+        }
+        
+    }
+    
+    private void verifyAssessorResource(XnatImagesessiondata orig,ExperimentSyncItem expSyncItem,XnatSubjectdata remoteSubject, ExperimentSyncItem assItem) {
+        ResourceUtils resourceUtils = new ResourceUtils(projectSyncConfiguration);
+        String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+
+        XsyncProjectVerifier projectResourceVerifier = new XsyncProjectVerifier(_manager,_queryResultUtil,_jdbcTemplate, projectSyncConfiguration, _serializer);
+        String localProjectArchivePath = _localProject.getArchiveRootPath();
+        XnatImageassessordata assessor = orig.getAssessorById(assItem.getLocalId());
+        
+        for (ResourceSyncItem rscItem: assItem.getResources()) {
+            XnatAbstractresource rscAbsRsc = null;
+        	if (rscItem.getSyncStatus() != null && !rscItem.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED)) {
+        		for (XnatAbstractresourceI r: assessor.getResources_resource()) {
+        			if (r.getLabel().equals(rscItem.getLocalLabel())) {
+        				rscAbsRsc = (XnatAbstractresource)r;
+    		            String rLabel = rscAbsRsc.getLabel() == null ?  XsyncUtils.RESOURCE_NO_LABEL:rscAbsRsc.getLabel();
+    		            String archiveDirectory = rscAbsRsc.getFullPath(localProjectArchivePath);
+    				    final String uri = remoteUrl+"/data/archive/projects/" + remoteProjectId + "/subjects/" + remoteSubject.getLabel() +  "/experiments/"+ expSyncItem.getRemoteId() + "/assessors/" + assItem.getRemoteId() +"/resources/"+rscAbsRsc.getLabel() + "/files?format=JSON";
+    				    Map<String,String> fileComparison;
+    				    try {
+        				    fileComparison = projectResourceVerifier.verify(archiveDirectory, remoteProjectId , rscAbsRsc.getLabel(), uri);
+    				    }catch(Exception e) {
+    			 			fileComparison = new HashMap<String,String>();
+    						fileComparison.put(XsyncUtils.XSYNC_VERIFICATION_STATUS, XsyncUtils.XSYNC_VERIFICATION_STATUS_FAILED_TO_CONNECT);
+    				    }
+    		            resourceUtils.setSyncStatus(fileComparison, rscItem, "Experiment " + orig.getLabel() + " Assessor " + assItem.getLocalLabel() + "  resource " + rLabel);
+        				break;
+        			}
+        		}
+        	}
+        }
+        
+    }
 	
 	private void removeAssessors(XnatImagesessiondata target) {
 		while (removeSingleAssessor(target));
@@ -698,8 +982,10 @@ public class XsyncExperimentTransfer {
 
 		private void saveSyncDetails(String local_id, String remote_id,  String syncStatus, String xsiType) {
 			String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+			String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+
 			XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
-			xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType,remoteProjectId);
+			xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType,remoteProjectId, remoteUrl);
 		}
 
 
@@ -756,8 +1042,8 @@ public class XsyncExperimentTransfer {
 					zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
 					RemoteConnectionResponse updateResponse = this.updateImagingSessionResource(target,resource.getLabel(), zipFile);
 					if (updateResponse.wasSuccessful()) {
-						resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
-						resourceSyncItem.setMessage("Exoeriment " + target.getLabel() + " resource " + rLabel + " updated. " );
+                        resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
+                        resourceSyncItem.setMessage("Exoeriment " + target.getLabel() + " resource " + rLabel + " updated. " );
 					}else {
 						resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 						resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " could not be updated. " + updateResponse.getResponseBody() );

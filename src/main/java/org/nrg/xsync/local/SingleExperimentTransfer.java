@@ -164,7 +164,7 @@ public class SingleExperimentTransfer implements Callable<Void> {
         if (exp instanceof XnatSubjectassessordata) {
         	XnatSubjectdata localSubject = ((XnatSubjectassessordata)exp).getSubjectData();
             _log.debug("Exporting " + localSubject.getId());
-            RemoteSubject remoteSubject = new RemoteSubject(_manager, _xnatInfo, _queryResultUtil, (JdbcTemplate) _jdbcTemplate.getJdbcOperations(), localSubject, _projectSyncConfiguration, _user, _syncAll, _observer);
+            RemoteSubject remoteSubject = new RemoteSubject(_manager, _xnatInfo, _queryResultUtil, (JdbcTemplate) _jdbcTemplate.getJdbcOperations(), localSubject, _projectSyncConfiguration, _user, _syncAll, _observer,_serializer);
             remoteSubject.syncExperiment(exp);
         }
     }

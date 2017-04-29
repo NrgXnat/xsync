@@ -36,12 +36,18 @@ public class ExperimentSyncItem extends SyncedItem {
 	
 	public void updateSyncStatus(String status, String msg) {
 		boolean someSyncFailed = false;
+		String childStatus = null;
 		String message = "";
 		if (resources != null && resources.size() > 0) {
 			for (ResourceSyncItem r: resources) {
-				if (r.getSyncStatus()!=null && r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
-					someSyncFailed = true;
-					message += " Resource " + r.getLocalLabel() + " failed to sync. ";
+				if (r.getSyncStatus()!=null) {
+					if (r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
+						someSyncFailed = true;
+						message += " Resource " + r.getLocalLabel() + " failed to sync. ";
+					}else if (!r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+						childStatus = r.getSyncStatus();
+						message += "Resource " + r.getLocalLabel() + " sync needs to be verified. ";
+					}
 				}
 			}
 		}
@@ -49,7 +55,10 @@ public class ExperimentSyncItem extends SyncedItem {
 			for (ScanSyncItem r: scans) {
 				if (r.getSyncStatus() != null && r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
 					someSyncFailed = true;
-					message += " Scan " + r.getLocalLabel() + " failed to sync. ";
+					message += " Scan " + r.getLocalId() + " failed to sync. ";
+				}else if (!r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+					childStatus = r.getSyncStatus();
+					message += "Scan " + r.getLocalId() + " sync needs to be verified. ";
 				}
 			}
 		}
@@ -57,7 +66,10 @@ public class ExperimentSyncItem extends SyncedItem {
 			for (ExperimentSyncItem r: assessors) {
 				if (r.getSyncStatus() != null && r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
 					someSyncFailed = true;
-					message += " Assessor " + r.getLocalLabel() + " failed to sync. ";
+					message += " Assessor " + r.getLocalId() + " failed to sync. ";
+				}else if (!r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+					childStatus = r.getSyncStatus();
+					message += "Assessor " + r.getLocalId() + " sync needs to be verified. ";
 				}
 			}
 		}
@@ -65,8 +77,13 @@ public class ExperimentSyncItem extends SyncedItem {
 			setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 			setMessage("Sync failed. " + message);
 		}else {
-			setSyncStatus(status);
-			setMessage(msg);
+			if (childStatus == null) {
+				setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED);
+				setMessage(msg + " synced");
+			}else {
+				setSyncStatus(childStatus);
+				setMessage(message);
+			}
 		}
 		
 		return;

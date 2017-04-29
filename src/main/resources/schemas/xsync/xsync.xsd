@@ -153,8 +153,8 @@
     			<xs:annotation>
     				<xs:appinfo>
     					<xdat:field baseElement="xsync:xsyncProjectData"
-    						baseCol="source_project_id">
-    						<xdat:sqlField name="source_project_id" uniqueComposite="UNIQ_REMOTE" />
+    						baseCol="source_project_id" uniqueComposite="UNIQ_REMOTE">
+    						<xdat:sqlField name="source_project_id"  />
     					</xdat:field>
     				</xs:appinfo>
     			</xs:annotation>
@@ -189,6 +189,14 @@
 				</xs:appinfo>
 			</xs:annotation>
     		</xs:element>
+    		<xs:element name="remote_host_url" type="xs:string">
+			<xs:annotation>
+				<xs:appinfo>
+					<xdat:field uniqueComposite="UNIQ_REMOTE"/>
+				</xs:appinfo>
+			</xs:annotation>
+    		</xs:element>
+
     	</xs:sequence>
     </xs:complexType>
 </xs:schema>

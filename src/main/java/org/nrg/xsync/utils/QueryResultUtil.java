@@ -350,6 +350,8 @@ public class QueryResultUtil {
 		query += " and pr.local_xnat_id=:LOCAL_XNAT_ID " ;
 		query += " and pr.xsitype=:XSITYPE " ;
 		query += " and pr.remote_project_id=:REMOTE_PROJECT ";
+		query += " and pr.remote_project_id=:REMOTE_URL ";
+
 		return query;
 	}
 

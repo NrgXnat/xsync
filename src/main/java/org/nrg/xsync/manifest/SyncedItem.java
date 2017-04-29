@@ -27,6 +27,7 @@ public abstract class SyncedItem  extends Observable{
 		super();
 		this.localId = localId;
 		this.localLabel = localLabel;
+		message = "";
 	}
 
 	/**

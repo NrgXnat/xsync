@@ -1,4 +1,4 @@
-def pluginVersion = '1.1'
+def pluginVersion = '1.2'
 
 group 'org.nrg.xsync'
 version pluginVersion

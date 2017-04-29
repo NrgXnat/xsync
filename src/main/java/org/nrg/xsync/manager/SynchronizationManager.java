@@ -82,7 +82,7 @@ public class SynchronizationManager {
 			XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
 			syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
 			if (manifest.wasSyncSuccessfull()) {
-				syncProjectConfiguration.getSyncinfo().setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED);
+				syncProjectConfiguration.getSyncinfo().setSyncStatus(manifest.getOverAllSyncStatusWhenSucessfull());
 				syncProjectConfiguration.getSyncinfo().setSyncEndTime(now);
 			} else {
 				syncProjectConfiguration.getSyncinfo().setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
