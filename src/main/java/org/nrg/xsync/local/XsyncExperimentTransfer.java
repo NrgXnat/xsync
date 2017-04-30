@@ -60,6 +60,7 @@ import org.nrg.xsync.utils.XsyncUtils;
 import org.restlet.data.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.xml.sax.SAXException;
 
@@ -444,17 +445,23 @@ public class XsyncExperimentTransfer {
 					 }
 					 verifySync(remoteProjectId,expSyncItem, orig, targetsubject,updateSyncAssessor);
 				 }
+			 }else if (connectionResponse.getResponse().getStatusCode().value() == HttpStatus.INTERNAL_SERVER_ERROR.value()) { //Internal server error 
+				 //Did we get a 500 - Duplicate Error?
+				 //Check if the session exists at the remote site
+				 boolean exists = lookForSessionAtDestination(orig,expSyncItem);
+				 if (!exists) {
+					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. ");
+					 stored = false;
+				 }else {
+					 stored = true; //Found at the remote site. Skipped to sync
+				 }
 			 }
 		 }catch(Exception e) {
 			 _log.error(e.getMessage());
-			 //Did we get a 500 - Duplicate Error?
-			 //Check if the session exists at the remote site
-			 boolean exists = lookForSessionAtDestination(orig,expSyncItem);
-			 if (!exists) {
-				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-				 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
-				 stored = false;
-			 }
+			 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
+			 stored = false;
 		 }finally {
 				String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
 				File localPath = new File(anonymizedSessionPath);
