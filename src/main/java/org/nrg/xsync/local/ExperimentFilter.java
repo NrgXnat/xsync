@@ -3,8 +3,11 @@ package org.nrg.xsync.local;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +30,7 @@ import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatResourceseries;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
+import org.nrg.xdat.om.XsyncXsyncassessordata;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
 import org.nrg.xft.ItemI;
 import org.nrg.xft.XFTItem;
@@ -385,14 +389,51 @@ public class ExperimentFilter {
 
 	}
 	
-	private boolean hasResourceBeenModified(XnatAbstractresource resource) throws Exception{
-		boolean modified = false;
-		Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
-		ResourceFilter resourceFilter = new ResourceFilter(_user,_jdbcTemplate,_queryResultUtil);
-			if (resourceFilter.hasResourceBeenModified(resource, syncEndDate)) {
-				modified = true;
+	private boolean hasResourceBeenModified(XnatAbstractresource resource, String exptId) throws Exception{
+		final ArrayList<XsyncXsyncassessordata> assessors = XsyncXsyncassessordata.getXsyncXsyncassessordatasByField("xsync:xsyncAssessorData/synced_experiment_id", exptId, _user, true);
+		if (assessors ==null || assessors.size()<1) {
+			return true;
+		}
+		// We would only want skip sending files if we had a successful send to the remote project.
+		final Iterator<XsyncXsyncassessordata> i = assessors.iterator();
+		while (i.hasNext()) {
+			final XsyncXsyncassessordata a = i.next();
+			if (a.getSyncStatus()==null || !a.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED) ||
+					a.getRemoteProjectId()==null ||
+					!a.getRemoteProjectId().equals(projectSyncConfiguration.getSynchronizationConfiguration().getRemote_project_id()) ||
+					a.getRemoteUrl()==null ||
+					!a.getRemoteUrl().equals(projectSyncConfiguration.getSynchronizationConfiguration().getRemote_url())) {
+				i.remove();
 			}
-		return modified;
+		}
+		if (assessors.isEmpty()) {
+			return true;
+		}
+		Collections.sort(assessors,new Comparator<XsyncXsyncassessordata>(){
+			@Override
+			public int compare(XsyncXsyncassessordata a0, XsyncXsyncassessordata a1) {
+				Date a0d = (a0.getSyncTime() instanceof Date) ? (Date)a0.getSyncTime() : null;
+				Date a1d = (a1.getSyncTime() instanceof Date) ? (Date)a1.getSyncTime() : null;
+				if (a0d!=null && a1d!=null) {
+					return ((Date)a1.getSyncTime()).compareTo((Date)a0.getSyncTime());
+				} else if (a0d!=null) {
+					return 1;
+				} else if (a1d!=null) {
+					return -1;
+				} 
+				return 0;
+			}
+		});
+		final XsyncXsyncassessordata syncAssessor = assessors.get(0); 
+		final Date syncTime = (syncAssessor.getSyncTime() instanceof Date) ? (Date)syncAssessor.getSyncTime() : null;
+		if (syncTime==null) {
+			return true;
+		}
+		final ResourceFilter resourceFilter = new ResourceFilter(_user,_jdbcTemplate,_queryResultUtil);
+		if (!resourceFilter.hasResourceBeenModified(resource, syncTime)) {
+			return false;
+		}
+		return true;
 	}
 	
 	/**
@@ -420,7 +461,7 @@ public class ExperimentFilter {
 		String filepath = orig.getArchiveRootPath() + "arc001/";// +
 		// orig.getArchiveDirectoryName();
 		String newFilepath = SynchronizationManager.GET_SYNC_FILE_PATH(orig.getProject(),orig);
-		boolean hasResourceBeenModified = hasResourceBeenModified((XnatAbstractresource)resource);
+		boolean hasResourceBeenModified = hasResourceBeenModified((XnatAbstractresource)resource, orig.getId());
 		
 		if (resource instanceof XnatResource) {
 			String path = ((XnatResource) resource).getUri();
