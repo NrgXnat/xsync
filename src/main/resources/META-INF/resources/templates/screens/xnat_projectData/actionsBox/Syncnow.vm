@@ -121,7 +121,7 @@
 			return "<h3>Sync has not run for this project since the last restart of the web server.</h3>";
 		} else if (data.syncing) {
 			return "<table style='font-size:15px;line-height:20px'>" + 
-			 	"<tr><td><b>Current Status: </b></td><td><b><span style='color:#22BB22'>Sync in progress</span></b></td></tr>" + 
+			 	"<tr><td><b>Current Status: </b></td><td><b><span style='color:#22AA22'>Sync in progress</span></b></td></tr>" + 
 			 	"<tr><td>Sync Type: </td><td>" + data.syncType + "</td></tr>" + 
 			 	"<tr><td>Sync Start Time: </td><td>" + data.syncStartTime + "</td></tr>" + 
 			 	"<tr><td>Current Subject: </td><td>" + ((typeof data.currentSubject!=='undefined') ? data.currentSubject : "") + "</td></tr>" + 
@@ -136,7 +136,7 @@
 		} else {
 			var historyUrl = "/xapi/xsync/history/" + data.historyId + "?format=json";
 			return "<table style='font-size:15px;line-height:20px'>" + 
-			 	"<tr><td><b>Current Status: </b></td><td><b><span style='color:#FF2222'>Not Syncing</span></b></td></tr>" + 
+			 	"<tr><td><b>Current Status: </b></td><td><b>Not Syncing</b></td></tr>" + 
 			 	"<tr><td>Last Sync Result: </td><td>" + ((data.wasSyncSuccessful) ? "Successful" : "Failed") + "</td></tr>" + 
 			 	"<tr><td>Last Sync Type: </td><td>" + data.syncType + "</td></tr>" + 
 			 	"<tr><td>Last Sync Start: </td><td>" + data.syncStartTime + "</td></tr>" + 
