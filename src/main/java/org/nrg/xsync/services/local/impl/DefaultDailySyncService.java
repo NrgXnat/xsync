@@ -11,6 +11,7 @@ import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
+import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.services.local.AbstractSyncService;
 import org.nrg.xsync.services.local.DailySyncService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
@@ -30,8 +31,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class DefaultDailySyncService extends AbstractSyncService implements DailySyncService {
 	@Autowired
-	public DefaultDailySyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService, final CatalogService catalogService,final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil, final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean) {
-		super(manager, configService, mailService, catalogService,serializer, jdbcTemplate, queryResultUtil, xnatInfo, executorFactoryBean);
+	public DefaultDailySyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService,
+			final CatalogService catalogService,final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil,
+			final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean, SyncStatusService syncStatusService) {
+		super(manager, configService, mailService, catalogService,serializer, jdbcTemplate, queryResultUtil, xnatInfo, executorFactoryBean, syncStatusService);
 	}
 
 	@Override

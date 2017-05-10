@@ -49,6 +49,7 @@ import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.ScanSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
+import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncObserver;
 import org.nrg.xsync.tools.XsyncXnatInfo;
@@ -85,9 +86,12 @@ public class RemoteSubject {
 	private List<XnatAbstractresource> subjectResourcesToBeVerified = new ArrayList<XnatAbstractresource>();
 	private XnatProjectdata localProject;
     private final SerializerService          _serializer;
+	private final SyncStatusService _syncStatusService;
 
 	
-	public RemoteSubject(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate, XnatSubjectdataI localSubject, ProjectSyncConfiguration projectSyncConfiguration, UserI user, boolean syncAll, XsyncObserver observer, SerializerService serializer) {
+	public RemoteSubject(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil,
+			final JdbcTemplate jdbcTemplate, XnatSubjectdataI localSubject, ProjectSyncConfiguration projectSyncConfiguration,
+			UserI user, boolean syncAll, XsyncObserver observer, SerializerService serializer, SyncStatusService syncStatusService) {
 		this.localSubject = localSubject;
 		this.user = user;
 		this.projectSyncConfiguration = projectSyncConfiguration; 
@@ -100,6 +104,7 @@ public class RemoteSubject {
 		_queryResultUtil = queryResultUtil;
 		localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
 		_serializer = serializer;
+		_syncStatusService = syncStatusService;
 	}
 	
 	
@@ -110,6 +115,7 @@ public class RemoteSubject {
 
 	public void syncExperiment(XnatExperimentdata experiment) throws Exception {
 		XnatSubjectdata remoteSubject = null;
+		//_syncStatusService.registerCurrentExperiment(localProject.getId(), experiment.getLabel(), experiment.getXSIType());
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
 
 		try {
@@ -117,10 +123,12 @@ public class RemoteSubject {
 			String subject_remote_id = remoteSubject.getId();
 			if (subject_remote_id != null) {
 				pushExperiment(experiment,remoteSubject, false);
+				//_syncStatusService.registerCompletedExperiment(localProject.getId(), experiment.getLabel(), experiment.getXSIType());
 				subjectSyncInfo.stateChanged();
 			}	
 		}catch(Exception e) {
 			_log.error("Error syncing subject " + remoteSubject.getLabel() + "  " + e.getMessage());
+			//_syncStatusService.registerFailedExperiment(localProject.getId(), experiment.getLabel(), experiment.getXSIType());
 			XSyncFailureHandler.handle(localSubject.getProject(),localSubject.getId(),localSubject.getXSIType(),idMapper.getRemoteAccessionId(this.localSubject.getId()), subjectSyncInfo, e);
 			throw e;
 		}
@@ -478,7 +486,8 @@ public class RemoteSubject {
 	}
 	
 	private void pushExperiment(XnatExperimentdataI assess, XnatSubjectdataI remoteSubject, boolean syncIfNotSyncedInPast) throws Exception {
-		XsyncExperimentTransfer syncExptransfer = new XsyncExperimentTransfer(_manager,_xnatInfo, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration, user, subjectSyncInfo, localSubject, _serializer, localProject, syncIfNotSyncedInPast);
+		XsyncExperimentTransfer syncExptransfer = new XsyncExperimentTransfer(_manager,_xnatInfo, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration, user,
+					subjectSyncInfo, localSubject, _serializer, _syncStatusService, localProject, syncIfNotSyncedInPast);
 		syncExptransfer.syncExperiment(assess, remoteSubject);
 
 	}

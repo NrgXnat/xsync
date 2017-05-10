@@ -61,14 +61,80 @@ function setOkToSync(projectId,xnat_id, exp_label) {
 	});
 };
 
-	function ajaxCallFailed(o) {
-		xmodal.loading.close();
-		if (!window.leaving) {
-			//alert(o.status + " " + o.statusText + " " +  o.responseText);
-		    	xModalMessage('Unable to mark experiment as Ok to sync', 'Unable to mark experiment as Ok to sync');
-		}
+function ajaxCallFailed(o) {
+	xmodal.loading.close();
+	if (!window.leaving) {
+		//alert(o.status + " " + o.statusText + " " +  o.responseText);
+	    	xModalMessage('Unable to mark experiment as Ok to sync', 'Unable to mark experiment as Ok to sync');
+	}
+}
 
-	};
+function manualSync(projectId,xnat_id, exp_label) {
+	var syncurl = serverRoot + '/xapi/xsync/syncexperiment/'+xnat_id+'?XNAT_CSRF='+csrfToken ;
+	xmodal.confirm({
+		title: 'Confirm Manual Sync',
+		width: '500px',
+		height: '300px',
+		content:  'Click "OK" to begin synchronization. &nbsp;Please note warnings below.<br><br><b>Note that this could block other sync operations, as multiple concurrent sync processes are not allowed. &nbsp;' +
+				' Use the <em>Mark Session for Sync</em> button to request sync as part of the standard project sync process.</b><br><br><b>Note also that this may cause ' +
+				'loss of data on the remote side as any current session will be overwritten</b>.',
+		okAction: function() {
+					$.ajax({
+					  url:syncurl,
+					  type:"POST",
+					  success: function(data){
+							xmodal.alert({
+									title: 'Data Synchronization',
+									content: "Sync request for this experiment (" + exp_label + ") has been sent." ,
+									label: 'OK'
+								});
+					  
+					  },
+					  error: function(data){
+							xmodal.loading.close();
+							if (!window.leaving) {
+								if (data.status == "423") {
+							 		xModalMessage('Manual sync failed','Another sync operation is running.  Please try again later');
+								} else {
+							 		xModalMessage('Manual sync failed','Unable to sync session ' + exp_label + '.  (' + data.statusText + ')');
+								}
+							}
+					  }
+					})
+		}
+	});
+};
+
+function requestSync(projectId,xnat_id, exp_label) {
+	var syncurl = serverRoot + '/xapi/xsync/requestSync/'+xnat_id+'?XNAT_CSRF='+csrfToken ;
+	xmodal.confirm({
+		width: '500px',
+		height: '250px',
+		title: 'Request Manual Sync',
+		content:  'Click "OK" to mark this session for syncing. &nbsp;Please note warning below.  ' + 
+				'<br><br><b>Note that this may cause loss of data on the remote side as any current session will be overwritten</b>.',
+		okAction: function() {
+					$.ajax({
+					  url:syncurl,
+					  type:"POST",
+					  success: function(data){
+							xmodal.alert({
+									title: 'Data Synchronization',
+									content: "Session (" + exp_label + ") has been marked to sync." ,
+									label: 'OK'
+								});
+					  
+					  },
+					  error: function(data){
+							xmodal.loading.close();
+							if (!window.leaving) {
+							 	xModalMessage('Sync request failed','Unable to mark session ' + exp_label + ' to sync.  (' + data.statusText + ')');
+							}
+					  }
+					})
+		}
+	});
+};
 
 </script>
 
@@ -107,6 +173,14 @@ function setOkToSync(projectId,xnat_id, exp_label) {
 	<tr> 
 	<th align="left">Remote Session report:</th>
 	<td>#if ($syncAssessor.getSyncStatus() == "Waiting to Sync") Not available #else <a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a>#end </td>
+	</tr>
+	<tr> 
+	<th align="left"><input type="button" title="Initiate sync process for this session.  Note that this could block other sync processes."
+					 value="Sync This Session Now" onclick="javascript:manualSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');"></th>
+	<td>
+			<input type="button" title="Request this session to be synced as part of the next sync operation"
+					 value="Mark Session for Sync" onclick="javascript:requestSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');">
+	</td>
 	</tr>
 	#end
 	</table>

@@ -41,6 +41,7 @@ import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
 import org.nrg.xsync.exception.XsyncCredentialsRequiredException;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
 import org.nrg.xsync.manager.SynchronizationManager;
+import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -78,6 +79,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     private final CatalogService 	         _catalogService;
     private final XsyncXnatInfo              _xnatInfo;
     private final NamedParameterJdbcTemplate _jdbcTemplate;
+    private final SyncStatusService 		 _syncStatusService;
 
     @Autowired
     public XsyncOperationsController(final RemoteConnectionManager manager,
@@ -89,7 +91,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                                      final XsyncXnatInfo xnatInfo, final SerializerService serializer,
                                      final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate,
                                      final Map<String, HttpMessageConverter<?>> converters,
-                                     final ExecutorService executorService) {
+                                     final ExecutorService executorService,
+                                     final SyncStatusService syncStatusService) {
         super(userManagementService, roleHolder);
         _configService = configService;
         _mailService = mailService;
@@ -99,6 +102,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         _queryResultUtil = queryResultUtil;
         _jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         _converters = new ArrayList<>(converters.values());
+        _syncStatusService = syncStatusService;
         if (!converters.containsKey("stringHttpMessageConverter")) {
             _converters.add(new StringHttpMessageConverter());
         }
@@ -123,7 +127,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                 _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
             }
         }
-    	final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, projectId, getSessionUser());
+    	final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, getSessionUser());
         _executorService.submit(projectChange);
         if (_log.isInfoEnabled()) {
             _log.info("Project " + projectId + " is being exported by " + getSessionUser().getUsername());
@@ -158,59 +162,16 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                 _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
             }
         }
-    	final SingleExperimentTransfer singleExperimentTransfer = new SingleExperimentTransfer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, projectId, user, exp.getId());
+    	if (_syncStatusService.isCurrentlySyncing(projectId)) {
+    		return new ResponseEntity<>(HttpStatus.LOCKED);
+    	}
+    	final SingleExperimentTransfer singleExperimentTransfer = new SingleExperimentTransfer(_manager, _configService, _serializer,
+    			_queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, user, exp.getId());
         _executorService.submit(singleExperimentTransfer);
         if (_log.isInfoEnabled()) {
             _log.info("Experiment[ " + exp.getLabel() + "@" + projectId +"]" + experimentId + " is being exported by " + getSessionUser().getUsername());
         }
         return new ResponseEntity<>(experimentId + " synchronization started", HttpStatus.OK);
-    }
-    
-
-    @ApiOperation(value = "Clears the Sync Blocked Status", notes = "Clears the projects block status")
-    @ApiResponses({@ApiResponse(code = 200, message = "The project was unblocked"), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to  unblock the indicated project."), @ApiResponse(code = 404, message = "Project not configured to sync yet."),@ApiResponse(code = 500, message = "Unexpected error")})
-    @RequestMapping(value = "/unblock/{projectId}",  method = RequestMethod.POST)
-    @ResponseBody
-    public ResponseEntity<String> unblock(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
-        final UserI user = getSessionUser();
-    	try {
-        	final HttpStatus status = canEditProject(projectId);
-            if (status != null) {
-                return new ResponseEntity<>(status);
-            }
-        }catch(Exception e) {
-            if (_log.isInfoEnabled()) {
-                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
-            }
-        }
-
-        final List<XsyncXsyncprojectdata> syncProjectDatas = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/source_project_id",projectId, user, true);
-        final XsyncXsyncprojectdata syncProjectData;
-
-        try {
-            if (syncProjectDatas != null && syncProjectDatas.size() > 0) {
-            	syncProjectData = syncProjectDatas.get(0);
-                if (syncProjectData != null) {
-                	if (syncProjectData.getSyncBlocked()) {
-	                		syncProjectData.setSyncBlocked(new Boolean(false));
-	                    //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
-	                    EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
-	                    boolean saved = syncProjectData.save(user, false, true, c);
-	                    if (!saved) {
-	                        return new ResponseEntity<>("Unable to save Project Sync Block Information", HttpStatus.INTERNAL_SERVER_ERROR);
-	                    }
-                	}else {
-                        return new ResponseEntity<>(projectId + " sync block was already unblocked ", HttpStatus.OK);
-                	}
-                }
-                return new ResponseEntity<>(projectId + " sync block has been unblock ", HttpStatus.OK);
-            }else 
-                return new ResponseEntity<>("Unable to find Project Sync Information", HttpStatus.NOT_FOUND);
-        }catch (Exception e) {
-            final String message = "An error occurred trying to unblock the project " + projectId;
-            _log.error(message, e);
-            return new ResponseEntity<>(message + ": " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
     }
     
     @ApiOperation(value = "Sets OK to Sync Status for the experiment.", notes = "Sets OK to Sync Status for the experiment.", response = String.class)
@@ -260,6 +221,57 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                 }
             }
             return new ResponseEntity<>(experimentId + " has been marked " + (okToSync ? "OK" : "Not OK") + " to sync", HttpStatus.OK);
+        } catch (Exception e) {
+            final String message = "An error occurred trying to export the experiment " + experimentId;
+            _log.error(message, e);
+            return new ResponseEntity<>(message + ": " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    @ApiOperation(value = "Mark session for sync.", notes = "Marks experiment to be synced.", response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
+    @RequestMapping(value = "/requestSync/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
+    @ResponseBody
+    public ResponseEntity<String> markForSync(@PathVariable("experimentId") final String experimentId) throws URISyntaxException, XsyncNotConfiguredException {
+        //If the OkToSync Assessor already exists, update that
+        //If it does not exist, create one.
+        final UserI user = getSessionUser();
+    	try {
+            final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
+        	final HttpStatus status = canEditProject(experiment.getProject());
+            if (status != null) {
+                return new ResponseEntity<>(status);
+            }
+        }catch(Exception e) {
+            if (_log.isInfoEnabled()) {
+                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
+            }
+        }
+
+        final List<XsyncXsyncassessordata> syncAssessors = XsyncXsyncassessordata.getXsyncXsyncassessordatasByField("xsync:xsyncAssessorData/synced_experiment_id", experimentId, user, true);
+
+        final XsyncXsyncassessordata syncAssessor;
+
+        try {
+            final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
+        	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
+        	if (syncAssessors != null && syncAssessors.size() > 0) {
+                syncAssessor = syncAssessors.get(0);
+                syncAssessor.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNC_REQUESTED);
+                syncAssessor.setRemoteUrl(syncProjectConfiguration.getSyncinfo().getRemoteUrl());
+                syncAssessor.setRemoteProjectId(syncProjectConfiguration.getSyncinfo().getRemoteProjectId());
+            } else {
+                syncAssessor = createNewXsyncassessor(experimentId, true, user);
+            }
+            if (syncAssessor != null) {
+                //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
+                EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
+                boolean saved = syncAssessor.save(user, false, true, c);
+                if (!saved) {
+                    return new ResponseEntity<>("Unable to save the sync assessor Information", HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            }
+            return new ResponseEntity<>(experimentId + " has been marked to sync.", HttpStatus.OK);
         } catch (Exception e) {
             final String message = "An error occurred trying to export the experiment " + experimentId;
             _log.error(message, e);

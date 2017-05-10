@@ -191,8 +191,9 @@ public class ExperimentFilter {
 				 query = _queryResultUtil.getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync();
 				 boolean syncOnlyNew = projectSyncConfiguration.isSetToSyncNewOnly();
 				 if (syncOnlyNew) {
-					//Never synced before
-					 query += " and xok.sync_status='"+XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC+"'"; 
+					//Never synced before or sync requested
+					 query += " and (xok.sync_status='"+XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC+"'"; 
+					 query += " or xok.sync_status='"+XsyncUtils.SYNC_STATUS_SYNC_REQUESTED+"')"; 
 				 }
 					//Columns
 					// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
@@ -205,7 +206,8 @@ public class ExperimentFilter {
 							String existingSyncStatus = (String)row.get("sync_status");
 							boolean hasBeenSynced = false;
 							if (existingSyncStatus != null)  {
-								if (!XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC.equals(existingSyncStatus))
+								if (!(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC.equals(existingSyncStatus) ||
+										XsyncUtils.SYNC_STATUS_SYNC_REQUESTED.equals(existingSyncStatus)))
 									hasBeenSynced = true;
 							}
 								

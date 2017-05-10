@@ -31,7 +31,7 @@ import org.springframework.context.annotation.ComponentScan;
 			},
 			entityPackages = {"org.nrg.xsync.remote.alias", "org.nrg.xsync.manifest"})
 @ComponentScan({
-	"org.nrg.xsync.component",
+	"org.nrg.xsync.components",
 	"org.nrg.xsync.scheduler",
 	"org.nrg.xsync.services",
 	"org.nrg.xsync.services.local",

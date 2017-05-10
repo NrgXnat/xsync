@@ -32,7 +32,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  */
 @SuppressWarnings("unused")
 public class ProjectSyncConfiguration {
-    public ProjectSyncConfiguration(final ConfigService configService, final SerializerService serializer, final JdbcTemplate jdbcTemplate, final String projectId, final UserI user) throws XsyncNotConfiguredException {
+    public ProjectSyncConfiguration(final ConfigService configService, final SerializerService serializer, final JdbcTemplate jdbcTemplate,
+    		final String projectId, final UserI user) throws XsyncNotConfiguredException {
         _user = user;
         _project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
         _configService = configService;

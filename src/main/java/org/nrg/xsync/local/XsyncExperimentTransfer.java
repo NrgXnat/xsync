@@ -48,6 +48,7 @@ import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.ScanSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
+import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncURIUtils;
 import org.nrg.xsync.tools.XsyncXnatInfo;
@@ -84,10 +85,11 @@ public class XsyncExperimentTransfer {
 	private final QueryResultUtil _queryResultUtil;
 	private XnatSubjectdataI localSubject;
     private final SerializerService          _serializer;
+	private final SyncStatusService _syncStatusService;
     private final XnatProjectdata _localProject;
     private final boolean _syncIfNotSyncedInPast;
-	
-	public XsyncExperimentTransfer(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil,  NamedParameterJdbcTemplate jdbcTemplate,  ProjectSyncConfiguration projectSyncConfiguration, UserI user,SubjectSyncItem subjectSyncInfo,XnatSubjectdataI localSubject, SerializerService serializer, XnatProjectdata localProject, boolean syncIfNotSyncedInPast) {
+
+	public XsyncExperimentTransfer(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil,  NamedParameterJdbcTemplate jdbcTemplate,  ProjectSyncConfiguration projectSyncConfiguration, UserI user,SubjectSyncItem subjectSyncInfo,XnatSubjectdataI localSubject, SerializerService serializer, SyncStatusService syncStatusService, XnatProjectdata localProject, boolean syncIfNotSyncedInPast) {
 		this.user = user;
 		this.subjectSyncInfo = subjectSyncInfo;
 		this.localSubject = localSubject;
@@ -97,6 +99,7 @@ public class XsyncExperimentTransfer {
 		_xnatInfo = xnatInfo;
 		_queryResultUtil = queryResultUtil;
 		_serializer = serializer;
+		_syncStatusService = syncStatusService;
 		_localProject = localProject;
 		_syncIfNotSyncedInPast = syncIfNotSyncedInPast;
 	}
@@ -241,6 +244,7 @@ public class XsyncExperimentTransfer {
 	
 	private boolean storeAssessor(String origId, XnatSubjectassessordata orig, XnatSubjectdata remotesubject, XnatSubjectassessordata assessor, boolean updateSyncAssessor) {
 		 boolean stored = false;
+		 _syncStatusService.registerCurrentExperiment(_localProject.getId(), assessor.getLabel(), assessor.getXSIType());
 		 String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 		 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
 		 expSyncItem.setXsiType(orig.getXSIType());
@@ -292,12 +296,14 @@ public class XsyncExperimentTransfer {
 					}
 				}
 				 verifySync(remoteProjectId,expSyncItem, orig, remotesubject,updateSyncAssessor);
+				 _syncStatusService.registerCompletedExperiment(_localProject.getId(), assessor.getLabel(), assessor.getXSIType());
 			 }
 		 }catch(Exception e) {
 			 _log.debug("Unable to store assessor " + assessor.getLabel() + " " + e.getLocalizedMessage());
 			 //Did we get a 500 - Duplicate Error?
 			 //Check if the session exists at the remote site
 			 boolean exists = lookForSessionAtDestination(orig,expSyncItem);
+			 _syncStatusService.registerFailedExperiment(_localProject.getId(), assessor.getLabel(), assessor.getXSIType());
 			 if (!exists) {
 				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 				 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
@@ -311,6 +317,7 @@ public class XsyncExperimentTransfer {
 
 	private boolean storeXar( XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor) throws XsyncRemoteConnectionException{
 		 boolean stored = false;
+		 _syncStatusService.registerCurrentExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 		 final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 		 final String remoteProjectId = targetproject;
 		 final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
@@ -444,12 +451,14 @@ public class XsyncExperimentTransfer {
 						 }
 					 }
 					 verifySync(remoteProjectId,expSyncItem, orig, targetsubject,updateSyncAssessor);
+					 _syncStatusService.registerCompletedExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 				 }
 			 }else if (connectionResponse.getResponse().getStatusCode().value() == HttpStatus.INTERNAL_SERVER_ERROR.value()) { //Internal server error 
 				 //Did we get a 500 - Duplicate Error?
 				 //Check if the session exists at the remote site
 				 boolean exists = lookForSessionAtDestination(orig,expSyncItem);
 				 if (!exists) {
+					 _syncStatusService.registerFailedExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 					 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 					 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. ");
 					 stored = false;
@@ -459,6 +468,7 @@ public class XsyncExperimentTransfer {
 			 }
 		 }catch(Exception e) {
 			 _log.error(e.getMessage());
+			 _syncStatusService.registerFailedExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 			 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
 			 stored = false;

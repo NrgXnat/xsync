@@ -19,6 +19,7 @@ import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
+import org.nrg.xsync.components.SyncStatusHolder.SyncType;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -30,12 +31,12 @@ import org.nrg.xsync.local.RemoteSubject;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
+import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncObserver;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.ResourceUtils;
-import org.nrg.xsync.utils.SyncStatusUpdater;
 import org.nrg.xsync.utils.XSyncFailureHandler;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -73,9 +74,13 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     // TODO:  This parameter should be configurable
     private final Integer 					 MAX_FAILURES = 5;
     private XnatProjectdata 			 localProject;
-    private List<XnatAbstractresource> projectResourcesToVerify = new ArrayList<XnatAbstractresource>();
+    private final List<XnatAbstractresource> projectResourcesToVerify = new ArrayList<XnatAbstractresource>();
+	private final SyncStatusService _syncStatusService;
     
-    public ProjectChangeDiscoverer(final RemoteConnectionManager manager, final ConfigService configService, final SerializerService serializer, final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, final MailService mailService, final CatalogService catalogService, final XsyncXnatInfo xnatInfo, final String projectId, final UserI user) throws XsyncNotConfiguredException {
+    public ProjectChangeDiscoverer(final RemoteConnectionManager manager, final ConfigService configService, final SerializerService serializer,
+    		final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, final MailService mailService,
+    		final CatalogService catalogService, final XsyncXnatInfo xnatInfo, SyncStatusService syncStatusService,
+    		final String projectId, final UserI user) throws XsyncNotConfiguredException {
         _manager = manager;
         _mailService = mailService;
         _queryResultUtil = queryResultUtil;
@@ -88,6 +93,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         _parameters = new MapSqlParameterSource("project", _projectId);
         _projectSyncConfiguration = new ProjectSyncConfiguration(configService, serializer, (JdbcTemplate) jdbcTemplate.getJdbcOperations(), _projectId, _user);
         _syncAll = !_projectSyncConfiguration.isSetToSyncNewOnly();
+        _syncStatusService = syncStatusService;
         localProject=null;
     }
 
@@ -113,25 +119,31 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         localProject = XnatProjectdata.getXnatProjectdatasById(_projectId, _user, false);
 
     	XnatProjectdata project = null;
-    	SyncStatusUpdater syncStatusUpdater = new SyncStatusUpdater(_projectId, _projectSyncConfiguration, _user);
+    	//SyncStatusUpdater syncStatusUpdater = new SyncStatusUpdater(_projectId, _projectSyncConfiguration, _user);
     	try {
-            Boolean isSyncEnabled = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncEnabled();
+            final Boolean isSyncEnabled = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncEnabled();
             if (!isSyncEnabled) {
                 return;
             }
-            Boolean isSyncBlocked = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncBlocked();
+            //Boolean isSyncBlocked = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncBlocked();
+            final Boolean isSyncBlocked = _syncStatusService.isCurrentlySyncing(_projectId);
             if (isSyncBlocked != null && isSyncBlocked) {
                 try {
                     System.out.println("Sync is blocked ");
                     _mailService.sendHtmlMessage(_xnatInfo.getAdminEmail(), _user.getEmail(), "Project " + _projectId + " sync skipped ",
-                                                          "<html><body><p>Project " + _projectId + " sync skipped </p></body></html>");
+                                                          "<html><body>"
+                                                        		  + "<p>Sync was skipped.  See information below:</p>"
+                                                        		  + "<p>PROJECT: " + _projectId + "</p>"
+                                                        		  + "<p>SITE: " + _manager.getSiteId() + "</p>"
+                                                        		  + "<p>USER: " + _user.getLogin() + "</p>"
+                                                          		+ "</body></html>");
                     _log.debug("Sync Blocked");
                 } catch (Exception e) {
                     _log.error("Failed to send email.", e);
                 }
                 return;
             }
-            syncStatusUpdater.saveSyncBlockStatus(Boolean.TRUE);
+            //syncStatusUpdater.saveSyncBlockStatus(Boolean.TRUE);
             project = _projectSyncConfiguration.getProject();
             synchronizationResource = XsyncFileUtils.createSynchronizationLogResource(project,_user);
             String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
@@ -142,6 +154,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             //Out of the list of those that are gathered to be synced. Check if they have already been synced.
             
             SynchronizationManager.BEGIN_SYNC(_manager.getSyncManifestService(), _xnatInfo, project.getId(), remoteProjectId, remoteHost, _user, _mailService);
+            _syncStatusService.registerSyncStart(_projectId,SyncType.PROJECT_SYNC,SynchronizationManager.getProjectManifest(project.getId()));
     		_observer  = new XsyncObserver(_projectId);
             syncProjectResources();
             List<Map<String, Object>> subjectRows = getSubjectsModifiedSinceLastSync();
@@ -150,17 +163,24 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                 subjectIds.add((String) row.get("id"));
             }
             int failCount = 0;
+            _syncStatusService.registerInitialSubjectList(_projectId, subjectIds);
             for (Map<String, Object> row : subjectRows) {
+                _syncStatusService.registerCurrentSubject(_projectId, row.get("id").toString());
                 _log.debug("Subject " + row.get("id") + " has been modfied since " + this.getLastSyncStartTime());
+                String subjectLabel = null;
                 try {
                 	XnatSubjectdata localSubject = XnatSubjectdata.getXnatSubjectdatasById(row.get("id"), _user, true);
+                	subjectLabel = localSubject.getLabel();
+                	_syncStatusService.registerCurrentSubject(_projectId, localSubject.getLabel());
                 	if (localSubject == null) {
                 		//Local Subject has been deleted; Delete the remote subject
                 		deleteSubject((String) row.get("id"), (String) row.get("label"));
                 	} else {
                 		syncSubject(localSubject);
                 	}
+                	_syncStatusService.registerCompletedSubject(_projectId, localSubject.getLabel());
                 } catch (Exception e) {
+                	_syncStatusService.registerFailedSubject(_projectId, (subjectLabel!=null) ? subjectLabel : row.get("id").toString());
                 	failCount++;
                 	if (failCount>MAX_FAILURES) {
                 		throw e;
@@ -187,13 +207,20 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             verifyProjectResources();
             //Save into the DB the starttime and end-time
             //Clear the time logs
-            syncStatusUpdater.saveSyncBlockStatus(Boolean.FALSE);
+            //syncStatusUpdater.saveSyncBlockStatus(Boolean.FALSE);
             SynchronizationManager.END_SYNC(_serializer, project.getId(), _jdbcTemplate, true);
+            _syncStatusService.registerSyncEnd(_projectId,SynchronizationManager.getProjectManifest(project.getId()));
         } catch (Exception e) {
             //Roll back the syncBlocked flag
             _log.debug(e.getLocalizedMessage());
-            syncStatusUpdater.saveSyncBlockStatus(Boolean.FALSE);
-            XSyncFailureHandler.handle(_mailService, _xnatInfo.getAdminEmail(), _manager.getSiteId(), _projectId, e, "Sync failed");
+            //syncStatusUpdater.saveSyncBlockStatus(Boolean.FALSE);
+            try {
+            	XSyncFailureHandler.handle(_mailService, _xnatInfo.getAdminEmail(), _manager.getSiteId(), _projectId, e, "Sync failed");
+            } catch (Throwable t) {
+            	throw t;
+            } finally {
+            	_syncStatusService.registerSyncEnd(_projectId,SynchronizationManager.getProjectManifest(project.getId()));
+            }
         }finally{
         	_observer.close(synchronizationResource);
         	if (synchronizationResource != null && project != null) {
@@ -385,7 +412,8 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
 
     private void syncSubject(XnatSubjectdata localSubject) throws Exception {
         _log.debug("Exporting " + localSubject.getId());
-        RemoteSubject remoteSubject = new RemoteSubject(_manager, _xnatInfo, _queryResultUtil, (JdbcTemplate) _jdbcTemplate.getJdbcOperations(), localSubject, _projectSyncConfiguration, _user, _syncAll, _observer, _serializer);
+        RemoteSubject remoteSubject = new RemoteSubject(_manager, _xnatInfo, _queryResultUtil, (JdbcTemplate) _jdbcTemplate.getJdbcOperations(),
+        		localSubject, _projectSyncConfiguration, _user, _syncAll, _observer, _serializer, _syncStatusService);
         remoteSubject.sync();
     }
 

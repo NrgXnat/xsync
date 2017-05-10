@@ -110,6 +110,11 @@ public class SynchronizationManager {
 	    }
 	}
 	
+	public static SyncManifest getProjectManifest(String projectId) {
+	    SyncManifest manifest = syncManifests.get(projectId);
+	    return manifest;
+	}
+	
 	private static void cleanUp(String projectId) {
 		File folder = new File(GET_SYNC_FILE_PATH(projectId));
 		if (folder.exists())
