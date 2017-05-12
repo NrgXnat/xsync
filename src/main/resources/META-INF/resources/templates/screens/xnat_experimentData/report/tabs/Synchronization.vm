@@ -7,34 +7,35 @@
 	  success: function(data){
 	      var configuration = data;
 	      var xnatXsiType='$om.getXSIType()';
-	      var visi = 'hidden';
-	      var visibilityShowDoesNotNeedOkToSync = 'hidden';
+	      var disp = 'none';
+	      var displayShowDoesNotNeedOkToSync = 'none';
 	      if (typeof configuration.imaging_sessions === 'undefined') {
-		  visibilityShowDoesNotNeedOkToSync = 'visible';		      
+		  displayShowDoesNotNeedOkToSync = 'block';		      
 	      }else {
 		if (typeof configuration.imaging_sessions.xsi_types === 'undefined') {
-		  visibilityShowDoesNotNeedOkToSync = 'visible';		      
+		  displayShowDoesNotNeedOkToSync = 'block';		      
 		}else {
 		  for (i = 0; i < configuration.imaging_sessions.xsi_types.length; i++) {
 		     var xsiType = configuration.imaging_sessions.xsi_types[i];
 		     if (xsiType.xsi_type==xnatXsiType) {
 		         if (typeof xsiType.needs_ok_to_sync === 'undefined') {
-		            visibilityShowDoesNotNeedOkToSync = 'visible';		      
+		            displayShowDoesNotNeedOkToSync = 'block';		      
 		         }else if (xsiType.needs_ok_to_sync) {
-		            visi = 'visible';
+		            disp = 'block';
 		         }
 		     }
 		  }
 		}
 	      }
-	      document.getElementById('showDivIfSynchronizationNotConfigured').style.visibility="hidden";
-	      document.getElementById('showDivIfSynchronizationConfigured').style.visibility=visi;
-	      document.getElementById('showDoesNotNeedOkToSync').style.visibility=visibilityShowDoesNotNeedOkToSync;
+	      document.getElementById('showDivIfSynchronizationNotConfigured').style.display="none";
+	      document.getElementById('showDivIfSynchronizationConfigured').style.display=disp;
+	      document.getElementById('showDoesNotNeedOkToSync').style.display=displayShowDoesNotNeedOkToSync;
 
 	  },
 	  error: function(o) {
-	      document.getElementById('showDivIfSynchronizationConfigured').style.visibility="hidden";
-	      document.getElementById('showDivIfSynchronizationNotConfigured').style.visibility="visible";
+	      document.getElementById('showDivIfSynchronizationConfigured').style.display="none";
+	      document.getElementById('showDoesNotNeedOkToSync').style.display="none";
+	      document.getElementById('showDivIfSynchronizationNotConfigured').style.display="block";
 	  }
 	});
 
@@ -69,15 +70,21 @@ function ajaxCallFailed(o) {
 	}
 }
 
-function manualSync(projectId,xnat_id, exp_label) {
+function manualSync(projectId,xnat_id, exp_label, hasSessionMarkButton) {
 	var syncurl = serverRoot + '/xapi/xsync/syncexperiment/'+xnat_id+'?XNAT_CSRF='+csrfToken ;
 	xmodal.confirm({
 		title: 'Confirm Manual Sync',
 		width: '500px',
 		height: '300px',
-		content:  'Click "OK" to begin synchronization. &nbsp;Please note warnings below.<br><br><b>Note that this could block other sync operations, as multiple concurrent sync processes are not allowed. &nbsp;' +
+		content:  ((hasSessionMarkButton) ?
+				'Click "OK" to begin synchronization. &nbsp;Please note warnings below.<br><br><b>Note that this could block other sync operations, as multiple concurrent sync processes are not allowed. &nbsp;' +
 				' Use the <em>Mark Session for Sync</em> button to request sync as part of the standard project sync process.</b><br><br><b>Note also that this may cause ' +
-				'loss of data on the remote side as any current session will be overwritten</b>.',
+				'loss of data on the remote side as any current session will be overwritten</b>.'
+				:
+				'Click "OK" to begin synchronization. &nbsp;Please note warnings below.<br><br><b>Note that this could block other sync operations, as multiple concurrent sync processes are not allowed. &nbsp;' +
+				'</b><br><br><b>Note also that this may cause ' +
+				'loss of data on the remote side as any current session will be overwritten</b>.'
+			),
 		okAction: function() {
 					$.ajax({
 					  url:syncurl,
@@ -154,10 +161,10 @@ function requestSync(projectId,xnat_id, exp_label) {
 <div id="showDivIfSynchronizationConfigured">
 <input type="checkbox" id="OkToSync" name="OkToSync" value="OkToSync"
 	onclick="javascript:setOkToSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');" $checked>Ok To Sync
-
 	<table>
 	#if ($syncAssessor == "")
 	#else
+	<table>
 	<tr> 
 	<th align="left">Sync Status:</th>
 	<td>$!syncAssessor.getSyncStatus()</td>
@@ -176,7 +183,7 @@ function requestSync(projectId,xnat_id, exp_label) {
 	</tr>
 	<tr> 
 	<th align="left"><input type="button" title="Initiate sync process for this session.  Note that this could block other sync processes."
-					 value="Sync This Session Now" onclick="javascript:manualSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');"></th>
+					 value="Sync This Session Now" onclick="javascript:manualSync('$!om.getProject()','$!om.getId()','$!om.getLabel()', true);"></th>
 	<td>
 			<input type="button" title="Request this session to be synced as part of the next sync operation"
 					 value="Mark Session for Sync" onclick="javascript:requestSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');">
@@ -186,9 +193,25 @@ function requestSync(projectId,xnat_id, exp_label) {
 	</table>
 </div>
 
-<div id="showDivIfSynchronizationNotConfigured">
+<div id="showDivIfSynchronizationNotConfigured" style="padding-top:40px;padding-bottom:40px">
 Project $!om.getProject() is not configured to sync
 </div>
 <div id="showDoesNotNeedOkToSync">
-No action required
+	<div style="padding:10px;margin:10px;">
+	NOTE:  OK To Sync is not required for this project.  Sessions matching configuration will sync automatically.
+	The button below may be used below to force a sync/resync of sessions, however it should be used with caution and 
+	only under special circumstances, as it will overwrite any existing data for the session at the destination.
+	</div>
+	<table>
+	<tr> 
+	<th align="left"><input type="button" title="Initiate sync process for this session.  Note that this could block other sync processes."
+					 value="Sync This Session Now" onclick="javascript:manualSync('$!om.getProject()','$!om.getId()','$!om.getLabel()', false);"></th>
+	<td>
+			<!--  TODO:  This does not yet work for configurations non-require-ok-to-sync configurations 
+			<input type="button" title="Request this session to be synced as part of the next sync operation"
+					 value="Mark Session for Sync" onclick="javascript:requestSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');">
+			-->
+	</td>
+	</tr>
+	</table>
 </div>

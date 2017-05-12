@@ -1,41 +1,24 @@
 package org.nrg.xsync.local;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatExperimentdataI;
-import org.nrg.xdat.model.XnatImageassessordataI;
-import org.nrg.xdat.model.XnatImagescandataI;
-import org.nrg.xdat.model.XnatImagesessiondataI;
-import org.nrg.xdat.model.XnatReconstructedimagedataI;
 import org.nrg.xdat.model.XnatSubjectdataI;
-import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImageassessordata;
-import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.xdat.om.XnatResource;
-import org.nrg.xdat.om.XnatResourceseries;
-import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XnatSubjectdata;
-import org.nrg.xft.ItemI;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnat.restlet.representations.ZipRepresentation;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
@@ -43,11 +26,9 @@ import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.exception.XsyncRemoteConnectionException;
-import org.nrg.xsync.exception.XsyncStoreException;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.manifest.ResourceSyncItem;
-import org.nrg.xsync.manifest.ScanSyncItem;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XSyncTools;
@@ -58,14 +39,13 @@ import org.nrg.xsync.utils.ResourceUtils;
 import org.nrg.xsync.utils.XSyncFailureHandler;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
-import org.restlet.data.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import  org.nrg.xsync.utils.WorkFlowUtils;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * @author Mohana Ramaratnam
@@ -473,8 +453,16 @@ public class RemoteSubject {
 		}
 		//Push the new experiments
 		if (newExperiments != null && newExperiments.size() > 0) {
-			for (XnatExperimentdataI experiment:newExperiments) {
-				pushExperiment(experiment,remoteSubject, true);
+			for (final XnatExperimentdataI experiment : newExperiments) {
+				if (!experimentExistsAtRemoteSiteWhenPushingNew(experiment)) {
+					pushExperiment(experiment,remoteSubject, true);
+				} else {
+					final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(experiment.getId(),experiment.getLabel());
+					expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
+					expSyncItem.setMessage("Appears that the session was transferred without using XSync or that the configured " +
+											"XSync remote ID has changed since this session was sent.");
+					subjectSyncInfo.addExperiment(expSyncItem);
+				}
 			}
 		}
 		//Irrespective of the syncOnlyNwew Flag, the OK to Sync experiments must be pushed
@@ -485,6 +473,30 @@ public class RemoteSubject {
 		}
 	}
 	
+	private boolean experimentExistsAtRemoteSiteWhenPushingNew(XnatExperimentdataI experiment) throws Exception {
+		final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+		final String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		final String uri = remoteUrl+"/data/archive/experiments?xnat:imagesessiondata/project=" + remoteProjectId + "&xnat:mrsessiondata/label=" + experiment.getLabel() + "&format=json" ;
+		final XsyncProjectVerifier projectVerifier = new XsyncProjectVerifier(_manager,_queryResultUtil,_jdbcTemplate, projectSyncConfiguration, _serializer);
+	    final RemoteConnectionResponse response = projectVerifier.get(uri);
+	    if (!response.wasSuccessful()) {
+	    	throw new XsyncRemoteConnectionException("ERROR:  Could not check remote site for experiment"); 
+	    } else {
+			final Type type = new TypeToken<Map<String, Map<String,Object>>>(){}.getType();
+			final Map<String, Map<String,Object>> configMap = new Gson().fromJson(response.getResponseBody(), type);
+			if (configMap.containsKey("ResultSet") && configMap.get("ResultSet").containsKey("totalRecords")) {
+				final Integer totalRecords = Integer.valueOf(configMap.get("ResultSet").get("totalRecords").toString());
+				if (totalRecords>=1) {
+					return true;
+				}
+			} else {
+				throw new XsyncRemoteConnectionException("ERROR:  Could not check remote site for experiment (unexpected results)"); 
+			}
+	    }
+	    return false;
+	}
+
+
 	private void pushExperiment(XnatExperimentdataI assess, XnatSubjectdataI remoteSubject, boolean syncIfNotSyncedInPast) throws Exception {
 		XsyncExperimentTransfer syncExptransfer = new XsyncExperimentTransfer(_manager,_xnatInfo, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration, user,
 					subjectSyncInfo, localSubject, _serializer, _syncStatusService, localProject, syncIfNotSyncedInPast);
@@ -494,6 +506,7 @@ public class RemoteSubject {
 	
 
 
+	@SuppressWarnings("unused")
 	private String getResourcePath(XnatImageassessordata orig, XnatAbstractresource resource) {
 		String path  = null;
 		XnatAbstractresource origResource = null;
@@ -513,6 +526,7 @@ public class RemoteSubject {
 		return path;
 	}
 
+	@SuppressWarnings("unused")
 	private String getResourcePath(String parent, XnatAbstractresource resource) {
 		String path  = null;
 		try {

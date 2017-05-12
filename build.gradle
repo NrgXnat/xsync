@@ -138,6 +138,7 @@ dependencies {
     compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version:'1.8.5'
     compile group: 'dcm4che', name: 'dcm4che-core', version:'2.0.25'
     compile "javax.mail:javax.mail-api:1.5.5"
+    compile 'com.google.code.gson:gson:2.6.2'
     compile(group: 'stratum', name: 'stratum', version: '1.0') {
         exclude group: '*'
     }

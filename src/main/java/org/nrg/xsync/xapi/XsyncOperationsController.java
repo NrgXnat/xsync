@@ -210,12 +210,12 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                     okToSyncData.setRemoteProjectId(syncProjectConfiguration.getSyncinfo().getRemoteProjectId());
                 }
             } else {
-                okToSyncData = createNewXsyncassessor(experimentId, okToSync, user);
+                return new ResponseEntity<>("This service requires that the session hava a valid XSync assessor.", HttpStatus.BAD_REQUEST);
             }
             if (okToSyncData != null) {
                 //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
-                EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
-                boolean saved = okToSyncData.save(user, false, true, c);
+                final EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
+                final boolean saved = okToSyncData.save(user, false, true, c);
                 if (!saved) {
                     return new ResponseEntity<>("Unable to save the Ok To Sync Information", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
@@ -265,8 +265,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             }
             if (syncAssessor != null) {
                 //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
-                EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
-                boolean saved = syncAssessor.save(user, false, true, c);
+                final EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
+                final boolean saved = syncAssessor.save(user, false, true, c);
                 if (!saved) {
                     return new ResponseEntity<>("Unable to save the sync assessor Information", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
