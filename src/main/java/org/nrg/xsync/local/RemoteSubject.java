@@ -459,8 +459,10 @@ public class RemoteSubject {
 				} else {
 					final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(experiment.getId(),experiment.getLabel());
 					expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
-					expSyncItem.setMessage("Appears that the session was transferred without using XSync or that the configured " +
-											"XSync remote ID has changed since this session was sent.");
+					// TODO:  Should probably separate out the last case.  Maybe report on the last status.
+					expSyncItem.setMessage("Appears that the session was transferred without using XSync, that the configured " +
+											"XSync remote ID has changed since this session was sent or that this session was " +
+											"sent as part of a failed sync process.");
 					subjectSyncInfo.addExperiment(expSyncItem);
 				}
 			}

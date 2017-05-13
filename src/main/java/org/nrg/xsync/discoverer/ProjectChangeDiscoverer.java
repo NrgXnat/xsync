@@ -170,15 +170,15 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                 String subjectLabel = null;
                 try {
                 	XnatSubjectdata localSubject = XnatSubjectdata.getXnatSubjectdatasById(row.get("id"), _user, true);
-                	subjectLabel = localSubject.getLabel();
-                	_syncStatusService.registerCurrentSubject(_projectId, localSubject.getLabel());
+                	subjectLabel = (localSubject!=null) ? localSubject.getLabel() : row.get("id").toString();
+                	_syncStatusService.registerCurrentSubject(_projectId, subjectLabel);
                 	if (localSubject == null) {
                 		//Local Subject has been deleted; Delete the remote subject
                 		deleteSubject((String) row.get("id"), (String) row.get("label"));
                 	} else {
                 		syncSubject(localSubject);
                 	}
-                	_syncStatusService.registerCompletedSubject(_projectId, localSubject.getLabel());
+                	_syncStatusService.registerCompletedSubject(_projectId, subjectLabel);
                 } catch (Exception e) {
                 	_syncStatusService.registerFailedSubject(_projectId, (subjectLabel!=null) ? subjectLabel : row.get("id").toString());
                 	failCount++;
