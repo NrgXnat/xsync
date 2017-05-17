@@ -157,14 +157,21 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             _syncStatusService.registerSyncStart(_projectId,SyncType.PROJECT_SYNC,SynchronizationManager.getProjectManifest(project.getId()));
     		_observer  = new XsyncObserver(_projectId);
             syncProjectResources();
-            List<Map<String, Object>> subjectRows = getSubjectsModifiedSinceLastSync();
-            List<String> subjectIds = new ArrayList<>();
-            for (Map<String, Object> row : subjectRows) {
-                subjectIds.add((String) row.get("id"));
+            final List<Map<String, Object>> subjectRows = getSubjectsModifiedSinceLastSync();
+            final List<String> subjectIds = new ArrayList<>();
+            for (final Map<String, Object> row : subjectRows) {
+                if (!subjectIds.contains(row.get("id"))) {
+                	subjectIds.add((String) row.get("id"));
+                }
             }
             int failCount = 0;
             _syncStatusService.registerInitialSubjectList(_projectId, subjectIds);
+            final List<String> processedSubjects = new ArrayList<>();
             for (Map<String, Object> row : subjectRows) {
+            	if (row.get("id") == null || processedSubjects.contains(row.get("id").toString())) {
+            		continue;
+            	}
+            	processedSubjects.add(row.get("id").toString());
                 _syncStatusService.registerCurrentSubject(_projectId, row.get("id").toString());
                 _log.debug("Subject " + row.get("id") + " has been modfied since " + this.getLastSyncStartTime());
                 String subjectLabel = null;

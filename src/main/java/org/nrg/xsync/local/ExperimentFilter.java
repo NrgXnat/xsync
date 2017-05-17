@@ -21,6 +21,7 @@ import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatReconstructedimagedataI;
 import org.nrg.xdat.model.XnatSubjectassessordataI;
 import org.nrg.xdat.model.XnatSubjectdataI;
+import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImageassessordata;
@@ -33,10 +34,12 @@ import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.om.XsyncXsyncassessordata;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
 import org.nrg.xft.ItemI;
+import org.nrg.xft.ItemWrapper;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.FieldNotFoundException;
 import org.nrg.xft.exception.XFTInitException;
+import org.nrg.xft.search.CriteriaCollection;
 import org.nrg.xft.search.ItemSearch;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.exceptions.InvalidArchiveStructure;
@@ -81,13 +84,14 @@ public class ExperimentFilter {
 	}
 	
 	public Map<String,List<XnatExperimentdataI>> select(XnatSubjectdata subject, String localSubjectId) throws Exception {
-		List<XnatExperimentdataI> experimentsDeleted = new ArrayList<XnatExperimentdataI>();
-		List<XnatExperimentdataI> experimentsModified = new ArrayList<XnatExperimentdataI>();
-		List<XnatExperimentdataI> experimentsAdded = new ArrayList<XnatExperimentdataI>();
-		List<XnatExperimentdataI> experimentsMarkedOkToSync = new ArrayList<XnatExperimentdataI>();
+		final List<XnatExperimentdataI> experimentsDeleted = new ArrayList<XnatExperimentdataI>();
+		final List<XnatExperimentdataI> experimentsModified = new ArrayList<XnatExperimentdataI>();
+		final List<XnatExperimentdataI> experimentsAdded = new ArrayList<XnatExperimentdataI>();
+		final List<XnatExperimentdataI> experimentsMarkedOkToSync = new ArrayList<XnatExperimentdataI>();
 
-		List<XnatExperimentdataI> experimentsConfiguredToBeSynced = new ArrayList<XnatExperimentdataI>();
-		Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
+		final List<XnatExperimentdataI> experimentsConfiguredToBeSynced = new ArrayList<XnatExperimentdataI>();
+		final Date syncStartDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncStartTime();
+		final Date syncEndDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncEndTime();
 		
 		List<XnatSubjectassessordataI> existingExperiments = subject.getExperiments_experiment();
 		int total_experiments = existingExperiments.size();
@@ -127,7 +131,7 @@ public class ExperimentFilter {
 		List<Map<String,Object>> experimentDetails = new ArrayList<Map<String,Object>>();
 		if (experimentsConfiguredToBeSynced.size() > 0) {
 			for (XnatExperimentdataI exp:experimentsConfiguredToBeSynced) {
-				Map<String,Object> expTimeLineDetails = getExperimentTimeLineDetails((XnatExperimentdata)exp,syncEndDate);
+				Map<String,Object> expTimeLineDetails = getExperimentTimeLineDetails((XnatExperimentdata)exp,syncStartDate);
 				experimentDetails.add(expTimeLineDetails);
 			}
 		}
@@ -164,16 +168,18 @@ public class ExperimentFilter {
 					if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
 						//Is this new or updated?
 						Date experimentInsertDate = (Date)row.get("insert_date");
-						int dateComparison = experimentInsertDate.compareTo(syncEndDate);
+						int dateComparison = experimentInsertDate.compareTo(syncStartDate);
 						if (dateComparison >= 0) { //Inserted at endTime or After endTime
 							_log.debug("Experiment Added: " + (String)row.get("id"));
 							experimentsAdded.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
 						}else {
 							Date experimentModifiedDate = (Date)row.get("last_modified");
-							dateComparison = experimentModifiedDate.compareTo(syncEndDate);
+							dateComparison = experimentModifiedDate.compareTo(syncStartDate);
 							if (dateComparison >= 0) { //Modified at endTime or After endTime
 								_log.debug("Experiment Modified: " + (String)row.get("id"));
 								experimentsModified.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
+							} else {
+								_log.debug("Experiment neither added or modified: " + (String)row.get("id"));
 							}
 						}
 					}
@@ -262,7 +268,7 @@ public class ExperimentFilter {
 		return exp;
 	}
 
-	private Map<String,Object> getExperimentTimeLineDetails(XnatExperimentdata exp, Object sync_end_time) throws Exception {
+	private Map<String,Object> getExperimentTimeLineDetails(XnatExperimentdata exp, Object sync_start_time) throws Exception {
 		// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
 		Map<String,Object> info = new HashMap<String, Object>();
 		XFTItem item = exp.getCurrentDBVersion(); // exp.getItem does not contain the meta fields
@@ -279,7 +285,31 @@ public class ExperimentFilter {
 		info.put("last_modified", itemMeta.getProperty("last_modified"));
 		info.put("row_last_modified", itemMeta.getProperty("row_last_modified"));
 		info.put("insert_date", itemMeta.getProperty("insert_date"));
-		info.put("sync_end_time", sync_end_time);
+		info.put("sync_start_time", sync_start_time);
+		
+        org.nrg.xft.search.CriteriaCollection cc = new CriteriaCollection("AND");
+        cc.addClause("wrk:workflowData.ID",exp.getId());
+        cc.addClause("wrk:workflowData.ExternalId",exp.getProject());
+        // Update insert_date and last_modified from workflow entries where available (Session is not always available until
+        // transfer is complete)
+        final ArrayList<WrkWorkflowdata> workflows = WrkWorkflowdata.getWrkWorkflowdatasByField(cc, _user, false);
+        for (final WrkWorkflowdata workflow : workflows) {
+        	final ItemI workflowMeta = workflow.getItem().getMeta();
+        	if (workflowMeta==null || workflowMeta.getProperty("last_modified")==null) {
+        		continue;
+        	}
+        	final Date workflowModified = (workflowMeta.getProperty("last_modified") instanceof Date) ? (Date)workflowMeta.getProperty("last_modified") : null;
+        	final Date infoInsert  =  (info.get("insert_date") instanceof Date) ? (Date)info.get("insert_date") : null;
+        	final Date infoModified  =  (info.get("last_modified") instanceof Date) ? (Date)info.get("last_modified") : null;
+        	if (workflow.getPipelineName().equalsIgnoreCase("Transferred")) {
+        		if (infoInsert==null || workflowModified.after(infoInsert)) {
+        			info.put("insert_date", workflowModified);
+        		}
+        		if (infoModified==null || workflowModified.after(infoModified)) {
+        			info.put("last_modified", workflowModified);
+        		}
+        	}
+        }
 		return info;
 	}
 	

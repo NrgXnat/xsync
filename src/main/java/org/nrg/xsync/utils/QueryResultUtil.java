@@ -52,19 +52,38 @@ public class QueryResultUtil {
 	}
 
 	public String getQueryForFetchingSubjectsModifiedSinceLastSync() {
-		String query = "select s.id, s.label,s.project, sm.status, sm.last_modified,xsi.sync_end_time from xnat_subjectdata_meta_data sm ";
+		// MODIFIED 2017/05/16 (MRH) - Had at least once instance where the subject modified time information showed modification
+		// right after the sync started (this query used to use sync end time), but the experiment was not yet available.  At the
+		// next sync, the subject was showing up as non-modified, so the synced session was not picked. up.  It appears that
+		// the session may not be available until after the transfer pipeline has run.  To be on the safe side, this new query
+		// workflow data for workflows tied to subject assessors that have been modified since the last sync.  Also, sync start
+		// time is used.
+		// TODO:  I wonder if sync_start_time should be used for all these queries?  For long running syncs, it seems like
+		// a lot could happen during a sync process.  If we look at sync end time, we may miss those.
+		String query = "select s.id, s.label, s.project, wm.status, wm.last_modified,xsi.sync_start_time from ";
+		query += " xnat_subjectdata s ";
+		query += " left join xnat_projectdata p ON s.project=p.id ";
+		query += " left join xnat_subjectassessordata e on e.subject_id = s.id ";
+		query += " left join wrk_workflowdata w on e.id = w.id ";
+		query += " left join wrk_workflowdata_meta_data wm on w.workflowdata_info = wm.meta_data_id ";
+		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
+		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
+		query += " where project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and w.externalid=:"+ PROJECT_QUERY_PARAMETER_NAME +
+						" and (wm.last_modified>sync_start_time or wm.row_last_modified>sync_start_time) ";
+		query += " UNION ";
+		query += "select s.id, s.label,s.project, sm.status, sm.last_modified,xsi.sync_start_time from xnat_subjectdata_meta_data sm ";
 		query += " left join xnat_subjectdata s ON s.subjectdata_info = sm.meta_data_id ";
 		query += " left join xnat_projectdata p ON s.project=p.id ";
 		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
-		query += " where project=:"+ PROJECT_QUERY_PARAMETER_NAME+" and (sm.last_modified > xsi.sync_end_time or sm.row_last_modified > xsi.sync_end_time) ";
+		query += " where project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and (sm.last_modified > xsi.sync_start_time or sm.row_last_modified > xsi.sync_end_time) ";
 		query += " UNION ";
-		query += "select sh.id, sh.label,sh.project, sm.status, sm.last_modified,xsi.sync_end_time from xnat_subjectdata_meta_data sm ";
+		query += "select sh.id, sh.label,sh.project, sm.status, sm.last_modified,xsi.sync_start_time from xnat_subjectdata_meta_data sm ";
 		query += " left join xnat_subjectdata_history sh ON sh.change_date=sm.row_last_modified ";
 		query += " left join xnat_projectdata p ON sh.project=p.id ";
 		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
-		query += " where sm.status='"+ DELETE_STATUS + "' and sh.project=:" + PROJECT_QUERY_PARAMETER_NAME +" and (sm.last_modified > xsi.sync_end_time or sm.row_last_modified > xsi.sync_end_time) "; 
+		query += " where sm.status='"+ DELETE_STATUS + "' and sh.project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and (sm.last_modified > xsi.sync_start_time or sm.row_last_modified > xsi.sync_start_time) ";
 		return query;
 	}
 
