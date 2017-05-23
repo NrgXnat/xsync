@@ -6,11 +6,21 @@ Xsync plugin enables automatic synchronization of data from a project in one XNA
 
 # Download #
 
-[ Xsync Jar ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-1.2.jar)
+[ Xsync Jar (Version 1.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-1.3-SNAPSHOT.jar)
 
-[ Xsync Bean Jar ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-beans-1.2.jar)
+[ Xsync Bean Jar (Version 1.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-beans-1.3-SNAPSHOT.jar)
 
 # ChangeLog #
+
+Version 1.3-SNAPSHOT As of May 23, 2017
+
+Revised sync blocking behavior with a service and UI for reporting on current sync status. 
+
+Fix for issue where sessions were sometimes sent without files.
+
+Fix for issue where sessions can fail to sync if they are arriving when a sync is kicked off.
+
+Fix for issue where data can be overwritten if configured URL is modified to point to a shadow server.
 
 Version 1.2 May 3, 2017
 
