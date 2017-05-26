@@ -210,7 +210,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                     okToSyncData.setRemoteProjectId(syncProjectConfiguration.getSyncinfo().getRemoteProjectId());
                 }
             } else {
-                return new ResponseEntity<>("This service requires that the session hava a valid XSync assessor.", HttpStatus.BAD_REQUEST);
+                okToSyncData = createNewXsyncassessor(experimentId, okToSync, user);
             }
             if (okToSyncData != null) {
                 //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method

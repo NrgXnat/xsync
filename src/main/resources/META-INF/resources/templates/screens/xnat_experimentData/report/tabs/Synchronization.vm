@@ -1,6 +1,8 @@
 <!-- Sequence: 19 -->
 <!-- allowGuest: false -->
 <script type="text/javascript" >
+
+function loadConfiguration() {
 	XNAT.xhr.getJSON({
 	  url:XNAT.url.csrfUrl('/xapi/xsync/setup/projects/'+XNAT.data.context.project),
 	  type:"GET",
@@ -30,6 +32,13 @@
 	      document.getElementById('showDivIfSynchronizationNotConfigured').style.display="none";
 	      document.getElementById('showDivIfSynchronizationConfigured').style.display=disp;
 	      document.getElementById('showDoesNotNeedOkToSync').style.display=displayShowDoesNotNeedOkToSync;
+	      if (document.getElementById('showDoesNotNeedOkToSync').style.display=='none') {
+		  if (document.getElementById('OkToSync').checked) {
+			$("#syncDetailsTable").show();
+		  } else {
+			$("#syncDetailsTable").hide();
+		  } 
+	      }
 
 	  },
 	  error: function(o) {
@@ -38,6 +47,10 @@
 	      document.getElementById('showDivIfSynchronizationNotConfigured').style.display="block";
 	  }
 	});
+}
+$(document).ready(function(){
+	loadConfiguration();
+});
 
 
 function setOkToSync(projectId,xnat_id, exp_label) {
@@ -56,7 +69,11 @@ function setOkToSync(projectId,xnat_id, exp_label) {
 					content: text ,
 					label: 'OK'
 				});
-	  
+			  if (syncChoice) {
+				$("#syncDetailsTable").show();
+			  } else {
+				$("#syncDetailsTable").hide();
+			  } 
 	  },
 	  error: ajaxCallFailed
 	});
@@ -161,10 +178,10 @@ function requestSync(projectId,xnat_id, exp_label) {
 <div id="showDivIfSynchronizationConfigured">
 <input type="checkbox" id="OkToSync" name="OkToSync" value="OkToSync"
 	onclick="javascript:setOkToSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');" $checked>Ok To Sync
-	<table>
 	#if ($syncAssessor == "")
-	#else
 	<table>
+	#else
+	<table id="syncDetailsTable">
 	<tr> 
 	<th align="left">Sync Status:</th>
 	<td>$!syncAssessor.getSyncStatus()</td>
