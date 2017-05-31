@@ -592,6 +592,7 @@ public class ExperimentFilter {
 				if (exp instanceof XnatImagesessiondata) {
 					resetPrearchive((XnatImagesessiondata) exp);
 					filterScantypes(exp);
+					applyScanFilters(exp);
 					for (final XnatImagescandataI scan : ((XnatImagesessiondata) exp).getScans_scan()) {
 						scan.setImageSessionId(exp.getLabel());
 						for (final XnatAbstractresourceI res : scan.getFile()) {
@@ -822,6 +823,23 @@ public class ExperimentFilter {
 	}
 	
 	/**
+	 * Apply scan filters.
+	 *
+	 * @param exp the exp
+	 * @throws IndexOutOfBoundsException the index out of bounds exception
+	 * @throws FieldNotFoundException the field not found exception
+	 * @throws Exception the exception
+	 */
+	private void applyScanFilters(XnatExperimentdata exp)
+			throws IndexOutOfBoundsException, FieldNotFoundException, Exception {
+		SyncConfigurationImagingSessionXsiType sessionOption = projectSyncConfiguration.getSynchronizationConfiguration().getImagingSession(exp.getXSIType());
+		while (findAndRemoveScanFilters(exp, sessionOption))
+			;
+		filterScanResources(exp,sessionOption);
+		return;
+	}
+	
+	/**
 	 * Filter scan resources.
 	 *
 	 * @param exp
@@ -944,6 +962,32 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 		List<XnatImagescandataI> scans = ((XnatImagesessiondata) exp).getScans_scan();
 		for (int i = 0; i < scans.size(); i++) {
 			if (!sessionOption.isAllowedToSyncScan(scans.get(i).getType())) {
+				((XnatImagesessiondata) exp).removeScans_scan(i);
+				found = true;
+				return true;
+			}
+		}
+		return found;
+	}
+	
+	/**
+	 * Find and remove scan filters.
+	 *
+	 * @param exp the XnatExperimentdata object
+	 * @param sessionOption the SyncConfigurationImagingSessionXsiType object
+	 * @return true, if successful
+	 * @throws IndexOutOfBoundsException the index out of bounds exception
+	 * @throws Exception the exception
+	 */
+	private boolean findAndRemoveScanFilters(XnatExperimentdata exp, SyncConfigurationImagingSessionXsiType sessionOption) throws IndexOutOfBoundsException, Exception {
+		boolean found = false;
+		if (sessionOption == null || sessionOption.getScan_types() == null) {
+			return false;
+		}
+		List<XnatImagescandataI> scans = ((XnatImagesessiondata) exp).getScans_scan();
+		for (int i = 0; i < scans.size(); i++) {
+			XnatImagescandataI scan= scans.get(i);
+			if (!sessionOption.isAllowedToSyncScanFilters(scan)) {
 				((XnatImagesessiondata) exp).removeScans_scan(i);
 				found = true;
 				return true;

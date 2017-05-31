@@ -3,12 +3,11 @@ package org.nrg.xsync.configuration.json;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.nrg.xsync.utils.XsyncUtils;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * @author Mohana Ramaratnam
+ * @author Atul Kaushal
  *
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -17,6 +16,12 @@ public class SyncConfigurationXsiType {
     String xsi_type;
 	Boolean needs_ok_to_sync;
 	SyncConfigurationResource resources;
+	
+	/** The scan filters. */
+	List<SyncConfigurationFilter> scan_filters =new ArrayList<SyncConfigurationFilter>();
+	
+	/** The filters. */
+	List<SyncConfigurationFilter> filters =new ArrayList<SyncConfigurationFilter>();
 
 	/**
 	 * @return the xsi_type
@@ -65,11 +70,50 @@ public class SyncConfigurationXsiType {
 		this.resources = resources;
 	}
 	
+	/**
+	 * 
+	 * @return the scan_filters
+	 */
+	public List<SyncConfigurationFilter> getScan_filters() {
+		return scan_filters;
+	}
+	/**
+	 * 
+	 * @param scan_filters the scan_filters to set
+	 */
+	public void setScan_filters(List<SyncConfigurationFilter> scan_filters) {
+		this.scan_filters = scan_filters;
+	}
+	
+	/**
+	 * 
+	 * @return the filters
+	 */
+	public List<SyncConfigurationFilter> getFilters() {
+		return filters;
+	}
+	/**
+	 * 
+	 * @param filters the filters to set
+	 */
+	public void setFilters(List<SyncConfigurationFilter> filters) {
+		this.filters = filters;
+	}
+	
+	
+	/**
+	 * Gets the default sync configuration.
+	 *
+	 * @param xsiType the xsi type
+	 * @return the sync configuration xsi type
+	 */
 	public static SyncConfigurationXsiType GetDefaultSyncConfiguration(String xsiType) {
 		SyncConfigurationXsiType cfg = new SyncConfigurationXsiType();
 		cfg.setXsi_type(xsiType);
 		cfg.setNeeds_ok_to_sync(false);
 		cfg.setResources(SyncConfigurationResource.GetDefaultSyncConfigurationResource());
+		cfg.setScan_filters(new ArrayList<SyncConfigurationFilter>());
+		cfg.setFilters(new ArrayList<SyncConfigurationFilter>());
 		return cfg;
 	}
 	
