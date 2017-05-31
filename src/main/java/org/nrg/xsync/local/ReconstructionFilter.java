@@ -1,24 +1,17 @@
 package org.nrg.xsync.local;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatReconstructedimagedataI;
-import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatReconstructedimagedata;
 import org.nrg.xft.exception.FieldNotFoundException;
-import org.nrg.xft.security.UserI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionXsiType;
-import org.nrg.xsync.utils.QueryResultUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * @author Mohana Ramaratnam

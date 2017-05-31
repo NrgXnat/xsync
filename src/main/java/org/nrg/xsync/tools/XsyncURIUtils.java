@@ -2,28 +2,17 @@ package org.nrg.xsync.tools;
 
 import java.io.File;
 
-import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatAbstractresourceI;
-import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatImageassessordataI;
 import org.nrg.xdat.model.XnatImagescandataI;
-import org.nrg.xdat.model.XnatImagesessiondataI;
 import org.nrg.xdat.model.XnatReconstructedimagedataI;
-import org.nrg.xdat.model.XnatSubjectdataI;
-import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImageassessordata;
-import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatResourceseries;
 import org.nrg.xdat.om.XnatSubjectassessordata;
-import org.nrg.xdat.om.XnatSubjectdata;
-import org.nrg.xft.ItemI;
-import org.nrg.xft.XFTItem;
-import org.nrg.xft.security.UserI;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 
 /**

@@ -6,12 +6,10 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.nrg.xdat.XDAT;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xdat.om.XsyncXsyncremotemapdata;
-
-import org.nrg.framework.services.SerializerService;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventMetaI;

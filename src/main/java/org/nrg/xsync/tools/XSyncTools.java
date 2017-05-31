@@ -1,5 +1,9 @@
 package org.nrg.xsync.tools;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.nrg.xdat.om.XsyncXsyncassessordata;
 import org.nrg.xdat.om.XsyncXsyncremotemapdata;
 import org.nrg.xft.event.EventMetaI;
@@ -12,10 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Mohana Ramaratnam

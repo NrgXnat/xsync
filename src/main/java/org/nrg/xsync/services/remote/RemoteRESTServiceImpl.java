@@ -3,14 +3,11 @@ package org.nrg.xsync.services.remote;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Map;
 
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
-import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;

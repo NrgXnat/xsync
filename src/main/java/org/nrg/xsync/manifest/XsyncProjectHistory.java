@@ -1,13 +1,18 @@
 package org.nrg.xsync.manifest;
 
+import java.util.Date;
+import java.util.List;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
-
-import javax.persistence.*;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
-import java.util.*;
 
 /**
  * Created by Michael Hileman on 2016/07/06.

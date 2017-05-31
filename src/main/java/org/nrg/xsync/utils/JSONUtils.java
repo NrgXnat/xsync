@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.nrg.framework.services.SerializerService;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Mohana Ramaratnam

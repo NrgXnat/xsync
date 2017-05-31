@@ -1,14 +1,9 @@
 package org.nrg.xsync.configuration.json;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 
-import org.nrg.xsync.exception.XsyncNotConfiguredException;
-import org.nrg.xsync.utils.XsyncUtils;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * @author Mohana Ramaratnam
