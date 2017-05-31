@@ -3,14 +3,12 @@ package org.nrg.xsync.services.remote;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Map;
+import java.io.StringWriter;
 
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
-import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
@@ -530,7 +528,16 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	private RemoteConnectionResponse importSubjectWithoutRetry(RemoteConnection connection,XnatSubjectdata subject ) throws Exception{
 		//do we need the assessor data and how.
 		//MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();     
-		final String subjectXml=subject.getItem().toXML_String();
+		
+		// NOTE: Just call toXML on the subject object here, rather than calling getItem on the subject object and obtaining
+		// XML from the item.  Using getItem() will query for experiments and assessors associated with the assession number.
+		// In the case where there is a source-side subject with the same assession number as the destination-side subject,
+		// this could result in the wrong sessions being sent to the destination, potentially overwriting previously synced
+		// sessions with sessions from a subject outside the source project.
+		final StringWriter tsw = new StringWriter();
+		subject.toXML(tsw);
+		tsw.close();
+		final String subjectXml = tsw.toString();
 		
 		ResponseEntity<String> response;
 		try {

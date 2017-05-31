@@ -222,6 +222,7 @@ public class XsyncExperimentTransfer {
 
 	}
 	
+	@SuppressWarnings("unused")
 	private boolean subjectAssessorNeedsOkToSync(String xsiType) {
 		//return projectSyncConfiguration.getSynchronizationConfiguration().checkSubjectAssessorOkToSync(xsiType);
 		return projectSyncConfiguration.subjectAssessorNeedsOkToSync(xsiType);
@@ -245,7 +246,7 @@ public class XsyncExperimentTransfer {
 	private boolean storeAssessor(String origId, XnatSubjectassessordata orig, XnatSubjectdata remotesubject, XnatSubjectassessordata assessor, boolean updateSyncAssessor) {
 		 boolean stored = false;
 		 _syncStatusService.registerCurrentExperiment(_localProject.getId(), assessor.getLabel(), assessor.getXSIType());
-		 String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+		 //String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 		 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
 		 expSyncItem.setXsiType(orig.getXSIType());
 		 XsyncURIUtils xsyncUriUtils = new XsyncURIUtils();
@@ -318,7 +319,7 @@ public class XsyncExperimentTransfer {
 	private boolean storeXar( XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor) throws XsyncRemoteConnectionException{
 		 boolean stored = false;
 		 _syncStatusService.registerCurrentExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
-		 final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
+		 //final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 		 final String remoteProjectId = targetproject;
 		 final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 		 final RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
@@ -473,7 +474,7 @@ public class XsyncExperimentTransfer {
 			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
 			 stored = false;
 		 }finally {
-				String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
+				final String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
 				File localPath = new File(anonymizedSessionPath);
 				if (localPath.exists() && localPath.isDirectory()) {
 					try {
@@ -647,7 +648,7 @@ public class XsyncExperimentTransfer {
         
         XnatAbstractresource rsc = null;
         for (XnatAbstractresourceI r: orig.getResources_resource()) {
-        	if (rsc.getLabel().equals(rscItem.getLocalLabel())) {
+        	if (r.getLabel().equals(rscItem.getLocalLabel())) {
         		rsc = (XnatAbstractresource)r;
         		break;
         	}
@@ -793,7 +794,7 @@ public class XsyncExperimentTransfer {
 		File buildxar(XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target) throws Exception {
 			File xarFile;
 			
-			String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
+			final String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
 			
 			try {
 				File experimentPath = new File(anonymizedSessionPath);
@@ -842,8 +843,8 @@ public class XsyncExperimentTransfer {
 
 		File buildxar(XnatImagesessiondata origImageSession, XnatImageassessordata origAss, XnatImageassessordata targetAss) throws Exception {
 			File xarFile;
-			String sessionPath = XsyncFileUtils.getAnonymizedSessionPath(origImageSession);
-			String assessorPath = sessionPath + "ASSESSORS" + File.separator + targetAss.getLabel(); 
+			final String sessionPath = XsyncFileUtils.getAnonymizedSessionPath(origImageSession);
+			final String assessorPath = sessionPath + "ASSESSORS" + File.separator + targetAss.getLabel(); 
 			//String zipToken = origImageSession.getLabel() +"/ASSESSORS/"  +(targetAss).getArchiveDirectoryName();
 			String zipToken = (targetAss).getArchiveDirectoryName();
 			try {
@@ -888,8 +889,8 @@ public class XsyncExperimentTransfer {
 		
 		File buildImagingSessionXar(XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata targetOrig) throws Exception {
 			File xarFile;
-			XsyncFileUtils xsyncFileUtils = new XsyncFileUtils();
-			String anonymizedSessionPath = xsyncFileUtils.getAnonymizedSessionPath(orig);
+			//XsyncFileUtils xsyncFileUtils = new XsyncFileUtils();
+			//String anonymizedSessionPath = xsyncFileUtils.getAnonymizedSessionPath(orig);
 			XFTItem item = targetOrig.getItem().copy();
 			XnatImagesessiondata targetExperiment = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
 
@@ -906,7 +907,7 @@ public class XsyncExperimentTransfer {
 
 
 				
-				File experimentPath = new File(anonymizedSessionPath);
+				//File experimentPath = new File(anonymizedSessionPath);
 				ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,(orig).getArchiveDirectoryName(),0);
 				List<File> files = new ArrayList<File>();
 				//if (experimentPath.exists()) {
@@ -947,8 +948,7 @@ public class XsyncExperimentTransfer {
 
 		File buildImagingScanXar(XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target,XnatImagescandata scan) throws Exception {
 			File xarFile;
-			XsyncFileUtils xsyncFileUtils = new XsyncFileUtils();
-			String anonymizedSessionPath = xsyncFileUtils.getAnonymizedSessionPath(orig);
+			final String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
 			
 			try {
 				File experimentPath = new File(anonymizedSessionPath);
@@ -1030,7 +1030,7 @@ public class XsyncExperimentTransfer {
 		}
 		
 		private void pushImagingSessionResource( String remoteProjectId,XnatSubjectdata targetsubject,XnatImagesessiondata orig, XnatImagesessiondata target,ExperimentSyncItem expSyncItem,XnatAbstractresourceI resource) {
-			XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
+			//XnatProjectdata localProject = XnatProjectdata.getXnatProjectdatasById(localSubject.getProject(), user, false);
 			String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
 			ResourceSyncItem resourceSyncItem = new ResourceSyncItem(orig.getLabel(),rLabel);
 			if (resource.getFileCount() != null)

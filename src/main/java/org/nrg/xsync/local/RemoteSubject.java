@@ -118,26 +118,30 @@ public class RemoteSubject {
 	
 	private XnatSubjectdata syncSubject() throws Exception {
 		_log.debug("Syncing subject BEGIN: " + localSubject.getLabel());
-
-		XFTItem item = ((XnatSubjectdata)localSubject).getItem().copy();
-		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-	
-		XnatSubjectdata newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
-
+		final XFTItem item = ((XnatSubjectdata)localSubject).getItem().copy();
+		// Remove assessors from the item.  They will be synced separately.
+		final List<XFTItem> subjAssessors  = item.getChildrenOfType("xnat:subjectAssessorData", true);
+		for (final XFTItem subjAssessor : subjAssessors) {
+			item.removeItem(subjAssessor);
+		}
+		
+		final String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		final XnatSubjectdata newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
 		newSubject.setProject(remoteProjectId);
-		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
+		
+		final IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
 		
 		idMapper.correctIDandLabel(newSubject);
 		
 		//Go through resources; if they are in config and modified since last sync, keep them
-		ResourceFilter resourceMapper = new ResourceFilter(user, _jdbcTemplate, _queryResultUtil);
-		Map<String,List<XnatAbstractresourceI>> resourcesToBeSynced = resourceMapper.select(newSubject, localSubject.getId(), projectSyncConfiguration);
+		final ResourceFilter resourceMapper = new ResourceFilter(user, _jdbcTemplate, _queryResultUtil);
+		final Map<String,List<XnatAbstractresourceI>> resourcesToBeSynced = resourceMapper.select(newSubject, localSubject.getId(), projectSyncConfiguration);
 
 		//Store the subject
 		//Get its remote id
 		//Store the remote id
 
-		String subject_remote_id=storeSubject(newSubject);
+		final String subject_remote_id=storeSubject(newSubject);
 		if (subject_remote_id != null) {
 			newSubject.setId(subject_remote_id);
 			saveSyncDetails(localSubject.getId(),subject_remote_id,newSubject.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,localSubject.getXSIType());

@@ -20,7 +20,7 @@ function loadConfiguration() {
 		  for (i = 0; i < configuration.imaging_sessions.xsi_types.length; i++) {
 		     var xsiType = configuration.imaging_sessions.xsi_types[i];
 		     if (xsiType.xsi_type==xnatXsiType) {
-		         if (typeof xsiType.needs_ok_to_sync === 'undefined') {
+		         if (typeof xsiType.needs_ok_to_sync === 'undefined' || !xsiType.needs_ok_to_sync) {
 		            displayShowDoesNotNeedOkToSync = 'block';		      
 		         }else if (xsiType.needs_ok_to_sync) {
 		            disp = 'block';
