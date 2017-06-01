@@ -73,17 +73,20 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		int count = 0;
 		while(true) {
 		    try {
+		    	 logger.debug("Attempting xar import:  File=" + xar.getName());
 		         return this.importXarWithoutRetry(connection, xar);
 		    } catch (RuntimeException e) {
+		    	count++;
+	    		logger.error("Exception thrown during storeXAR process:\n" + ExceptionUtils.getStackTrace(e));
+	    		logger.error((maxTries>0 && maxTries>=count) ? "StoreXAR failed.  Maximum attemts has not yet been reached.  Upload will be reattempted in " + String.valueOf(sleep/1000) + " seconds." : 
+	    				"Maximum attemts has been reached.  StoreXAR will not be retried.");
+		        if (maxTries == 0 || count > maxTries) throw e;
 		    	try {
-		    		logger.error(ExceptionUtils.getStackTrace(e));
-		    		logger.error("importXar: retrycount "+ count + " out of " + maxTries);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
-		        // handle exception
-		        if (maxTries == 0 || ++count == maxTries) throw e;
+	    		logger.error("Retrying importXar: retrycount "+ count + " out of " + maxTries);
 		    }
 		}
 	}

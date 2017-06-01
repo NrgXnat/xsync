@@ -328,12 +328,13 @@ public class XsyncExperimentTransfer {
 
 		 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_BEGINING);
 		 expSyncItem.stateChanged();
-		 List<XnatImageassessordataI> assessors = target.getAssessors_assessor();
-		 List<XnatAbstractresourceI>  resources	= getExperimentResources(target);
+		 final List<XnatImageassessordataI> assessors = target.getAssessors_assessor();
+		 final List<XnatAbstractresourceI>  resources	= getExperimentResources(target);
 		 
 		 expSyncItem.setXsiType(orig.getXSIType());
 		 //expSyncItem.extractDetails(target);
 		 XsyncURIUtils xsyncUriUtils = new XsyncURIUtils();
+		 String remote_id = null;
 
 		 try {
 			 removeAssessors(target);
@@ -349,21 +350,23 @@ public class XsyncExperimentTransfer {
 				 //final IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
 				 //final String remote_id = idMapper.getRemoteId(remoteUrl,remoteProjectId,targetsubject.getLabel(), target.getLabel(), target.getXSIType());
 				 xar.delete();
-				 String remote_id = xsyncUriUtils.getRemoteAssignedId(connectionResponse);
-				 ExperimentFilter experimentMapper = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);
+				 remote_id = xsyncUriUtils.getRemoteAssignedId(connectionResponse);
+				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_IN_PROGRESS);
+				 saveSyncDetails(orig.getId(),remote_id,expSyncItem.getSyncStatus(),expSyncItem.getXsiType());
+				 final ExperimentFilter experimentMapper = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);
 
 				 if (remote_id == null) {
 					 throw new XsyncStoreException("Could not locate Accession Id for " + target.getLabel() + " in project " + remoteProjectId);
 				 }else {
 					XFTItem item = target.getItem().copy();
-					XnatImagesessiondata targetWithRemoteId = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
+					final XnatImagesessiondata targetWithRemoteId = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
 					targetWithRemoteId.setId(remote_id);
 					expSyncItem.setRemoteId(remote_id);
 					//For each resource store the resource
 					 for (int i=0; i<resources.size(); i++) {
-						 XnatAbstractresource resource = (XnatAbstractresource)resources.get(i);
-						 String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
-						 ResourceSyncItem resourceSyncItem = new ResourceSyncItem(target.getLabel(),rLabel);
+						 final XnatAbstractresource resource = (XnatAbstractresource)resources.get(i);
+						 final String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
+						 final ResourceSyncItem resourceSyncItem = new ResourceSyncItem(target.getLabel(),rLabel);
 						 if (resource.getFileCount() != null && resource.getFileSize()!=null) {
 							 boolean hasBeenSkipped = resource.getFileCount()<0 && (Long)resource.getFileSize()<0;
 							 if (hasBeenSkipped) {
@@ -376,9 +379,9 @@ public class XsyncExperimentTransfer {
 						 }
 					 }					 
 					 //For each scan in the session, store the scan XML with its resources
-					 List<XnatImagescandataI> scans = target.getScans_scan();
+					 final List<XnatImagescandataI> scans = target.getScans_scan();
 					 for (int i=0; i<scans.size(); i++) {
-						 XnatImagescandata scan = (XnatImagescandata)scans.get(i);
+						 final XnatImagescandata scan = (XnatImagescandata)scans.get(i);
 						 scan.setImageSessionId(remote_id);
 						 scan.setProject(target.getProject());
 						 final ScanSyncItem scanSyncItem = new ScanSyncItem(scan.getId(),scan.getType());
@@ -407,12 +410,12 @@ public class XsyncExperimentTransfer {
 						 }
 					 }
 					 
-					 ExperimentFilter experimentFilter = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);
+					 final ExperimentFilter experimentFilter = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);
 
 					 for (int i=0; i<assessors.size();i++) {
-						 XnatImageassessordata origAss = (XnatImageassessordata)assessors.get(i);
+						 final XnatImageassessordata origAss = (XnatImageassessordata)assessors.get(i);
 						 item = origAss.getItem().copy();
-						 XnatImageassessordata targetAss = (XnatImageassessordata) BaseElement.GetGeneratedItem(item);
+						 final XnatImageassessordata targetAss = (XnatImageassessordata) BaseElement.GetGeneratedItem(item);
 						 experimentFilter.correctIDandLabel(targetAss, origAss, remote_id, target.getProject());
 
 						 for (final XnatAbstractresourceI res : targetAss.getResources_resource()) {
@@ -474,8 +477,11 @@ public class XsyncExperimentTransfer {
 			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
 			 stored = false;
 		 }finally {
+				if (remote_id!=null && remote_id.length()>0) {
+					saveSyncDetails(orig.getId(),remote_id,expSyncItem.getSyncStatus(),expSyncItem.getXsiType());
+				}
 				final String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
-				File localPath = new File(anonymizedSessionPath);
+				final File localPath = new File(anonymizedSessionPath);
 				if (localPath.exists() && localPath.isDirectory()) {
 					try {
 						FileUtils.deleteDirectory(localPath);
@@ -483,7 +489,6 @@ public class XsyncExperimentTransfer {
 						
 					}
 				} 
-					
 		 }
 		 subjectSyncInfo.addExperiment(expSyncItem);
 		 return stored;

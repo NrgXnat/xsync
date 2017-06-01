@@ -56,6 +56,7 @@ public class XsyncUtils {
 	public static final String SYNC_STATUS_SYNC_REQUESTED="Sync Requested";
 
 	public static final String SYNC_STATUS_BEGINING="PREPARING TO SYNC";
+	public static final String SYNC_STATUS_IN_PROGRESS="SYNC IN PROGRESS";
 
 	public static final String SYNC_TYPE_ALL = "all";
 	public static final String SYNC_TYPE_NONE = "none";
