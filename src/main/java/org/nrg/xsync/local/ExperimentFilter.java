@@ -986,7 +986,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 		List<XnatImagescandataI> scans = ((XnatImagesessiondata) exp).getScans_scan();
 		for (int i = 0; i < scans.size(); i++) {
 			XnatImagescandataI scan= scans.get(i);
-			if (!sessionOption.isAllowedToSyncScanFilters(scan)) {
+			if (!sessionOption.isAllowedToSyncFilters((BaseElement)scan)) {
 				((XnatImagesessiondata) exp).removeScans_scan(i);
 				found = true;
 				return true;
@@ -1034,14 +1034,52 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 			XnatSubjectassessordataI orig)
 					throws Exception {
 		XnatSubjectassessordataI assess = (XnatSubjectassessordataI) correctIDandLabel((XnatSubjectdata)newSubject,(XnatSubjectassessordata)orig);
-		filterSubjectAssessorResources((XnatSubjectassessordata)assess);
-		for (final XnatAbstractresourceI res : assess.getResources_resource()) {
-			//modifySubjectAssessorResource((XnatAbstractresource) res, origSubject, newSubject);
-			modifyExptResource((XnatAbstractresource) res, (XnatExperimentdata)orig, false);
-
+		assess=filterSubjectAssessor((XnatSubjectassessordata)assess);
+		if(assess!=null)
+		{
+			filterSubjectAssessorResources((XnatSubjectassessordata)assess);
+			for (final XnatAbstractresourceI res : assess.getResources_resource()) {
+				//modifySubjectAssessorResource((XnatAbstractresource) res, origSubject, newSubject);
+				modifyExptResource((XnatAbstractresource) res, (XnatExperimentdata)orig, false);
+			}
 		}
 		return assess;
-		
+	}
+	
+	/**
+	 * Filter subject assessor.
+	 *
+	 * @param exp the exp
+	 * @return the xnat subjectassessordata
+	 * @throws Exception the exception
+	 */
+	public XnatSubjectassessordata filterSubjectAssessor(XnatSubjectassessordata exp)
+			throws Exception {
+		SyncConfigurationXsiType session = projectSyncConfiguration.getSynchronizationConfiguration().getSubjectAssessor(exp.getXSIType());
+		if(!findAndRemoveExperiment(exp, session))
+		{
+			exp=null;
+		}
+		return exp;
+	}
+	
+	/**
+	 * Find and remove experiment.
+	 *
+	 * @param exp the exp
+	 * @param session the session
+	 * @return true, if successful
+	 * @throws Exception 
+	 */
+	private boolean findAndRemoveExperiment(XnatExperimentdata exp, SyncConfigurationXsiType session) throws Exception {
+		if (session == null) {
+			return false;
+		}
+		try {
+			return session.isAllowedToSyncFilters(exp);
+		} catch (Exception e) {
+			throw e;
+		}
 	}
 
 

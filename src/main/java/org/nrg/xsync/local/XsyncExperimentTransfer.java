@@ -22,6 +22,7 @@ import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatImageassessordataI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatImagesessiondataI;
+import org.nrg.xdat.model.XnatSubjectassessordataI;
 import org.nrg.xdat.model.XnatSubjectdataI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatImageassessordata;
@@ -193,11 +194,16 @@ public class XsyncExperimentTransfer {
 					}					
 				}else { */ // NO OKs required, sync it
 					boolean updateOkToSyncAssessorStatus = false;
-					XnatSubjectassessordata cleaned_assessor = (XnatSubjectassessordata)experimentFilter.prepareSubjectAssessorToSync((XnatSubjectdata)localSubject,(XnatSubjectdata)remoteSubject, orig);
-					cleaned_assessor.setProject(remoteSubject.getProject());
-					boolean stored = storeAssessor(origId, orig, (XnatSubjectdata)remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
-					if (!stored)
-						throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
+					XnatSubjectassessordataI targetExp=experimentFilter.prepareSubjectAssessorToSync((XnatSubjectdata)localSubject,(XnatSubjectdata)remoteSubject, orig);
+					if(targetExp!=null)
+					{
+						XnatSubjectassessordata cleaned_assessor = (XnatSubjectassessordata)targetExp;
+						cleaned_assessor.getAllXnatSubjectassessordatas(user, false);
+						cleaned_assessor.setProject(remoteSubject.getProject());
+						boolean stored = storeAssessor(origId, orig, (XnatSubjectdata)remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
+						if (!stored)
+							throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
+					}
 				//}
 			}
 		}
@@ -647,7 +653,7 @@ public class XsyncExperimentTransfer {
         
         XnatAbstractresource rsc = null;
         for (XnatAbstractresourceI r: orig.getResources_resource()) {
-        	if (rsc.getLabel().equals(rscItem.getLocalLabel())) {
+        	if (r.getLabel().equals(rscItem.getLocalLabel())) {
         		rsc = (XnatAbstractresource)r;
         		break;
         	}
