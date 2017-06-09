@@ -184,7 +184,7 @@ public class SyncConfigurationXsiType {
 		List<SyncConfigurationFilter> exclusionFilter = new ArrayList<SyncConfigurationFilter>();
 		List<SyncConfigurationFilter> filtersByObj = getFiltersByObjectType(item);
 		try {
-			if (filtersByObj == null) {
+			if (filtersByObj == null || filtersByObj.isEmpty()) {
 				isAllowed = true;
 			} else {
 				for (Iterator<SyncConfigurationFilter> iterator = filtersByObj.iterator(); iterator.hasNext();) {
