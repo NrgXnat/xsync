@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.nrg.xdat.XDAT;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -35,6 +34,7 @@ public class QueryResultUtil {
 	public static final String ACTIVE_STATUS = "active" ;
 	public static final String NEW_STATUS = "new" ;
 	public static final String OK_TO_SYNC_STATUS = "ok_to_sync";
+	public static final String FAILED_STATUS = "failed" ;
 
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
 
@@ -76,7 +76,7 @@ public class QueryResultUtil {
 		query += " left join xnat_projectdata p ON s.project=p.id ";
 		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
-		query += " where project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and (sm.last_modified > xsi.sync_start_time or sm.row_last_modified > xsi.sync_end_time) ";
+		query += " where project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and (sm.last_modified > xsi.sync_start_time or sm.row_last_modified > xsi.sync_start_time) ";
 		query += " UNION ";
 		query += "select sh.id, sh.label,sh.project, sm.status, sm.last_modified,xsi.sync_start_time from xnat_subjectdata_meta_data sm ";
 		query += " left join xnat_subjectdata_history sh ON sh.change_date=sm.row_last_modified ";
@@ -85,6 +85,20 @@ public class QueryResultUtil {
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
 		query += " where sm.status='"+ DELETE_STATUS + "' and sh.project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and (sm.last_modified > xsi.sync_start_time or sm.row_last_modified > xsi.sync_start_time) ";
 		return query;
+	}
+
+	public String getQueryForFetchingSubjectsWithFailedAssessorSyncs() {
+		final StringBuilder queryb = new StringBuilder();
+		queryb.append("select s.id, s.label, s.project, rm.status, rm.last_modified,xsi.sync_start_time from"); 
+		queryb.append(" xnat_subjectdata s"); 
+		queryb.append(" left join xnat_projectdata p ON s.project=p.id"); 
+		queryb.append(" left join xnat_subjectassessordata e on e.subject_id = s.id"); 
+		queryb.append(" left join xsync_xsyncremotemapdata r on e.id = r.local_xnat_id");
+		queryb.append(" left join xsync_xsyncremotemapdata_meta_data rm on r.xsyncremotemapdata_info = rm.meta_data_id");
+		queryb.append(" left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id"); 
+		queryb.append(" left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id");
+		queryb.append(" where project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and r.sync_status='" + XsyncUtils.SYNC_STATUS_FAILED + "'");
+ 		return queryb.toString();
 	}
 
 	public String getQueryForFetchingSubjectsWhoseExperimentsMarkedOKSinceLastSync(boolean skipSubjectIdCheck) {
@@ -135,7 +149,7 @@ public class QueryResultUtil {
 		query += " left join xnat_projectdata p ON s.project=p.id   ";
 		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id   ";
-		query += " where s.id=:"+ this.SUBJECT_QUERY_PARAMETER_NAME + " and p.id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time ";  
+		query += " where s.id=:"+ SUBJECT_QUERY_PARAMETER_NAME + " and p.id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time ";  
 		return query ;
 	}
 
@@ -166,7 +180,7 @@ public class QueryResultUtil {
 		query += " 		left join xnat_projectdata p ON s.project=p.id   ";
 		query += " 		left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id  ";
 		query += " 		left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
-		query += " 		 where s.id=:" + this.SUBJECT_QUERY_PARAMETER_NAME + " and am.status='"+ DELETE_STATUS + "' and p.id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time ";
+		query += " 		 where s.id=:" + SUBJECT_QUERY_PARAMETER_NAME + " and am.status='"+ DELETE_STATUS + "' and p.id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time ";
 		return query;
 		
 	}	
@@ -191,8 +205,23 @@ public class QueryResultUtil {
 		query += " left join xnat_subjectassessordata sa ON sa.id=e.id "; 
 		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";  
-		query += " where sa.subject_id=:" +  this.SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +  " and em.row_last_modified > xsi.sync_end_time and e.id in (:"+EXPERIMENT_IDS+") ";
+		query += " where sa.subject_id=:" +  SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +  " and em.row_last_modified > xsi.sync_end_time and e.id in (:"+EXPERIMENT_IDS+") ";
 		return query;
+	}
+
+	public String getQueryForFetchingSubjectExperimentsWithFailedSyncs() {
+		final StringBuilder queryb = new StringBuilder();
+		queryb.append("select e.id,e.label,xdme.element_name,e.project,xsrmm.status,xsrmm.last_modified, xsi.sync_end_time,xsrmm.insert_date from xnat_experimentdata e ");
+		queryb.append(" left join xdat_meta_element xdme ON e.extension = xdme.xdat_meta_element_id ");
+		queryb.append(" left join xnat_projectdata p ON e.project=p.id ");
+		queryb.append(" left join xnat_subjectassessordata sa ON sa.id=e.id ");
+		queryb.append(" left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ");
+		queryb.append(" left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ");
+		queryb.append(" left join xsync_xsyncremotemapdata xsrm on e.id = xsrm.local_xnat_id");
+		queryb.append(" left join xsync_xsyncremotemapdata_meta_data xsrmm on xsrm.xsyncremotemapdata_info = xsrmm.meta_data_id");
+		queryb.append(" where sa.subject_id=:" +  SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +
+				" and e.id in (:"+EXPERIMENT_IDS+") and xsrm.sync_status='"+XsyncUtils.SYNC_STATUS_FAILED + "'");
+ 		return queryb.toString();
 	}
 	
 	public String getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync() {
@@ -204,7 +233,7 @@ public class QueryResultUtil {
 		query += " left join xnat_subjectassessordata sa ON sa.id=e.id "; 
 		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";  
-		query += " where sa.subject_id=:" +  this.SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +  "  and xok.remote_project_id=:" + REMOTE_PROJECT_QUERY_PARAMETER_NAME +  "  and xok.remote_url=:" + REMOTE_URL_QUERY_PARAMETER_NAME + "  and xok.oktosync=1 "  + " and e.id in (:"+EXPERIMENT_IDS+") ";
+		query += " where sa.subject_id=:" +  SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +  "  and xok.remote_project_id=:" + REMOTE_PROJECT_QUERY_PARAMETER_NAME +  "  and xok.remote_url=:" + REMOTE_URL_QUERY_PARAMETER_NAME + "  and xok.oktosync=1 "  + " and e.id in (:"+EXPERIMENT_IDS+") ";
 		return query;
 	}
 	
@@ -218,7 +247,7 @@ public class QueryResultUtil {
 		query += " left join xnat_subjectassessordata_history sa ON sa.id=eh.id "; 
 		query += " left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ";
 		query += " left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";  
-		query += " where sa.subject_id=:" + this.SUBJECT_QUERY_PARAMETER_NAME +  " and p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +  " and  em.status='"+ DELETE_STATUS + "' and em.row_last_modified > xsi.sync_end_time  ";
+		query += " where sa.subject_id=:" + SUBJECT_QUERY_PARAMETER_NAME +  " and p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +  " and  em.status='"+ DELETE_STATUS + "' and em.row_last_modified > xsi.sync_end_time  ";
 		return query;
 	}
 	
@@ -232,6 +261,8 @@ public class QueryResultUtil {
 		String query = getQueryForFetchingSubjectExperimentsModifiedSinceLastSync();
 		query += " UNION ";
 		query += getQueryForFetchingSubjectExperimentsDeletedSinceLastSync();
+		query += " UNION ";
+		query += getQueryForFetchingSubjectExperimentsWithFailedSyncs();
 		return query;		
 	}
 
@@ -253,8 +284,6 @@ public class QueryResultUtil {
 		}	
 
 	}
-	
-
 	
 	public Map<Object,List<Map<String,Object>>> separateByColumn(List<Map<String,Object>> queryResults, String separatorColumnName) {
 		Map<Object,List<Map<String,Object>>> reOrganizedRows = new HashMap<Object,List<Map<String,Object>>>();
@@ -338,7 +367,8 @@ public class QueryResultUtil {
 			    	if (rowIndices.containsKey(columnRowValue)) {
 			    		Integer rowIndex = rowIndices.get(columnRowValue);
 			    		Map<String,Object> appendToThisRow = rowsCollated.get(rowIndex.intValue());
-			    		ArrayList<Object> collatedValues = (ArrayList)appendToThisRow.get(pivotColumnName);
+			    		@SuppressWarnings({ "unchecked", "rawtypes" })
+						ArrayList<Object> collatedValues = (ArrayList)appendToThisRow.get(pivotColumnName);
 			    		collatedValues.add(row.get(pivotColumnName));
 			    	}else {
 			    		//Insert the row - the first time you see the collatorColumn

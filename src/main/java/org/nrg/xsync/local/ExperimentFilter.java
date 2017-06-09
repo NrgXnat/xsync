@@ -34,7 +34,6 @@ import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.om.XsyncXsyncassessordata;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
 import org.nrg.xft.ItemI;
-import org.nrg.xft.ItemWrapper;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.FieldNotFoundException;
@@ -88,6 +87,7 @@ public class ExperimentFilter {
 		final List<XnatExperimentdataI> experimentsModified = new ArrayList<XnatExperimentdataI>();
 		final List<XnatExperimentdataI> experimentsAdded = new ArrayList<XnatExperimentdataI>();
 		final List<XnatExperimentdataI> experimentsMarkedOkToSync = new ArrayList<XnatExperimentdataI>();
+		final List<XnatExperimentdataI> experimentsSyncFailed = new ArrayList<XnatExperimentdataI>();
 
 		final List<XnatExperimentdataI> experimentsConfiguredToBeSynced = new ArrayList<XnatExperimentdataI>();
 		final Date syncStartDate = (Date)projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncStartTime();
@@ -161,26 +161,33 @@ public class ExperimentFilter {
 			_log.debug("No experiment has been deleted for subject");
 		}
 		
-
 		if (experimentsConfiguredToBeSynced.size() > 0) {
 			if (experimentDetails.size()>0) {
-				for (Map<String,Object> row:experimentDetails) {
+				final List<String> detailIds = getExperimentIdsFromExperimentDetails(experimentDetails);
+				parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, detailIds);
+				final List<String> failedExperimentIds = getFailedExperimentIds(parameters);
+				for (final Map<String,Object> row:experimentDetails) {
 					if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
+						final String currentExpId = (String)row.get("id");
 						//Is this new or updated?
-						Date experimentInsertDate = (Date)row.get("insert_date");
+						final Date experimentInsertDate = (Date)row.get("insert_date");
 						int dateComparison = experimentInsertDate.compareTo(syncStartDate);
 						if (dateComparison >= 0) { //Inserted at endTime or After endTime
-							_log.debug("Experiment Added: " + (String)row.get("id"));
-							experimentsAdded.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
+							_log.debug("Experiment Added: " + currentExpId);
+							experimentsAdded.add(getExperiment(currentExpId,experimentsConfiguredToBeSynced));
 						}else {
-							Date experimentModifiedDate = (Date)row.get("last_modified");
+							final Date experimentModifiedDate = (Date)row.get("last_modified");
 							dateComparison = experimentModifiedDate.compareTo(syncStartDate);
 							if (dateComparison >= 0) { //Modified at endTime or After endTime
-								_log.debug("Experiment Modified: " + (String)row.get("id"));
-								experimentsModified.add(getExperiment((String)row.get("id"),experimentsConfiguredToBeSynced));
+								_log.debug("Experiment Modified: " + currentExpId);
+								experimentsModified.add(getExperiment(currentExpId,experimentsConfiguredToBeSynced));
 							} else {
-								_log.debug("Experiment neither added or modified: " + (String)row.get("id"));
+								_log.debug("Experiment neither added or modified: " + currentExpId);
 							}
+						}
+						//Is its sync status failed?
+						if (failedExperimentIds.contains(currentExpId)) {
+							experimentsSyncFailed.add(getExperiment(currentExpId,experimentsConfiguredToBeSynced));
 						}
 					}
 				}
@@ -205,11 +212,13 @@ public class ExperimentFilter {
 					// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
 				 experiments = _jdbcTemplate.queryForList(query, parameters);
 				if (experiments != null && experiments.size()>0) {
-					for (Map<String,Object> row:experiments) {
+					final List<String> failedExperimentIds = getFailedExperimentIds(parameters);
+					for (final Map<String,Object> row:experiments) {
 						if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
-							_log.debug("Experiment Marked OK to Sync: " + (String)row.get("id"));
-							XnatExperimentdataI exp = getExperiment((String)row.get("id"));
-							String existingSyncStatus = (String)row.get("sync_status");
+							final String currentExpId = (String)row.get("id");
+							_log.debug("Experiment Marked OK to Sync: " + currentExpId);
+							final XnatExperimentdataI exp = getExperiment(currentExpId);
+							final String existingSyncStatus = (String)row.get("sync_status");
 							boolean hasBeenSynced = false;
 							if (existingSyncStatus != null)  {
 								if (!(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC.equals(existingSyncStatus) ||
@@ -221,12 +230,12 @@ public class ExperimentFilter {
 								//Was this session modified? Is syncOnlyNew set?
 								if (!syncOnlyNew) {
 									//Were these sessions modified?
-									Map<String,Object> expTimeLineDetails = getExperimentTimeLineDetails((XnatExperimentdata)exp,syncEndDate);
-									Date experimentModifiedDate = (Date)expTimeLineDetails.get("last_modified");
+									final Map<String,Object> expTimeLineDetails = getExperimentTimeLineDetails((XnatExperimentdata)exp,syncEndDate);
+									final Date experimentModifiedDate = (Date)expTimeLineDetails.get("last_modified");
 									if (experimentModifiedDate != null) {
 										int dateComparison = experimentModifiedDate.compareTo(syncEndDate);
 										if (dateComparison >= 0) { //Modified at endTime or After endTime
-											_log.debug("Experiment Modified: " + (String)row.get("id"));
+											_log.debug("Experiment Modified: " + currentExpId);
 											experimentsModified.add(exp);
 										}
 									}
@@ -234,6 +243,10 @@ public class ExperimentFilter {
 							}else {
 								//Has not yet been synced
 								experimentsMarkedOkToSync.add(exp);
+							}
+							//Is its sync status failed?
+							if (failedExperimentIds.contains(currentExpId)) {
+								experimentsSyncFailed.add(getExperiment(currentExpId,experimentsConfiguredToBeSynced));
 							}
 						}
 					}
@@ -246,11 +259,34 @@ public class ExperimentFilter {
 		filteredResults.put(QueryResultUtil.DELETE_STATUS, experimentsDeleted);
 		filteredResults.put(QueryResultUtil.NEW_STATUS, experimentsAdded);
 		filteredResults.put(QueryResultUtil.OK_TO_SYNC_STATUS, experimentsMarkedOkToSync);
+		filteredResults.put(QueryResultUtil.FAILED_STATUS, experimentsSyncFailed);
 		return filteredResults;
 	}
 	
-	
-	
+	private List<String> getExperimentIdsFromExperimentDetails(List<Map<String, Object>> experimentDetails) {
+		final List<String> detailList = new ArrayList<>();
+		for (final Map<String,Object> row:experimentDetails) {
+			if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
+				detailList.add((String)row.get("id"));
+			}
+		}
+		return detailList;
+	}
+
+	private List<String> getFailedExperimentIds(MapSqlParameterSource parameters) {
+		final String failedQuery = _queryResultUtil.getQueryForFetchingSubjectExperimentsWithFailedSyncs();
+		final List<Map<String,Object>> failedExperiments = _jdbcTemplate.queryForList(failedQuery, parameters);
+		final List<String> failedExperimentIds = new ArrayList<>();
+		for (final Map<String, Object> row : failedExperiments) {
+			final Object idObj = row.get("id");
+			if (idObj == null) {
+				continue;
+			}
+			failedExperimentIds.add(idObj.toString());
+		}
+		return failedExperimentIds;
+	}
+
 	private XnatExperimentdataI getExperiment(String id, List<XnatExperimentdataI> experiments) {
 		XnatExperimentdataI exp = null;
 		for (XnatExperimentdataI e:experiments) {
@@ -313,6 +349,7 @@ public class ExperimentFilter {
 		return info;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private XnatExperimentdataI createNew(String id, String label, XnatSubjectdata subject,String xsiType) {
 		Class c = BaseElement.GetGeneratedClass(xsiType);
 		ItemI o = null;
