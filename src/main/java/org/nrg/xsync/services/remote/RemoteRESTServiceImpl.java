@@ -43,6 +43,8 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 
 	/** The logger. */
 	public static Logger logger = Logger.getLogger(RemoteRESTServiceImpl.class);
+	// TODO:  Do we want this to be configurable?
+	public static final int TRUNCATE_LOG_OUTPUT_LENGTH = 1000;
 
 	private final XsyncSitePreferencesBean _prefs;
 	private long sleep = 10;
@@ -124,9 +126,9 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			}
 			logger.info("importXar"+xar.getAbsolutePath());
 			logger.info("POST file length: " + xar.length());
-			logger.info(response);
-			logger.info(response.getBody());
-			logger.info(response.getHeaders().get("Set-Cookie"));
+			logger.info(truncateStr(response));
+			logger.info(truncateStr(response.getBody()));
+			logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 			final boolean status= ((response.getStatusCode().value()==HttpStatus.OK.value()) ||
 						 (response.getStatusCode().value()==HttpStatus.CREATED.value()) ||
 						 // Let's not keep trying these error types either.  They will be thrown by invalid XAR requests, and we don't want a
@@ -177,9 +179,9 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 			response = getResttemplate().exchange(uri, HttpMethod.PUT, httpEntity, String.class);
 		}
-		logger.info(response);
-		logger.info(response.getBody());
-		logger.info(response.getHeaders().get("Set-Cookie"));
+		logger.info(truncateStr(response));
+		logger.info(truncateStr(response.getBody()));
+		logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 		boolean status= ((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
 		logger.warn("importZip"+zip.getName());
 		if(!status){
@@ -592,9 +594,9 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 			response = getResttemplate().exchange(uri, HttpMethod.DELETE, httpEntity, String.class);
 		}
-		logger.info(response);
-		logger.info(response.getBody());
-		logger.info(response.getHeaders().get("Set-Cookie"));
+		logger.info(truncateStr(response));
+		logger.info(truncateStr(response.getBody()));
+		logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 		return new RemoteConnectionResponse(response);
 	}
 	
@@ -671,12 +673,21 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 			response = getResttemplate().exchange(uri, HttpMethod.GET, httpEntity, String.class);
 		}
-		logger.info(response);
-		logger.info(response.getBody());
-		logger.info(response.getHeaders().get("Set-Cookie"));
+		logger.info(truncateStr(response));
+		logger.info(truncateStr(response.getBody()));
+		logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 		return new RemoteConnectionResponse(response);
 	}
 	
+	public String truncateStr(Object obj) {
+		return truncateStr(obj,TRUNCATE_LOG_OUTPUT_LENGTH);
+	}
 	
+	public String truncateStr(Object obj, int maxlength) {
+		if (obj==null) {
+			return null;
+		}
+		return (obj.toString().length()>TRUNCATE_LOG_OUTPUT_LENGTH) ? obj.toString().substring(0,TRUNCATE_LOG_OUTPUT_LENGTH) + "......." : obj.toString();
+	}
 	
 }
