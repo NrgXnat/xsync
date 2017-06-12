@@ -200,11 +200,22 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         try {
             final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
         	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
+        	boolean alreadySynced=false;
+        	boolean wasSkipped=false;
         	if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
                 okToSyncData = okToSyncDatas.get(0);
+                final String previousSyncStatus = okToSyncData.getSyncStatus();
+                if (previousSyncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED) || 
+                    previousSyncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+                	alreadySynced=true;
+                } else if (previousSyncStatus.equals(XsyncUtils.SYNC_STATUS_SKIPPED)) {
+                	wasSkipped=true;
+                }
                 if (okToSyncData.getOktosync() != okToSync) {
                     okToSyncData.setOktosync(okToSync);
-                    okToSyncData.setSyncStatus(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC);
+                    if (!alreadySynced && !wasSkipped) {
+                    	okToSyncData.setSyncStatus(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC);
+                    }
                     okToSyncData.setRemoteUrl(syncProjectConfiguration.getSyncinfo().getRemoteUrl());
                     okToSyncData.setRemoteProjectId(syncProjectConfiguration.getSyncinfo().getRemoteProjectId());
                 }
@@ -219,7 +230,25 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                     return new ResponseEntity<>("Unable to save the Ok To Sync Information", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
-            return new ResponseEntity<>(experimentId + " has been marked " + (okToSync ? "OK" : "Not OK") + " to sync", HttpStatus.OK);
+            StringBuilder responseText = new StringBuilder("<p>" + experimentId + " has been marked " + (okToSync ? "OK" : "Not OK") + " to sync");
+            if (!alreadySynced && !wasSkipped) {
+            	responseText.append(".  This experiment will " + ((okToSync) ? "" : "not ") + 
+            			"be synced in the next synchronization cycle of the project " + experiment.getProject() + ".");
+            } else if (alreadySynced) {
+            	responseText.append(", however <em>this session has already been synced</em>.  ");
+            	responseText.append((okToSync) ? "It will not be scheduled to be resynced.</p><p>Please use the <em>Sync This Session Now</em> " + 
+            			"button if you wish to manually resync this session or the <em>Mark Session For Sync</em> button if you wish to schedule this " +
+            			"session to be synced with the next project sync.</p>" :
+            			"</p><p>Please check the destination to view the current status of the session if you feel it should not have been sent.</p>");
+            } else if (wasSkipped) {
+            	responseText.append(", however records indicate that this session was skipped by another sync process.  This most often happens " +
+            			"if the session was manually uploaded to the destination site, but it can occur under other circumstances.</p>");
+            	responseText.append((okToSync) ? "<p>Please check the destination site and use the <em>Sync This Session Now</em> " + 
+            			"button if you wish to manually sync this session or the <em>Mark Session For Sync</em> button if you wish to schedule this " 
+            					+ "session to be synced with the next project sync.</p>" :
+            			"<p>Please check the destination to view the current status of the session if you feel it should not have been sent.</p>");
+            }
+            return new ResponseEntity<>(responseText.toString(), HttpStatus.OK);
         } catch (Exception e) {
             final String message = "An error occurred trying to export the experiment " + experimentId;
             _log.error(message, e);

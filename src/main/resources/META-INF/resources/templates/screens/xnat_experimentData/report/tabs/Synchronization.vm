@@ -56,17 +56,15 @@ $(document).ready(function(){
 function setOkToSync(projectId,xnat_id, exp_label) {
 	var syncChoice = document.getElementById('OkToSync').checked;
 	var exporturl = serverRoot + '/xapi/xsync/experiments/'+xnat_id+'?okToSync='+syncChoice+'&XNAT_CSRF='+csrfToken ;
-	var text = 'Experiment ' + exp_label + ' has been marked ok to sync. This experiment will be synced in the next synchronization cycle of the project ' + projectId;
-	if (!syncChoice) {
-		text = 'Experiment ' + exp_label + ' has been marked NOT ok to sync. This experiment will be not be synced in the next synchronization cycle of the project ' + projectId;
-	}
 	$.ajax({
 	  url:exporturl,
 	  type:"POST",
 	  success: function(data){
 			  xmodal.alert({
 					title: 'Data Synchronization',
-					content: text ,
+					width: '540px',
+					height: '270px',
+					content: data ,
 					label: 'OK'
 				});
 			  if (syncChoice) {
