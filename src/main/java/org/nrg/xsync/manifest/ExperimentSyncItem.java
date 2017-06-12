@@ -1,17 +1,12 @@
 package org.nrg.xsync.manifest;
 
-import java.io.File;
 import java.util.ArrayList;
 
 import org.nrg.xdat.model.XnatAbstractresourceI;
-import org.nrg.xdat.model.XnatImageassessordataI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImageassessordata;
 import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatResource;
-import org.nrg.xdat.om.XnatResourceseries;
-import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 

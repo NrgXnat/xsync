@@ -14,7 +14,6 @@ import java.util.concurrent.ExecutorService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.nrg.xsync.local.SingleExperimentTransfer;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -28,7 +27,6 @@ import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XsyncXsyncassessordata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
-
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.event.EventMetaI;
@@ -40,6 +38,7 @@ import org.nrg.xsync.connection.RemoteOperation;
 import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
 import org.nrg.xsync.exception.XsyncCredentialsRequiredException;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
+import org.nrg.xsync.local.SingleExperimentTransfer;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XsyncXnatInfo;

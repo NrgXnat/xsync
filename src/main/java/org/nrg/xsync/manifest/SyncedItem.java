@@ -1,10 +1,9 @@
 package org.nrg.xsync.manifest;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Observable;
-import org.nrg.xdat.model.XnatAbstractresourceI;
 
+import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.utils.XsyncUtils;
 

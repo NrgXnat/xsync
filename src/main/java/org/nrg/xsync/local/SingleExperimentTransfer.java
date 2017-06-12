@@ -1,58 +1,38 @@
 package org.nrg.xsync.local;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
-import org.nrg.xdat.base.BaseElement;
-import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.XnatAbstractresourceI;
-import org.nrg.xdat.om.XnatAbstractresource;
-import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.xdat.om.XnatResourcecatalog;
-import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.om.XnatExperimentdata;
+import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
-import org.nrg.xft.ItemI;
+import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
-import org.nrg.xft.utils.FileUtils;
 import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xsync.components.SyncStatusHolder.SyncType;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
-import org.nrg.xsync.connection.RemoteConnection;
-import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.connection.RemoteConnectionManager;
-import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
-import org.nrg.xsync.local.IdMapper;
-import org.nrg.xsync.local.RemoteSubject;
 import org.nrg.xsync.manager.SynchronizationManager;
-import org.nrg.xsync.manifest.ResourceSyncItem;
-import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.nrg.xsync.remote.alias.services.SyncStatusService;
-import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncObserver;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.XSyncFailureHandler;
 import org.nrg.xsync.utils.XsyncFileUtils;
-import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.nrg.xsync.utils.SyncStatusUpdater;
+
 import com.google.common.collect.Lists;
 
 

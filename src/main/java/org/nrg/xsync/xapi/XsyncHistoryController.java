@@ -1,10 +1,8 @@
 package org.nrg.xsync.xapi;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xdat.security.services.RoleHolder;
@@ -20,8 +18,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 
 /**
  * Created by Michael Hileman on 2016/07/05.

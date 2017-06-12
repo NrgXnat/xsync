@@ -1,6 +1,5 @@
 package org.nrg.xsync.services.local.impl;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
 

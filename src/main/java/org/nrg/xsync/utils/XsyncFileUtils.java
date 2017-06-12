@@ -6,40 +6,23 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-
-import org.nrg.xft.utils.FileUtils;
 
 //import org.apache.commons.io.FileUtils;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.XnatAbstractresourceI;
-import org.nrg.xdat.model.XnatImagescandataI;
-import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatExperimentdata;
-import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatResourcecatalog;
-import org.nrg.xdat.om.XnatResourceseries;
-import org.nrg.xdat.om.XnatSubjectassessordata;
-import org.nrg.xdat.om.XnatSubjectdata;
-import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
 import org.nrg.xft.ItemI;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
-import org.nrg.xft.exception.ElementNotFoundException;
-import org.nrg.xft.exception.FieldNotFoundException;
-import org.nrg.xft.exception.XFTInitException;
-import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXWriter;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.restlet.representations.ZipRepresentation;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.restlet.data.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.nrg.xnat.exceptions.InvalidArchiveStructure;
-import org.nrg.xnat.restlet.representations.ZipRepresentation;
-import org.nrg.xnat.turbine.utils.ArcSpecManager;
 
 
 /**

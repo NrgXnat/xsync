@@ -1,5 +1,7 @@
 package org.nrg.xsync.services.local;
 
+import java.util.concurrent.ExecutorService;
+
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
@@ -14,8 +16,6 @@ import org.nrg.xsync.utils.QueryResultUtil;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
-
-import java.util.concurrent.ExecutorService;
 
 public abstract class AbstractSyncService {
     private final RemoteConnectionManager       _manager;

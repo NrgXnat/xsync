@@ -1,7 +1,7 @@
 package org.nrg.xsync.local;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+
 import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatExperimentdataShareI;
 import org.nrg.xdat.om.XnatExperimentdata;
@@ -21,7 +21,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import java.util.List;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Mohana Ramaratnam

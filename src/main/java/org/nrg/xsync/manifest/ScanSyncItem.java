@@ -1,9 +1,10 @@
 package org.nrg.xsync.manifest;
 
 import java.util.ArrayList;
+
+import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xsync.utils.XsyncUtils;
-import org.nrg.xdat.model.XnatAbstractresourceI;
 
 
 /**

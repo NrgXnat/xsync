@@ -1,20 +1,27 @@
 package org.nrg.xsync.configuration.json;
 
-import org.nrg.xsync.utils.XsyncUtils;
+import java.util.ArrayList;
+
+import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * @author Mohana Ramaratnam
  *
+ * @author Mohana Ramaratnam
+ * @author Atul Kaushal
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 
-public class SyncConfigurationImagingSessionXsiType extends  SyncConfigurationXsiType {
+public class SyncConfigurationImagingSessionXsiType extends SyncConfigurationXsiType {
+
+	/** The Constant logger. */
+	public static final Logger logger = Logger.getLogger(SyncConfigurationImagingSessionXsiType.class);
+
 	SyncConfigurationScanTypes scan_types;
 	SyncConfigurationResource scan_resources;
 	SyncConfigurationSessionAssessor session_assessors;
-	
+
 	/**
 	 * @return the scan_types
 	 */
@@ -51,7 +58,15 @@ public class SyncConfigurationImagingSessionXsiType extends  SyncConfigurationXs
 	public void setSession_assessors(SyncConfigurationSessionAssessor session_assessors) {
 		this.session_assessors = session_assessors;
 	}
-	
+
+	/**
+	 * Default configuration.
+	 * 
+	 * @param xsiType
+	 *            the xsiType to set
+	 * @return the SyncConfigurationImagingSessionXsiType object with default
+	 *         configuration values.
+	 */
 	public static  SyncConfigurationImagingSessionXsiType GetDefaultImagingSessionSyncConfigurationAdvancedOption(String xsiType) {
 		SyncConfigurationImagingSessionXsiType advOption = new SyncConfigurationImagingSessionXsiType();
 		advOption.setXsi_type(xsiType);
@@ -60,6 +75,8 @@ public class SyncConfigurationImagingSessionXsiType extends  SyncConfigurationXs
 		advOption.setScan_types(SyncConfigurationScanTypes.GetDefaultSyncConfigurationScanTypes());
 		advOption.setScan_resources(SyncConfigurationResource.GetDefaultSyncConfigurationResource());
 		advOption.setSession_assessors(SyncConfigurationSessionAssessor.GetDefaultSyncConfigurationSessionAssessor());
+		advOption.setScan_filters(new ArrayList<SyncConfigurationFilter>());
+		advOption.setFilters(new ArrayList<SyncConfigurationFilter>());
 		return advOption;
 	}
 	
@@ -86,11 +103,10 @@ public class SyncConfigurationImagingSessionXsiType extends  SyncConfigurationXs
 	public boolean isAllowedToSyncAssessor(String assessorXsiType) {
 		boolean isAllowed = false;
 		if (session_assessors == null) {
-				isAllowed = true;
-		}else {
+			isAllowed = true;
+		} else {
 			isAllowed = session_assessors.isAllowedToSync(assessorXsiType);
 		}
 		return isAllowed;
 	}
-
 }
