@@ -164,6 +164,27 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     	if (_syncStatusService.isCurrentlySyncing(projectId)) {
     		return new ResponseEntity<>(HttpStatus.LOCKED);
     	}
+    	
+        final List<XsyncXsyncassessordata> okToSyncDatas = XsyncXsyncassessordata.getXsyncXsyncassessordatasByField("xsync:xsyncAssessorData/synced_experiment_id", experimentId, user, true);
+        final XsyncXsyncassessordata okToSyncData;
+    	if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
+            okToSyncData = okToSyncDatas.get(0);
+            if (!okToSyncData.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC)) {
+            	okToSyncData.setSyncStatus(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC);
+            	//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
+            	final EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
+            	boolean saved;
+            	try {
+            		saved = okToSyncData.save(user, false, true, c);
+            		if (!saved) {
+            			return new ResponseEntity<>("Unable to marc sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
+            		}
+            	} catch (Exception e) {
+            		return new ResponseEntity<>("Unable to marc sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
+            	}
+           	}
+        } 
+    	
     	final SingleExperimentTransfer singleExperimentTransfer = new SingleExperimentTransfer(_manager, _configService, _serializer,
     			_queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, user, exp.getId());
         _executorService.submit(singleExperimentTransfer);
