@@ -1,0 +1,229 @@
+{
+	"type": "object",
+	"id": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfiguration",
+	"properties": {
+		"enabled": {
+			"type": "boolean"
+		},
+		"sync_frequency": {
+			"type": "string",
+			"enum": [
+				"daily",
+				"hourly",
+				"weelky",
+				"monthly",
+				"on demand"
+			]
+		},
+		"sync_new_only": {
+			"type": "boolean"
+		},
+		"source_project_id": {
+			"type": "string"
+		},
+		"remote_project_id": {
+			"type": "string"
+		},
+		"remote_url": {
+			"type": "string"
+		},
+		"identifiers": {
+			"type": "string"
+		},
+		"anonymize": {
+			"type": "boolean"
+		},
+		"project_resources": {
+			"type": "object",
+			"id": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationResource",
+			"properties": {
+				"sync_type": {
+					"type": "string",
+					"enum": [
+						"include",
+						"exclude",
+						"all",
+						"none"
+					]
+				},
+				"items": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"subject_resources": {
+			"type": "object",
+			"$ref": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationResource"
+		},
+		"subject_assessors": {
+			"type": "object",
+			"id": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationSubjectAssessor",
+			"properties": {
+				"sync_type": {
+					"type": "string",
+					"enum": [
+						"include",
+						"exclude",
+						"all",
+						"none"
+					]
+				},
+				"xsi_types": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"id": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationXsiType",
+						"properties": {
+							"xsi_type": {
+								"type": "string"
+							},
+							"needs_ok_to_sync": {
+								"type": "boolean"
+							},
+							"resources": {
+								"type": "object",
+								"$ref": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationResource"
+							},
+							"scan_filters": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"id": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationFilter",
+									"properties": {
+										"sync_type": {
+											"type": "string",
+											"enum": [
+												"include",
+												"exclude",
+												"all",
+												"none"
+											]
+										},
+										"xml_path": {
+											"type": "string"
+										},
+										"filter_type": {
+											"type": "string",
+											"enum": [
+												"regex",
+												"eval",
+												"contains"
+											]
+										},
+										"filter_values": {
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										}
+									}
+								}
+							},
+							"filters": {
+								"type": "array",
+								"items": {
+									"$ref": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationFilter"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"imaging_sessions": {
+			"type": "object",
+			"id": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationImagingSessions",
+			"properties": {
+				"sync_type": {
+					"type": "string",
+					"enum": [
+						"include",
+						"exclude",
+						"all",
+						"none"
+					]
+				},
+				"xsi_types": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"id": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationImagingSessionXsiType",
+						"properties": {
+							"xsi_type": {
+								"type": "string"
+							},
+							"needs_ok_to_sync": {
+								"type": "boolean"
+							},
+							"resources": {
+								"type": "object",
+								"$ref": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationResource"
+							},
+							"scan_filters": {
+								"type": "array",
+								"items": {
+									"$ref": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationFilter"
+								}
+							},
+							"filters": {
+								"type": "array",
+								"items": {
+									"$ref": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationFilter"
+								}
+							},
+							"scan_types": {
+								"type": "object",
+								"id": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationScanTypes",
+								"properties": {
+									"sync_type": {
+										"type": "string",
+										"enum": [
+											"include",
+											"exclude",
+											"all",
+											"none"
+										]
+									},
+									"items": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										}
+									}
+								}
+							},
+							"scan_resources": {
+								"type": "object",
+								"$ref": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationResource"
+							},
+							"session_assessors": {
+								"type": "object",
+								"id": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationSessionAssessor",
+								"properties": {
+									"sync_type": {
+										"type": "string",
+										"enum": [
+											"include",
+											"exclude",
+											"all",
+											"none"
+										]
+									},
+									"xsi_types": {
+										"type": "array",
+										"items": {
+											"$ref": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationXsiType"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
