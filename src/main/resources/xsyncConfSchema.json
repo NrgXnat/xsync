@@ -10,7 +10,7 @@
 			"enum": [
 				"daily",
 				"hourly",
-				"weelky",
+				"weekly",
 				"monthly",
 				"on demand"
 			]
