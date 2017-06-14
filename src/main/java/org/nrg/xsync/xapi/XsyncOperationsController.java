@@ -23,6 +23,7 @@ import org.nrg.framework.net.AuthenticatedClientHttpRequestFactory;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
+import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XsyncXsyncassessordata;
@@ -111,7 +112,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 
     @ApiOperation(value = "Exports the indicated project.", notes = "Starts the project export operation for the project with the indicated ID.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
-    @RequestMapping(value = "/projects/{projectId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
+    @XapiRequestMapping(value = "/projects/{projectId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
     public ResponseEntity<String> exportProject(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
     	//Check user credentials to see if the user is a member or an owner of the project
@@ -196,7 +197,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     
     @ApiOperation(value = "Sets OK to Sync Status for the experiment.", notes = "Sets OK to Sync Status for the experiment.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
-    @RequestMapping(value = "/experiments/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
+    @XapiRequestMapping(value = "/experiments/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
     public ResponseEntity<String> exportExperiment(@PathVariable("experimentId") final String experimentId, @RequestParam("okToSync") final boolean okToSync) throws URISyntaxException, XsyncNotConfiguredException {
         //If the OkToSync Assessor already exists, update that
@@ -330,7 +331,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 
     @ApiOperation(value = "Makes a REST call to a remote server.", notes = "This call is stateless and doesn't preserve authentication information or any other request information.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The return value from the REST call."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to run REST calls on this server."), @ApiResponse(code = 500, message = "Unexpected error")})
-    @RequestMapping(value = "remoteREST", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
+    @XapiRequestMapping(value = "remoteREST", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
     public ResponseEntity<String> connectToRemoteRestEndpoint(@RequestBody final RemoteOperation operation) throws URISyntaxException, XsyncCredentialsRequiredException {
         //HttpStatus status = isPermitted();
@@ -373,7 +374,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     }
 
     @ApiOperation(value = "Gets the log file to display the progress of sync.", notes = "Gets the log file containing sync progress")
-    @RequestMapping(value = "/progress/{projectId}",  method = RequestMethod.GET)
+    @XapiRequestMapping(value = "/progress/{projectId}",  method = RequestMethod.GET)
     @ResponseBody
     public void getSyncProgress(HttpServletRequest request, HttpServletResponse response, @PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncCredentialsRequiredException {
         final UserI user = getSessionUser();

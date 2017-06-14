@@ -4,7 +4,8 @@ import java.util.Properties;
 
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NrgServiceException;
-import org.nrg.xdat.rest.AbstractXapiRestController;
+import org.nrg.xapi.rest.AbstractXapiRestController;
+import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
@@ -47,7 +48,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	 * @param jsonbody the jsonbody
 	 * @return the response entity
 	 */
-	@RequestMapping(method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
+    @XapiRequestMapping(method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
     @ApiOperation(value = "Sets the XSync site preferences")
     @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences set."), @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> setPreferences(@RequestBody String jsonbody) {
@@ -89,7 +90,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	 *
 	 * @return the preferences
 	 */
-	@RequestMapping(method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
+    @XapiRequestMapping(method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
     @ApiOperation(value = "Gets the XSync site preferences", response = Properties.class)
     @ApiResponses({@ApiResponse(code = 200, message = "XSync site preferences retrieved."),
 				   @ApiResponse(code = 500, message = "Unexpected error")})

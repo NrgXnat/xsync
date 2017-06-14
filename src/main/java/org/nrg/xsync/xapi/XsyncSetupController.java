@@ -7,6 +7,7 @@ import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.constants.Scope;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
+import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
@@ -50,7 +51,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 
 	@ApiOperation(value = "Sets up the Xsync project configuration",  response = String.class)
 	@ApiResponses({@ApiResponse(code = 200, message = "XSync configuration successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
-	@RequestMapping(value = "/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
+    @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
 	public ResponseEntity<String> setup(@PathVariable("projectId") String projectId, @RequestBody String jsonbody) {
 		//curl -H "Content-Type: application/json" -X POST -d '{  "project":"TEST1ID",  "sync_frequency":"daily",  "auto_sync":"false",  "identifiers":"use_local",  "remote_url":"http://localhost:8080/xnat",  "remote_project_id":"SyncProjectId"}' -u admin  "http://localhost:8080/xnat/xapi/xsync/setup?project=TEST1ID"
 		try {
@@ -86,7 +87,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	
 	@ApiOperation(value = "Gets the Xsync project configuration" )
 	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
-	@RequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
+    @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
 	public ResponseEntity<JsonNode> setup(@PathVariable("projectId") final String projectId) throws Exception{
 		final UserI user = getSessionUser();
     	final HttpStatus status = canReadProject(projectId);
@@ -118,7 +119,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "presyncanonymization", anonymizationScript, Scope.Project, project.getId());
 	}
 
-	@RequestMapping(path="/presyncanonymization/projects/{projectId}", method = RequestMethod.PUT)
+    @XapiRequestMapping(path="/presyncanonymization/projects/{projectId}", method = RequestMethod.PUT)
 	@ApiOperation(value = "Adds Pre-Sync project specific DICOM Anonyzation",  response = String.class)
 	@ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId, @RequestBody(required=false) String anonymizationScript) throws Exception{
@@ -139,7 +140,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
     	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved",  HttpStatus.OK);
 	}
 
-	@RequestMapping(path="/presyncanonymization/projects/{projectId}", method = RequestMethod.GET)
+    @XapiRequestMapping(path="/presyncanonymization/projects/{projectId}", method = RequestMethod.GET)
 	@ApiOperation(value = "GETs Pre-Sync project specific DICOM Anonyzation",  response = String.class)
 	@ApiResponses({@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization."),
 			       @ApiResponse(code = 204, message = "No DICOM anonymization found."),

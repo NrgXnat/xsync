@@ -15,6 +15,7 @@ import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
+import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
@@ -69,7 +70,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	 * @param jsonbody the jsonbody
 	 * @return the response entity
 	 */
-	@RequestMapping(path="/save/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
+    @XapiRequestMapping(path="/save/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
     @ApiOperation(value = "Sets remote credentials for XSync")
     @ApiResponses({@ApiResponse(code = 200, message = "XSync remote credentials set."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	public synchronized ResponseEntity<String> saveRemoteCredentials(@RequestBody String jsonbody) {
@@ -221,7 +222,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	 * @param jsonbody the jsonbody
 	 * @return the response entity
 	 */
-	@RequestMapping(path="/check/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
+    @XapiRequestMapping(path="/check/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
     @ApiOperation(value = "Checks whether XSync remote credentials are valid")
     @ApiResponses({@ApiResponse(code = 200, message = "Remote credentials valid."),  @ApiResponse(code = 500, message = "Unexpected error")})
 	public synchronized ResponseEntity<String> checkRemoteCredentials(@RequestBody String jsonbody) {
