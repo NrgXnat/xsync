@@ -6,15 +6,19 @@ Xsync plugin enables automatic synchronization of data from a project in one XNA
 
 # Download #
 
-[ Xsync Jar (Ver 1.3-SNAPSHOT, XNAT Ver 1.7.2) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-1.3-SNAPSHOT.jar)
+For XNAT 1.7.2
 
-[ Xsync Bean Jar (Ver 1.3-SNAPSHOT, XNAT Ver 1.7.2) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-beans-1.3-SNAPSHOT.jar)
+[ Xsync Jar (Version 1.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-1.3-SNAPSHOT.jar)
 
-[ Xsync Jar (Ver 1.3.1-SNAPSHOT, XNAT Ver 1.7.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-1.3.1-SNAPSHOT.jar)
+[ Xsync Bean Jar (Version 1.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-beans-1.3-SNAPSHOT.jar)
 
-[ Xsync Bean Jar (Ver 1.3.1-SNAPSHOT, XNAT Ver 1.7.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-beans-1.3.1-SNAPSHOT.jar)
+For XNAT 1.7.3-SNAPSHOT (as of 06/15/2017)
 
-[ Latest Tested XNAT War File (XSync Ver 1.3.1-SNAPSSHOT, XNAT Ver 1.7.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xnat-web-1.7.3-SNAPSHOT.war)
+[ Xsync Jar (Version 1.3.1-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-1.3.1-SNAPSHOT.jar)
+
+[ Xsync Bean Jar (Version 1.3.1-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-beans-1.3.1-SNAPSHOT.jar)
+
+[ Latest Tested XNAT War File (XNAT Version 1.7.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xnat-web-1.7.3-SNAPSHOT.war)
 
 # ChangeLog #
 
