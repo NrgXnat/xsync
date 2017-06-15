@@ -5,16 +5,16 @@ package org.nrg.xnat.xsync.anonymize;
  *
  */
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.nrg.dcm.Anonymize;
-import org.nrg.dcm.edit.AttributeException;
-import org.nrg.dcm.edit.ScriptEvaluationException;
+import org.nrg.dicom.mizer.exceptions.MizerException;
+import org.nrg.dicom.mizer.exceptions.ScriptEvaluationException;
+import org.nrg.dicom.mizer.service.MizerService;
+import org.nrg.xdat.XDAT;
 
 
 public abstract class AbstractExportAnonymizer implements Callable<java.lang.Void> {
@@ -30,13 +30,13 @@ public abstract class AbstractExportAnonymizer implements Callable<java.lang.Voi
 		this.next = a;
 	}
 
-	public void anonymize(File f)
-			throws AttributeException, ScriptEvaluationException, FileNotFoundException, IOException {
+	public void anonymize(File f) throws MizerException {
+		
 		String scriptContent = this.getScript();
 		logger.debug(f.getAbsolutePath());
-		
 		if (StringUtils.isNotEmpty(scriptContent)) {
-			Anonymize.anonymize(f, this.getProjectName(), this.getSubject(), this.getLabel(), true, new Long(0),scriptContent);
+			final MizerService service = XDAT.getContextService().getBeanSafely(MizerService.class);
+			service.anonymize(f, this.getProjectName(), this.getSubject(), this.getLabel(), true, new Long(0),scriptContent);
 			if (this.next != null) {
 				this.next.anonymize(f);
 			}
@@ -45,8 +45,8 @@ public abstract class AbstractExportAnonymizer implements Callable<java.lang.Voi
 			//TODO
 			// this project does not have an anon script
 			//Just copy the files
-			
 		}
+		
 	}
 
 

@@ -12,7 +12,7 @@ import java.util.Map;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.dcm4che2.io.DicomInputStream;
-import org.nrg.dcm.CopyOp;
+import org.nrg.transaction.operations.CopyOp;
 import org.nrg.transaction.OperationI;
 import org.nrg.transaction.TransactionException;
 import org.nrg.xdat.bean.CatCatalogBean;
