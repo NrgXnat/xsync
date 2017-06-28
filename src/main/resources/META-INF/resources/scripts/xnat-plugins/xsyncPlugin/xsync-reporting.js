@@ -82,7 +82,7 @@ window.XSYNC = getObject(window.XSYNC);
 		// delegate a single event handler for all rows
 		$(xsyncHistory.table).on('click', 'a.show-details', function(e){
 			e.preventDefault();
-			reporting.showHistoryDetailsModal(xsyncUrl('/history/'+this.title))
+			reporting.showHistoryDetailsModal(xsyncUrl('/history/projects/'+ projectContext + '/' +this.title))
 		});
 
 	};
@@ -129,9 +129,31 @@ window.XSYNC = getObject(window.XSYNC);
 					resources: generateHistoryTab('Project Resources', history.resourceHistories)
 				}
 			}
-		}).render(container, 100)
+		}).render(container, 100);
+		setActiveTab();
 	}
 
+	/*
+	 * This is a quick fix. This is function is written to make display Overview Tab.  
+	 * Bug# https://issues.humanconnectome.org/browse/CCF-99
+	 * 
+	 */
+	function setActiveTab()
+	{
+	   var objects=document.getElementsByClassName('tab-pane');
+	   if(objects!=null && objects.length>0)
+	   {
+		   for(i=0; i<objects.length;i++)
+		   {
+			   var obj=objects[i];
+			   if(obj.data.name=="overviewTab")
+			   {
+				   obj.className='tab-pane active';
+			   }
+		   }
+	   } 
+	}
+	
 	function generateOverviewTab(history) {
 
 		var startDate = new Date(history.startDate);

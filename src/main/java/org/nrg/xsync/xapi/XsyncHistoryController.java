@@ -26,12 +26,12 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
+
 /**
+ * The Class XsyncHistoryController.
  * Created by Michael Hileman on 2016/07/05.
- *
+ * @author Atul
  */
-
-
 @Api(description="Xsync History API")
 @XapiRestController
 @RequestMapping(value="/xsync/history")
@@ -44,6 +44,11 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
 	}
 
 	
+    /**
+     * Gets the all sync history.
+     *
+     * @return the all sync history
+     */
     @ApiOperation(value="History of Xsync transactions", response=String.class)
     @ApiResponses({
             @ApiResponse(code=200, message="OK"),
@@ -59,16 +64,31 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         return new ResponseEntity<>(_service.getAll(), HttpStatus.OK);
     }
 
-    @XapiRequestMapping(method=RequestMethod.GET, value="{id}")
+    /**
+     * Gets the sync history by id.
+     *
+     * @param projectId the project id
+     * @param id the id
+     * @return the sync history by id
+     * @throws Exception the exception
+     */
+    @XapiRequestMapping(method=RequestMethod.GET, value="/projects/{projectId}/{id}")
     @ResponseBody
-    public ResponseEntity<XsyncProjectHistory> getSyncHistoryById(@PathVariable final long id) {
-    	final HttpStatus status = isPermitted();
+    public ResponseEntity<XsyncProjectHistory> getSyncHistoryById(@PathVariable("projectId") final String projectId,@PathVariable("id") final long id) throws Exception {
+    	final HttpStatus status = canReadProject(projectId);
         if (status != null) {
             return new ResponseEntity<>(status);
         }
         return new ResponseEntity<>(_service.retrieve(id), HttpStatus.OK);
     }
 
+    /**
+     * Gets the sync history by project.
+     *
+     * @param projectId the project id
+     * @return the sync history by project
+     * @throws Exception the exception
+     */
     @XapiRequestMapping(value="/projects/{projectId}", method=RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<List<XsyncProjectHistory>> getSyncHistoryByProject(@PathVariable("projectId") String projectId) throws Exception {
@@ -88,5 +108,6 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         return new ResponseEntity<>(filteredHistory, HttpStatus.OK);
     }
 
+    /** The service. */
     private final SyncManifestService _service;
 }

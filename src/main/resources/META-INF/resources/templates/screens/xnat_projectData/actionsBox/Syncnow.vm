@@ -134,7 +134,7 @@
 			 	"</table>"
 				;
 		} else {
-			var historyUrl = "/xapi/xsync/history/" + data.historyId + "?format=json";
+			var historyUrl = "/xapi/xsync/history/projects/" + XNAT.data.context.project + "/" + data.historyId + "?format=json";
 			return "<table style='font-size:15px;line-height:20px'>" + 
 			 	"<tr><td><b>Current Status: </b></td><td><b>Not Syncing</b></td></tr>" + 
 			 	"<tr><td>Last Sync Result: </td><td>" + ((data.wasSyncSuccessful) ? "Successful" : "Failed") + "</td></tr>" + 
