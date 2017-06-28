@@ -61,7 +61,7 @@ public class HibernateSyncHistoryService
     }
 
     @Transactional
-    public void persistHistory(SyncManifest manifest) {
+    public synchronized void persistHistory(SyncManifest manifest) {
         this.manifest = manifest;
         this.setProjectHistory();
         this.setSubjectHistory();
