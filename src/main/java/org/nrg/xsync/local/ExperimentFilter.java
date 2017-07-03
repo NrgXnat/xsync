@@ -53,6 +53,7 @@ import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.XsyncRESTUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -378,9 +379,11 @@ public class ExperimentFilter {
 		String newid = "";
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
 		String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origExperiment.getId());
-		if (alreadyAssignedRemoteId != null) {
-			newid = alreadyAssignedRemoteId;
+		if (alreadyAssignedRemoteId == null) {
+			XsyncRESTUtils restUtil=new XsyncRESTUtils(_manager, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration);
+			alreadyAssignedRemoteId = restUtil.getRemoteExperimentId(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId(), targetsubject.getId(),origExperiment.getLabel(),origExperiment.getXSIType());
 		}
+		newid = alreadyAssignedRemoteId!=null?alreadyAssignedRemoteId:newid;
 		targetExperiment.setId(newid);
 		//targetExperiment.setProject(targetsubject.getProject());
 		targetExperiment.setSubjectId(targetsubject.getLabel());
