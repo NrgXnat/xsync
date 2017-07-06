@@ -181,7 +181,7 @@ public class RemoteSubject {
 
 			//Go through experiments; if they are in config, keep them
 			ExperimentFilter experimentMapper = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);
-			Map<String,List<XnatExperimentdataI>> experimentsToBeSynced = experimentMapper.select(newSubject, localSubject.getId());
+			Map<String,List<XnatExperimentdataI>> experimentsToBeSynced = experimentMapper.select(newSubject, localSubject.getId(), localSubject.getProject());
 			//Store the subject
 			//Get its remote id
 			//Store the remote id
@@ -235,6 +235,7 @@ public class RemoteSubject {
 				 XSyncFailureHandler.handle(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(),localSubject.getId(),localSubject.getXSIType(),null, subjectSyncInfo, response);
 			 return subject_remote_id;
 		 }catch(Exception e) {
+			  saveSyncDetails(localSubject.getId(), null, null, XsyncUtils.SYNC_STATUS_FAILED, localSubject.getXSIType());
 			 _log.error(e.toString());
 			 throw e;
 		 }

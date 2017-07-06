@@ -156,6 +156,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     		_observer  = new XsyncObserver(_projectId);
             syncProjectResources();
             final List<Map<String, Object>> subjectRows = getSubjectsModifiedSinceLastSync();
+            appendFailedSubjects(subjectRows);
             appendSubjectsWithFailedAssessorSyncs(subjectRows);
             final List<String> subjectIds = new ArrayList<>();
             for (final Map<String, Object> row : subjectRows) {
@@ -401,6 +402,18 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         final String query = _queryResultUtil.getQueryForSubjectsSharedIntoProject(_projectId);
         return _jdbcTemplate.queryForList(query, _parameters);
     }
+    
+
+	/**
+	 * Append failed subjects.
+	 *
+	 * @param subjectRows the subject rows
+	 */
+	private void appendFailedSubjects(List<Map<String, Object>> subjectRows) {
+		final String query = _queryResultUtil.getQueryForFetchingFailedSubjects();
+        final List<Map<String, Object>> queryResults = _jdbcTemplate.queryForList(query, _parameters);
+        subjectRows.addAll(queryResults);
+	}
 
     
     @SuppressWarnings("unused")

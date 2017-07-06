@@ -100,6 +100,24 @@ public class QueryResultUtil {
 		queryb.append(" where project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and r.sync_status='" + XsyncUtils.SYNC_STATUS_FAILED + "'");
  		return queryb.toString();
 	}
+	
+	/**
+	 * Gets the query for fetching failed subjects.
+	 *
+	 * @return the query for fetching failed subjects
+	 */
+	public String getQueryForFetchingFailedSubjects() {
+		final StringBuilder queryb = new StringBuilder();
+		queryb.append("select s.id, s.label, s.project, rm.status, rm.last_modified,xsi.sync_start_time from"); 
+		queryb.append(" xnat_subjectdata s"); 
+		queryb.append(" left join xnat_projectdata p ON s.project=p.id");  
+		queryb.append(" left join xsync_xsyncremotemapdata r on s.id = r.local_xnat_id");
+		queryb.append(" left join xsync_xsyncremotemapdata_meta_data rm on r.xsyncremotemapdata_info = rm.meta_data_id");
+		queryb.append(" left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id"); 
+		queryb.append(" left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id");
+		queryb.append(" where project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and r.sync_status='" + XsyncUtils.SYNC_STATUS_FAILED + "'");
+ 		return queryb.toString();
+	}
 
 	public String getQueryForFetchingSubjectsWhoseExperimentsMarkedOKSinceLastSync(boolean skipSubjectIdCheck) {
 		String query = "select s.id, s.label,s.project, sm.status, sm.last_modified,xsi.sync_end_time from xnat_subjectdata_meta_data sm ";
@@ -467,5 +485,18 @@ public class QueryResultUtil {
 		String query = "select * from xhbm_remote_alias_entity where local_project=:LOCAL_PROJECT and remote_host=:REMOTE_HOST";
 		return query;
 	}
+
+	
+	/**
+	 * Gets the last sync status for subject.
+	 *
+	 * @return the last sync status for subject
+	 */
+	public String getLastSyncStatusForSubject() {
+		String query="Select sync_status from xsync_xsyncremotemapdata where remote_project_id=:remoteProjectId and xsitype='xnat:subjectData' and local_xnat_id=:localSubjectId and source_project_id=:localProjectId";
+		return query;
+	}
+
+	
 	
 }

@@ -83,7 +83,7 @@ public class ExperimentFilter {
 		this.projectSyncConfiguration = projectSyncConfiguration;
 	}
 	
-	public Map<String,List<XnatExperimentdataI>> select(XnatSubjectdata subject, String localSubjectId) throws Exception {
+	public Map<String,List<XnatExperimentdataI>> select(XnatSubjectdata subject, String localSubjectId, String localProjectId) throws Exception {
 		final List<XnatExperimentdataI> experimentsDeleted = new ArrayList<XnatExperimentdataI>();
 		final List<XnatExperimentdataI> experimentsModified = new ArrayList<XnatExperimentdataI>();
 		final List<XnatExperimentdataI> experimentsAdded = new ArrayList<XnatExperimentdataI>();
@@ -162,6 +162,8 @@ public class ExperimentFilter {
 			_log.debug("No experiment has been deleted for subject");
 		}
 		
+		String lastSyncStatusOfSubject=getLastSyncStatusForSubject(localSubjectId,localProjectId,subject.getProject());
+		
 		if (experimentsConfiguredToBeSynced.size() > 0) {
 			if (experimentDetails.size()>0) {
 				final List<String> detailIds = getExperimentIdsFromExperimentDetails(experimentDetails);
@@ -173,7 +175,7 @@ public class ExperimentFilter {
 						//Is this new or updated?
 						final Date experimentInsertDate = (Date)row.get("insert_date");
 						int dateComparison = experimentInsertDate.compareTo(syncStartDate);
-						if (dateComparison >= 0) { //Inserted at endTime or After endTime
+						if (XsyncUtils.SYNC_STATUS_FAILED.equals(lastSyncStatusOfSubject) || dateComparison >= 0) { //Inserted at endTime or After endTime
 							_log.debug("Experiment Added: " + currentExpId);
 							experimentsAdded.add(getExperiment(currentExpId,experimentsConfiguredToBeSynced));
 						}else {
@@ -264,6 +266,30 @@ public class ExperimentFilter {
 		return filteredResults;
 	}
 	
+	/**
+	 * Gets the last sync status for subject.
+	 *
+	 * @param localProjectId the local project id
+	 * @param localSubjectId the local subject id
+	 * @param remoteProjectId the remote project id
+	 * @return the last sync status for subject
+	 */
+	private String getLastSyncStatusForSubject(String localSubjectId, String localProjectId, String remoteProjectId) {
+		String syncStatus=null;
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue("localSubjectId", localSubjectId);
+		parameters.addValue("localProjectId", localProjectId);
+		parameters.addValue("remoteProjectId", remoteProjectId);
+
+		String query = _queryResultUtil.getLastSyncStatusForSubject();		
+		_log.debug("Query is " + query);
+		List<Map<String,Object>> syncStatusList = _jdbcTemplate.queryForList(query, parameters);
+		if(syncStatusList!=null && !syncStatusList.isEmpty()) {
+			syncStatus=(String) syncStatusList.get(0).get("sync_status");
+		}
+		return syncStatus;
+	}
+
 	private List<String> getExperimentIdsFromExperimentDetails(List<Map<String, Object>> experimentDetails) {
 		final List<String> detailList = new ArrayList<>();
 		for (final Map<String,Object> row:experimentDetails) {
