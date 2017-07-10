@@ -33,6 +33,9 @@
 		"anonymize": {
 			"type": "boolean"
 		},
+		"notification_emails": {
+			"type": "string"
+		},
 		"project_resources": {
 			"type": "object",
 			"id": "urn:jsonschema:org:nrg:xsync:configuration:json:SyncConfigurationResource",

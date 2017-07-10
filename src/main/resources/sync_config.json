@@ -7,6 +7,7 @@
 	"remote_url": "http://localhost:8080/xnat",
 	"identifiers": "use_local",
 	"anonymize": true,
+	"notification_emails": "abc@xyz.com,pqr@mno.co.in",
 	"project_resources": {
 		"sync_type": "include",
 		"items": [
