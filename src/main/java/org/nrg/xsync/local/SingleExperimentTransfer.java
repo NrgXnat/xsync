@@ -123,7 +123,7 @@ public class SingleExperimentTransfer implements Callable<Void> {
             String remoteHost = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 
             //syncStatusUpdater.saveSyncBlockStatus(Boolean.TRUE);
-            SynchronizationManager.BEGIN_SYNC(_manager.getSyncManifestService(), _xnatInfo, project.getId(), remoteProjectId, remoteHost, _user, _mailService);
+            SynchronizationManager.BEGIN_SYNC(_manager.getSyncManifestService(), _xnatInfo, project.getId(), remoteProjectId, remoteHost, _user, _mailService,_jdbcTemplate);
             _syncStatusService.registerSyncStart(_projectId, SyncType.EXPERIMENT_SYNC, SynchronizationManager.getProjectManifest(project.getId()));
             _observer  = new XsyncObserver(_projectId);
             synchronizationResource = XsyncFileUtils.createSynchronizationLogResource(project,_user);

@@ -5,9 +5,14 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
@@ -17,6 +22,8 @@ import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * @author Mohana Ramaratnam
@@ -38,8 +45,9 @@ public class SyncManifest{
 	ArrayList<SubjectSyncItem> subjects;
 	private final SyncManifestService _syncManifestService;
 	private final XsyncXnatInfo _xnatInfo;
+	private final NamedParameterJdbcTemplate _jdbcTemplate;;
 
-	public SyncManifest(final SyncManifestService syncManifestService, final XsyncXnatInfo xnatInfo, final MailService mailService, String localProjectId, String remoteProjectId, String syncHost) {
+	public SyncManifest(final SyncManifestService syncManifestService, final XsyncXnatInfo xnatInfo, final MailService mailService, String localProjectId, String remoteProjectId, String syncHost, NamedParameterJdbcTemplate _jdbcTemplate) {
 		_syncManifestService = syncManifestService;
 		_xnatInfo = xnatInfo;
 		_mailService = mailService;
@@ -48,6 +56,7 @@ public class SyncManifest{
 		this.syncHost = syncHost;
 		resources = new ArrayList<>();
 		subjects = new ArrayList<>();
+		this._jdbcTemplate=_jdbcTemplate;
 	}
 
 
@@ -211,10 +220,23 @@ public class SyncManifest{
 		return shouldNotify;	
 	}
 	
+	/**
+	 * Added functionality to notify additional users. (CCF-98)
+	 * Inform user.
+	 */
 	public void informUser() {
 		final Hashtable<String, String> info = syncInfoAsHTML();
 		try {
-			_mailService.sendHtmlMessage(_xnatInfo.getAdminEmail(), this.sync_user.getEmail(), info.get("SUBJECT"),
+			Set<String> toAddresses=new HashSet<String>();
+			toAddresses.add(this.sync_user.getEmail());
+			String[] data=getXsyncNotificationEmailsByProjectId(this.localProjectId);
+			if(data!= null && data.length >0)
+			{
+				toAddresses.addAll(Arrays.asList(data));
+			}
+			String[] notif_emails=new String[toAddresses.size()];
+			notif_emails=toAddresses.toArray(notif_emails);
+			_mailService.sendHtmlMessage(_xnatInfo.getAdminEmail(),  notif_emails, info.get("SUBJECT"),
 					info.get("BODY"));
 		} catch (Exception e) {
 			logger.error("Failed to send email.", e);
@@ -227,7 +249,11 @@ public class SyncManifest{
 	 */
 	public Hashtable<String, String> syncInfoAsHTML() {
 		final Hashtable<String,String> info = new Hashtable<>();
-		final String subject="Project " + this.localProjectId +" data synced from "+ _xnatInfo.getSiteId()+" to " + this.syncHost;
+		String subject="Project " + this.localProjectId +" data synced from "+ _xnatInfo.getSiteId()+" to " + this.syncHost;
+		if(!this.wasSyncSuccessfull())
+		{
+			subject="Data Sync Failed/Incomplete for "+this.localProjectId +" from "+ _xnatInfo.getSiteId()+" to " + this.syncHost;
+		}
 		info.put("SUBJECT", subject);
 			StringBuilder sb = new StringBuilder();
 			sb.append("<html>");
@@ -354,5 +380,27 @@ public class SyncManifest{
 
 		public synchronized void syncInfoToDatabase() {
 			_syncManifestService.persistHistory(this);
+		}
+		
+		/**
+		 * Gets the xsync notification emails by project id.
+		 *
+		 * @param projectId the project id
+		 * @return the xsync notification emails by project id
+		 */
+		private String[] getXsyncNotificationEmailsByProjectId(String projectId) {
+			String emails[] = {};
+			String query = "select notification_emails from xsync_xsyncprojectdata";
+			query += " where source_project_id=:projectId";
+			MapSqlParameterSource parameters = new MapSqlParameterSource();
+			parameters = new MapSqlParameterSource();
+			parameters.addValue("projectId", projectId);
+			 List<String> results = _jdbcTemplate.queryForList(query, parameters,String.class);
+			 if (results !=null && results.size()>0) {
+				 String value = results.get(0);
+				 if(value!=null && !StringUtils.isEmpty(value))
+				 emails=value.split(",");
+			 }
+			return emails;
 		}
 }

@@ -27,6 +27,9 @@ public class SyncConfiguration implements Serializable{
 	SyncConfigurationSubjectAssessor subject_assessors;
 	SyncConfigurationImagingSessions imaging_sessions;
 	
+	/** The notification emails. */
+	private String notification_emails;
+	
 	
 	public boolean isProjectResourceAllowedToSync(String resourceLabel) {
 		boolean isAllowed = false;
@@ -309,6 +312,24 @@ public class SyncConfiguration implements Serializable{
 	 */
 	public void setAnonymize(Boolean anonymize) {
 		this.anonymize = anonymize;
-	}	
+	}
 
+	/**
+	 * Gets the notification emails.
+	 *
+	 * @return the notification_emails
+	 */
+	public String getNotification_emails() {
+		return notification_emails;
+	}
+
+	/**
+	 * Sets the notification emails.
+	 *
+	 * @param notification_emails the notification_emails to set
+	 */
+	public void setNotification_emails(String notification_emails) {
+		this.notification_emails = notification_emails;
+	}
+	
 }

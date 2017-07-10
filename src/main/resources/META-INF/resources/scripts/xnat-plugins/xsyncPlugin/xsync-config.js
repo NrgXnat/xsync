@@ -347,7 +347,47 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
     }
 
     XSYNC.xsyncconfig.checkCredentials = checkCredentials;
+	
+	function isValidEmailAddress(emailAddress) {
+			var pattern = /^([a-z\d!#$%&'*+\-\/=?^_`{|}~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+(\.[a-z\d!#$%&'*+\-\/=?^_`{|}~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+)*|"((([ \t]*\r\n)?[ \t]+)?([\x01-\x08\x0b\x0c\x0e-\x1f\x7f\x21\x23-\x5b\x5d-\x7e\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|\\[\x01-\x09\x0b\x0c\x0d-\x7f\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))*(([ \t]*\r\n)?[ \t]+)?")@(([a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|[a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF][a-z\d\-._~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]*[a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])\.)+([a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|[a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF][a-z\d\-._~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]*[a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])\.?$/i;
+			return pattern.test(emailAddress);
+		};
+	
+	function validateEmailAddresses()
+		{
+			var allAddressesValid=true;
+			var emails=$('#xsync-config-notification_emails').val();
+			
+			if(emails != null && emails.length > 0)
+			{
+				var emailArr=emails.split(',');
+				for(i=0; i<emailArr.length;i++)
+				{
+					if(!isValidEmailAddress(emailArr[i].trim()))
+					{
+						errorWindow('<b>'+emailArr[i] +'</b> is an invalid email address. Kindly provide valid email address.');
+						allAddressesValid=false;
+						break;
+					}
+				}
+			}
+			return allAddressesValid;
+		}
 
+		function errorWindow(message)
+		{
+			errorModal=xmodal.open({
+				title: "Error",
+				content:'<div>'+message+'</div>',
+				height: '20%',
+				width: '25%',
+				ok: 'hide',
+				cancel: 'show',
+				cancelLabel: 'Close',
+				closeBtn: 'hide'
+			});
+			xModalOpenNew(errorModal);
+		}
 
     /*
      Configuration Settings
@@ -382,24 +422,29 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     label: "Submit",
                     isDefault: true,
                     action: function(obj){
-                        // Only include visible fields and checkboxes, which are of type 'hidden'
-                        var json = form2js($('#root-panel').find(':input').filter(':visible, [type="hidden"]')
-                                .toArray());
+						
+						if(validateEmailAddresses())
+						{
+							// Only include visible fields and checkboxes, which are of type 'hidden'
+							var json = form2js($('#root-panel').find(':input').filter(':visible, [type="hidden"]')
+									.toArray());
 
-                        // Source project not on the form
-                        json.source_project_id = XNAT.data.context.project;
+							// Source project not on the form
+							json.source_project_id = XNAT.data.context.project;
 
-                        // Delete stuff we don't want serialized
-                        delete json.subjectDetailsCheckbox;
-                        delete json.advancedSyncCheckbox;
+							// Delete stuff we don't want serialized
+							delete json.subjectDetailsCheckbox;
+							delete json.advancedSyncCheckbox;
 
-                        // don't trample on advanced settings that aren't defined in the UI
-                        json = XSYNC.xsyncconfig.mergeConfig(json);
-                        console.log('XSYNC.xsyncconfig.configuration');
-                        console.log(json);
+							console.log(json);
+							// don't trample on advanced settings that aren't defined in the UI
+							json = XSYNC.xsyncconfig.mergeConfig(json);
+							console.log('XSYNC.xsyncconfig.configuration');
+							console.log(json);
 
-                        XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
-                        // $form.triggerHandler('reload-data');
+							XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
+							// $form.triggerHandler('reload-data');
+						}
                     }
                 },
                 close: {
@@ -430,6 +475,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     frequency: frequency(),
                     identifiers: identifiers(),
                     anonymize: anonymize(),
+                    notification_emails:notification_emails(),
                     // okToSync: okToSync(),
 
                     advancedSyncCheckbox: {
@@ -639,6 +685,17 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 kind: 'panel.input.checkbox',
                 name: _name,
                 label: 'Require QC to Sync'
+            }
+        }
+        
+        function notification_emails(){
+            return {
+                id: 'xsync-config-notification_emails',
+                kind: 'panel.input.textarea',
+                name: 'notification_emails',
+                label: 'Notification Emails',
+				rows: 2,
+				description: 'By default, Xsync sends emails to Site Admin and Xsync user. If you want to notify more people, kindly provide comma separated email addresses.'
             }
         }
 

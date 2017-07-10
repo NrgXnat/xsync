@@ -151,7 +151,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             //If the sync status is other can Complete - this implies some in the batch of last sync have failed to sync
             //Out of the list of those that are gathered to be synced. Check if they have already been synced.
             
-            SynchronizationManager.BEGIN_SYNC(_manager.getSyncManifestService(), _xnatInfo, project.getId(), remoteProjectId, remoteHost, _user, _mailService);
+            SynchronizationManager.BEGIN_SYNC(_manager.getSyncManifestService(), _xnatInfo, project.getId(), remoteProjectId, remoteHost, _user, _mailService,_jdbcTemplate);
             _syncStatusService.registerSyncStart(_projectId,SyncType.PROJECT_SYNC,SynchronizationManager.getProjectManifest(project.getId()));
     		_observer  = new XsyncObserver(_projectId);
             syncProjectResources();

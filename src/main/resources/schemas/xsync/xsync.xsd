@@ -90,6 +90,7 @@
     					If set to true the project sync will take place. Project owner will set this option.
     				</xs:documentation>
     	</xs:attribute>
+    	<xs:attribute name="notification_emails" type="xs:string"/>
     </xs:complexType>
     <xs:element name="XsyncInfoData" type="xsync:xsyncInfoData"></xs:element>
     <xs:complexType name="xsyncInfoData">

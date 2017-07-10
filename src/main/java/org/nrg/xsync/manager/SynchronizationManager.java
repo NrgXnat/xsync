@@ -38,10 +38,10 @@ public class SynchronizationManager {
 
 	private static Map<String, SyncManifest> syncManifests = new HashMap<String,SyncManifest>();
 	
-	public static void BEGIN_SYNC(final SyncManifestService syncManifestService, final XsyncXnatInfo xnatInfo, String projectId, String remoteProjectId, String host, UserI user, final MailService mailService) {
+	public static void BEGIN_SYNC(final SyncManifestService syncManifestService, final XsyncXnatInfo xnatInfo, String projectId, String remoteProjectId, String host, UserI user, final MailService mailService, NamedParameterJdbcTemplate _jdbcTemplate) {
 		Date now = new Date();
 		projectSyncStartTime.put(projectId, now);
-		SyncManifest projectSyncManifest = new SyncManifest(syncManifestService, xnatInfo, mailService, projectId, remoteProjectId, host);
+		SyncManifest projectSyncManifest = new SyncManifest(syncManifestService, xnatInfo, mailService, projectId, remoteProjectId, host,_jdbcTemplate);
 		projectSyncManifest.setSync_user(user);
 		projectSyncManifest.setSync_start_time(now);
 		syncManifests.put(projectId, projectSyncManifest);
