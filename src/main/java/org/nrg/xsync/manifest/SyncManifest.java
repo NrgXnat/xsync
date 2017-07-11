@@ -7,10 +7,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.mail.services.MailService;
@@ -227,7 +227,7 @@ public class SyncManifest{
 	public void informUser() {
 		final Hashtable<String, String> info = syncInfoAsHTML();
 		try {
-			Set<String> toAddresses=new HashSet<String>();
+			Set<String> toAddresses=new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
 			toAddresses.add(this.sync_user.getEmail());
 			String[] data=getXsyncNotificationEmailsByProjectId(this.localProjectId);
 			if(data!= null && data.length >0)
