@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -62,6 +63,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
+
+import com.google.gson.JsonObject;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -273,6 +276,52 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             return new ResponseEntity<>(responseText.toString(), HttpStatus.OK);
         } catch (Exception e) {
             final String message = "An error occurred trying to export the experiment " + experimentId;
+            _log.error(message, e);
+            return new ResponseEntity<>(message + ": " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+
+    /**
+     * Gets the sync info.
+     *
+     * @param experimentId the experiment id
+     * @return the sync info
+     * @throws URISyntaxException the URI syntax exception
+     * @throws XsyncNotConfiguredException the xsync not configured exception
+     */
+    @XapiRequestMapping(value = "/experiments/{experimentId}/syncStatus", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<String> getSyncInfo(@PathVariable("experimentId") final String experimentId){
+        final UserI user = getSessionUser();
+    	try {
+            final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
+        	final HttpStatus status = canEditProject(experiment.getProject());
+            if (status != null) {
+                return new ResponseEntity<>(status);
+            }
+        }catch(Exception e) {
+            if (_log.isInfoEnabled()) {
+                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
+            }
+        }
+        final List<XsyncXsyncassessordata> okToSyncDatas = XsyncXsyncassessordata.getXsyncXsyncassessordatasByField("xsync:xsyncAssessorData/synced_experiment_id", experimentId, user, true);
+        XsyncXsyncassessordata okToSyncData = null;
+        String resp="";
+        try {
+        	if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
+                okToSyncData = okToSyncDatas.get(0);
+            }
+            if (okToSyncData != null) {
+                	JsonObject syncStatus=new JsonObject();
+                	syncStatus.addProperty("syncStatus", okToSyncData.getSyncStatus());
+                	syncStatus.addProperty("authorizedBy", okToSyncData.getAuthorizedBy());
+                	syncStatus.addProperty("authorizedDate", new SimpleDateFormat("yyyy-MM-dd").format(okToSyncData.getAuthorizedTime()));
+                	resp=syncStatus.toString();
+            }
+            return new ResponseEntity<>(resp, HttpStatus.OK);
+        } catch (Exception e) {
+            final String message = "An error occurred while fetching sync status information " + experimentId;
             _log.error(message, e);
             return new ResponseEntity<>(message + ": " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

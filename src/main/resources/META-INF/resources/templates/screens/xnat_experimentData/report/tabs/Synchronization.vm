@@ -34,9 +34,9 @@ function loadConfiguration() {
 	      document.getElementById('showDoesNotNeedOkToSync').style.display=displayShowDoesNotNeedOkToSync;
 	      if (document.getElementById('showDoesNotNeedOkToSync').style.display=='none') {
 		  if (document.getElementById('OkToSync').checked) {
-			$("#syncDetailsTable").show();
+			$("#syncDetailsTableDiv").show();
 		  } else {
-			$("#syncDetailsTable").hide();
+			$("#syncDetailsTableDiv").hide();
 		  } 
 	      }
 
@@ -68,10 +68,37 @@ function setOkToSync(projectId,xnat_id, exp_label) {
 					label: 'OK'
 				});
 			  if (syncChoice) {
-				$("#syncDetailsTable").show();
+			    getSyncInfo(projectId,xnat_id, exp_label);
+				
 			  } else {
-				$("#syncDetailsTable").hide();
+				$("#syncDetailsTableDiv").hide();
 			  } 
+	  },
+	  error: ajaxCallFailed
+	});
+};
+
+function getSyncInfo(projectId,xnat_id, exp_label) {
+	var syncChoice = document.getElementById('OkToSync').checked;
+	var exporturl = serverRoot + '/xapi/xsync/experiments/'+xnat_id+'/syncStatus?XNAT_CSRF='+csrfToken ;
+	$.ajax({
+	  url:exporturl,
+	  type:"GET",
+	  success: function(response){
+	  
+				var data=JSON.parse(response);
+				$('#syncStatus').html(data['syncStatus']);
+				$('#authorizedBy').html(data['authorizedBy']);
+				$('#authorizedDate').html(data['authorizedDate']);
+				if(data['syncStatus'] == "Waiting to Sync")
+				{
+				$('#remoteSessionReport').html("Not available");
+				}
+				else{
+				console.log('setting remoteSessionReport');
+				$('#remoteSessionReport').html('<a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a>');
+				}
+				$("#syncDetailsTableDiv").show();
 	  },
 	  error: ajaxCallFailed
 	});
@@ -176,36 +203,35 @@ function requestSync(projectId,xnat_id, exp_label) {
 <div id="showDivIfSynchronizationConfigured">
 <input type="checkbox" id="OkToSync" name="OkToSync" value="OkToSync"
 	onclick="javascript:setOkToSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');" $checked>Ok To Sync
-	#if ($syncAssessor == "")
-	<table>
-	#else
-	<table id="syncDetailsTable">
-	<tr> 
-	<th align="left">Sync Status:</th>
-	<td>$!syncAssessor.getSyncStatus()</td>
-	</tr>
-	<tr> 
-	<th align="left">Authorized By:</th>
-	<td>$!syncAssessor.getAuthorizedBy()</td>
-	</tr>
-	<tr> 
-	<th align="left">Authorized On:</th>
-	<td>$!syncAssessor.getDate()</td>
-	</tr>
-	<tr> 
-	<th align="left">Remote Session report:</th>
-	<td>#if ($syncAssessor.getSyncStatus() == "Waiting to Sync") Not available #else <a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a>#end </td>
-	</tr>
-	<tr> 
-	<th align="left"><input type="button" title="Initiate sync process for this session.  Note that this could block other sync processes."
-					 value="Sync This Session Now" onclick="javascript:manualSync('$!om.getProject()','$!om.getId()','$!om.getLabel()', true);"></th>
-	<td>
-			<input type="button" title="Request this session to be synced as part of the next sync operation"
-					 value="Mark Session for Sync" onclick="javascript:requestSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');">
-	</td>
-	</tr>
-	#end
-	</table>
+	<div id="syncDetailsTableDiv" style="display:none">
+		<table id="syncDetailsTable">
+			<tr> 
+				<th align="left">Sync Status:</th>
+				<td id="syncStatus">$!syncAssessor.getSyncStatus()</td>
+			</tr>
+			<tr> 
+				<th align="left">Authorized By:</th>
+				<td id="authorizedBy">$!syncAssessor.getAuthorizedBy()</td>
+			</tr>
+			<tr> 
+				<th align="left">Authorized On:</th>
+				<td id="authorizedDate">$!syncAssessor.getDate()</td>
+			</tr>
+			<tr> 
+				<th align="left">Remote Session report:</th>
+				<td id="remoteSessionReport">#if ($syncAssessor.getSyncStatus() == "Waiting to Sync") Not available #else <a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a>#end </td>
+			</tr>
+			<tr> 
+			<th align="left">
+				<input type="button" title="Initiate sync process for this session.  Note that this could block other sync processes."
+							 value="Sync This Session Now" onclick="javascript:manualSync('$!om.getProject()','$!om.getId()','$!om.getLabel()', true);"></th>
+				<td>
+					<input type="button" title="Request this session to be synced as part of the next sync operation"
+							 value="Mark Session for Sync" onclick="javascript:requestSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');">
+				</td>
+			</tr>
+		</table>
+	</div>
 </div>
 
 <div id="showDivIfSynchronizationNotConfigured" style="padding-top:40px;padding-bottom:40px">
