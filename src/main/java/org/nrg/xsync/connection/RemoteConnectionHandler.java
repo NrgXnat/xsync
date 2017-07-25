@@ -1,16 +1,16 @@
 package org.nrg.xsync.connection;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
 import org.nrg.xsync.exception.XsyncRemoteConnectionException;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Mohana Ramaratnam

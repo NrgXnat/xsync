@@ -1,9 +1,11 @@
 package org.nrg.xsync.manifest;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.persistence.*;
 
 
 /**

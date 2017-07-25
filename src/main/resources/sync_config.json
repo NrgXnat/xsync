@@ -1,90 +1,154 @@
 {
-    "enabled": true,
-    "sync_frequency": "daily",
-    "sync_new_only": false,
-    "source_project_id": "TEST1ID",
-    "remote_project_id": "SyncProjectId",
-    "remote_url": "http://localhost:8080/xnat",
-    "identifiers": "use_local",
-    "anonymize": true,
-    "project_resources": {
-        "sync_type": "include",
-        "items": [
-            "RES1"
-        ]
-    },
-    "subject_resources": {
-        "sync_type": "include",
-        "items": [
-            "S1RESOURCE",
-            "S2RESOURCE"
-        ]
-    },
-    "subject_assessors": {
-        "sync_type": "include",
-        "xsi_types": [
-            {
-                "xsi_type": "dpuk:dpukAssessmentData",
-                "resources": {
-                    "sync_type": "include",
-                    "items": [
-                        "DPUK1RESOURCE"
-                    ]
-                }
-            },
-            {
-                "xsi_type": "hcp:subjectMetaData",
-                "resources": {
-                    "sync_type": "none",
-                    "items": []
-                }
-            }
-        ]
-    },
-    "imaging_sessions": {
-        "sync_type": "include",
-        "xsi_types": [
-            {
-                "xsi_type": "xnat:mrSessionData",
-                "needs_ok_to_sync": true,
-                "resources": {
-                    "sync_type": "exclude",
-                    "items": [
-                        "MR1RESOURCE",
-                        "MR2RESOURCE"
-                    ]
-                },
-                "session_assessors": {
-                    "sync_type": "include",
-                    "xsi_types": [
-                        {
-                            "xsi_type": "qc:qcAssessmentData",
-                            "resources": {
-                                "sync_type": "include",
-                                "items": [
-                                    "QCASSESSMENT1"
-                                ]
-                            }
-                        }
-                    ]
-                },
-                "scan_types": {
-                    "sync_type": "include",
-                    "items": [
-                        "T1w",
-                        "T2w",
-                        "fMRI",
-                        "rMRI"
-                    ]
-                },
-                "scan_resources": {
-                    "sync_type": "include",
-                    "items": [
-                        "DICOM",
-                        "NIFTI"
-                    ]
-                }
-            }
-        ]
-    }
+	"enabled": true,
+	"sync_frequency": "daily",
+	"sync_new_only": false,
+	"source_project_id": "TEST1ID",
+	"remote_project_id": "SyncProjectId",
+	"remote_url": "http://localhost:8080/xnat",
+	"identifiers": "use_local",
+	"anonymize": true,
+	"project_resources": {
+		"sync_type": "include",
+		"items": [
+			"RES1"
+		]
+	},
+	"subject_resources": {
+		"sync_type": "include",
+		"items": [
+			"S1RESOURCE",
+			"S2RESOURCE"
+		]
+	},
+	"subject_assessors": {
+		"sync_type": "include",
+		"xsi_types": [
+			{
+				"xsi_type": "dpuk:dpukAssessmentData",
+				"resources": {
+					"sync_type": "include",
+					"items": [
+						"DPUK1RESOURCE"
+					]
+				},
+				"filters": [
+					{
+						"sync_type": "include",
+						"xml_path": "label",
+						"filter_type": "regex",
+						"filter_values": [
+							"^Patient.*"
+						]
+					}
+				]
+			},
+			{
+				"xsi_type": "hcp:subjectMetaData",
+				"resources": {
+					"sync_type": "none",
+					"items": []
+				},
+				"filters": [
+					{
+						"sync_type": "include",
+						"xml_path": "pi_firstname",
+						"filter_type": "contains",
+						"filter_values": [
+							"John",
+							"Doe"
+						]
+					},
+					{
+						"sync_type": "include",
+						"xml_path": "xnat:experimentdata/date",
+						"filter_type": "eval",
+						"filter_values": [
+							"new Date().parse('yyyy-MM-dd', '$VALUE') > new Date().parse('yyyy-MM-dd', '1988-04-19')"
+						]
+					}
+				]
+			}
+		]
+	},
+	"imaging_sessions": {
+		"sync_type": "include",
+		"xsi_types": [
+			{
+				"xsi_type": "xnat:mrSessionData",
+				"needs_ok_to_sync": true,
+				"resources": {
+					"sync_type": "exclude",
+					"items": [
+						"MR1RESOURCE",
+						"MR2RESOURCE"
+					]
+				},
+				"session_assessors": {
+					"sync_type": "include",
+					"xsi_types": [
+						{
+							"xsi_type": "qc:qcAssessmentData",
+							"resources": {
+								"sync_type": "include",
+								"items": [
+									"QCASSESSMENT1"
+								]
+							}
+						}
+					]
+				},
+				"scan_types": {
+					"sync_type": "include",
+					"items": [
+						"T1w",
+						"T2w",
+						"fMRI",
+						"rMRI"
+					]
+				},
+				"scan_resources": {
+					"sync_type": "include",
+					"items": [
+						"DICOM",
+						"NIFTI"
+					]
+				},
+				"scan_filters": [
+					{
+						"sync_type": "include",
+						"xml_path": "series_description",
+						"filter_type": "regex",
+						"filter_values": [
+							"^t1.*"
+						]
+					},
+					{
+						"sync_type": "exclude",
+						"xml_path": "quality",
+						"filter_type": "contains",
+						"filter_values": [
+							"questionable",
+							"unusable"
+						]
+					},
+					{
+						"sync_type": "include",
+						"xml_path": "xnat:imageScanData/frames",
+						"filter_type": "eval",
+						"filter_values": [
+							"Double.valueOf($VALUE)<200"
+						]
+					},
+					{
+						"sync_type": "include",
+						"xml_path": "xnat:mrScanData/fieldStrength",
+						"filter_type": "eval",
+						"filter_values": [
+							"Double.valueOf($VALUE)>5"
+						]
+					}
+				]
+			}
+		]
+	}
 }

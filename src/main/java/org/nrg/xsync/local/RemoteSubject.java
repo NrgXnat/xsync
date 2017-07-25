@@ -118,26 +118,30 @@ public class RemoteSubject {
 	
 	private XnatSubjectdata syncSubject() throws Exception {
 		_log.debug("Syncing subject BEGIN: " + localSubject.getLabel());
-
-		XFTItem item = ((XnatSubjectdata)localSubject).getItem().copy();
-		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-	
-		XnatSubjectdata newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
-
+		final XFTItem item = ((XnatSubjectdata)localSubject).getItem().copy();
+		// Remove assessors from the item.  They will be synced separately.
+		final List<XFTItem> subjAssessors  = item.getChildrenOfType("xnat:subjectAssessorData", true);
+		for (final XFTItem subjAssessor : subjAssessors) {
+			item.removeItem(subjAssessor);
+		}
+		
+		final String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		final XnatSubjectdata newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
 		newSubject.setProject(remoteProjectId);
-		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
+		
+		final IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
 		
 		idMapper.correctIDandLabel(newSubject);
 		
 		//Go through resources; if they are in config and modified since last sync, keep them
-		ResourceFilter resourceMapper = new ResourceFilter(user, _jdbcTemplate, _queryResultUtil);
-		Map<String,List<XnatAbstractresourceI>> resourcesToBeSynced = resourceMapper.select(newSubject, localSubject.getId(), projectSyncConfiguration);
+		final ResourceFilter resourceMapper = new ResourceFilter(user, _jdbcTemplate, _queryResultUtil);
+		final Map<String,List<XnatAbstractresourceI>> resourcesToBeSynced = resourceMapper.select(newSubject, localSubject.getId(), projectSyncConfiguration);
 
 		//Store the subject
 		//Get its remote id
 		//Store the remote id
 
-		String subject_remote_id=storeSubject(newSubject);
+		final String subject_remote_id=storeSubject(newSubject);
 		if (subject_remote_id != null) {
 			newSubject.setId(subject_remote_id);
 			saveSyncDetails(localSubject.getId(),subject_remote_id,newSubject.getLabel(), XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,localSubject.getXSIType());
@@ -420,22 +424,24 @@ public class RemoteSubject {
 	
 	
 	private void syncExperiments(XnatSubjectdataI remoteSubject,Map<String,List<XnatExperimentdataI>> experimentsToBeSynced) throws Exception{
-		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-		List<XnatExperimentdataI> deletedExperiments = experimentsToBeSynced.get(QueryResultUtil.DELETE_STATUS);
-		List<XnatExperimentdataI> updatedExperiments = experimentsToBeSynced.get(QueryResultUtil.ACTIVE_STATUS);
-		List<XnatExperimentdataI> newExperiments = experimentsToBeSynced.get(QueryResultUtil.NEW_STATUS);
-		List<XnatExperimentdataI> okToSyncExperiments = experimentsToBeSynced.get(QueryResultUtil.OK_TO_SYNC_STATUS);
+		final String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+		final List<XnatExperimentdataI> deletedExperiments = experimentsToBeSynced.get(QueryResultUtil.DELETE_STATUS);
+		final List<XnatExperimentdataI> updatedExperiments = experimentsToBeSynced.get(QueryResultUtil.ACTIVE_STATUS);
+		final List<XnatExperimentdataI> newExperiments = experimentsToBeSynced.get(QueryResultUtil.NEW_STATUS);
+		final List<XnatExperimentdataI> okToSyncExperiments = experimentsToBeSynced.get(QueryResultUtil.OK_TO_SYNC_STATUS);
+		final List<XnatExperimentdataI> failedSyncExperiments = experimentsToBeSynced.get(QueryResultUtil.FAILED_STATUS);
+		final List<XnatExperimentdataI> syncCalledExperiments = new ArrayList<>();
 
 		if (syncAllStates) {
 			//Delete experiments
 			if (deletedExperiments != null && deletedExperiments.size() > 0) {
 				//Remove each of these resources from the Remote site
-				for (XnatExperimentdataI experiment:deletedExperiments) {
+				for (final XnatExperimentdataI experiment:deletedExperiments) {
 					if (experiment.getXSIType().startsWith("xsync:")) {
 						continue;
 					}
 					try {
-						XnatExperimentdata exp = (XnatExperimentdata)experiment;
+						final XnatExperimentdata exp = (XnatExperimentdata)experiment;
 						exp.setProject(remoteProjectId);
 						exp.getItem().setProperty("subject_ID", remoteSubject.getId());
 						this.deleteExperiment(exp);
@@ -446,8 +452,9 @@ public class RemoteSubject {
 			}
 			//Update the modified experiments
 			if (updatedExperiments != null && updatedExperiments.size() > 0) {
-				for (XnatExperimentdataI experiment:updatedExperiments) {
+				for (final XnatExperimentdataI experiment:updatedExperiments) {
 					pushExperiment(experiment,remoteSubject,false);
+					syncCalledExperiments.add(experiment);
 				}
 			}
 		}
@@ -456,6 +463,7 @@ public class RemoteSubject {
 			for (final XnatExperimentdataI experiment : newExperiments) {
 				if (!experimentExistsAtRemoteSiteWhenPushingNew(experiment)) {
 					pushExperiment(experiment,remoteSubject, true);
+					syncCalledExperiments.add(experiment);
 				} else {
 					final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(experiment.getId(),experiment.getLabel());
 					expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
@@ -469,8 +477,15 @@ public class RemoteSubject {
 		}
 		//Irrespective of the syncOnlyNwew Flag, the OK to Sync experiments must be pushed
 		if (okToSyncExperiments != null && okToSyncExperiments.size() > 0) {
-			for (XnatExperimentdataI experiment:okToSyncExperiments) {
+			for (final XnatExperimentdataI experiment:okToSyncExperiments) {
 				pushExperiment(experiment,remoteSubject,false);
+				syncCalledExperiments.add(experiment);
+			}
+		}
+		// If it hasn't already been synced, sync any experiments with a failed sync status
+		for (final XnatExperimentdataI experiment:failedSyncExperiments) {
+			if (!syncCalledExperiments.contains(experiment)) {
+				pushExperiment(experiment,remoteSubject, false);
 			}
 		}
 	}

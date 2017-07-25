@@ -3,14 +3,12 @@ package org.nrg.xsync.services.remote;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Map;
+import java.io.StringWriter;
 
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
-import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
@@ -45,6 +43,8 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 
 	/** The logger. */
 	public static Logger logger = Logger.getLogger(RemoteRESTServiceImpl.class);
+	// TODO:  Do we want this to be configurable?
+	public static final int TRUNCATE_LOG_OUTPUT_LENGTH = 1000;
 
 	private final XsyncSitePreferencesBean _prefs;
 	private long sleep = 10;
@@ -75,17 +75,20 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		int count = 0;
 		while(true) {
 		    try {
+		    	 logger.debug("Attempting xar import:  File=" + xar.getName());
 		         return this.importXarWithoutRetry(connection, xar);
 		    } catch (RuntimeException e) {
+		    	count++;
+	    		logger.error("Exception thrown during storeXAR process:\n" + ExceptionUtils.getStackTrace(e));
+	    		logger.error((maxTries>0 && maxTries>=count) ? "StoreXAR failed.  Maximum attemts has not yet been reached.  Upload will be reattempted in " + String.valueOf(sleep/1000) + " seconds." : 
+	    				"Maximum attemts has been reached.  StoreXAR will not be retried.");
+		        if (maxTries == 0 || count > maxTries) throw e;
 		    	try {
-		    		logger.error(ExceptionUtils.getStackTrace(e));
-		    		logger.error("importXar: retrycount "+ count + " out of " + maxTries);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
-		        // handle exception
-		        if (maxTries == 0 || ++count == maxTries) throw e;
+	    		logger.error("Retrying importXar: retrycount "+ count + " out of " + maxTries);
 		    }
 		}
 	}
@@ -123,9 +126,9 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			}
 			logger.info("importXar"+xar.getAbsolutePath());
 			logger.info("POST file length: " + xar.length());
-			logger.info(response);
-			logger.info(response.getBody());
-			logger.info(response.getHeaders().get("Set-Cookie"));
+			logger.info(truncateStr(response));
+			logger.info(truncateStr(response.getBody()));
+			logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 			final boolean status= ((response.getStatusCode().value()==HttpStatus.OK.value()) ||
 						 (response.getStatusCode().value()==HttpStatus.CREATED.value()) ||
 						 // Let's not keep trying these error types either.  They will be thrown by invalid XAR requests, and we don't want a
@@ -176,9 +179,9 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 			response = getResttemplate().exchange(uri, HttpMethod.PUT, httpEntity, String.class);
 		}
-		logger.info(response);
-		logger.info(response.getBody());
-		logger.info(response.getHeaders().get("Set-Cookie"));
+		logger.info(truncateStr(response));
+		logger.info(truncateStr(response.getBody()));
+		logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 		boolean status= ((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
 		logger.warn("importZip"+zip.getName());
 		if(!status){
@@ -530,7 +533,16 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	private RemoteConnectionResponse importSubjectWithoutRetry(RemoteConnection connection,XnatSubjectdata subject ) throws Exception{
 		//do we need the assessor data and how.
 		//MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();     
-		final String subjectXml=subject.getItem().toXML_String();
+		
+		// NOTE: Just call toXML on the subject object here, rather than calling getItem on the subject object and obtaining
+		// XML from the item.  Using getItem() will query for experiments and assessors associated with the assession number.
+		// In the case where there is a source-side subject with the same assession number as the destination-side subject,
+		// this could result in the wrong sessions being sent to the destination, potentially overwriting previously synced
+		// sessions with sessions from a subject outside the source project.
+		final StringWriter tsw = new StringWriter();
+		subject.toXML(tsw);
+		tsw.close();
+		final String subjectXml = tsw.toString();
 		
 		ResponseEntity<String> response;
 		try {
@@ -582,9 +594,9 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 			response = getResttemplate().exchange(uri, HttpMethod.DELETE, httpEntity, String.class);
 		}
-		logger.info(response);
-		logger.info(response.getBody());
-		logger.info(response.getHeaders().get("Set-Cookie"));
+		logger.info(truncateStr(response));
+		logger.info(truncateStr(response.getBody()));
+		logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 		return new RemoteConnectionResponse(response);
 	}
 	
@@ -661,12 +673,21 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 			response = getResttemplate().exchange(uri, HttpMethod.GET, httpEntity, String.class);
 		}
-		logger.info(response);
-		logger.info(response.getBody());
-		logger.info(response.getHeaders().get("Set-Cookie"));
+		logger.info(truncateStr(response));
+		logger.info(truncateStr(response.getBody()));
+		logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 		return new RemoteConnectionResponse(response);
 	}
 	
+	public String truncateStr(Object obj) {
+		return truncateStr(obj,TRUNCATE_LOG_OUTPUT_LENGTH);
+	}
 	
+	public String truncateStr(Object obj, int maxlength) {
+		if (obj==null) {
+			return null;
+		}
+		return (obj.toString().length()>TRUNCATE_LOG_OUTPUT_LENGTH) ? obj.toString().substring(0,TRUNCATE_LOG_OUTPUT_LENGTH) + "......." : obj.toString();
+	}
 	
 }

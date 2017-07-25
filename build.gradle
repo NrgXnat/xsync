@@ -1,14 +1,15 @@
-def pluginVersion = '1.3-SNAPSHOT'
+def pluginVersion = '1.3.1-SNAPSHOT'
 
 group 'org.nrg.xsync'
 version pluginVersion
 
-def vXnat = '1.7.2'
+def vXnatDev = '1.7.3-SNAPSHOT'
+def vXnat = '1.7.3-SNAPSHOT'
 def vXnatTasks = '1.7.0-SNAPSHOT'
-def vXnatStable = '1.7.2'
+def vMizer = '1.0-SNAPSHOT'
 def vJunit = '4.12'
 def vSpring = '4.2.9.RELEASE'
-def vSlf4j = '1.7.21'
+def vSlf4j = '1.7.25'
 def vLog4j = '1.2.17'
 def vSpringSecurity = '4.0.4.RELEASE'
 def vSwagger = '2.4.0'
@@ -61,6 +62,24 @@ repositories {
     }
 }
 
+// Use this configuration to put dependencies into the fat jar
+configurations {
+    compile.extendsFrom(compileAndInclude)
+}
+
+task fatJar(type: Jar) {
+    zip64 true
+    baseName = project.name + '-all'
+    from {
+        configurations.compileAndInclude.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    with jar
+}
+
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
@@ -82,38 +101,34 @@ if (hasProperty("rt.17.jar")) {
 }
 
 dependencies {
-    compile("org.nrg.xnat:web:${vXnat}") {
-        exclude group: '*'
+    compile("org.nrg.xnat:web:${vXnatDev}") {
+        transitive = false
     }
-    compile("org.nrg.xnat:xnat-data-models:${vXnatStable}") {
-        exclude group: '*'
+    compile("org.nrg.xnat:xnat-data-models:${vXnatDev}") {
+        transitive = false
     }
     compile "org.nrg.xdat:tasks:${vXnatTasks}"
 
-    compile("org.nrg.xdat:core:${vXnat}") {
-        exclude group: '*'
+    compile("org.nrg.xdat:core:${vXnatDev}") {
+        transitive = false
     }
     compile("org.nrg:framework:${vXnat}") {
-        exclude group: '*'
+        transitive = false
     }
-    compile("org.nrg:config:${vXnatStable}") {
-        exclude group: '*'
+    compile("org.nrg:config:${vXnat}") {
+        transitive = false
     }
-    compile("org.nrg:transaction:${vXnatStable}") {
-        exclude group: '*'
+    compile("org.nrg:transaction:${vXnat}") {
+        transitive = false
     }
-    compile("org.nrg:mail:${vXnatStable}") {
-        exclude group: '*'
+    compile("org.nrg:mail:${vXnat}") {
+        transitive = false
     }
-    compile("org.nrg:anonymize:${vXnatStable}") {
-        exclude group: '*'
-    }
-    compile "org.nrg:prefs:${vXnatStable}"
+    compile "org.nrg:prefs:${vXnatDev}"
 
-
+    compile "org.nrg.dicom:mizer:${vMizer}"
     compile "org.nrg:DicomEdit:6.0.1"
-    compile "org.nrg:DicomUtils:1.3.1"
-
+    compile "org.nrg:dicomtools:${vXnatDev}"
 
     compile "org.reflections:reflections:0.9.10"
     compile "javax.servlet:javax.servlet-api:3.1.0"

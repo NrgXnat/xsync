@@ -1,10 +1,10 @@
 package org.nrg.xsync.manifest;
 
-import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
-
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-import javax.persistence.Column;
+
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 
 /**

@@ -1,6 +1,8 @@
 <!-- Sequence: 19 -->
 <!-- allowGuest: false -->
 <script type="text/javascript" >
+
+function loadConfiguration() {
 	XNAT.xhr.getJSON({
 	  url:XNAT.url.csrfUrl('/xapi/xsync/setup/projects/'+XNAT.data.context.project),
 	  type:"GET",
@@ -18,7 +20,7 @@
 		  for (i = 0; i < configuration.imaging_sessions.xsi_types.length; i++) {
 		     var xsiType = configuration.imaging_sessions.xsi_types[i];
 		     if (xsiType.xsi_type==xnatXsiType) {
-		         if (typeof xsiType.needs_ok_to_sync === 'undefined') {
+		         if (typeof xsiType.needs_ok_to_sync === 'undefined' || !xsiType.needs_ok_to_sync) {
 		            displayShowDoesNotNeedOkToSync = 'block';		      
 		         }else if (xsiType.needs_ok_to_sync) {
 		            disp = 'block';
@@ -30,6 +32,13 @@
 	      document.getElementById('showDivIfSynchronizationNotConfigured').style.display="none";
 	      document.getElementById('showDivIfSynchronizationConfigured').style.display=disp;
 	      document.getElementById('showDoesNotNeedOkToSync').style.display=displayShowDoesNotNeedOkToSync;
+	      if (document.getElementById('showDoesNotNeedOkToSync').style.display=='none') {
+		  if (document.getElementById('OkToSync').checked) {
+			$("#syncDetailsTable").show();
+		  } else {
+			$("#syncDetailsTable").hide();
+		  } 
+	      }
 
 	  },
 	  error: function(o) {
@@ -38,25 +47,31 @@
 	      document.getElementById('showDivIfSynchronizationNotConfigured').style.display="block";
 	  }
 	});
+}
+$(document).ready(function(){
+	loadConfiguration();
+});
 
 
 function setOkToSync(projectId,xnat_id, exp_label) {
 	var syncChoice = document.getElementById('OkToSync').checked;
 	var exporturl = serverRoot + '/xapi/xsync/experiments/'+xnat_id+'?okToSync='+syncChoice+'&XNAT_CSRF='+csrfToken ;
-	var text = 'Experiment ' + exp_label + ' has been marked ok to sync. This experiment will be synced in the next synchronization cycle of the project ' + projectId;
-	if (!syncChoice) {
-		text = 'Experiment ' + exp_label + ' has been marked NOT ok to sync. This experiment will be not be synced in the next synchronization cycle of the project ' + projectId;
-	}
 	$.ajax({
 	  url:exporturl,
 	  type:"POST",
 	  success: function(data){
 			  xmodal.alert({
 					title: 'Data Synchronization',
-					content: text ,
+					width: '540px',
+					height: '270px',
+					content: data ,
 					label: 'OK'
 				});
-	  
+			  if (syncChoice) {
+				$("#syncDetailsTable").show();
+			  } else {
+				$("#syncDetailsTable").hide();
+			  } 
 	  },
 	  error: ajaxCallFailed
 	});
@@ -161,10 +176,10 @@ function requestSync(projectId,xnat_id, exp_label) {
 <div id="showDivIfSynchronizationConfigured">
 <input type="checkbox" id="OkToSync" name="OkToSync" value="OkToSync"
 	onclick="javascript:setOkToSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');" $checked>Ok To Sync
-	<table>
 	#if ($syncAssessor == "")
-	#else
 	<table>
+	#else
+	<table id="syncDetailsTable">
 	<tr> 
 	<th align="left">Sync Status:</th>
 	<td>$!syncAssessor.getSyncStatus()</td>

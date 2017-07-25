@@ -14,7 +14,6 @@ import java.util.concurrent.ExecutorService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.nrg.xsync.local.SingleExperimentTransfer;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -24,11 +23,11 @@ import org.nrg.framework.net.AuthenticatedClientHttpRequestFactory;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
+import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XsyncXsyncassessordata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
-
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.event.EventMetaI;
@@ -40,6 +39,7 @@ import org.nrg.xsync.connection.RemoteOperation;
 import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
 import org.nrg.xsync.exception.XsyncCredentialsRequiredException;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
+import org.nrg.xsync.local.SingleExperimentTransfer;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
@@ -112,7 +112,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 
     @ApiOperation(value = "Exports the indicated project.", notes = "Starts the project export operation for the project with the indicated ID.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
-    @RequestMapping(value = "/projects/{projectId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
+    @XapiRequestMapping(value = "/projects/{projectId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
     public ResponseEntity<String> exportProject(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
     	//Check user credentials to see if the user is a member or an owner of the project
@@ -165,6 +165,27 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     	if (_syncStatusService.isCurrentlySyncing(projectId)) {
     		return new ResponseEntity<>(HttpStatus.LOCKED);
     	}
+    	
+        final List<XsyncXsyncassessordata> okToSyncDatas = XsyncXsyncassessordata.getXsyncXsyncassessordatasByField("xsync:xsyncAssessorData/synced_experiment_id", experimentId, user, true);
+        final XsyncXsyncassessordata okToSyncData;
+    	if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
+            okToSyncData = okToSyncDatas.get(0);
+            if (!okToSyncData.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC)) {
+            	okToSyncData.setSyncStatus(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC);
+            	//Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
+            	final EventMetaI c = EventUtils.DEFAULT_EVENT(user, "ADMIN_EVENT occurred");
+            	boolean saved;
+            	try {
+            		saved = okToSyncData.save(user, false, true, c);
+            		if (!saved) {
+            			return new ResponseEntity<>("Unable to marc sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
+            		}
+            	} catch (Exception e) {
+            		return new ResponseEntity<>("Unable to marc sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
+            	}
+           	}
+        } 
+    	
     	final SingleExperimentTransfer singleExperimentTransfer = new SingleExperimentTransfer(_manager, _configService, _serializer,
     			_queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, user, exp.getId());
         _executorService.submit(singleExperimentTransfer);
@@ -176,7 +197,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     
     @ApiOperation(value = "Sets OK to Sync Status for the experiment.", notes = "Sets OK to Sync Status for the experiment.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
-    @RequestMapping(value = "/experiments/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
+    @XapiRequestMapping(value = "/experiments/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
     public ResponseEntity<String> exportExperiment(@PathVariable("experimentId") final String experimentId, @RequestParam("okToSync") final boolean okToSync) throws URISyntaxException, XsyncNotConfiguredException {
         //If the OkToSync Assessor already exists, update that
@@ -201,16 +222,27 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         try {
             final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
         	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
+        	boolean alreadySynced=false;
+        	boolean wasSkipped=false;
         	if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
                 okToSyncData = okToSyncDatas.get(0);
+                final String previousSyncStatus = okToSyncData.getSyncStatus();
+                if (previousSyncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED) || 
+                    previousSyncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+                	alreadySynced=true;
+                } else if (previousSyncStatus.equals(XsyncUtils.SYNC_STATUS_SKIPPED)) {
+                	wasSkipped=true;
+                }
                 if (okToSyncData.getOktosync() != okToSync) {
                     okToSyncData.setOktosync(okToSync);
-                    okToSyncData.setSyncStatus(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC);
+                    if (!alreadySynced && !wasSkipped) {
+                    	okToSyncData.setSyncStatus(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC);
+                    }
                     okToSyncData.setRemoteUrl(syncProjectConfiguration.getSyncinfo().getRemoteUrl());
                     okToSyncData.setRemoteProjectId(syncProjectConfiguration.getSyncinfo().getRemoteProjectId());
                 }
             } else {
-                return new ResponseEntity<>("This service requires that the session hava a valid XSync assessor.", HttpStatus.BAD_REQUEST);
+                okToSyncData = createNewXsyncassessor(experimentId, okToSync, user);
             }
             if (okToSyncData != null) {
                 //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
@@ -220,7 +252,25 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                     return new ResponseEntity<>("Unable to save the Ok To Sync Information", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
-            return new ResponseEntity<>(experimentId + " has been marked " + (okToSync ? "OK" : "Not OK") + " to sync", HttpStatus.OK);
+            StringBuilder responseText = new StringBuilder("<p>" + experimentId + " has been marked " + (okToSync ? "OK" : "Not OK") + " to sync");
+            if (!alreadySynced && !wasSkipped) {
+            	responseText.append(".  This experiment will " + ((okToSync) ? "" : "not ") + 
+            			"be synced in the next synchronization cycle of the project " + experiment.getProject() + ".");
+            } else if (alreadySynced) {
+            	responseText.append(", however <em>this session has already been synced</em>.  ");
+            	responseText.append((okToSync) ? "It will not be scheduled to be resynced.</p><p>Please use the <em>Sync This Session Now</em> " + 
+            			"button if you wish to manually resync this session or the <em>Mark Session For Sync</em> button if you wish to schedule this " +
+            			"session to be synced with the next project sync.</p>" :
+            			"</p><p>Please check the destination to view the current status of the session if you feel it should not have been sent.</p>");
+            } else if (wasSkipped) {
+            	responseText.append(", however records indicate that this session was skipped by another sync process.  This most often happens " +
+            			"if the session was manually uploaded to the destination site, but it can occur under other circumstances.</p>");
+            	responseText.append((okToSync) ? "<p>Please check the destination site and use the <em>Sync This Session Now</em> " + 
+            			"button if you wish to manually sync this session or the <em>Mark Session For Sync</em> button if you wish to schedule this " 
+            					+ "session to be synced with the next project sync.</p>" :
+            			"<p>Please check the destination to view the current status of the session if you feel it should not have been sent.</p>");
+            }
+            return new ResponseEntity<>(responseText.toString(), HttpStatus.OK);
         } catch (Exception e) {
             final String message = "An error occurred trying to export the experiment " + experimentId;
             _log.error(message, e);
@@ -281,7 +331,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 
     @ApiOperation(value = "Makes a REST call to a remote server.", notes = "This call is stateless and doesn't preserve authentication information or any other request information.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The return value from the REST call."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to run REST calls on this server."), @ApiResponse(code = 500, message = "Unexpected error")})
-    @RequestMapping(value = "remoteREST", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
+    @XapiRequestMapping(value = "remoteREST", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
     public ResponseEntity<String> connectToRemoteRestEndpoint(@RequestBody final RemoteOperation operation) throws URISyntaxException, XsyncCredentialsRequiredException {
         //HttpStatus status = isPermitted();
@@ -324,7 +374,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     }
 
     @ApiOperation(value = "Gets the log file to display the progress of sync.", notes = "Gets the log file containing sync progress")
-    @RequestMapping(value = "/progress/{projectId}",  method = RequestMethod.GET)
+    @XapiRequestMapping(value = "/progress/{projectId}",  method = RequestMethod.GET)
     @ResponseBody
     public void getSyncProgress(HttpServletRequest request, HttpServletResponse response, @PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncCredentialsRequiredException {
         final UserI user = getSessionUser();

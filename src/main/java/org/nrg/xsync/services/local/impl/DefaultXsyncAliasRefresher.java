@@ -5,8 +5,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -15,11 +15,11 @@ import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.nrg.xsync.services.local.XsyncAliasRefreshService;
 import org.nrg.xsync.services.remote.RemoteRESTService;
 import org.nrg.xsync.utils.QueryResultUtil;
-import org.springframework.stereotype.Service;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.apache.commons.lang.time.DateUtils;
-import org.nrg.framework.services.SerializerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
 
 
 /**

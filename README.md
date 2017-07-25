@@ -6,11 +6,35 @@ Xsync plugin enables automatic synchronization of data from a project in one XNA
 
 # Download #
 
-[ Xsync Jar ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-1.2.jar)
+For XNAT 1.7.2
 
-[ Xsync Bean Jar ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/mohanar/xsync_xnatdev/downloads/xsync-plugin-beans-1.2.jar)
+[ Xsync Jar (Version 1.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-1.3-SNAPSHOT.jar)
+
+[ Xsync Bean Jar (Version 1.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-beans-1.3-SNAPSHOT.jar)
+
+For XNAT 1.7.3-SNAPSHOT (as of 06/15/2017)
+
+[ Xsync Jar (Version 1.3.1-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-1.3.1-SNAPSHOT.jar)
+
+[ Xsync Bean Jar (Version 1.3.1-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xsync-plugin-beans-1.3.1-SNAPSHOT.jar)
+
+[ Latest Tested XNAT War File (XNAT Version 1.7.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xnat-web-1.7.3-SNAPSHOT.war)
 
 # ChangeLog #
+
+Version 1.3.1-SNAPSHOT As of June 14, 2017
+
+XAPI and other changes for compatibility with latest XNAT version 1.7.3-SNAPSHOT code.
+
+Version 1.3-SNAPSHOT As of May 23, 2017
+
+Revised sync blocking behavior with a service and UI for reporting on current sync status. 
+
+Fix for issue where sessions were sometimes sent without files.
+
+Fix for issue where sessions can fail to sync if they are arriving when a sync is kicked off.
+
+Fix for issue where data can be overwritten if configured URL is modified to point to a shadow server.
 
 Version 1.2 May 3, 2017
 

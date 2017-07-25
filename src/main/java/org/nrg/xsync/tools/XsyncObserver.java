@@ -7,13 +7,11 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Observable;
 import java.util.Observer;
-import org.nrg.xdat.model.XnatAbstractresourceI;
-import org.nrg.xft.utils.FileUtils;
-import org.nrg.xdat.om.XnatAbstractresource;
-import org.nrg.xdat.om.XnatResourcecatalog;
 
+import org.nrg.xdat.model.XnatAbstractresourceI;
+import org.nrg.xdat.om.XnatResourcecatalog;
+import org.nrg.xft.utils.FileUtils;
 import org.nrg.xsync.manager.SynchronizationManager;
-import org.nrg.xsync.manifest.SyncManifest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

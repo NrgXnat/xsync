@@ -1,10 +1,22 @@
 package org.nrg.xsync.services.local.impl;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import org.apache.commons.io.FileUtils;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 import org.hibernate.HibernateException;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
-import org.nrg.xsync.manifest.*;
+import org.nrg.xsync.manifest.ExperimentSyncItem;
+import org.nrg.xsync.manifest.ResourceSyncItem;
+import org.nrg.xsync.manifest.ScanSyncItem;
+import org.nrg.xsync.manifest.SubjectSyncItem;
+import org.nrg.xsync.manifest.SyncManifest;
+import org.nrg.xsync.manifest.SyncManifestRepository;
+import org.nrg.xsync.manifest.XsyncAssessorHistory;
+import org.nrg.xsync.manifest.XsyncExperimentHistory;
+import org.nrg.xsync.manifest.XsyncProjectHistory;
+import org.nrg.xsync.manifest.XsyncResourceHistory;
+import org.nrg.xsync.manifest.XsyncSubjectHistory;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -13,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * Created by Michael Hileman on 2016/07/07.

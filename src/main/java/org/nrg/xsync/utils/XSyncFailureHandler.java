@@ -1,17 +1,16 @@
 package org.nrg.xsync.utils;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Hashtable;
+
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.mail.services.MailService;
-import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Hashtable;
 
 /**
  * @author Mohana Ramaratnam

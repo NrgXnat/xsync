@@ -6,12 +6,10 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.nrg.xdat.XDAT;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xdat.om.XsyncXsyncremotemapdata;
-
-import org.nrg.framework.services.SerializerService;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventMetaI;
@@ -56,6 +54,7 @@ public class XsyncUtils {
 	public static final String SYNC_STATUS_SYNC_REQUESTED="Sync Requested";
 
 	public static final String SYNC_STATUS_BEGINING="PREPARING TO SYNC";
+	public static final String SYNC_STATUS_IN_PROGRESS="SYNC IN PROGRESS";
 
 	public static final String SYNC_TYPE_ALL = "all";
 	public static final String SYNC_TYPE_NONE = "none";
@@ -84,7 +83,13 @@ public class XsyncUtils {
 
 	public static final long GLOBAL_SLEEP_IN_MILLIS = 900000; //15 Minutes
 	public static final int GLOBAL_RETRY_COUNTS = 3; //15 Minutes
-
+	public static final String GROOVY_SCRIPT_ENGINE = "groovy";
+	public static final String EVAL_PLACE_HOLDER = "$VALUE";
+	
+	public enum FilterType 
+	{
+		CONTAINS,REGEX,EVAL
+	}
 	
 	private static final Logger _log = LoggerFactory.getLogger(XsyncUtils.class);
 

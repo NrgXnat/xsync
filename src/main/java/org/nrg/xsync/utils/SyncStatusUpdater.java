@@ -1,12 +1,11 @@
 package org.nrg.xsync.utils;
 
-import org.nrg.xsync.configuration.ProjectSyncConfiguration;
-import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
 import org.nrg.xft.event.EventMetaI;
+import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.nrg.xft.event.EventUtils;
 
 
 /**

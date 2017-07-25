@@ -3,10 +3,10 @@ package org.nrg.xsync.configuration;
 import org.apache.log4j.Logger;
 import org.nrg.framework.annotations.XnatDataModel;
 import org.nrg.framework.annotations.XnatPlugin;
-import org.nrg.xdat.bean.XsyncXsyncremotemapdataBean;
-import org.nrg.xdat.bean.XsyncXsyncinfodataBean;
 import org.nrg.xdat.bean.XsyncXsyncassessordataBean;
+import org.nrg.xdat.bean.XsyncXsyncinfodataBean;
 import org.nrg.xdat.bean.XsyncXsyncprojectdataBean;
+import org.nrg.xdat.bean.XsyncXsyncremotemapdataBean;
 import org.springframework.context.annotation.ComponentScan;
 
 @XnatPlugin(value = "xsyncPlugin",

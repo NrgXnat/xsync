@@ -14,8 +14,6 @@ import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatSubjectdata;
-import org.nrg.xft.event.EventMetaI;
-import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
@@ -100,7 +98,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     /**
      * @return the _lastSyncStartTime
      */
-    @SuppressWarnings("WeakerAccess")
+    //@SuppressWarnings("WeakerAccess")
     public Object getLastSyncStartTime() {
         return _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getSyncStartTime();
     }
@@ -158,6 +156,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     		_observer  = new XsyncObserver(_projectId);
             syncProjectResources();
             final List<Map<String, Object>> subjectRows = getSubjectsModifiedSinceLastSync();
+            appendSubjectsWithFailedAssessorSyncs(subjectRows);
             final List<String> subjectIds = new ArrayList<>();
             for (final Map<String, Object> row : subjectRows) {
                 if (!subjectIds.contains(row.get("id"))) {
@@ -232,7 +231,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         	_observer.close(synchronizationResource);
         	if (synchronizationResource != null && project != null) {
            		//RefreshCatalog
-        	    EventMetaI now = EventUtils.DEFAULT_EVENT(_user, "Synchronization Log Added");
+        	    //EventMetaI now = EventUtils.DEFAULT_EVENT(_user, "Synchronization Log Added");
         		try  {
         			 final List<CatalogService.Operation> _operations  = Lists.newArrayList();
         			 final String                   _resource   = "/data/archive/projects/"+_projectId+"/resources/"+synchronizationResource.getLabel();
@@ -244,8 +243,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         }
     }
 
- 
-    //TODO
+	//TODO
     //Change the implementation to use the ResourceFilter class -
     //This class returns  NEW, UPDATED and DELETED lists of resources
     private void syncProjectResources() {
@@ -389,17 +387,24 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         //Any entity  that is derived from the subject or linked to the subject
         //if modified, would result in an update in the last_modified column
         //This list would contain any change to any SubjectAssessors
-        String query = _queryResultUtil.getQueryForFetchingSubjectsModifiedSinceLastSync();
+        final String query = _queryResultUtil.getQueryForFetchingSubjectsModifiedSinceLastSync();
         return _jdbcTemplate.queryForList(query, _parameters);
     }
 
+    private void appendSubjectsWithFailedAssessorSyncs(List<Map<String, Object>> subjectRows) {
+        final String query = _queryResultUtil.getQueryForFetchingSubjectsWithFailedAssessorSyncs();
+        final List<Map<String, Object>> queryResults = _jdbcTemplate.queryForList(query, _parameters);
+        subjectRows.addAll(queryResults);
+	}
+
     private List<Map<String, Object>> getSubjectsSharedIntoProject() {
-        String query = _queryResultUtil.getQueryForSubjectsSharedIntoProject(_projectId);
+        final String query = _queryResultUtil.getQueryForSubjectsSharedIntoProject(_projectId);
         return _jdbcTemplate.queryForList(query, _parameters);
     }
 
     
-    private List<Map<String, Object>> getQueryForFetchingSubjectsWhoseExperimentsMarkedOKSinceLastSync(List<String> excludeIds) {
+    @SuppressWarnings("unused")
+	private List<Map<String, Object>> getQueryForFetchingSubjectsWhoseExperimentsMarkedOKSinceLastSync(List<String> excludeIds) {
         MapSqlParameterSource parameters = new MapSqlParameterSource();
         parameters.addValue("project", _projectId);
         boolean skipSubjectIdCheck = false;

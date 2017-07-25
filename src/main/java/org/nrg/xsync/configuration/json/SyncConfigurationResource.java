@@ -1,7 +1,6 @@
 package org.nrg.xsync.configuration.json;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import org.nrg.xsync.utils.XsyncUtils;
 
