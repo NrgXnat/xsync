@@ -1,11 +1,11 @@
-def pluginVersion = '1.3.1-SNAPSHOT'
+def pluginVersion = '1.3.1'
 
 group 'org.nrg.xsync'
 version pluginVersion
 
-def vXnatDev = '1.7.3-SNAPSHOT'
-def vXnat = '1.7.3-SNAPSHOT'
-def vXnatTasks = '1.7.0-SNAPSHOT'
+def vXnatDev = '1.7.3'
+def vXnat = '1.7.3'
+def vXnatTasks = '1.7.0'
 def vMizer = '1.0-SNAPSHOT'
 def vJunit = '4.12'
 def vSpring = '4.2.9.RELEASE'
@@ -107,7 +107,7 @@ dependencies {
     compile("org.nrg.xnat:xnat-data-models:${vXnatDev}") {
         transitive = false
     }
-    compile "org.nrg.xdat:tasks:${vXnatTasks}"
+   // compile "org.nrg.xdat:tasks:${vXnatTasks}"
 
     compile("org.nrg.xdat:core:${vXnatDev}") {
         transitive = false
