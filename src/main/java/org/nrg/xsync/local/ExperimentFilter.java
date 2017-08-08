@@ -1047,7 +1047,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	 */
 	private boolean findAndRemoveScanFilters(XnatExperimentdata exp, SyncConfigurationImagingSessionXsiType sessionOption) throws IndexOutOfBoundsException, Exception {
 		boolean found = false;
-		if (sessionOption == null || sessionOption.getScan_types() == null) {
+		if (sessionOption == null || sessionOption.getScan_filters() == null) {
 			return false;
 		}
 		List<XnatImagescandataI> scans = ((XnatImagesessiondata) exp).getScans_scan();

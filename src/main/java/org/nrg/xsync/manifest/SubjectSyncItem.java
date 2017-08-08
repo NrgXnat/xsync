@@ -86,7 +86,7 @@ public class SubjectSyncItem extends SyncedItem {
 					message += " Experiment " + e.getLocalLabel() + " failed to sync. ";
 				}else if (!e.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
 					childStatus = e.getSyncStatus();
-					message += " Exereriment " + e.getLocalLabel() + " sync could not be verified. ";
+					message += " Experiment " + e.getLocalLabel() + " sync could not be verified. ";
 				}
 			}			
 		}
