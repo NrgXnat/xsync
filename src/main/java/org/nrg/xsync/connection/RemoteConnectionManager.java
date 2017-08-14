@@ -1,10 +1,12 @@
 package org.nrg.xsync.connection;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
@@ -22,8 +24,6 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import com.google.common.collect.Maps;
-
 /**
  * The Class RemoteConnectionManager.
  *
@@ -33,7 +33,7 @@ import com.google.common.collect.Maps;
 public class RemoteConnectionManager {
 
 	/** The logger. */
-	private static Logger logger = Logger.getLogger(RemoteConnectionManager.class);
+	private static Logger logger = LoggerFactory.getLogger(RemoteConnectionManager.class);
 
 	/** The remote rest service. */
 	private final RemoteRESTService     _remoteRESTService;
@@ -41,7 +41,7 @@ public class RemoteConnectionManager {
 	private final SiteConfigPreferences _preferences;
 
 	/** The Constant cache. */
-	private static final Map<String,String> sessionCache = Maps.newHashMap();
+	private static final Map<String,String> sessionCache = new HashMap<>();
 
 	@Autowired
 	public RemoteConnectionManager(final RemoteRESTService remoteRESTService, final SyncManifestService syncManifestService, final SiteConfigPreferences preferences) {

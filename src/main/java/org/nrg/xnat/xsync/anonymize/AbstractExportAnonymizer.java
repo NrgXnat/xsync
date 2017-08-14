@@ -9,8 +9,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.dicom.mizer.exceptions.MizerException;
 import org.nrg.dicom.mizer.exceptions.ScriptEvaluationException;
 import org.nrg.dicom.mizer.service.MizerService;
@@ -18,7 +19,7 @@ import org.nrg.xdat.XDAT;
 
 
 public abstract class AbstractExportAnonymizer implements Callable<java.lang.Void> {
-	public static Logger logger = Logger.getLogger(AbstractExportAnonymizer.class);
+	public static final Logger logger = LoggerFactory.getLogger(AbstractExportAnonymizer.class);
 
 	AbstractExportAnonymizer next = null;
 

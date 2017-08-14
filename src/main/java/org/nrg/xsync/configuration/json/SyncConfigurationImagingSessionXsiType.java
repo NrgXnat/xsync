@@ -2,7 +2,8 @@ package org.nrg.xsync.configuration.json;
 
 import java.util.ArrayList;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -16,7 +17,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class SyncConfigurationImagingSessionXsiType extends SyncConfigurationXsiType {
 
 	/** The Constant logger. */
-	public static final Logger logger = Logger.getLogger(SyncConfigurationImagingSessionXsiType.class);
+	public static final Logger logger = LoggerFactory.getLogger(SyncConfigurationImagingSessionXsiType.class);
 
 	SyncConfigurationScanTypes scan_types;
 	SyncConfigurationResource scan_resources;

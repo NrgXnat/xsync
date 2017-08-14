@@ -10,7 +10,8 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatImagescandataI;
@@ -37,7 +38,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class SyncConfigurationXsiType {
 
 	/** The logger. */
-	public static final Logger logger = Logger.getLogger(SyncConfigurationXsiType.class);
+	public static final Logger logger = LoggerFactory.getLogger(SyncConfigurationXsiType.class);
 
 	String xsi_type;
 	Boolean needs_ok_to_sync;

@@ -1,6 +1,5 @@
 package org.nrg.xsync.configuration;
 
-import org.apache.log4j.Logger;
 import org.nrg.framework.annotations.XnatDataModel;
 import org.nrg.framework.annotations.XnatPlugin;
 import org.nrg.xdat.bean.XsyncXsyncassessordataBean;
@@ -8,6 +7,8 @@ import org.nrg.xdat.bean.XsyncXsyncinfodataBean;
 import org.nrg.xdat.bean.XsyncXsyncprojectdataBean;
 import org.nrg.xdat.bean.XsyncXsyncremotemapdataBean;
 import org.springframework.context.annotation.ComponentScan;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @XnatPlugin(value = "xsyncPlugin",
 			name = "XSync Plugin",
@@ -43,7 +44,7 @@ import org.springframework.context.annotation.ComponentScan;
 	"org.nrg.xsync.manifest"})
 public class XsyncPlugin {
 	
-	public static Logger logger = Logger.getLogger(XsyncPlugin.class);
+	public static Logger logger = LoggerFactory.getLogger(XsyncPlugin.class);
 
 	public XsyncPlugin() {
 		logger.info("Configuring XSync plugin");

@@ -17,7 +17,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.net.AuthenticatedClientHttpRequestFactory;
@@ -46,6 +45,8 @@ import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.XsyncUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -257,15 +258,14 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             }
             StringBuilder responseText = new StringBuilder("<p>" + experimentId + " has been marked " + (okToSync ? "OK" : "Not OK") + " to sync");
             if (!alreadySynced && !wasSkipped) {
-            	responseText.append(".  This experiment will " + ((okToSync) ? "" : "not ") + 
-            			"be synced in the next synchronization cycle of the project " + experiment.getProject() + ".");
+            	responseText.append(".  This experiment will ").append((okToSync) ? "" : "not ").append("be synced in the next synchronization cycle of the project ").append(experiment.getProject()).append(".");
             } else if (alreadySynced) {
             	responseText.append(", however <em>this session has already been synced</em>.  ");
             	responseText.append((okToSync) ? "It will not be scheduled to be resynced.</p><p>Please use the <em>Sync This Session Now</em> " + 
             			"button if you wish to manually resync this session or the <em>Mark Session For Sync</em> button if you wish to schedule this " +
             			"session to be synced with the next project sync.</p>" :
             			"</p><p>Please check the destination to view the current status of the session if you feel it should not have been sent.</p>");
-            } else if (wasSkipped) {
+            } else {
             	responseText.append(", however records indicate that this session was skipped by another sync process.  This most often happens " +
             			"if the session was manually uploaded to the destination site, but it can occur under other circumstances.</p>");
             	responseText.append((okToSync) ? "<p>Please check the destination site and use the <em>Sync This Session Now</em> " + 
@@ -287,8 +287,6 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
      *
      * @param experimentId the experiment id
      * @return the sync info
-     * @throws URISyntaxException the URI syntax exception
-     * @throws XsyncNotConfiguredException the xsync not configured exception
      */
     @XapiRequestMapping(value = "/experiments/{experimentId}/syncStatus", method = RequestMethod.GET)
     @ResponseBody
@@ -494,7 +492,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         return template;
     }
 
-    private static final Logger _log = Logger.getLogger(XsyncOperationsController.class);
+    private static final Logger _log = LoggerFactory.getLogger(XsyncOperationsController.class);
     private final List<HttpMessageConverter<?>> _converters;
     private final ExecutorService               _executorService;
     private final RemoteConnectionManager       _manager;

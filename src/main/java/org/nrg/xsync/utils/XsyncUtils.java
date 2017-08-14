@@ -128,11 +128,11 @@ public class XsyncUtils {
         
 		syncProject.setSourceProjectId(synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText());
 		syncProject.setNotificationEmails(synchronizationJson.get("notification_emails").asText());
-		syncProject.setSyncEnabled(new Boolean(synchronizationJson.get("enabled").asBoolean()));
+		syncProject.setSyncEnabled(synchronizationJson.get("enabled").asBoolean());
 		item = XFTItem.NewItem(XsyncXsyncinfodata.SCHEMA_ELEMENT_NAME, _user);
 		XsyncXsyncinfodata syncinfo = new XsyncXsyncinfodata(item);
         syncinfo.setSyncFrequency(synchronizationJson.get("sync_frequency").asText());
-		syncinfo.setSyncNewOnly(new Boolean(synchronizationJson.get("sync_new_only").asBoolean()));
+		syncinfo.setSyncNewOnly(synchronizationJson.get("sync_new_only").asBoolean());
 		syncinfo.setIdentifiers(synchronizationJson.get("identifiers").asText());
 		syncinfo.setRemoteUrl(synchronizationJson.get("remote_url").asText());
 		syncinfo.setRemoteProjectId(synchronizationJson.get("remote_project_id").asText());
@@ -170,19 +170,17 @@ public class XsyncUtils {
         	PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(_user, syncProject.getXSIType(),syncProject.getXsyncXsyncprojectdataId()+"",syncProject.getSourceProjectId(), details);
         	WorkflowUtils.complete(wrk, c);
         }
-        return;
 	}
 	
 	public List<XsyncXsyncprojectdata> getAllProjectsSetToBeSynced() {
-		ArrayList<XsyncXsyncprojectdata> xsyncProjects = XsyncXsyncprojectdata.getAllXsyncXsyncprojectdatas(_user, true);
-		return xsyncProjects;
+		return XsyncXsyncprojectdata.getAllXsyncXsyncprojectdatas(_user, true);
 	}	
 	
 	
 	
 	
 	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedDaily() {
-		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<XsyncXsyncprojectdata>();
+		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
 		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
 		if (xsyncProjects != null && xsyncProjects.size() > 0) {
 			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
@@ -196,7 +194,7 @@ public class XsyncUtils {
 	}
 
 	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedWeekly() {
-		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<XsyncXsyncprojectdata>();
+		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
 		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
 		if (xsyncProjects != null && xsyncProjects.size() > 0) {
 			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
@@ -210,7 +208,7 @@ public class XsyncUtils {
 	}
 	
 	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedMonthly() {
-		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<XsyncXsyncprojectdata>();
+		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
 		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
 		if (xsyncProjects != null && xsyncProjects.size() > 0) {
 			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
@@ -224,7 +222,7 @@ public class XsyncUtils {
 	}
 	
 	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedOnDemand() {
-		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<XsyncXsyncprojectdata>();
+		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
 		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
 		if (xsyncProjects != null && xsyncProjects.size() > 0) {
 			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
@@ -260,16 +258,13 @@ public class XsyncUtils {
 	}
 
 	public ArrayList<XsyncXsyncremotemapdata> getAllRemoteMapDetails() {
-		ArrayList<XsyncXsyncremotemapdata> remoteMaps = XsyncXsyncremotemapdata.getAllXsyncXsyncremotemapdatas(_user,true);
-		return remoteMaps;
+		return XsyncXsyncremotemapdata.getAllXsyncXsyncremotemapdatas(_user,true);
 	}
 	
 	public String getRemoteId(String localProjectId, String localXnatId) {
 		String remoteId = null;
-		String query = "select remote_xnat_id from xsync_xsyncremotemapdata";
-		query += " where project_id=:localProjectId and local_xnat_id=:localXnatId";
-		MapSqlParameterSource parameters = new MapSqlParameterSource();
-		parameters = new MapSqlParameterSource();
+		String query = "select remote_xnat_id from xsync_xsyncremotemapdata where project_id=:localProjectId and local_xnat_id=:localXnatId";
+		final MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("localProjectId", localProjectId);
 		parameters.addValue("localXnatId", localXnatId);
 		 List<String> results = _jdbcTemplate.queryForList(query, parameters,String.class);

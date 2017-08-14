@@ -29,8 +29,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Lists;
-
 // TODO: Auto-generated Javadoc
 /**
  * SimpleExportAnonymizerServiceImpl to anonymize both the data and xml for a
@@ -161,7 +159,7 @@ public class XsyncAnonymizer implements AnonymizerI {
 	private DicomObject getDicomObject(String rootpath, final XnatImagescandataI scan) {
 		final List<XnatResourcecatalogI> resources = scan.getFile();
 
-		final List<File> files = Lists.newArrayList();
+		final List<File> files = new ArrayList<>();
 		boolean foundDicom = false;
 		for (XnatResourcecatalogI resource : resources) {
 

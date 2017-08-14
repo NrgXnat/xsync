@@ -3,8 +3,9 @@ package org.nrg.xsync.services.local.impl;
 import java.util.Date;
 import java.util.Map;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xsync.connection.RemoteConnection;
@@ -30,7 +31,7 @@ public class DefaultXsyncAliasRefresherForAProject implements Runnable{
 	private int maxTries = 4;
 
 	/** The logger. */
-	public static Logger logger = Logger.getLogger(DefaultXsyncAliasRefresherForAProject.class);
+	public static Logger logger = LoggerFactory.getLogger(DefaultXsyncAliasRefresherForAProject.class);
 	
 	public DefaultXsyncAliasRefresherForAProject(RemoteAliasEntity connEntity, RemoteConnection conn, 
 			final RemoteRESTService restService, final SerializerService serializer, final RemoteAliasService aliasService) {

@@ -1,9 +1,12 @@
-src/generated/
-src/beans/
+*.log
+/.classpath
 /.gradle
 /.idea
 /.project
-/.classpath
 /.settings
-/build
 /bin
+/build
+/out
+dependencies.txt
+src/beans/
+src/generated/

@@ -1,5 +1,6 @@
 package org.nrg.xsync.local;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -32,8 +33,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import com.google.common.collect.Lists;
 
 
 /**
@@ -152,7 +151,7 @@ public class SingleExperimentTransfer implements Callable<Void> {
            		//RefreshCatalog
         	    EventMetaI now = EventUtils.DEFAULT_EVENT(_user, "Synchronization Log Added");
         		try  {
-        			 final List<CatalogService.Operation> _operations  = Lists.newArrayList();
+        			 final List<CatalogService.Operation> _operations  = new ArrayList<>();
         			 final String                   _resource   = "/data/archive/projects/"+_projectId+"/resources/"+synchronizationResource.getLabel();
         			 _operations.addAll(CatalogService.Operation.ALL);
         			 _catalogService.refreshResourceCatalog(_user, _resource, _operations.toArray(new CatalogService.Operation[_operations.size()]));  
