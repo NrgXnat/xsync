@@ -131,6 +131,7 @@ dependencies {
 }
 
 configurations {
+    all*.exclude group: 'com.sun.media', module: 'jai_imageio'
     all*.exclude group: 'javax.sql', module: 'jdbc-stdext'
     all*.exclude group: 'javax.transaction', module: 'jta'
 }
