@@ -14,7 +14,7 @@ For XNAT 1.7.3-SNAPSHOT (as of 06/15/2017)
 
 [ Latest Tested XNAT War File (XNAT Version 1.7.3-SNAPSHOT) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/hodgem/xsync_xnatdev/downloads/xnat-web-1.7.3-SNAPSHOT.war)
 
-For XNAT 1.7.3 (as of 08/19/2017)
+For XNAT 1.7.3.1 (as of 08/19/2017)
 
 [ Xsync Jar (Version 1.3.1) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/atulkaushal/xsync_xnatdev/downloads/xsync-plugin-1.3.1.jar)
 
