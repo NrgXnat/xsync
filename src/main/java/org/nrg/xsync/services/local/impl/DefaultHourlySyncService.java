@@ -1,11 +1,13 @@
 package org.nrg.xsync.services.local.impl;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
+import org.nrg.framework.task.services.XnatTaskService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xnat.services.archive.CatalogService;
@@ -32,13 +34,20 @@ import org.springframework.stereotype.Service;
 public class DefaultHourlySyncService extends AbstractSyncService implements HourlySyncService {
 	@Autowired
 	public DefaultHourlySyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService,
-			final CatalogService catalogService,final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil,
-			final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean, SyncStatusService syncStatusService) {
-		super(manager, configService, mailService, catalogService,serializer, jdbcTemplate, queryResultUtil, xnatInfo, executorFactoryBean, syncStatusService);
+			final CatalogService catalogService,final SerializerService serializer, final JdbcTemplate jdbcTemplate,
+			final QueryResultUtil queryResultUtil, final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean,
+			final SyncStatusService syncStatusService, final XnatTaskService taskService) {
+		super(manager, configService, mailService, catalogService,serializer, jdbcTemplate, queryResultUtil,
+				xnatInfo, executorFactoryBean, syncStatusService, taskService);
 	}
 
 	@Override
 	public void syncHourly() {
+		if (!shouldRunTask()) {
+			logger.info("Process syncHourly is not configured to run on this node.  Skipping.");
+			return;
+		}
+        logger.info("Hourly Sync Triggered - BEGIN " + new Date());
 		//Get all projects with their sync schedules marked daily
 		final List<Map<String,Object>> queryResultsRows = getQueryResultUtil().getProjectsTobeSyncedHourly();
 		//TODO

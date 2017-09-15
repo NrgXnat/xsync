@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
+import org.nrg.framework.task.services.XnatTaskService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xnat.services.archive.CatalogService;
@@ -32,12 +33,18 @@ import org.springframework.stereotype.Service;
 public class DefaultMonthlySyncService extends AbstractSyncService implements MonthlySyncService {
     @Autowired
     public DefaultMonthlySyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService,
-    		final CatalogService catalogService, final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil,
-    		final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean, SyncStatusService syncStatusService) {
-        super(manager, configService, mailService, catalogService, serializer, jdbcTemplate, queryResultUtil, xnatInfo, executorFactoryBean, syncStatusService);
+    		final CatalogService catalogService, final SerializerService serializer, final JdbcTemplate jdbcTemplate,
+    		final QueryResultUtil queryResultUtil, final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean,
+    		final SyncStatusService syncStatusService, final XnatTaskService taskService) {
+        super(manager, configService, mailService, catalogService, serializer, jdbcTemplate, queryResultUtil,
+        		xnatInfo, executorFactoryBean, syncStatusService, taskService);
     }
 
     public void syncMonthly() {
+		if (!shouldRunTask()) {
+			logger.info("Process syncMonthly is not configured to run on this node.  Skipping.");
+			return;
+		}
         logger.info("Monthly Sync Triggered - BEGIN " + new Date());
         List<Map<String, Object>> queryResultsRows = getQueryResultUtil().getProjectsTobeSyncedMonthly();
         //TODO

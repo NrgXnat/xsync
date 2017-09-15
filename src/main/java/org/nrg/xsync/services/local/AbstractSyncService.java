@@ -4,9 +4,12 @@ import java.util.concurrent.ExecutorService;
 
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
+import org.nrg.framework.task.XnatTask;
+import org.nrg.framework.task.services.XnatTaskService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.services.archive.CatalogService;
+import org.nrg.xnat.task.AbstractXnatTask;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
@@ -17,7 +20,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 
-public abstract class AbstractSyncService {
+@XnatTask(taskId = "XsyncScheduledSync", description = "XSync Scheduled Sync Operations", 
+defaultExecutionResolver = "SingleNodeExecutionResolver", executionResolverConfigurable = true)
+public abstract class AbstractSyncService extends AbstractXnatTask {
     private final RemoteConnectionManager       _manager;
     private final ConfigService                 _configService;
     private final MailService                   _mailService;
@@ -31,7 +36,9 @@ public abstract class AbstractSyncService {
 
     protected AbstractSyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService,
     		final CatalogService catalogService, final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil,
-    		final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean, SyncStatusService syncStatusService) {
+    		final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean, final SyncStatusService syncStatusService,
+    		final XnatTaskService taskService) {
+    	super(taskService);
         _manager = manager;
         _configService = configService;
         _mailService = mailService;
