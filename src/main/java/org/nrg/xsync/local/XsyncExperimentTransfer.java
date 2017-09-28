@@ -161,16 +161,30 @@ public class XsyncExperimentTransfer {
 					XnatImagesessiondata cleaned_assessor = null;
 					try {
 						cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata)remoteSubject,orig);
-						cleaned_assessor.setProject(remoteSubject.getProject());
+						if(cleaned_assessor!=null)
+						{
+							cleaned_assessor.setProject(remoteSubject.getProject());
+							if (cleaned_assessor != null) {
+								boolean stored = storeXar((XnatImagesessiondata) orig,remoteSubject.getProject(), (XnatSubjectdata)remoteSubject, cleaned_assessor,updateOkToSyncAssessorStatus);
+								if (!stored)
+									throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
+							}
+						}
+						else
+						{
+							final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
+							expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER);
+							expSyncItem.setMessage("Experiment " + orig.getLabel() + " skipped due to filter.");
+							subjectSyncInfo.addExperiment(expSyncItem);
+							//throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + orig.getLabel() );
+							saveSyncDetails(orig.getId(),remoteSubject.getId(),XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER,orig.getXSIType());
+							//return;
+						}
 					}catch(Exception e) {
 						cleaned_assessor = null;
 						throw e;
 					}
-					if (cleaned_assessor != null) {
-						boolean stored = storeXar((XnatImagesessiondata) orig,remoteSubject.getProject(), (XnatSubjectdata)remoteSubject, cleaned_assessor,updateOkToSyncAssessorStatus);
-						if (!stored)
-							throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
-					}
+					
 				}
 			}
 		} else { //Its a Subject Assessor

@@ -114,6 +114,16 @@
 						"NIFTI"
 					]
 				},
+				"filters": [
+			          {
+			            "sync_type": "include",
+			            "xml_path": "xnat:experimentdata/meta/insert_date",
+			            "filter_type": "eval",
+			            "filter_values": [
+			              "new Date().parse('yyyy-MM-dd', '$VALUE') < new Date().parse('yyyy-MM-dd', (new Date()).format( 'yyyy-MM-dd'))"
+			            ]
+			          }
+			        ],
 				"scan_filters": [
 					{
 						"sync_type": "include",
