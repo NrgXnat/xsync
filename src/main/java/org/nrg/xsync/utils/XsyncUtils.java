@@ -43,6 +43,7 @@ public class XsyncUtils {
 
 	public static final String SYNC_STATUS_FAILED = "FAILED";
 	public static final String SYNC_STATUS_SKIPPED = "SKIPPED";
+	public static final String SYNC_STATUS_SKIPPED_BY_FILTER = "SKIPPED_BY_FILTER";
 	public static final String SYNC_STATUS_INCOMPLETE = "INCOMPLETE";
 	public static final String SYNC_STATUS_FAILED_TO_VERIFY = "FAILED_TO_VERIFY";
 	

@@ -391,7 +391,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     }
 
     private void appendSubjectsWithFailedAssessorSyncs(List<Map<String, Object>> subjectRows) {
-        final String query = _queryResultUtil.getQueryForFetchingSubjectsWithFailedAssessorSyncs();
+        final String query = _queryResultUtil.getQueryForFetchingSubjectsWithFailedOrSkippedByFilterAssessorSyncs();
         final List<Map<String, Object>> queryResults = _jdbcTemplate.queryForList(query, _parameters);
         subjectRows.addAll(queryResults);
 	}
