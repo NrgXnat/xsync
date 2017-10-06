@@ -87,7 +87,7 @@ public class QueryResultUtil {
 		return query;
 	}
 
-	public String getQueryForFetchingSubjectsWithFailedOrSkippedByFilterAssessorSyncs() {
+	public String getQueryForFetchingSubjectsWithFailedOrSkippedByFilterAssessorSyncs(Integer noOfRetryDays) {
 		final StringBuilder queryb = new StringBuilder();
 		queryb.append("select s.id, s.label, s.project, rm.status, rm.last_modified,xsi.sync_start_time from"); 
 		queryb.append(" xnat_subjectdata s"); 
@@ -97,7 +97,15 @@ public class QueryResultUtil {
 		queryb.append(" left join xsync_xsyncremotemapdata_meta_data rm on r.xsyncremotemapdata_info = rm.meta_data_id");
 		queryb.append(" left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id"); 
 		queryb.append(" left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id");
-		queryb.append(" where project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and r.sync_status in ('" + XsyncUtils.SYNC_STATUS_FAILED + "','"+XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER+"')");
+		queryb.append(" where project=:"+ PROJECT_QUERY_PARAMETER_NAME +" and r.sync_status ");//in ('" + XsyncUtils.SYNC_STATUS_FAILED + "','"+XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER+"')");
+		if(noOfRetryDays > 0)
+		{
+			queryb.append("in ('"+XsyncUtils.SYNC_STATUS_FAILED + "','"+XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER +"') and rm.insert_date > current_date -"+noOfRetryDays);
+		}
+		else
+		{
+			queryb.append("='"+XsyncUtils.SYNC_STATUS_FAILED +"'");
+		}
  		return queryb.toString();
 	}
 	
@@ -227,7 +235,7 @@ public class QueryResultUtil {
 		return query;
 	}
 
-	public String getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs() {
+	public String getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs(Integer noOfRetry) {
 		final StringBuilder queryb = new StringBuilder();
 		queryb.append("select e.id,e.label,xdme.element_name,e.project,xsrmm.status,xsrmm.last_modified, xsi.sync_end_time,xsrmm.insert_date from xnat_experimentdata e ");
 		queryb.append(" left join xdat_meta_element xdme ON e.extension = xdme.xdat_meta_element_id ");
@@ -238,7 +246,15 @@ public class QueryResultUtil {
 		queryb.append(" left join xsync_xsyncremotemapdata xsrm on e.id = xsrm.local_xnat_id");
 		queryb.append(" left join xsync_xsyncremotemapdata_meta_data xsrmm on xsrm.xsyncremotemapdata_info = xsrmm.meta_data_id");
 		queryb.append(" where sa.subject_id=:" +  SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +
-				" and e.id in (:"+EXPERIMENT_IDS+") and xsrm.sync_status in ('"+XsyncUtils.SYNC_STATUS_FAILED + "','"+XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER +"')" );
+				" and e.id in (:"+EXPERIMENT_IDS+") and xsrm.sync_status ");//in ('"+XsyncUtils.SYNC_STATUS_FAILED + "','"+XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER +"')" );
+		if(noOfRetry > 0)
+		{
+			queryb.append("in ('"+XsyncUtils.SYNC_STATUS_FAILED + "','"+XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER +"') and xsrmm.insert_date > current_date -"+noOfRetry);
+		}
+		else
+		{
+			queryb.append("='"+XsyncUtils.SYNC_STATUS_FAILED +"'");
+		}
  		return queryb.toString();
 	}
 	
@@ -280,7 +296,7 @@ public class QueryResultUtil {
 		query += " UNION ";
 		query += getQueryForFetchingSubjectExperimentsDeletedSinceLastSync();
 		query += " UNION ";
-		query += getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs();
+		query += getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs(0);
 		return query;		
 	}
 
@@ -496,7 +512,12 @@ public class QueryResultUtil {
 		String query="Select sync_status from xsync_xsyncremotemapdata where remote_project_id=:remoteProjectId and xsitype='xnat:subjectData' and local_xnat_id=:localSubjectId and source_project_id=:localProjectId";
 		return query;
 	}
-
+	
+	/*public String getNumberOfRetry() {
+		String query="Select no_of_retry from xsync_xsyncremotemapdata where remote_project_id=:remoteProjectId and xsitype=:xsitype and local_xnat_id=:localId and source_project_id=:localProjectId and remote_host_url=:remoteURL and no_of_retry is not null";
+		return query;
+	}
+*/
 	
 	
 }

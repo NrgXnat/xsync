@@ -91,6 +91,7 @@
     				</xs:documentation>
     	</xs:attribute>
     	<xs:attribute name="notification_emails" type="xs:string"/>
+    	<xs:attribute name="no_of_retry_days" type="xs:integer"/>
     </xs:complexType>
     <xs:element name="XsyncInfoData" type="xsync:xsyncInfoData"></xs:element>
     <xs:complexType name="xsyncInfoData">

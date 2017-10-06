@@ -119,24 +119,30 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     @XapiRequestMapping(value = "/projects/{projectId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
     public ResponseEntity<String> exportProject(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
-    	//Check user credentials to see if the user is a member or an owner of the project
-        final UserI user = getSessionUser();
-    	try {
-        	final HttpStatus status = canDeleteProject(projectId);
-            if (status != null) {
-                return new ResponseEntity<>(status);
-            }
-        }catch(Exception e) {
-            if (_log.isInfoEnabled()) {
-                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
-            }
+    	
+    	if(!_syncStatusService.getProjectSyncStatus(projectId).isSyncing())
+    	{
+	    	//Check user credentials to see if the user is a member or an owner of the project
+	        final UserI user = getSessionUser();
+	    	try {
+	        	final HttpStatus status = canDeleteProject(projectId);
+	            if (status != null) {
+	                return new ResponseEntity<>(status);
+	            }
+	        }catch(Exception e) {
+	            if (_log.isInfoEnabled()) {
+	                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
+	            }
+	        }
+	    	final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, getSessionUser());
+	        _executorService.submit(projectChange);
+	        if (_log.isInfoEnabled()) {
+	            _log.info("Project " + projectId + " is being exported by " + getSessionUser().getUsername());
+	        }
+	        return new ResponseEntity<>(projectId + " synchronization started", HttpStatus.OK);
         }
-    	final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, getSessionUser());
-        _executorService.submit(projectChange);
-        if (_log.isInfoEnabled()) {
-            _log.info("Project " + projectId + " is being exported by " + getSessionUser().getUsername());
-        }
-        return new ResponseEntity<>(projectId + " synchronization started", HttpStatus.OK);
+    	else
+    		return new ResponseEntity<>("Sync is currently running for this project. &nbsp;Please await the results of that sync or try again later.", HttpStatus.OK);
     }
     
     

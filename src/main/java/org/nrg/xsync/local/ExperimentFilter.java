@@ -168,7 +168,7 @@ public class ExperimentFilter {
 			if (experimentDetails.size()>0) {
 				final List<String> detailIds = getExperimentIdsFromExperimentDetails(experimentDetails);
 				parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, detailIds);
-				final List<String> failedExperimentIds = getFailedExperimentIds(parameters);
+				final List<String> failedExperimentIds = getFailedExperimentIds(parameters,projectSyncConfiguration.getSynchronizationConfiguration().getNo_of_retry_days());
 				for (final Map<String,Object> row:experimentDetails) {
 					if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
 						final String currentExpId = (String)row.get("id");
@@ -215,7 +215,7 @@ public class ExperimentFilter {
 					// id,label,element_name,project,status,last_modified, sync_end_time, insert_date 		
 				 experiments = _jdbcTemplate.queryForList(query, parameters);
 				if (experiments != null && experiments.size()>0) {
-					final List<String> failedExperimentIds = getFailedExperimentIds(parameters);
+					final List<String> failedExperimentIds = getFailedExperimentIds(parameters,projectSyncConfiguration.getSynchronizationConfiguration().getNo_of_retry_days());
 					for (final Map<String,Object> row:experiments) {
 						if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
 							final String currentExpId = (String)row.get("id");
@@ -300,8 +300,8 @@ public class ExperimentFilter {
 		return detailList;
 	}
 
-	private List<String> getFailedExperimentIds(MapSqlParameterSource parameters) {
-		final String failedQuery = _queryResultUtil.getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs();
+	private List<String> getFailedExperimentIds(MapSqlParameterSource parameters, Integer noOfRetryDays) {
+		final String failedQuery = _queryResultUtil.getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs(noOfRetryDays);
 		final List<Map<String,Object>> failedExperiments = _jdbcTemplate.queryForList(failedQuery, parameters);
 		final List<String> failedExperimentIds = new ArrayList<>();
 		for (final Map<String, Object> row : failedExperiments) {

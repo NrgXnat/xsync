@@ -29,6 +29,10 @@ public class SyncConfiguration implements Serializable{
 	
 	/** The notification emails. */
 	private String notification_emails;
+	/**
+	 * Number of days for retry.
+	 */
+	private Integer no_of_retry_days=3;
 	
 	
 	public boolean isProjectResourceAllowedToSync(String resourceLabel) {
@@ -330,6 +334,20 @@ public class SyncConfiguration implements Serializable{
 	 */
 	public void setNotification_emails(String notification_emails) {
 		this.notification_emails = notification_emails;
+	}
+
+	/**
+	 * @return the no_of_retry_days
+	 */
+	public Integer getNo_of_retry_days() {
+		return no_of_retry_days;
+	}
+
+	/**
+	 * @param no_of_retry_days the no_of_retry_days to set
+	 */
+	public void setNo_of_retrydays(Integer no_of_retry_days) {
+		this.no_of_retry_days = no_of_retry_days;
 	}
 	
 }

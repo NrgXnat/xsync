@@ -54,6 +54,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         XSYNC.xsyncconfig.configuration.remote_url = 'http://';
         XSYNC.xsyncconfig.configuration.remote_project_id = '';
         XSYNC.xsyncconfig.configuration.anonymize = false;
+		XSYNC.xsyncconfig.configuration.no_of_retry_days = 3;
         // XSYNC.xsyncconfig.configuration.ok_to_sync = false;
 
         // XSYNC.xsyncconfig.configuration.subject_assessors.xsi_types = {};
@@ -373,6 +374,19 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 			}
 			return allAddressesValid;
 		}
+		
+		function validateNoOfRetryDays()
+		{
+			var valid=true;
+			var retryVal=$('#xsync-config-no_of_retry_days').val();
+			
+			if(isNaN(retryVal) || retryVal.includes('.') || retryVal >999)
+			{
+				errorWindow('<b>'+retryVal +'</b> is not a valid value. Kindly provide valid value for retries.');
+				valid=false;
+			}
+			return valid;
+		}
 
 		function errorWindow(message)
 		{
@@ -423,7 +437,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     isDefault: true,
                     action: function(obj){
 						
-						if(validateEmailAddresses())
+						if(validateEmailAddresses() && validateNoOfRetryDays())
 						{
 							// Only include visible fields and checkboxes, which are of type 'hidden'
 							var json = form2js($('#root-panel').find(':input').filter(':visible, [type="hidden"]')
@@ -475,6 +489,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     frequency: frequency(),
                     identifiers: identifiers(),
                     anonymize: anonymize(),
+					no_of_retry_days:no_of_retry_days(),
                     notification_emails:notification_emails(),
                     // okToSync: okToSync(),
 
@@ -699,7 +714,16 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-
+        function no_of_retry_days(){
+            return {
+                id: 'xsync-config-no_of_retry_days',
+                kind: 'panel.input.text',
+                name: 'no_of_retry_days',
+                label: 'Number of days for retry',
+				size: '3',
+				description: 'By default, Xsync would not re-sync once session/subject is skipped due to filters. If you want to retry skipped sessions for x number of days, kindly select appropriate value.\n 0 = no retry.'
+            }
+        }
         ///////////////////////////////
         // Common config UI elements //
         ///////////////////////////////
