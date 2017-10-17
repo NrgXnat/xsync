@@ -337,7 +337,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			    try {
 			    	subjectId = (String)experiment.getItem().getProperty("subject_ID");
 			    }catch(Exception e1) {
-			    	logger.error("Could not find a subject id " + experiment.getLabel());
+			    	logger.error("Could not find a subject id " + experiment.getLabel(),e1);
 			    }
 			    if (subjectId != null) { 
 			    	String uri = connection.getUrl()+"/data/archive/projects/"+experiment.getProject()+"/subjects/"+subjectId+"/experiments/"+experiment.getId()+"?removeFiles=true";

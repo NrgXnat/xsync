@@ -387,7 +387,7 @@ public class ExperimentFilter {
             o.setProperty("project", subject.getProject());
             o.setProperty("subject_ID", subject.getId());
         }catch(Exception e) {
-        	_log.debug("Could not instantiate the experiment " + id);
+        	_log.error("Could not instantiate the experiment " + id,e);
         }
         return new XnatExperimentdata(o);
 	}

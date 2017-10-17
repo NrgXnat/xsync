@@ -82,7 +82,7 @@ public class XsyncObserver implements Observer {
 				try {			
 					FileUtils.CopyFile(logFile, dest, true);
 				}catch(Exception e) {
-					logger.error("Unable to save file " + logFile.getAbsolutePath() + " to " + dest.getAbsolutePath());
+					logger.error("Unable to save file " + logFile.getAbsolutePath() + " to " + dest.getAbsolutePath(),e);
 				}
 			}
 		

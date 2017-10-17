@@ -1,12 +1,37 @@
 package org.nrg.xsync.local;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.base.BaseElement;
-import org.nrg.xdat.model.*;
-import org.nrg.xdat.om.*;
+import org.nrg.xdat.model.XnatAbstractresourceI;
+import org.nrg.xdat.model.XnatExperimentdataI;
+import org.nrg.xdat.model.XnatImageassessordataI;
+import org.nrg.xdat.model.XnatImagescandataI;
+import org.nrg.xdat.model.XnatImagesessiondataI;
+import org.nrg.xdat.model.XnatSubjectassessordataI;
+import org.nrg.xdat.model.XnatSubjectdataI;
+import org.nrg.xdat.om.XnatAbstractresource;
+import org.nrg.xdat.om.XnatImageassessordata;
+import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.om.XnatProjectdata;
+import org.nrg.xdat.om.XnatResource;
+import org.nrg.xdat.om.XnatSubjectassessordata;
+import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXReader;
 import org.nrg.xft.security.UserI;
@@ -28,7 +53,12 @@ import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncURIUtils;
 import org.nrg.xsync.tools.XsyncXnatInfo;
-import org.nrg.xsync.utils.*;
+import org.nrg.xsync.utils.JSONUtils;
+import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.ResourceUtils;
+import org.nrg.xsync.utils.WorkFlowUtils;
+import org.nrg.xsync.utils.XsyncFileUtils;
+import org.nrg.xsync.utils.XsyncUtils;
 import org.restlet.data.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +66,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.xml.sax.SAXException;
 
-import java.io.*;
-import java.util.*;
+import com.fasterxml.jackson.databind.JsonNode;
 
 
 /**
@@ -88,7 +117,7 @@ public class XsyncExperimentTransfer {
 			return;
 		}
 		if (assess instanceof XnatImagesessiondata) {
-			XnatImagesessiondata orig = XnatImagesessiondata.getXnatImagesessiondatasById(origId, user, true);
+			XnatImagesessiondata orig = (XnatImagesessiondata) XnatImagesessiondata.getXnatImagesessiondatasById(origId, user, true);
 			if (_syncIfNotSyncedInPast) {
 				//Has this entity been synced in the past?
 				boolean syncedInPast = hasExperimentBeenSuccessfullySyncedInThePast(orig.getProject(), orig.getId(), orig.getXSIType());
@@ -291,7 +320,7 @@ public class XsyncExperimentTransfer {
 				 _syncStatusService.registerCompletedExperiment(_localProject.getId(), assessor.getLabel(), assessor.getXSIType());
 			 }
 		 }catch(Exception e) {
-			 _log.debug("Unable to store assessor " + assessor.getLabel() + " " + e.getLocalizedMessage());
+			 _log.error("Unable to store assessor " + assessor.getLabel() + " " + e.getLocalizedMessage(),e);
 			 //Did we get a 500 - Duplicate Error?
 			 //Check if the session exists at the remote site
 			 boolean exists = lookForSessionAtDestination(orig,expSyncItem);
@@ -462,7 +491,7 @@ public class XsyncExperimentTransfer {
 				 }
 			 }
 		 }catch(Exception e) {
-			 _log.error(e.getMessage());
+			 _log.error(e.getMessage(),e);
 			 _syncStatusService.registerFailedExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 			 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
@@ -477,7 +506,7 @@ public class XsyncExperimentTransfer {
 					try {
 						FileUtils.deleteDirectory(localPath);
 					}catch(Exception ioe) {
-						
+						_log.error("Unable to delete directory "+localPath, ioe);
 					}
 				} 
 		 }
@@ -586,6 +615,7 @@ public class XsyncExperimentTransfer {
 			}
 			
 		}catch(Exception e) {
+			_log.error(e.getMessage(),e);
 			
 		}finally {
 			expSyncItem.updateSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,"Subject " + localSubject.getLabel() + " experiment " + expSyncItem.getLocalLabel() + " ");
@@ -596,7 +626,7 @@ public class XsyncExperimentTransfer {
 				try {
 					XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 					 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
-				} catch(Exception e) {_log.debug("Failed to update sync assessor " + e.getMessage());}
+				} catch(Exception e) {_log.error("Failed to update sync assessor " + e.getMessage(),e);}
 			 }
 			 saveSyncDetails(orig.getId(),remote_id,expSyncItem.getSyncStatus(),orig.getXSIType());
 		}
@@ -619,7 +649,7 @@ public class XsyncExperimentTransfer {
 			try {
 			 XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 			 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
-			}catch(Exception e) {_log.debug("Failed to update sync assessor " + e.getMessage());}
+			}catch(Exception e) {_log.error("Failed to update sync assessor " + e.getMessage(),e);}
 		 }
 		saveSyncDetails(orig.getId(),remote_id,expSyncItem.getSyncStatus(),expSyncItem.getXsiType());
 	}
@@ -1069,17 +1099,20 @@ public class XsyncExperimentTransfer {
 						zipFile.delete();
 				}
 			}catch(Exception e) {
-				_log.error("Could not update resource " + resource.getLabel() + " for experiment " + target.getId());
+				_log.error("Could not update resource " + resource.getLabel() + " for experiment " + target.getId(),e);
 				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-				resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " could not be updated. " + ExceptionUtils.getRootCauseMessage(e) );
+				resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " could not be updated. " + ExceptionUtils.getFullStackTrace(e) );
 				expSyncItem.addResources(resourceSyncItem);
 			}
 		}
 
 
-	private List<XnatAbstractresourceI> getExperimentResources(XnatImagesessiondata orig) {
-		XFTItem              item             = orig.getItem().copy();
-		XnatImagesessiondata targetExperiment = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
-		return targetExperiment.getResources_resource();
-	}
+		private List<XnatAbstractresourceI> getExperimentResources(XnatImagesessiondata orig) {
+			 List<XnatAbstractresourceI> resources = null;
+			 XFTItem item = orig.getItem().copy();
+			 XnatImagesessiondata targetExperiment = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
+			 resources = targetExperiment.getResources_resource();
+			 return resources;
+		}
+
 }

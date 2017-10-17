@@ -145,6 +145,7 @@ public class XsyncAnonymizer implements AnonymizerI {
 				}, tmpDir,new File(sessionPath)).run();
 			}catch(Exception e){
 				logger.error(e.getLocalizedMessage());
+				logger.error("Exception while applying Anonymization To Files",e);
 			}
 		}
 	}

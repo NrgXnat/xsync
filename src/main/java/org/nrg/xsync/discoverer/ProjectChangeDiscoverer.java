@@ -218,6 +218,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         } catch (Exception e) {
             //Roll back the syncBlocked flag
             _log.debug(e.getLocalizedMessage());
+            _log.error(e.getMessage(),e);
             //syncStatusUpdater.saveSyncBlockStatus(Boolean.FALSE);
             try {
             	XSyncFailureHandler.handle(_mailService, _xnatInfo.getAdminEmail(), _manager.getSiteId(), _projectId, e, "Sync failed");

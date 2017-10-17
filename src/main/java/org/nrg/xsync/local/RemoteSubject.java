@@ -340,7 +340,7 @@ public class RemoteSubject {
 						}
 						subjectSyncInfo.addResources(resourceSyncItem);
 					}catch(Exception e) {
-						_log.error("Could not delete resource " + resource.getLabel() + " for subject " + remoteSubject.getId());
+						_log.error("Could not delete resource " + resource.getLabel() + " for subject " + remoteSubject.getId(),e);
 						ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
 						resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 						resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be deleted. " + e.getMessage());
@@ -407,7 +407,7 @@ public class RemoteSubject {
 				if (zipFile != null) zipFile.delete();
 			}
 		}catch(Exception e) {
-			_log.error("Could not update resource " + resource.getLabel() + " for subject " + remoteSubject.getId());
+			_log.error("Could not update resource " + resource.getLabel() + " for subject " + remoteSubject.getId(),e);
 			ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),rLabel);
 			if (resource.getFileCount() != null)
 				resourceSyncItem.setFileCount(resource.getFileCount());
@@ -447,7 +447,7 @@ public class RemoteSubject {
 						exp.getItem().setProperty("subject_ID", remoteSubject.getId());
 						this.deleteExperiment(exp);
 					}catch(Exception e) {
-						_log.error("Could not delete experiment " + experiment.getId() + " for subject " + remoteSubject.getId() + " " + e.getMessage());
+						_log.error("Could not delete experiment " + experiment.getId() + " for subject " + remoteSubject.getId() + " " + e.getMessage(),e);
 					}
 				}
 			}
@@ -538,7 +538,7 @@ public class RemoteSubject {
 			try {
 				path = origResource.getFullPath(orig.getArchiveRootPath());
 			}catch(Exception e) {
-				
+				_log.error(e.getMessage(),e);
 			}
 		}
 		return path;
@@ -551,7 +551,7 @@ public class RemoteSubject {
 			path = resource.getFullPath(parent);
 			System.out.println("Resource Path " + path + " Label " + resource.getLabel());
 		}catch(Exception e) {
-			
+			_log.error(e.getMessage(),e);
 		}
 		return path;
 	}
@@ -578,6 +578,7 @@ public class RemoteSubject {
 		    try {
 			    fileComparison = projectResourceVerifier.verify(archiveDirectory, remoteProjectId , rsc.getLabel(), uri);
 		    }catch(Exception e) {
+		    	_log.error(e.getMessage(),e);
 	 			fileComparison = new HashMap<String,String>();
 				fileComparison.put(XsyncUtils.XSYNC_VERIFICATION_STATUS, XsyncUtils.XSYNC_VERIFICATION_STATUS_FAILED_TO_CONNECT);
 		    }

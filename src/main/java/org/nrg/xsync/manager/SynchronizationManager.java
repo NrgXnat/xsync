@@ -98,7 +98,7 @@ public class SynchronizationManager {
 					syncProjectConfiguration.save(manifest.getSync_user(), false, true,c);
 				}
 			}catch(Exception e) {
-				_log.debug("Unable to save synchronization  details for project: " + projectId + " Cause:" + e.getMessage());
+				_log.debug("Unable to save synchronization  details for project: " + projectId + " Cause:" + e.getMessage(),e);
 			}
 			if (manifest.shouldNotify())
 				manifest.informUser();

@@ -146,7 +146,7 @@ public class XsyncFileUtils {
 		            	_log.error("Unable to save " + project.getId() + ". User " + _user.getLogin() + " may not have sufficient privileges");
 		            }
 		        }catch(Exception e) {
-		        	_log.error("Unable to save " + project.getId() + ". User " + _user.getLogin() + " may not have sufficient privileges");
+		        	_log.error("Unable to save " + project.getId() + ". User " + _user.getLogin() + " may not have sufficient privileges",e);
 		        }
 	    	     		
 	    		return catResource;

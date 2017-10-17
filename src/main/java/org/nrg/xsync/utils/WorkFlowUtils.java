@@ -54,7 +54,7 @@ public class WorkFlowUtils {
 			RemoteConnectionResponse response = _manager.createWorkflow(connection, workFlowData);
             
 		}catch(Exception e) {
-        	_log.debug("Could not instantiate the workflow for " + img.getLabel());
+        	_log.debug("Could not instantiate the workflow for " + img.getLabel(),e);
         }
 	}
 
@@ -75,7 +75,7 @@ public class WorkFlowUtils {
 			RemoteConnectionResponse response = _manager.createWorkflow(connection, workFlowData);
             
 		}catch(Exception e) {
-        	_log.debug("Could not instantiate the workflow for " + sub.getLabel());
+        	_log.debug("Could not instantiate the workflow for " + sub.getLabel(),e);
         }
 	}
 	

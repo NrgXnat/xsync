@@ -211,7 +211,7 @@ public class ResourceFilter {
             o = (ItemI) c.newInstance();
             o.setProperty("label", label);        
         }catch(Exception e) {
-        	_log.debug("Could not instantiate the Abstract resource " + label);
+        	_log.debug("Could not instantiate the Abstract resource " + label,e);
         }
         return new XnatResource(o);
 	}
