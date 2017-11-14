@@ -9,6 +9,7 @@ import org.nrg.xdat.om.XnatProjectparticipant;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.xsync.generator.XsyncIdGeneratorI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -50,7 +51,7 @@ public class IdMapper {
 	}
 
 	
-	private String assignRemoteLabel(XFTItem item) {
+	private String assignRemoteLabel(XFTItem item) throws Exception {
 		String remote_label = null;
 		if (USE_LOCAL.equals(syncProjectConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getIdentifiers())) {
 			try {
@@ -58,6 +59,12 @@ public class IdMapper {
 			} catch(Exception e) {
 				
 			}
+		}
+		else if (USE_CUSTOM.equals(syncProjectConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getIdentifiers()))
+		{
+			String className=syncProjectConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getCustomIdentifierClass();
+			final XsyncIdGeneratorI idGenerator = (XsyncIdGeneratorI)Class.forName(className).newInstance();
+			remote_label=idGenerator.generateId(_user, item, syncProjectConfiguration);
 		}
 		//TODO other cases
 		return remote_label;

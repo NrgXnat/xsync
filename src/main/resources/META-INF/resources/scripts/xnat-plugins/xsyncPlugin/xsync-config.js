@@ -488,6 +488,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     destProjectId: remoteProject(),
                     frequency: frequency(),
                     identifiers: identifiers(),
+					customIdentifiers: customIdentifiers(),
                     anonymize: anonymize(),
 					no_of_retry_days:no_of_retry_days(),
                     notification_emails:notification_emails(),
@@ -680,9 +681,63 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 name: 'identifiers',
                 label: 'Identifiers',
                 options: {
-                    use_local: 'Local'//,
+                    use_local: 'Local',
+                    use_custom: 'Custom'
                     // use_remote: 'Remote'
-                }
+                },
+				element: {
+                    onchange: function(){
+						XSYNC.xsyncconfig.showHideCustomIdentifiers($(this).val());
+                        if($(this).val()=='use_custom')
+						{
+							var getCustomIdGeneratorsAjax = $.ajax({
+								type: "GET",
+								url: XNAT.url.csrfUrl('/xapi/xsync/getXsyncCustomIdGenerators')
+							});
+
+							getCustomIdGeneratorsAjax.done(function(data, textStatus, jqXHR){
+								console.log(data);
+								$.each( data, function(key, value) { 
+									var option = new Option(key, value);
+									$("#xsync-config-custom-identifiers").append($(option));
+								});
+							});
+
+							getCustomIdGeneratorsAjax.fail(function(data, textStatus, error){
+								xmodal.message('Error', 'failed to fetch custom identifiers');
+							});
+						}									
+					}
+				}
+			}
+        }
+		
+		XSYNC.xsyncconfig.showHideCustomIdentifiers = function(identifiers){
+			if(identifiers == 'use_custom')
+			{
+				var ele=document.getElementsByClassName('hidden');
+				for(var i=0;i<ele.length;i++)
+				{
+					if('customIdentifiers'==ele[i].getAttribute("data-name"))
+						ele[i].setAttribute('class','panel-element');
+				}
+			}
+			else{
+				var ele=document.getElementsByClassName('panel-element');
+				for(var i=0;i<ele.length;i++)
+				{
+					if('customIdentifiers'==ele[i].getAttribute("data-name"))
+						ele[i].setAttribute('class','hidden');
+				}
+			}
+		};
+		
+		function customIdentifiers(){
+            return {
+                kind: 'panel.select.menu',
+                id: 'xsync-config-custom-identifiers',
+                name: 'customIdentifiers',
+                label: 'Custom Identifiers'
             }
         }
 

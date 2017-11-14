@@ -17,6 +17,7 @@ import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
+import org.nrg.xnat.xsync.report.XsyncProjectReportGenerator;
 import org.nrg.xsync.components.SyncStatusHolder.SyncType;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
@@ -533,6 +534,19 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             xsyncTools.saveSyncDetails(_projectId, rLabel, rLabel, resourceSyncItem.getSyncStatus(), rsc.getXSIType(),remoteProjectId, remoteUrl);
             SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
         }
+    }
+    
+    /**
+     * Generate mapping report.
+     *
+     * @param requestedReportType the requested report type
+     * @return the string
+     * @throws Exception the exception
+     */
+    public String generateMappingReport(String reportFormat,String objectType) throws Exception
+    {
+    	XsyncProjectReportGenerator reportGenerator= new XsyncProjectReportGenerator(_manager, _queryResultUtil, _jdbcTemplate, _projectSyncConfiguration, _serializer, _user);
+    	return reportGenerator.generateMappingReport(reportFormat,objectType);
     }
  
 }

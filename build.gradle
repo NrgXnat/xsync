@@ -128,6 +128,7 @@ dependencies {
 
     implementation("io.springfox:springfox-swagger2") { transitive = false }
     implementation("io.springfox:springfox-swagger-ui") { transitive = false }
+    compile group: 'net.sf.opencsv', name: 'opencsv', version: '2.3'
 }
 
 configurations {

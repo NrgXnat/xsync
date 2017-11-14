@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
@@ -86,6 +87,11 @@ public class XsyncUtils {
 	public static final int GLOBAL_RETRY_COUNTS = 3; //15 Minutes
 	public static final String GROOVY_SCRIPT_ENGINE = "groovy";
 	public static final String EVAL_PLACE_HOLDER = "$VALUE";
+
+	public static final String REPORT_FORMAT_JSON = "JSON";
+	public static final String REPORT_FORMAT_CSV = "CSV";
+	public static final String OBJECT_TYPE = "objectType";
+	public static final String REPORT_FORMAT = "reportFormat";
 	
 	public enum FilterType 
 	{
@@ -135,6 +141,7 @@ public class XsyncUtils {
         syncinfo.setSyncFrequency(synchronizationJson.get("sync_frequency").asText());
 		syncinfo.setSyncNewOnly(synchronizationJson.get("sync_new_only").asBoolean());
 		syncinfo.setIdentifiers(synchronizationJson.get("identifiers").asText());
+		syncinfo.setCustomIdentifierClass(synchronizationJson.get("customIdentifiers").asText());
 		syncinfo.setRemoteUrl(synchronizationJson.get("remote_url").asText());
 		syncinfo.setRemoteProjectId(synchronizationJson.get("remote_project_id").asText());
 		boolean destinationChange = false;
@@ -275,6 +282,20 @@ public class XsyncUtils {
 		return remoteId;
 	}
 	
+	public List<Map<String,Object>> getIdAndLabelMapForSyncedData(String localProjectId,String objectType) {
+		String query = "select distinct rm.local_xnat_id as local_xnat_id,rm.remote_xnat_id remote_xnat_id,sub.label as label from xsync_xsyncremotemapdata rm,xnat_subjectdata sub " + 
+				"where rm.source_project_id=:localProjectId and rm.local_xnat_id=sub.id";
+		if("Experiment".equalsIgnoreCase(objectType))
+		{
+			query="select distinct rm.local_xnat_id  as local_xnat_id,rm.remote_xnat_id as remote_xnat_id,exp.label  as label from xsync_xsyncremotemapdata rm," + 
+					"xnat_experimentdata exp where rm.source_project_id=:localProjectId and rm.local_xnat_id= exp.id";
+		}
+		
+		final MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue("localProjectId", localProjectId);
+		List<Map<String,Object>> results = _jdbcTemplate.queryForList(query, parameters);
+		return results;
+	}
 
 
 }

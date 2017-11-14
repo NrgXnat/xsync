@@ -14,11 +14,15 @@
     			<li class="yuimenuitem first-of-type">
         			<a id="sync-status" class="yuimenuitemlabel" href="#!">View Current Sync Status</a>
     			</li>
+    			<li class="yuimenuitem first-of-type">
+        			<a id="download-sync-subjects" class="yuimenuitemlabel" href="#!">View/Download Id data</a>
+    			</li>
 	            </ul>
 	        </DIV>
 	    </DIV>
 	</li>
 
+<script type="text/javascript" src="$content.getURI("scripts/xnat-plugins/xsyncPlugin/xsync-reporting.js")"></script>
 <script type="text/javascript">
 
     (function(){
@@ -153,6 +157,7 @@
 		} 
 	}
 
+	
 
         $('#sync-data-start').on('click', function(e){
             e.preventDefault();
@@ -162,6 +167,10 @@
         $('#sync-status').on('click', function(e){
             e.preventDefault();
             syncStatus();
+        });
+        
+         $('#download-sync-subjects').on('click', function(e){
+			intializeXsyncMapping(XNAT.data.context.project);
         });
 
     })();

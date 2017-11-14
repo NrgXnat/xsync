@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 
 import javax.servlet.http.HttpServletRequest;
@@ -21,6 +23,7 @@ import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.net.AuthenticatedClientHttpRequestFactory;
 import org.nrg.framework.services.SerializerService;
+import org.nrg.framework.utilities.BasicXnatResourceLocator;
 import org.nrg.mail.services.MailService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
@@ -34,6 +37,7 @@ import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.services.archive.CatalogService;
+import org.nrg.xnat.xsync.annotation.IdGenerator;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteOperation;
 import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
@@ -44,11 +48,15 @@ import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
+import org.nrg.xsync.utils.StringStreamingResponseBody;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -76,7 +84,8 @@ import io.swagger.annotations.ApiResponses;
 @XapiRestController
 @RequestMapping(value = "/xsync")
 public class XsyncOperationsController extends AbstractXapiProjectRestController {
-    private final QueryResultUtil            _queryResultUtil;
+
+	private final QueryResultUtil            _queryResultUtil;
     private final ConfigService              _configService;
     private final SerializerService          _serializer;
     private final MailService                _mailService;
@@ -84,6 +93,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     private final XsyncXnatInfo              _xnatInfo;
     private final NamedParameterJdbcTemplate _jdbcTemplate;
     private final SyncStatusService 		 _syncStatusService;
+    private List<Resource> _resourceList;
 
     @Autowired
     public XsyncOperationsController(final RemoteConnectionManager manager,
@@ -330,6 +340,71 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             return new ResponseEntity<>(message + ": " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    
+    
+    /**
+     * Gets Xsync custom id generator classes.
+     *
+     * @param experimentId the experiment id
+     * @return the sync info
+     */
+    @ApiOperation(value = "Xsync custom Id generators.", notes = "Xsync custom Id generators.")
+    @XapiRequestMapping(value = "/getXsyncCustomIdGenerators", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> getCustomIdentifers(){
+    	final Map<String,String> componentList = new TreeMap<String,String>();
+    	try {
+    		for (final Resource resource : getResourceList()) {
+    			final Properties properties = PropertiesLoaderUtils.loadProperties(resource);
+    			if (!properties.containsKey(IdGenerator.ID_GENERATOR)) {
+    				continue;
+    			}
+    			String qualifiedClassName=properties.getProperty(IdGenerator.ID_GENERATOR);
+    			String className=qualifiedClassName.substring(qualifiedClassName.lastIndexOf(".")+1);
+    			componentList.put(className,qualifiedClassName);
+    		}
+            return new ResponseEntity<>(componentList, HttpStatus.OK);
+        } catch (Exception e) {
+            _log.error("Error while fetching Xsync Identifier generator classes.", e);
+            return new ResponseEntity<>(componentList, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Gets the mapping file.
+     *
+     * @param experimentId the experiment id
+     * @return the sync info
+     * @throws Exception 
+     */
+    @ApiOperation(value = "Xsync subject/experiment id report.", notes = "Xsync subject/experiment id report.")
+    @XapiRequestMapping(value = "/getSubjectMappingFile/{projectId}", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<StringStreamingResponseBody> getSubjectMappingFile(@PathVariable("projectId") final String projectId,@RequestParam Map<String,String> params) throws Exception{
+
+    		
+    		final ProjectChangeDiscoverer projectChangeDiscoverer = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, getSessionUser());
+    		final String reportFormat = params.get(XsyncUtils.REPORT_FORMAT);
+    		final String objectType = params.get(XsyncUtils.OBJECT_TYPE);
+    	    ResponseEntity<String> stringResponse = new ResponseEntity<String>(projectChangeDiscoverer.generateMappingReport(reportFormat,objectType), HttpStatus.OK);
+    		if (!stringResponse.getStatusCode().equals(HttpStatus.OK)) {			
+    			return ResponseEntity.status(stringResponse.getStatusCode()).header(HttpHeaders.CONTENT_TYPE, StringStreamingResponseBody.MEDIA_TYPE_TEXT_PLAIN)
+    					.body(new StringStreamingResponseBody(stringResponse.getBody()));
+    		}
+    		else if (params.containsKey(XsyncUtils.REPORT_FORMAT) && params.get(XsyncUtils.REPORT_FORMAT).equalsIgnoreCase(XsyncUtils.REPORT_FORMAT_CSV)) {
+    			return ResponseEntity.status(stringResponse.getStatusCode()).header(HttpHeaders.CONTENT_TYPE, StringStreamingResponseBody.MEDIA_TYPE_TEXT_CSV)
+    					.header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename=" + projectId +"_"+objectType+"s_id_report.csv")
+    					.body(new StringStreamingResponseBody(stringResponse.getBody()));
+    		} else {
+    			return ResponseEntity.status(stringResponse.getStatusCode()).header(HttpHeaders.CONTENT_TYPE, StringStreamingResponseBody.MEDIA_TYPE_APPLICATION_JSON)
+    					.body(new StringStreamingResponseBody(stringResponse.getBody()));
+    		}
+    }
+    
+    
+    private List<Resource> getResourceList() throws IOException {
+		return (_resourceList!=null) ? _resourceList : BasicXnatResourceLocator.getResources("classpath*:META-INF/xnat/xsync/*-xsync.properties");
+	}
     
     @ApiOperation(value = "Mark session for sync.", notes = "Marks experiment to be synced.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})

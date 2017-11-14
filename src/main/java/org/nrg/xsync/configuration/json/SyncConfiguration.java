@@ -21,6 +21,9 @@ public class SyncConfiguration implements Serializable{
 	String remote_project_id;
 	String remote_url;
 	String identifiers;
+	
+	/** The custom identifier generator class. */
+	String customIdentifierClass;
 	Boolean anonymize;
 	SyncConfigurationResource project_resources;
 	SyncConfigurationResource subject_resources;
@@ -350,4 +353,17 @@ public class SyncConfiguration implements Serializable{
 		this.no_of_retry_days = no_of_retry_days;
 	}
 	
+	/**
+	 * @return the customIdenfitierClass
+	 */
+	public String getCustomIdenfitierClass() {
+		return customIdentifierClass;
+	}
+
+	/**
+	 * @param customIdenfitierClass the customIdenfitierClass to set
+	 */
+	public void setCustomIdenfitierClass(String customIdenfitierClass) {
+		this.customIdentifierClass = customIdenfitierClass;
+	}
 }

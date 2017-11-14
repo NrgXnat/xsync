@@ -275,3 +275,190 @@ window.XSYNC = getObject(window.XSYNC);
 	}
 
 })(window.XNAT, window.XSYNC);
+
+
+function intializeXsyncMapping(projectId) {
+	var confirmModal = xModalConfirm;
+	confirmModal.okClose = false,
+	confirmModal.okAction = function(){ 
+		var reportFormat = $("input[name=xsyncMappingReportType]:checked").val();
+		var objectType=$("input[name=xsyncDataType]:checked").val();
+		var confirmUrl = serverRoot+'/xapi/xsync/getSubjectMappingFile/' + projectId+"?reportFormat="+reportFormat+"&objectType="+objectType;
+			
+		$("#report-modal-overlay").show();
+		$("#xsyncMappingReportConfirmModal-cancel-button").hide();
+
+		$.ajax({
+			type : "GET",
+			url:confirmUrl,
+			cache: false,
+			async: true,
+			context: this,
+			dataType: 'text'
+		 })
+		.done( function( data, textStatus, jqXHR ) {
+			if (reportFormat=="CSV") {
+				xmodal.close('xsyncMappingReportConfirmModal');
+				XNAT.ui.banner.top(2000, "Building report file.  Your download should begin shortly");
+				window.location.href=confirmUrl;
+			} else {
+				var dataJSON = JSON.parse(data);
+				var tableStr = "<div style='height:500px; width:930px; overflow:auto;'><table style='font-size: 11px; border-width:1px; border-style:solid; border-collapse: collapse'>";
+				for (var i=0; i<dataJSON.length; i++) {
+					tableStr+="<tr style='border-width:1px; border-style:solid; border-collapse: collapse'>";
+					for (var j=0; j<dataJSON[i].length; j++) {
+						if (i>0) {
+							tableStr+="<td style='padding-left:5px;padding-right:5px;border-width:1px; border-style:solid; border-collapse: collapse'>" + dataJSON[i][j] + "</td>";
+						} else {
+							tableStr+="<th style='padding-left:5px;padding-right:5px;background-color:#EEEEEE;border-width:1px; border-style:solid; border-collapse: collapse'>" + dataJSON[i][j] + "</th>";
+						}
+					}
+					tableStr+="</tr>";
+				}
+				tableStr+="</table></div>";
+	 			var msg = "<h2 style='color:#228822'>Xsync Id Report (Project=" + projectId +")</h2>" + "<br><br>" + tableStr;
+				
+				$("#report-modal-overlay").hide();
+				xmodal.message({
+					title:  "Xsync Id Report",
+					width:  '1000px',
+					height:  '800px',
+					content:  msg
+				});
+				xmodal.close('xsyncMappingReportConfirmModal');
+			}
+		})
+		.fail( function( data, textStatus, error ) {
+			var responseText = data.responseText;
+			try {
+				var parseResponseText = JSON.parse(responseText);
+				if (parseResponseText.constructor === Array) {
+					responseText = "";
+					for (var i=0;i<parseResponseText.length;i++) {
+						responseText = responseText + "<li>" + parseResponseText[i] + "</li>";
+					}
+				}
+			} catch (e) {
+				// Do nothing
+			}
+	 		var errMsg = "<h2 style='color:#AA1111'>Could not generate report</h2><em>REASON:</em> &nbsp;" +  error + "<br><br><em>DETAILS:</em><br><br>" + responseText;
+			
+			$("#report-modal-overlay").hide();
+			xmodal.message({
+				title:  "Combined Session Building Results",
+				width:  '800px',
+				height:  '630px',
+				content:  errMsg
+			});
+			xmodal.close('xsyncMappingReportConfirmModal');
+		});
+	 }
+
+	confirmModal.id  = 'xsyncMappingReportConfirmModal';
+	confirmModal.content  = '<h2 style="margin-bottom:10px;margin-top:10px">View/Download Xsync Id Data (Project=' + projectId + ')?</h2>';
+	confirmModal.cancelAction = function(){ return; };
+	confirmModal.title = "View/Download Xsync Id Data";
+	confirmModal.width = 650;
+	confirmModal.height = 300;
+	xModalOpenNew(confirmModal);
+ 	XNAT.spawner.spawn(spawnReport()).render($("#xsyncMappingReportConfirmModal").find(".body").find(".inner"));
+ 	$("#xsyncMappingReportConfirmModal").find(".body").find(".inner").append(
+		"<div id='report-modal-overlay' style='width:100%;height:100%;display:none;background-color:#FFFFFF;" +
+		"z-index:10;opacity:0.9;margin:0px;position:absolute;top:0px;left:0px;padding:0px'>" + 
+		"<div style='color:#22AA22;width:100%'><h3 style='text-align:center'>Generating id report &nbsp;Please wait...</h3</div>" + 
+		"<div style='top:50%;left:50%;margin-right: -50%;transform: translate(-50%, -50%);position:absolute;opacity:1.0;'><img src='/images/loading.gif'/></div>" +
+		"</div><iframe id='download_iframe' style='display:none;'></iframe>");
+ 	$($("#xsyncDataType")[0]).attr('checked', true);
+	$($("#xsyncMappingReportType")[0]).attr('checked', true); 
+
+}
+
+
+
+	
+	function spawnReport() {
+		function configPanel(contents) {
+		return {
+			id: 'xsyncMappingReportPanel',
+			kind: 'panel.form',
+			width: '600px',
+			height: '300px',
+			label: 'Xsync Mapping Report',
+			header: false,
+			footer: false,
+			contents: {
+				"Data Type": dataType(),
+				"Report Type": reportFormat()
+			}
+		}
+	}
+	function reportFormat() {
+		return {
+			id: 'xsyncMappingReport',
+			kind: 'panel.element',
+			name: 'xsyncMappingReport',
+			value: 'CSV',
+			label: 'Report Format',
+			contents: {
+				"CSV": reportFormatCSV(),
+				"JSON": reportFormatJSON()
+			}
+		}
+	}
+	function reportFormatCSV() {
+		return {
+			id: 'xsyncMappingReportType',
+			kind: 'input.radio',
+			name: 'xsyncMappingReportType',
+			value: 'CSV',
+			label: 'Report FormatXX',
+			after: "<span style='margin-right:15px'>Download</span>"
+		}
+	}
+	function reportFormatJSON() {
+		return {
+			id: 'xsyncMappingReportType',
+			kind: 'input.radio',
+			name: 'xsyncMappingReportType',
+			value: 'JSON',
+			after: "<span>Display</span>",
+		}
+	}
+	
+	function dataType() {
+		return {
+			id: 'xsyncMappingData',
+			kind: 'panel.element',
+			name: 'xsyncMappingData',
+			value: 'CSV',
+			label: 'Data',
+			contents: {
+				"Subject": subjectDataType(),
+				"Experiment": experimentDataType()
+			}
+		}
+	}
+	
+	function subjectDataType() {
+		return {
+			id: 'xsyncDataType',
+			kind: 'input.radio',
+			name: 'xsyncDataType',
+			value: 'subject',
+			label: 'subject',
+			after: "<span style='margin-right:15px'>Subject</span>"
+		}
+	}
+	function experimentDataType() {
+		return {
+			id: 'xsyncDataType',
+			kind: 'input.radio',
+			name: 'xsyncDataType',
+			value: 'experiment',
+			after: "<span>Experiment</span>",
+		}
+	}
+		return {
+		root: configPanel()
+	};
+}
