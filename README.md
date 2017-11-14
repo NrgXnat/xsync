@@ -23,6 +23,10 @@ For XNAT 1.7.3.1 (as of 08/09/2017)
 [ XNAT War File (XNAT Version 1.7.3.1) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/atulkaushal/xsync_xnatdev/downloads/xnat-web-1.7.3.1.war)
 
 # ChangeLog #
+Version 1.3.2 As of Nov 14, 2017
+
+Added functionality for custom Id generator and download mapping data.
+
 Version 1.3.1 As of Aug 9, 2017
 
 XAPI and other changes for compatibility with latest XNAT version 1.7.3.1 code.
