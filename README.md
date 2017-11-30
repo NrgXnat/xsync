@@ -6,21 +6,8 @@ Xsync plugin enables automatic synchronization of data from a project in one XNA
 
 # Download #
 
-For XNAT 1.7.3.1(as of 10/09/2017)
+For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
-[ Xsync Jar (Version 1.7.3.1) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/atulkaushal/xsync_xnatdev/downloads/xsync-plugin-1.7.3.1.jar)
-
-[ Xsync Bean Jar (Version 1.7.3.1) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/atulkaushal/xsync_xnatdev/downloads/xsync-plugin-beans-1.7.3.1.jar)
-
-[ Latest Tested XNAT War File (XNAT Version 1.7.3.1) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/atulkaushal/xsync_xnatdev/downloads/xnat-web-1.7.3.1.war)
-
-For XNAT 1.7.3.1 (as of 08/09/2017)
-
-[ Xsync Jar (Version 1.3.1) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/atulkaushal/xsync_xnatdev/downloads/xsync-plugin-1.3.1.jar)
-
-[ Xsync Bean Jar (Version 1.3.1) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/atulkaushal/xsync_xnatdev/downloads/xsync-plugin-beans-1.3.1.jar)
-
-[ XNAT War File (XNAT Version 1.7.3.1) ![Download](https://api.bintray.com/packages/nrgxnat/xnat-plugins/XSync/images/download.svg) ](https://bitbucket.org/atulkaushal/xsync_xnatdev/downloads/xnat-web-1.7.3.1.war)
 
 # ChangeLog #
 Version 1.3.2 As of Nov 14, 2017
