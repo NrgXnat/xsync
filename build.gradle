@@ -64,6 +64,11 @@ repositories {
     }
 }
 
+// Use this configuration to put dependencies into the fat jar
+configurations {
+    compile.extendsFrom(compileAndInclude)
+}
+
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
@@ -128,7 +133,7 @@ dependencies {
 
     implementation("io.springfox:springfox-swagger2") { transitive = false }
     implementation("io.springfox:springfox-swagger-ui") { transitive = false }
-    compile group: 'net.sf.opencsv', name: 'opencsv', version: '2.3'
+    compileAndInclude group: 'net.sf.opencsv', name: 'opencsv', version: '2.3'
 }
 
 configurations {
@@ -167,10 +172,6 @@ if (hasProperty("rt.17.jar")) {
     logger.warn "  ./gradlew -Prt.17.jar=rt-1.7.0_45.jar war\n"
 }
 
-// Use this configuration to put dependencies into the fat jar
-configurations {
-    compile.extendsFrom(compileAndInclude)
-}
 
 task fatJar(type: Jar) {
     zip64 true
