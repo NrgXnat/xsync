@@ -332,6 +332,18 @@ public class RemoteConnectionManager {
 	 * @return the remote connection response
 	 * @throws Exception the exception
 	 */
+	public RemoteConnectionResponse importXar(RemoteConnection connection,String xarPath) throws Exception{
+		return _remoteRESTService.importXar(connection, xarPath);
+	}
+
+	/**
+	 * Import xar.
+	 *
+	 * @param connection the connection
+	 * @param xar the xar
+	 * @return the remote connection response
+	 * @throws Exception the exception
+	 */
 	public RemoteConnectionResponse importXar(RemoteConnection connection,File xar) throws Exception{
 		return _remoteRESTService.importXar(connection, xar);
 	}

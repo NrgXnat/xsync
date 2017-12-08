@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 			entityPackages = {"org.nrg.xsync.remote.alias", "org.nrg.xsync.manifest"},
 			log4jPropertiesFile="/META-INF/resources/xsyncLog4j.properties")
 @ComponentScan({
+	"org.nrg.xsync.aspera",
 	"org.nrg.xsync.components",
 	"org.nrg.xsync.scheduler",
 	"org.nrg.xsync.services",

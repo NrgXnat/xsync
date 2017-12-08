@@ -54,3 +54,72 @@ siteSettings:
                             kind: panel.input.text
                             label: Max Retries
                             description: Number of times sync is retried before going to a failed state.
+        asperaDefaults:
+            kind: tab
+            label: Aspera Server Defaults
+            group: xsyncConfig
+            active: false
+            contents:
+                asperaPanel:
+                    kind: panel.form
+                    name: asperaPanel
+                    label: Aspera Server Defaults
+                    method: POST
+                    url: /xapi/xsyncSitePreferences/aspera 
+                    contentType: json 
+                    contents:
+                        message:
+                            tag: div.message.bold
+                            content: >
+                                NOTICE: This panel sets default Aspera connection settings.  These site-level 
+                                settings may be useful if one of your destination sites supports Aspera-based
+                                XSync sends and multiple projects will connect to the same Aspera server, as these
+                                will become the default settings for project connections.  <b>Please note, however, that
+                                XSync Aspera settings must be configured and enabled for each project.</b> 
+                        asperaNodeUrl:
+                            kind: panel.input.text
+                            name: asperaNodeUrl
+                            label: Aspera Node
+                            description: >
+                                The node name of the Aspera server
+                        asperaNodeUser:
+                            kind: panel.input.text
+                            name: asperaNodeUser
+                            label: Aspera User
+                            description: >
+                                The the username used to connect to the Aspera server
+                        privateKey:
+                            kind: panel.input.text
+                            name: privateKey
+                            label: Private Key Location
+                            size: 30
+                            description: >
+                                The location of the private key used to connect to the server
+                        destinationDirectory:
+                            kind: panel.input.text
+                            name: destinationDirectory
+                            label: Remote Destination Directory
+                            size: 30
+                            description: >
+                                The remote directory to which the files will be sent
+                        logDirectory:
+                            kind: panel.input.text
+                            name: logDirectory
+                            label: Log Directory
+                            size: 30
+                            placeholder: /tmp/
+                            description: >
+                                The local directory used for logging
+                        sshPort:
+                            kind: panel.input.text
+                            name: sshPort
+                            label: SSH Port
+                            placeholder: 22
+                            description: >
+                                The remote server's SSH port
+                        udpPort:
+                            kind: panel.input.text
+                            name: udpPort
+                            placeholder: 33001
+                            description: >
+                                The remote server's UDP port

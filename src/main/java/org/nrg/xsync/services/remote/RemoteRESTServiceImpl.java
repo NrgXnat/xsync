@@ -26,6 +26,7 @@ import org.springframework.web.client.RestTemplate;
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
@@ -59,6 +60,64 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		maxTries = _prefs.getSyncRetryCountInt();
 		//sleep = _prefs.getSyncRetryIntervalInMillis() * 1000;
 		sleep = _prefs.getSyncRetryIntervalInMillis();
+	}
+	
+	public RemoteConnectionResponse importXar(final RemoteConnection connection,  final String xarPath) throws RuntimeException{
+		//this.setAliasToken(connection);
+		final MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+		final File tempFile;
+		// The uploader expects a file, so we'll give it an empty one
+		try {
+			tempFile = File.createTempFile("temp", "xarupload");
+		} catch (IOException e1) {
+			throw new RuntimeException("ERROR: Couldn't create temp file");
+		}
+		body.add("field", "value");
+		body.add("import-handler","XAR");
+		body.add("file", new FileSystemResource(tempFile));
+		ResponseEntity<String> response;
+		try {
+			try {
+				final HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, true);
+				//header.setContentLength(xar.length());
+				//header.setContentType(MediaType.TEXT_PLAIN);
+				//header.setContentLength(1);
+				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
+				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import?import-handler=XAR&localFilePath="
+						+ xarPath + "&removeLocalFileAfterImport=true", HttpMethod.POST, httpEntity, String.class);
+			} catch (XsyncHttpAuthenticationException authex) {
+				final HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, false, true);
+				//header.setContentType(MediaType.TEXT_PLAIN);
+				//header.setContentLength(1);
+				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
+				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import?import-handler=XAR&localFilePath=" 
+						+ xarPath + "&removeLocalFileAfterImport=true", HttpMethod.POST, httpEntity, String.class);
+			}
+			logger.info(truncateStr(response));
+			logger.info(truncateStr(response.getBody()));
+			logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
+			// Tests for Bad Request and Internal Server Error in addition to OK and Created.  Those error statues will
+			// be thrown by invalid XAR requests, and we don't want a long wait with retry for errors returned by the
+			// XarImporter class.
+			tempFile.delete();
+			final HttpStatus statusCode = response.getStatusCode();
+			final boolean    status     = COMPLETED_STATUSES.contains(statusCode) || ERROR_STATUSES.contains(statusCode);
+			if(!status){
+				throw new RuntimeException("importXar request failed. Retrying...");
+			}else{
+				return new RemoteConnectionResponse(response);
+			}
+		} catch (RuntimeException e) {
+			if (e instanceof NestedRuntimeException) {
+				final Throwable specCause = ((NestedRuntimeException)e).getMostSpecificCause(); 
+				// Let's not keep trying these error types either.  They will be thrown by invalid XAR requests, and we don't want a
+				// long wait with retry for errors returned by the XarImporter class.
+				if (specCause instanceof HttpServerErrorException) {
+					return new RemoteConnectionResponse(new ResponseEntity<String>(HttpStatus.INTERNAL_SERVER_ERROR));
+				}
+			}
+			throw(e);
+		}
 	}
 
 	/**
@@ -690,4 +749,5 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 
 	private static final List<HttpStatus> COMPLETED_STATUSES = Arrays.asList(HttpStatus.OK, HttpStatus.CREATED);
 	private static final List<HttpStatus> ERROR_STATUSES = Arrays.asList(HttpStatus.BAD_REQUEST, HttpStatus.INTERNAL_SERVER_ERROR);
+
 }

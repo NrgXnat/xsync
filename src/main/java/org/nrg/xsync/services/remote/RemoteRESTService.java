@@ -30,6 +30,7 @@ public interface RemoteRESTService {
 	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile ) throws Exception;
 
 	public RemoteConnectionResponse importXar(RemoteConnection connection,File xar) throws Exception;
+	public RemoteConnectionResponse importXar(RemoteConnection connection,String xarPath) throws Exception;
     public RemoteConnectionResponse getResult(RemoteConnection connection, String uri) throws Exception;
 
 }

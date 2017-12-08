@@ -16,6 +16,7 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.framework.services.SerializerService;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatExperimentdataI;
@@ -37,6 +38,9 @@ import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXReader;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.representations.ZipRepresentation;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
+import org.nrg.xsync.aspera.AsperaClient;
+import org.nrg.xsync.aspera.AsperaProjectPrefs;
+import org.nrg.xsync.aspera.AsperaSitePrefs;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -89,6 +93,9 @@ public class XsyncExperimentTransfer {
 	private final SyncStatusService _syncStatusService;
     private final XnatProjectdata _localProject;
     private final boolean _syncIfNotSyncedInPast;
+    private final int _asperaRetry = 1;
+	final AsperaClient _aspera = XDAT.getContextService().getBean(AsperaClient.class);
+	final AsperaProjectPrefs _asperaProjectPrefs = XDAT.getContextService().getBean(AsperaProjectPrefs.class);
 
 	public XsyncExperimentTransfer(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil,  NamedParameterJdbcTemplate jdbcTemplate,  ProjectSyncConfiguration projectSyncConfiguration, UserI user,SubjectSyncItem subjectSyncInfo,XnatSubjectdataI localSubject, SerializerService serializer, SyncStatusService syncStatusService, XnatProjectdata localProject, boolean syncIfNotSyncedInPast) {
 		this.user = user;
@@ -363,8 +370,10 @@ public class XsyncExperimentTransfer {
 			 //Store the ImageSession with only its meta-data in the XAR. Resources, Scans and Assessors 
 			 //would be pushed as separate transactions.
 			 final File xar=buildImagingSessionXar(orig, targetproject, targetsubject, target);
-
-			 final RemoteConnectionResponse connectionResponse = _manager.importXar(connection, xar);
+			 
+			 final RemoteConnectionResponse connectionResponse = 
+					 (shouldUseAspera()) ? asperaXarSend(connection, xar) : _manager.importXar(connection, xar);
+				 
 			 stored = connectionResponse.wasSuccessful();
 			 if (stored) {
 				 //final IdMapper idMapper = new IdMapper(user,projectSyncConfiguration);
@@ -411,8 +420,9 @@ public class XsyncExperimentTransfer {
 						 final File scanXar=buildImagingScanXar(orig, targetproject, targetsubject, target,scan);
 
 						 if (scanXar != null) {
-							 final RemoteConnectionResponse scanConnectionResponse = _manager.importXar(connection, scanXar);
-							 boolean scanStored = scanConnectionResponse.wasSuccessful();
+							 final RemoteConnectionResponse scanConnectionResponse = 
+									 (shouldUseAspera()) ? asperaXarSend(connection, scanXar) : _manager.importXar(connection, scanXar);
+							 final boolean scanStored = scanConnectionResponse.wasSuccessful();
 							 if (scanStored) {
 								 scanXar.delete();
 								 String remoteScanId = xsyncUriUtils.getRemoteAssignedId(scanConnectionResponse);
@@ -458,8 +468,9 @@ public class XsyncExperimentTransfer {
 						 final File assXar=buildxar(orig,  origAss, targetAss);
 
 						 if (assXar != null) {
-							 final RemoteConnectionResponse assConnectionResponse = _manager.importXar(connection, assXar);
-							 boolean assStored = assConnectionResponse.wasSuccessful();
+							 final RemoteConnectionResponse assConnectionResponse = 
+									 (shouldUseAspera()) ? asperaXarSend(connection, assXar) : _manager.importXar(connection, assXar);
+							 final boolean assStored = assConnectionResponse.wasSuccessful();
 							 if (assStored) {
 								 assXar.delete();
 								 String remoteAssId = xsyncUriUtils.getRemoteAssignedId(assConnectionResponse);
@@ -514,6 +525,39 @@ public class XsyncExperimentTransfer {
 		 return stored;
 	}
 
+	private boolean shouldUseAspera() {
+		final String projectId = _localProject.getId();
+		final Boolean enabled = _asperaProjectPrefs.getAsperaEnabled(projectId);
+		if (enabled) {
+			final String node = _asperaProjectPrefs.getAsperaNodeUrl(projectId);
+			final String aUser = _asperaProjectPrefs.getAsperaNodeUser(projectId);
+			if (node == null || node.length()<1 || aUser == null || aUser.length()<1) {
+				_log.error("Aspera is enabled but not properly configured.  Using HTTPS transfers instead.");
+				return false;
+			}
+			_log.info("Using Aspera for the data transfer method.");
+			return true;
+		}
+		_log.info("Using HTTPS for the data transfer method.");
+		return false;
+	}
+
+	private RemoteConnectionResponse asperaXarSend(final RemoteConnection connection, final File xar) throws Exception {
+		int retryCount = 0;
+		boolean uploadSuccess = false;
+		while (!uploadSuccess && retryCount<=_asperaRetry) {
+			uploadSuccess = _aspera.upload(xar);
+			retryCount+=1;
+		}
+		if (uploadSuccess) {
+			final String xarPath = _asperaProjectPrefs.getDestinationDirectory(_localProject.getId()) +
+					File.separator + xar.getName();
+			return _manager.importXar(connection, xarPath);
+		} else {
+			_log.warn("Aspera upload  and retries failed.  Failing over to standard http send.");
+			return _manager.importXar(connection, xar);
+		}
+	}
 
 	private boolean lookForSessionAtDestination(XnatSubjectassessordata orig, ExperimentSyncItem expSyncItem) {
 		final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();

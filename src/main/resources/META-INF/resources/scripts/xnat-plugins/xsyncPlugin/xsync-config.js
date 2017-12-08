@@ -482,6 +482,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 refresh: "/xapi/xsync/setup/projects/" + XNAT.data.context.project,
                 action: "#",
                 contents: {
+                    message: aspera(),
                     enabled: enabled(),
                     newOnly: syncNewOnly(),
                     destXnat: remoteUrl(),
@@ -621,6 +622,13 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         ///////////////////////////
         // Basic config elements //
         ///////////////////////////
+
+        function aspera(){
+            return {
+		tag:  "div.message.bold",
+               	content: "NOTICE: Aspera transfers are now supported, if your destination site supports them.  Please see project settings, in the actions menu, to configure Aspera settings."
+            }
+        }
 
         function enabled(){
             return {
