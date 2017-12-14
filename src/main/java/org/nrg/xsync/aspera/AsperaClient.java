@@ -15,7 +15,7 @@ import java.io.InputStreamReader;
 public class AsperaClient {
 
     @Autowired
-    public AsperaClient(AsperaSitePrefs prefs) {
+    public AsperaClient(AsperaProjectPrefs prefs) {
         super();
         _prefs = prefs;
         // Create a status for each client instance
@@ -25,21 +25,21 @@ public class AsperaClient {
 
     public void testConnection() {}
     
-    public boolean upload(File xarFile) throws IOException, InterruptedException {
+    public boolean upload(String projectID, File xarFile) throws IOException, InterruptedException {
 
         // TODO pull archive path from site config
         this.status.setSize(String.format("%s GB", 1));
 
         String[] command = {
                 "/usr/local/bin/ascp", "-v", "-l", "10G",
-                "-P", _prefs.getSshPort(),
-                "-i", _prefs.getPrivateKey(),
-                "-L", _prefs.getLogDirectory(),
+                "-P", _prefs.getSshPort(projectID),
+                "-i", _prefs.getPrivateKey(projectID),
+                "-L", _prefs.getLogDirectory(projectID),
                 xarFile.getCanonicalPath(),
                 String.format("%s@%s:%s",
-                        _prefs.getAsperaNodeUser(),
-                        _prefs.getAsperaNodeUrl(),
-                        _prefs.getDestinationDirectory()
+                        _prefs.getAsperaNodeUser(projectID),
+                        _prefs.getAsperaNodeUrl(projectID),
+                        _prefs.getDestinationDirectory(projectID)
                 )
         };
 
@@ -106,14 +106,14 @@ public class AsperaClient {
 
         String[] command = {
                 "/usr/local/bin/ascp", "-v", "-l", "10G",
-                "-P", _prefs.getSshPort(),
-                "-i", _prefs.getPrivateKey(),
-                "-L", _prefs.getLogDirectory(),
+                "-P", _prefs.getSshPort(projectId),
+                "-i", _prefs.getPrivateKey(projectId),
+                "-L", _prefs.getLogDirectory(projectId),
                 sessionDirectory,
                 String.format("%s@%s:%s",
-                        _prefs.getAsperaNodeUser(),
-                        _prefs.getAsperaNodeUrl(),
-                        _prefs.getDestinationDirectory()
+                        _prefs.getAsperaNodeUser(projectId),
+                        _prefs.getAsperaNodeUrl(projectId),
+                        _prefs.getDestinationDirectory(projectId)
                 )
         };
 
@@ -207,7 +207,7 @@ public class AsperaClient {
 
 
     private static final Logger _logger = LoggerFactory.getLogger(AsperaClient.class);
-    private static AsperaSitePrefs _prefs;
+    private static AsperaProjectPrefs _prefs;
     private Process proc;
     public AsperaStatus status;
 }

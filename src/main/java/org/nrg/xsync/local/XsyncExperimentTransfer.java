@@ -372,7 +372,7 @@ public class XsyncExperimentTransfer {
 			 final File xar=buildImagingSessionXar(orig, targetproject, targetsubject, target);
 			 
 			 final RemoteConnectionResponse connectionResponse = 
-					 (shouldUseAspera()) ? asperaXarSend(connection, xar) : _manager.importXar(connection, xar);
+					 (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, xar) : _manager.importXar(connection, xar);
 				 
 			 stored = connectionResponse.wasSuccessful();
 			 if (stored) {
@@ -421,7 +421,7 @@ public class XsyncExperimentTransfer {
 
 						 if (scanXar != null) {
 							 final RemoteConnectionResponse scanConnectionResponse = 
-									 (shouldUseAspera()) ? asperaXarSend(connection, scanXar) : _manager.importXar(connection, scanXar);
+									 (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, scanXar) : _manager.importXar(connection, scanXar);
 							 final boolean scanStored = scanConnectionResponse.wasSuccessful();
 							 if (scanStored) {
 								 scanXar.delete();
@@ -469,7 +469,7 @@ public class XsyncExperimentTransfer {
 
 						 if (assXar != null) {
 							 final RemoteConnectionResponse assConnectionResponse = 
-									 (shouldUseAspera()) ? asperaXarSend(connection, assXar) : _manager.importXar(connection, assXar);
+									 (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, assXar) : _manager.importXar(connection, assXar);
 							 final boolean assStored = assConnectionResponse.wasSuccessful();
 							 if (assStored) {
 								 assXar.delete();
@@ -542,11 +542,11 @@ public class XsyncExperimentTransfer {
 		return false;
 	}
 
-	private RemoteConnectionResponse asperaXarSend(final RemoteConnection connection, final File xar) throws Exception {
+	private RemoteConnectionResponse asperaXarSend(final String projectID, final RemoteConnection connection, final File xar) throws Exception {
 		int retryCount = 0;
 		boolean uploadSuccess = false;
 		while (!uploadSuccess && retryCount<=_asperaRetry) {
-			uploadSuccess = _aspera.upload(xar);
+			uploadSuccess = _aspera.upload(projectID, xar);
 			retryCount+=1;
 		}
 		if (uploadSuccess) {
@@ -897,7 +897,7 @@ public class XsyncExperimentTransfer {
 				}
 				
 				rep.setDownloadName(target.getLabel()+".xar");
-				xarFile = new File(expCachePath, (new Date()).getTime()+".xar");
+				xarFile = new File(expCachePath, (new Date()).getTime()+"_"+target.getLabel()+".xar");
 				rep.write(new FileOutputStream(xarFile));
 			} catch (Exception e) {
 				_log.debug(e.toString() + "  " + e.getMessage());
@@ -941,7 +941,7 @@ public class XsyncExperimentTransfer {
 				rep.addEntry(((XnatImageassessordata)targetAss).getLabel() + ".xml",outF);
 				
 				rep.setDownloadName(targetAss.getLabel()+".xar");
-				xarFile = new File(expCachePath, (new Date()).getTime()+".xar");
+				xarFile = new File(expCachePath, (new Date()).getTime()+"_"+targetAss.getLabel()+".xar");
 				rep.write(new FileOutputStream(xarFile));
 			} catch (Exception e) {
 				_log.debug(e.toString() + "  " + e.getMessage());
@@ -1002,7 +1002,7 @@ public class XsyncExperimentTransfer {
 				}
 				
 				rep.setDownloadName(targetExperiment.getLabel()+".xar");
-				xarFile = new File(expCachePath, (new Date()).getTime()+".xar");
+				xarFile = new File(expCachePath, (new Date()).getTime()+"_"+targetExperiment.getLabel()+".xar");
 				rep.write(new FileOutputStream(xarFile));
 			} catch (Exception e) {
 				_log.debug(e.toString() + "  " + e.getMessage());
@@ -1052,7 +1052,7 @@ public class XsyncExperimentTransfer {
 				}
 				
 				rep.setDownloadName(target.getLabel()+"_"+scan.getId()+".xar");
-				xarFile = new File(expCachePath, (new Date()).getTime()+".xar");
+				xarFile = new File(expCachePath, (new Date()).getTime()+"_"+target.getLabel()+".xar");
 				rep.write(new FileOutputStream(xarFile));
 			} catch (Exception e) {
 				_log.debug(e.toString() + "  " + e.getMessage());

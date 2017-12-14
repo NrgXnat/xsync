@@ -64,12 +64,14 @@ public class AsperaSitePrefs extends AbstractPreferenceBean {
     @NrgPreference
     public String getDestinationDirectory() {
     	final String destDir = this.getValue("destinationDirectory");
-    	return (destDir.endsWith(File.separator)) ? destDir : destDir + File.separator;
+    	return (destDir == null || destDir.isEmpty() ||
+    			destDir.endsWith(File.separator)) ? destDir : destDir + File.separator;
     }
 
     public void setDestinationDirectory(final String directory) {
         try {
-        	final String dirValue = (directory.endsWith(File.separator)) ? directory : directory + File.separator;
+        	final String dirValue = (directory.isEmpty() || directory.endsWith(File.separator)) ?
+        			directory : directory + File.separator;
             this.set(dirValue, "destinationDirectory");
         } catch (InvalidPreferenceName invalidPreferenceName) {
             _logger.error("Invalid AsperaSend preference name");

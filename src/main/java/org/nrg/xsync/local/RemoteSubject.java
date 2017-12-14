@@ -107,7 +107,7 @@ public class RemoteSubject {
 				subjectSyncInfo.stateChanged();
 			}	
 		}catch(Exception e) {
-			_log.error("Error syncing subject " + remoteSubject.getLabel() + "  " + e.getMessage());
+			_log.error("Error syncing subject " + experiment.getLabel() + "  " + e.getMessage());
 			//_syncStatusService.registerFailedExperiment(localProject.getId(), experiment.getLabel(), experiment.getXSIType());
 			XSyncFailureHandler.handle(localSubject.getProject(),localSubject.getId(),localSubject.getXSIType(),idMapper.getRemoteAccessionId(this.localSubject.getId()), subjectSyncInfo, e);
 			throw e;

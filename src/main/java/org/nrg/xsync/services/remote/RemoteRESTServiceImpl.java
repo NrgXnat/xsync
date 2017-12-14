@@ -603,7 +603,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		tsw.close();
 		final String subjectXml = tsw.toString();
 		
-		ResponseEntity<String> response;
+		ResponseEntity<String> response = null;
 		try {
 			logger.debug("URL: " + connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true");
 			final HttpEntity<?> httpEntity = new HttpEntity<>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
@@ -625,6 +625,13 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				fw.close();
 				throw e;
 			}
+		} catch (Exception e) {
+			logger.debug("importSubjectWithoutRetry - Exception thrown - ", e);
+			if (response != null) {
+				logger.debug(response.toString());
+			}
+			//logger.debug(subjectXml);
+			throw e;
 		}
 		
 		logger.debug(response.toString());

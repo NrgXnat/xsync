@@ -25,11 +25,12 @@ projectSettings:
                         asperaEnabled:
                             kind: panel.input.switchbox
                             name: asperaEnabled
+                            value: true
                             label: Enable Aspera Transfers?
-                            description: Use Aspera for transfers?  This requires a valid Aspera server to receive files.
                             onText: Enabled
-                            offext: Disabled
-                                
+                            offText: Disabled
+                            description: >
+                                Use Aspera for transfers?  This requires a valid Aspera server to receive files.
                         asperaNodeUrl:
                             kind: panel.input.text
                             name: asperaNodeUrl
