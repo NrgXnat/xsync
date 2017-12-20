@@ -121,6 +121,11 @@ public class IdMapper {
 	public void correctIDandLabel(XnatExperimentdataI targetExperiment, String targetSubjectLabel) throws Exception {
 		// correct ID
 		String remoteId = this.getAssignedRemoteId(targetExperiment.getId());
+		if (remoteId != null && remoteId.matches("^.*_S[0-9]*$")) {
+			_log.error("ERROR:  Experiment appears to have been assighed a subject assession number.  Setting it to null" +
+					" so a new one is assigned");
+			remoteId = "";
+		}
 		if (remoteId != null) //Subject has already been synced and so we have a remote id
 			targetExperiment.setId(remoteId);
 		else

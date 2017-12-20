@@ -369,7 +369,10 @@ public class XsyncExperimentTransfer {
 
 			 //Store the ImageSession with only its meta-data in the XAR. Resources, Scans and Assessors 
 			 //would be pushed as separate transactions.
+			 // HERE!!!!
 			 final File xar=buildImagingSessionXar(orig, targetproject, targetsubject, target);
+			 _log.debug("BUILDING XAR FILE:  targetProject=" + targetproject + ", targetSubject=" + targetsubject.getLabel() + 
+					 ", target=" + target.getLabel() + ", file=" + xar.getName());
 			 
 			 final RemoteConnectionResponse connectionResponse = 
 					 (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, xar) : _manager.importXar(connection, xar);
@@ -380,6 +383,10 @@ public class XsyncExperimentTransfer {
 				 //final String remote_id = idMapper.getRemoteId(remoteUrl,remoteProjectId,targetsubject.getLabel(), target.getLabel(), target.getXSIType());
 				 xar.delete();
 				 remote_id = xsyncUriUtils.getRemoteAssignedId(connectionResponse);
+				 _log.debug("assigned experiment remote_id=" + remote_id);
+				 if (remote_id != null && remote_id.matches("^.*_S[0-9]*$")) {
+					 _log.error("ERROR:  Experiment appears to have been assigned a subject assession number!!! - " + remote_id);
+				 }
 				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_IN_PROGRESS);
 				 saveSyncDetails(orig.getId(),remote_id,expSyncItem.getSyncStatus(),expSyncItem.getXsiType());
 				 final ExperimentFilter experimentMapper = new ExperimentFilter(_manager, _jdbcTemplate, _xnatInfo, _queryResultUtil, user, projectSyncConfiguration);

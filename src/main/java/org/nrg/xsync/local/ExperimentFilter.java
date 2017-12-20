@@ -405,11 +405,23 @@ public class ExperimentFilter {
 		String newid = "";
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
 		String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origExperiment.getId());
+		_log.debug("correctIDandLabel (experiment=" + origExperiment.getLabel() + 
+				"): returned alreadyAssignedRemoteID(idMapper.getRemoteAssessionId)=" + alreadyAssignedRemoteId);
 		if (alreadyAssignedRemoteId == null) {
 			XsyncRESTUtils restUtil=new XsyncRESTUtils(_manager, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration);
 			alreadyAssignedRemoteId = restUtil.getRemoteExperimentId(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId(), targetsubject.getId(),origExperiment.getLabel(),origExperiment.getXSIType());
+			_log.debug("correctIDandLabel (experiment=" + origExperiment.getLabel() + 
+					"): returned alreadyAssignedRemoteID(getRemoteExperimentId)=" + alreadyAssignedRemoteId);
 		}
 		newid = alreadyAssignedRemoteId!=null?alreadyAssignedRemoteId:newid;
+		// WORKAROUND (TEMPORARY???):  We've had some cases where experiments have gotten assigned the assession number of
+		// the subject.  It's not clear why that is happening, but it causes a lot of problems when it does (one session overwrites
+		// the other). Let's set the id to null if it looks like a subject assession number
+		if (newid != null && newid.matches("^.*_S[0-9]*$")) {
+			_log.error("ERROR:  Experiment appears to have been assighed a subject assession number.  Setting it to null" +
+					" so a new one is assigned");
+			newid = "";
+		}
 		targetExperiment.setId(newid);
 		//targetExperiment.setProject(targetsubject.getProject());
 		targetExperiment.setSubjectId(targetsubject.getLabel());
@@ -461,8 +473,18 @@ public class ExperimentFilter {
 		String newid = "";
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
 		String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origExperiment.getId());
+		_log.debug("correctIDandLabel (experiment=" + origExperiment.getLabel() + 
+				"): returned alreadyAssignedRemoteID(idMapper.getRemoteAssessionId)=" + alreadyAssignedRemoteId);
 		if (alreadyAssignedRemoteId != null) {
 			newid = alreadyAssignedRemoteId;
+		}
+		// WORKAROUND (TEMPORARY???):  We've had some cases where experiments have gotten assigned the assession number of
+		// the subject.  It's not clear why that is happening, but it causes a lot of problems when it does (one session overwrites
+		// the other). Let's set the id to null if it looks like a subject assession number
+		if (newid != null && newid.matches("^.*_S[0-9]*$")) {
+			_log.error("ERROR:  Experiment appears to have been assighed a subject assession number.  Setting it to null" +
+					" so a new one is assigned");
+			newid = "";
 		}
 		targetExperiment.setId(newid);
 		//targetExperiment.setProject(targetsubject.getProject());
