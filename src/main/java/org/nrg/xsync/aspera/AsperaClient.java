@@ -30,7 +30,7 @@ public class AsperaClient {
         // TODO pull archive path from site config
         this.status.setSize(String.format("%s GB", 1));
 
-        String[] command = {
+        final String[] command = {
                 "/usr/local/bin/ascp", "-v", "-l", "10G",
                 "-P", _prefs.getSshPort(projectID),
                 "-i", _prefs.getPrivateKey(projectID),
@@ -43,12 +43,12 @@ public class AsperaClient {
                 )
         };
 
-        String commandStr = StringUtils.join(command, " ");
+        final String commandStr = StringUtils.join(command, " ");
 //        _logger.info(Arrays.toString(command));
         _logger.error("Executing system command -- " + commandStr);
         this.status.setMessage(commandStr);
 
-        Runtime rt = Runtime.getRuntime();
+        final Runtime rt = Runtime.getRuntime();
         try {
             this.status.setStatus("running");
             proc = rt.exec(command);
@@ -57,17 +57,20 @@ public class AsperaClient {
             this.status.setMessage("Failed to execute command -- " + commandStr);
         }
 
-        BufferedReader stdInput = new BufferedReader(new
-                InputStreamReader(proc.getInputStream()));
+        final BufferedReader stdInput = (proc != null && proc.getInputStream() != null) ? 
+        		new BufferedReader(new InputStreamReader(proc.getInputStream())) : null;
 
-        BufferedReader stdError = new BufferedReader(new
-                InputStreamReader(proc.getErrorStream()));
+        final BufferedReader stdError = (proc != null && proc.getErrorStream() != null) ? 
+        		new BufferedReader(new InputStreamReader(proc.getErrorStream())) : null;
 
         String s;
-        while ((s = stdInput.readLine()) != null) {
-//            _logger.info(s);
-            _logger.error(s);
-            this.status.setMessage(s);
+        if (stdInput != null) {
+	        while ((s = stdInput.readLine()) != null) {
+	        	//_logger.info(s);
+	            _logger.error(s);
+	            this.status.setMessage(s);
+	        }
+            stdInput.close();
         }
 
         proc.waitFor();
@@ -78,24 +81,29 @@ public class AsperaClient {
             _logger.error("ERROR: ascp command exited with status " + proc.exitValue());
             this.status.setStatus("error");
 
-            while ((s = stdError.readLine()) != null) {
-                _logger.error(s);
-                this.status.setMessage(s);
+            if (stdError != null) {
+	            while ((s = stdError.readLine()) != null) {
+	                _logger.error(s);
+	                this.status.setMessage(s);
+	            }
+	            stdError.close();
             }
             return false;
+        }
+        if (stdError != null) {
+            stdError.close();
         }
         return true;
     }
 
-    
     public boolean upload(String projectId, String sessionLabel) throws IOException, InterruptedException {
         this.status.setProject(projectId);
         this.status.setSession(sessionLabel);
 
         // TODO pull archive path from site config
-        String sessionDirectory = String.format("/data/intradb/archive/%s/arc001/%s", projectId, sessionLabel);
+        final String sessionDirectory = String.format("/data/intradb/archive/%s/arc001/%s", projectId, sessionLabel);
 
-        File d = new File(sessionDirectory);
+        final File d = new File(sessionDirectory);
         if (! d.exists()) {
             this.status.setMessage(d + " does not exist on local XNAT server");
             this.status.setStatus("error");
@@ -131,17 +139,20 @@ public class AsperaClient {
             this.status.setMessage("Failed to execute command -- " + commandStr);
         }
 
-        BufferedReader stdInput = new BufferedReader(new
-                InputStreamReader(proc.getInputStream()));
+        final BufferedReader stdInput = (proc != null && proc.getInputStream() != null) ? 
+        		new BufferedReader(new InputStreamReader(proc.getInputStream())) : null;
 
-        BufferedReader stdError = new BufferedReader(new
-                InputStreamReader(proc.getErrorStream()));
+        final BufferedReader stdError = (proc != null && proc.getErrorStream() != null) ? 
+        		new BufferedReader(new InputStreamReader(proc.getErrorStream())) : null;
 
         String s;
-        while ((s = stdInput.readLine()) != null) {
-//            _logger.info(s);
-            _logger.error(s);
-            this.status.setMessage(s);
+        if (stdInput != null) {
+	        while ((s = stdInput.readLine()) != null) {
+	        	//_logger.info(s);
+	            _logger.error(s);
+	            this.status.setMessage(s);
+	        }
+            stdInput.close();
         }
 
         proc.waitFor();
@@ -152,18 +163,25 @@ public class AsperaClient {
             _logger.error("ERROR: ascp command exited with status " + proc.exitValue());
             this.status.setStatus("error");
 
-            while ((s = stdError.readLine()) != null) {
-                _logger.error(s);
-                this.status.setMessage(s);
+            if (stdError != null) {
+	            while ((s = stdError.readLine()) != null) {
+	                _logger.error(s);
+	                this.status.setMessage(s);
+	            }
+	            stdError.close();
             }
             return false;
         }
+        if (stdError != null) {
+            stdError.close();
+        }
         return true;
+
     }
 
     public boolean isRunning(String project, String session) {
         for (int i = 0; i < AsperaStatus.list.size(); i++) {
-            AsperaStatus s = AsperaStatus.list.get(i);
+            final AsperaStatus s = AsperaStatus.list.get(i);
 
             if (project.equals(s.getProject()) &&
                     session.equals(s.getSession()) &&
@@ -176,7 +194,7 @@ public class AsperaClient {
 
     public boolean isRunning(String project) {
         for (int i = 0; i < AsperaStatus.list.size(); i++) {
-            AsperaStatus s = AsperaStatus.list.get(i);
+            final AsperaStatus s = AsperaStatus.list.get(i);
 
             if (project.equals(s.getProject()) && "running".equals(s.getStatus())) {
                 return true;

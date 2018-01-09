@@ -2,6 +2,7 @@ package org.nrg.xsync.xapi;
 
 import java.util.Properties;
 
+import org.apache.log4j.Logger;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NrgServiceException;
 import org.nrg.xapi.rest.AbstractXapiRestController;
@@ -43,12 +44,12 @@ import io.swagger.annotations.ApiResponses;
 public class XsyncPreferencesController extends AbstractXapiRestController {
 
 	@Autowired
-	public XsyncPreferencesController(final XsyncSitePreferencesBean prefs, final AsperaSitePrefs asperaPrefs,
+	public XsyncPreferencesController(final XsyncSitePreferencesBean prefs, final AsperaSitePrefs asperaSitePrefs,
 			final AsperaProjectPrefs asperaProjectPrefs, final UserManagementServiceI userManagementService,
 			final RoleHolder roleHolder) {
 		super(userManagementService, roleHolder);
 		_prefs = prefs;
-		_asperaPrefs = asperaPrefs;
+		_asperaSitePrefs = asperaSitePrefs;
 		_asperaProjectPrefs = asperaProjectPrefs;
 	}
 
@@ -59,6 +60,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	 *            the jsonbody
 	 * @return the response entity
 	 */
+	@SuppressWarnings("deprecation")
 	@XapiRequestMapping(value = "xsyncSitePreferences", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
 	@ApiOperation(value = "Sets the XSync site preferences")
 	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site preferences set."),
@@ -102,6 +104,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	 *
 	 * @return the preferences
 	 */
+	@SuppressWarnings("deprecation")
 	@XapiRequestMapping(value = "xsyncSitePreferences", method = RequestMethod.GET, produces = {
 			MediaType.APPLICATION_JSON_VALUE })
 	@ApiOperation(value = "Gets the XSync site preferences", response = Properties.class)
@@ -136,14 +139,14 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 			@ApiResponse(code = 500, message = "Unexpected error") })
 	public ResponseEntity<String> setAsperaPreferences(@RequestBody AsperaSitePrefsInfo asperaPrefs) {
 		try {
-			_asperaPrefs.setAsperaNodeUrl(asperaPrefs.getAsperaNodeUrl());
-			_asperaPrefs.setAsperaNodeUser(asperaPrefs.getAsperaNodeUser());
-			_asperaPrefs.setPrivateKey(asperaPrefs.getPrivateKey());
-			_asperaPrefs.setPrivateKey(asperaPrefs.getPrivateKey());
-			_asperaPrefs.setDestinationDirectory(asperaPrefs.getDestinationDirectory());
-			_asperaPrefs.setLogDirectory(asperaPrefs.getLogDirectory());
-			_asperaPrefs.setSshPort(asperaPrefs.getSshPort());
-			_asperaPrefs.setUdpPort(asperaPrefs.getUdpPort());
+			_asperaSitePrefs.setAsperaNodeUrl(asperaPrefs.getAsperaNodeUrl());
+			_asperaSitePrefs.setAsperaNodeUser(asperaPrefs.getAsperaNodeUser());
+			_asperaSitePrefs.setPrivateKey(asperaPrefs.getPrivateKey());
+			_asperaSitePrefs.setPrivateKey(asperaPrefs.getPrivateKey());
+			_asperaSitePrefs.setDestinationDirectory(asperaPrefs.getDestinationDirectory());
+			_asperaSitePrefs.setLogDirectory(asperaPrefs.getLogDirectory());
+			_asperaSitePrefs.setSshPort(asperaPrefs.getSshPort());
+			_asperaSitePrefs.setUdpPort(asperaPrefs.getUdpPort());
 		} catch (Exception exception) {
 			return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
@@ -161,7 +164,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site Aspera preferences retrieved."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
 	public ResponseEntity<AsperaSitePrefsInfo> getAsperaPreferences() throws NrgServiceException {
-		return new ResponseEntity<>(new AsperaSitePrefsInfo(_asperaPrefs), HttpStatus.OK);
+		return new ResponseEntity<>(new AsperaSitePrefsInfo(_asperaSitePrefs), HttpStatus.OK);
 	}
 
 	/**
@@ -209,23 +212,27 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		// Get site defaults, if project settings have not been configured
 		if ((prefsInfo.getAsperaNodeUrl() == null || prefsInfo.getAsperaNodeUrl().length() < 1)
 				&& (prefsInfo.getAsperaNodeUser() == null || prefsInfo.getAsperaNodeUser().length() < 1)
-				&& (_asperaPrefs.getAsperaNodeUrl() != null || _asperaPrefs.getAsperaNodeUrl().length() > 0)
-				&& (_asperaPrefs.getAsperaNodeUser() != null || _asperaPrefs.getAsperaNodeUser().length() > 0)) {
+				&& (_asperaSitePrefs.getAsperaNodeUrl() != null || _asperaSitePrefs.getAsperaNodeUrl().length() > 0)
+				&& (_asperaSitePrefs.getAsperaNodeUser() != null || _asperaSitePrefs.getAsperaNodeUser().length() > 0)) {
+			_logger.warn("WARNING: Project Aspera preferences not found for project " + projectId + 
+					".  Returning site preferences instead for project preference call.");
 			prefsInfo.setAsperaEnabled(false);
-			prefsInfo.setAsperaNodeUrl(_asperaPrefs.getAsperaNodeUrl());
-			prefsInfo.setAsperaNodeUser(_asperaPrefs.getAsperaNodeUser());
-			prefsInfo.setPrivateKey(_asperaPrefs.getPrivateKey());
-			prefsInfo.setPrivateKey(_asperaPrefs.getPrivateKey());
-			prefsInfo.setDestinationDirectory(_asperaPrefs.getDestinationDirectory());
-			prefsInfo.setLogDirectory(_asperaPrefs.getLogDirectory());
-			prefsInfo.setSshPort(_asperaPrefs.getSshPort());
-			prefsInfo.setUdpPort(_asperaPrefs.getUdpPort());
+			prefsInfo.setAsperaNodeUrl(_asperaSitePrefs.getAsperaNodeUrl());
+			prefsInfo.setAsperaNodeUser(_asperaSitePrefs.getAsperaNodeUser());
+			prefsInfo.setPrivateKey(_asperaSitePrefs.getPrivateKey());
+			prefsInfo.setPrivateKey(_asperaSitePrefs.getPrivateKey());
+			prefsInfo.setDestinationDirectory(_asperaSitePrefs.getDestinationDirectory());
+			prefsInfo.setLogDirectory(_asperaSitePrefs.getLogDirectory());
+			prefsInfo.setSshPort(_asperaSitePrefs.getSshPort());
+			prefsInfo.setUdpPort(_asperaSitePrefs.getUdpPort());
 		}
 		return new ResponseEntity<>(prefsInfo, HttpStatus.OK);
 	}
 
 	private final XsyncSitePreferencesBean _prefs;
-	private final AsperaSitePrefs _asperaPrefs;
+	private final AsperaSitePrefs _asperaSitePrefs;
 	private final AsperaProjectPrefs _asperaProjectPrefs;
+	private static Logger _logger = Logger.getLogger(XsyncPreferencesController.class);
+	
 
 }

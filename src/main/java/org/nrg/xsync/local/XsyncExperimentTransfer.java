@@ -40,7 +40,6 @@ import org.nrg.xnat.restlet.representations.ZipRepresentation;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
 import org.nrg.xsync.aspera.AsperaClient;
 import org.nrg.xsync.aspera.AsperaProjectPrefs;
-import org.nrg.xsync.aspera.AsperaSitePrefs;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -114,6 +113,7 @@ public class XsyncExperimentTransfer {
 	
 	
 	
+	@SuppressWarnings("static-access")
 	public void syncExperiment(XnatExperimentdataI assess, XnatSubjectdataI remoteSubject) throws Exception {
 		if (assess.getXSIType().startsWith("xsync:")) {
 			return;
@@ -552,17 +552,29 @@ public class XsyncExperimentTransfer {
 	private RemoteConnectionResponse asperaXarSend(final String projectID, final RemoteConnection connection, final File xar) throws Exception {
 		int retryCount = 0;
 		boolean uploadSuccess = false;
-		while (!uploadSuccess && retryCount<=_asperaRetry) {
-			uploadSuccess = _aspera.upload(projectID, xar);
-			retryCount+=1;
-		}
-		if (uploadSuccess) {
-			final String xarPath = _asperaProjectPrefs.getDestinationDirectory(_localProject.getId()) +
-					File.separator + xar.getName();
-			return _manager.importXar(connection, xarPath);
-		} else {
-			_log.warn("Aspera upload  and retries failed.  Failing over to standard http send.");
-			return _manager.importXar(connection, xar);
+		boolean exceptionOnHttpSend = false;
+		try {
+			while (!uploadSuccess && retryCount<=_asperaRetry) {
+				uploadSuccess = _aspera.upload(projectID, xar);
+				retryCount+=1;
+			}
+			if (uploadSuccess) {
+				final String xarPath = _asperaProjectPrefs.getDestinationDirectory(_localProject.getId()) +
+						File.separator + xar.getName();
+				return _manager.importXar(connection, xarPath);
+			} else {
+				_log.warn("Aspera upload  and retries failed.  Failing over to standard http send.");
+				exceptionOnHttpSend = true;
+				return _manager.importXar(connection, xar);
+			}
+		} catch (Exception e) {
+			_log.debug(ExceptionUtils.getStackTrace(e));
+			if (!exceptionOnHttpSend) {
+				_log.warn("Aspera upload failed with an exception.  Failing over to standard http send.");
+				return _manager.importXar(connection, xar);
+			} else {
+				throw e;
+			}
 		}
 	}
 
