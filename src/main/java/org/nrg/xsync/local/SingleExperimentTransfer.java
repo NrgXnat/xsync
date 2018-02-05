@@ -103,7 +103,6 @@ public class SingleExperimentTransfer implements Callable<Void> {
             Boolean isSyncBlocked = _syncStatusService.isCurrentlySyncing(_projectId);
             if (isSyncBlocked != null && isSyncBlocked) {
                 try {
-                    System.out.println("Sync is blocked ");
                     _mailService.sendHtmlMessage(_xnatInfo.getAdminEmail(), _user.getEmail(), "Project " + _projectId + " sync skipped ",
                                     	"<html><body>"
                                   		  + "<p>Sync was skipped.  See information below:</p>"

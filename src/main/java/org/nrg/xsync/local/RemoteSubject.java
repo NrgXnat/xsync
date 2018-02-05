@@ -94,6 +94,7 @@ public class RemoteSubject {
 	}
 
 	public void syncExperiment(XnatExperimentdata experiment) throws Exception {
+		_log.debug("Syncing remote experiment");
 		XnatSubjectdata remoteSubject = null;
 		//_syncStatusService.registerCurrentExperiment(localProject.getId(), experiment.getLabel(), experiment.getXSIType());
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
@@ -101,6 +102,7 @@ public class RemoteSubject {
 		try {
 			remoteSubject = syncSubject();
 			String subject_remote_id = remoteSubject.getId();
+			_log.debug("Remote subject id :: "+subject_remote_id);
 			if (subject_remote_id != null) {
 				pushExperiment(experiment,remoteSubject, false);
 				//_syncStatusService.registerCompletedExperiment(localProject.getId(), experiment.getLabel(), experiment.getXSIType());

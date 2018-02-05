@@ -173,10 +173,16 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, true);
 				//header.setContentLength(xar.length());
 				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
+				logger.debug("Sending XAR to destination");
+				long starttime= System.currentTimeMillis();
 				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
+				long endtime=System.currentTimeMillis();
+				long totaltime=endtime-starttime;
+				logger.debug("Total Time to process XAR file:"+ totaltime +" ms.");
 			} catch (XsyncHttpAuthenticationException authex) {
 				HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, false, true);
 				//header.setContentLength(xar.length());
+				logger.debug("Retrying after getting Authentication headers");
 				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
 				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
 			}
@@ -196,6 +202,10 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				return new RemoteConnectionResponse(response);
 			}
 		} catch (RuntimeException e) {
+			logger.error("importXar process failed for "+xar.getAbsolutePath());
+			logger.error(e.getMessage());
+			logger.error(ExceptionUtils.getStackTrace(e));
+			//Add error message here for logs.
 			if (e instanceof NestedRuntimeException) {
 				final Throwable specCause = ((NestedRuntimeException)e).getMostSpecificCause(); 
 				// Let's not keep trying these error types either.  They will be thrown by invalid XAR requests, and we don't want a
@@ -615,6 +625,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
 				logger.debug(response.toString());
 			}catch(Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
 				logger.debug("Error while storing subject " + e.getMessage());
 				String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(subject.getProject());
 				File subjectF = new File(cachePath + "failed_" + subject.getLabel()+".xml");

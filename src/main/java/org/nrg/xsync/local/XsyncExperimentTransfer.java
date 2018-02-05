@@ -344,6 +344,7 @@ public class XsyncExperimentTransfer {
 	}
 
 	private boolean storeXar( XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor) throws XsyncRemoteConnectionException{
+		_log.debug("Starting storeXar process");
 		 boolean stored = false;
 		 _syncStatusService.registerCurrentExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 		 //final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
@@ -369,10 +370,13 @@ public class XsyncExperimentTransfer {
 
 			 //Store the ImageSession with only its meta-data in the XAR. Resources, Scans and Assessors 
 			 //would be pushed as separate transactions.
-			 // HERE!!!!
+			 long startTime=System.currentTimeMillis();
 			 final File xar=buildImagingSessionXar(orig, targetproject, targetsubject, target);
 			 _log.debug("BUILDING XAR FILE:  targetProject=" + targetproject + ", targetSubject=" + targetsubject.getLabel() + 
 					 ", target=" + target.getLabel() + ", file=" + xar.getName());
+			 long endTime= System.currentTimeMillis();
+			 long totalTime= endTime-startTime;
+			 _log.debug("Total Time to build XAR file :: "+totalTime);
 			 
 			 final RemoteConnectionResponse connectionResponse = 
 					 (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, xar) : _manager.importXar(connection, xar);
@@ -424,11 +428,20 @@ public class XsyncExperimentTransfer {
 						 scanSyncItem.setXsiType(scan.getXSIType());
 						 scanSyncItem.extractDetails(scan);
 
+						 _log.debug("Building Scan XAR file :: "+scan.getId());
+						 long xarStartTime=System.currentTimeMillis();	 
 						 final File scanXar=buildImagingScanXar(orig, targetproject, targetsubject, target,scan);
+						 long xarEndTime= System.currentTimeMillis();
+						 long xarTotalTime= xarEndTime-xarStartTime;
+						 _log.debug("Total Time to build XAR file for scan :: "+xarTotalTime);
 
 						 if (scanXar != null) {
+						 	 long xarProcStartTime=System.currentTimeMillis();
 							 final RemoteConnectionResponse scanConnectionResponse = 
 									 (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, scanXar) : _manager.importXar(connection, scanXar);
+							 long xarProcEndTime= System.currentTimeMillis();
+							 long xarProcTotalTime= xarProcEndTime-xarProcStartTime;
+							 _log.debug("Total Time to process XAR file for scan "+scan.getId()+" :: "+xarProcTotalTime);
 							 final boolean scanStored = scanConnectionResponse.wasSuccessful();
 							 if (scanStored) {
 								 scanXar.delete();
@@ -510,6 +523,7 @@ public class XsyncExperimentTransfer {
 			 }
 		 }catch(Exception e) {
 			 _log.error(e.getMessage(),e);
+			 _log.error(ExceptionUtils.getStackTrace(e));
 			 _syncStatusService.registerFailedExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 			 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
@@ -679,6 +693,7 @@ public class XsyncExperimentTransfer {
 			
 		}catch(Exception e) {
 			_log.error(e.getMessage(),e);
+			_log.error(ExceptionUtils.getStackTrace(e));
 			
 		}finally {
 			expSyncItem.updateSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,"Subject " + localSubject.getLabel() + " experiment " + expSyncItem.getLocalLabel() + " ");

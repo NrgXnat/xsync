@@ -350,6 +350,7 @@ public class SyncConfiguration implements Serializable{
 	 * @param no_of_retry_days the no_of_retry_days to set
 	 */
 	public void setNo_of_retrydays(Integer no_of_retry_days) {
+		if(no_of_retry_days!=null)
 		this.no_of_retry_days = no_of_retry_days;
 	}
 	
