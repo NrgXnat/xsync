@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class XsyncProjectVerifier  {
 	//This class handles procuring project resources at the destination
 	
-	private static final Logger _log = LoggerFactory.getLogger(WorkFlowUtils.class);
+	private static final Logger _log = LoggerFactory.getLogger(XsyncProjectVerifier.class);
 	
 	private ProjectSyncConfiguration projectSyncConfiguration;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;

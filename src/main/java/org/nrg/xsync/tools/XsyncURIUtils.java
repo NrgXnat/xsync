@@ -14,7 +14,6 @@ import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.XnatResourceseries;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
-import org.nrg.xsync.local.XsyncExperimentTransfer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +24,7 @@ import org.slf4j.LoggerFactory;
 public class XsyncURIUtils {
 	
 	
-	private static final Logger _logger = LoggerFactory.getLogger(XsyncExperimentTransfer.class);
+	private static final Logger _logger = LoggerFactory.getLogger(XsyncURIUtils.class);
 	
 	public void prepareResourceURIForXar(XnatImagesessiondata exp,XnatImageassessordata assess){
 		for (final XnatAbstractresourceI res : assess.getResources_resource()) {
