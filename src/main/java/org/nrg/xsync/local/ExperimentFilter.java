@@ -301,7 +301,7 @@ public class ExperimentFilter {
 	}
 
 	private List<String> getFailedExperimentIds(MapSqlParameterSource parameters, Integer noOfRetryDays) {
-		final String failedQuery = _queryResultUtil.getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs(noOfRetryDays);
+		final String failedQuery = _queryResultUtil.getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs(noOfRetryDays);//_queryResultUtil.getQueryForFetchingSubjectExperimentsWithFailedSyncs();
 		final List<Map<String,Object>> failedExperiments = _jdbcTemplate.queryForList(failedQuery, parameters);
 		final List<String> failedExperimentIds = new ArrayList<>();
 		for (final Map<String, Object> row : failedExperiments) {

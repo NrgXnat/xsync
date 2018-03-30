@@ -49,18 +49,18 @@ Ability to sync a single experiment out of sync cycle.
 To build the plugin, run the following command from within the plugin folder:
 
 ```bash
-./gradlew clean jar
+./gradlew clean fatjar
 ```
 
 On Windows, you may need to run:
 
 ```bash
-gradlew clean jar
+gradlew clean fatjar
 ```
 
 If you haven't previously run this build, it may take a while for all of the dependencies to download.
 
-You can verify your completed build by looking in the folder **build/libs**. It should contain  files named something like **xsync-plugin-*-1.0.jar**. This is the plugin jar that you can install in your XNAT's **plugins** folder.
+You can verify your completed build by looking in the folder **build/libs**. It should contain  files named something like **xsync-plugin-all-*-1.0.jar**. This is the plugin jar that you can install in your XNAT's **plugins** folder.
 
 # System Requirements #
 

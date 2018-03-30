@@ -235,7 +235,7 @@ public class QueryResultUtil {
 		return query;
 	}
 
-	public String getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs(Integer noOfRetry) {
+	public String getQueryForFetchingSubjectExperimentsWithSkippedByFilterSyncs(Integer noOfRetry) {
 		final StringBuilder queryb = new StringBuilder();
 		queryb.append("select e.id,e.label,xdme.element_name,e.project,xsrmm.status,xsrmm.last_modified, xsi.sync_end_time,xsrmm.insert_date from xnat_experimentdata e ");
 		queryb.append(" left join xdat_meta_element xdme ON e.extension = xdme.xdat_meta_element_id ");
@@ -246,16 +246,32 @@ public class QueryResultUtil {
 		queryb.append(" left join xsync_xsyncremotemapdata xsrm on e.id = xsrm.local_xnat_id");
 		queryb.append(" left join xsync_xsyncremotemapdata_meta_data xsrmm on xsrm.xsyncremotemapdata_info = xsrmm.meta_data_id");
 		queryb.append(" where sa.subject_id=:" +  SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +
-				" and e.id in (:"+EXPERIMENT_IDS+") and xsrm.sync_status ");//in ('"+XsyncUtils.SYNC_STATUS_FAILED + "','"+XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER +"')" );
-		if(noOfRetry > 0)
-		{
-			queryb.append("in ('"+XsyncUtils.SYNC_STATUS_FAILED + "','"+XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER +"') and xsrmm.insert_date > current_date -"+noOfRetry);
-		}
-		else
-		{
-			queryb.append("='"+XsyncUtils.SYNC_STATUS_FAILED +"'");
-		}
+				" and e.id in (:"+EXPERIMENT_IDS+") and xsrm.sync_status ");
+			queryb.append("='"+XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER + "' and xsrmm.insert_date > current_date -"+noOfRetry);
  		return queryb.toString();
+	}
+
+	public String getQueryForFetchingSubjectExperimentsWithFailedSyncs() {
+		final StringBuilder queryb = new StringBuilder();
+		queryb.append("select e.id,e.label,xdme.element_name,e.project,xsrmm.status,xsrmm.last_modified, xsi.sync_end_time,xsrmm.insert_date from xnat_experimentdata e ");
+		queryb.append(" left join xdat_meta_element xdme ON e.extension = xdme.xdat_meta_element_id ");
+		queryb.append(" left join xnat_projectdata p ON e.project=p.id ");
+		queryb.append(" left join xnat_subjectassessordata sa ON sa.id=e.id ");
+		queryb.append(" left join xsync_xsyncprojectdata xp ON xp.source_project_id=p.id ");
+		queryb.append(" left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ");
+		queryb.append(" left join xsync_xsyncremotemapdata xsrm on e.id = xsrm.local_xnat_id");
+		queryb.append(" left join xsync_xsyncremotemapdata_meta_data xsrmm on xsrm.xsyncremotemapdata_info = xsrmm.meta_data_id");
+		queryb.append(" where sa.subject_id=:" +  SUBJECT_QUERY_PARAMETER_NAME + " and  p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +
+				" and e.id in (:"+EXPERIMENT_IDS+") and xsrm.sync_status ");
+		queryb.append("='"+XsyncUtils.SYNC_STATUS_FAILED +"'");
+ 		return queryb.toString();
+	}
+	
+	public String getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs(Integer noOfRetry) {
+		String query = getQueryForFetchingSubjectExperimentsWithSkippedByFilterSyncs(noOfRetry);
+		query += " UNION ";
+		query += getQueryForFetchingSubjectExperimentsWithFailedSyncs();
+		return query;
 	}
 	
 	public String getQueryForFetchingSubjectExperimentsMarkedOKSinceLastSync() {
@@ -296,7 +312,9 @@ public class QueryResultUtil {
 		query += " UNION ";
 		query += getQueryForFetchingSubjectExperimentsDeletedSinceLastSync();
 		query += " UNION ";
-		query += getQueryForFetchingSubjectExperimentsWithFailedOrSkippedByFilterSyncs(0);
+		query += getQueryForFetchingSubjectExperimentsWithSkippedByFilterSyncs(0);
+		query += " UNION ";
+		query += getQueryForFetchingSubjectExperimentsWithFailedSyncs();
 		return query;		
 	}
 
