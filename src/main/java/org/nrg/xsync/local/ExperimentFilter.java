@@ -52,6 +52,7 @@ import org.nrg.xsync.configuration.json.SyncConfigurationXsiType;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.tools.XsyncXnatInfo;
+import org.nrg.xsync.utils.ConflictCheckUtil;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.XsyncRESTUtils;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -423,6 +424,10 @@ public class ExperimentFilter {
 			newid = "";
 		}
 		targetExperiment.setId(newid);
+		if (alreadyAssignedRemoteId != null && newid != null && alreadyAssignedRemoteId.equals(newid)) {
+			ConflictCheckUtil.checkForConflict(targetExperiment, newid, projectSyncConfiguration, 
+					_jdbcTemplate, _queryResultUtil, _manager);
+		}
 		//targetExperiment.setProject(targetsubject.getProject());
 		targetExperiment.setSubjectId(targetsubject.getLabel());
 		// correct shared projects
@@ -487,6 +492,10 @@ public class ExperimentFilter {
 			newid = "";
 		}
 		targetExperiment.setId(newid);
+		if (alreadyAssignedRemoteId != null && newid != null && alreadyAssignedRemoteId.equals(newid)) {
+			ConflictCheckUtil.checkForConflict(targetExperiment, newid, projectSyncConfiguration, 
+					_jdbcTemplate, _queryResultUtil, _manager);
+		}
 		//targetExperiment.setProject(targetsubject.getProject());
 		targetExperiment.setSubjectId(targetsubject.getLabel());
 		// correct shared projects
@@ -722,7 +731,6 @@ public class ExperimentFilter {
 								modifyExptResource((XnatAbstractresource) res, orig);
 							}
 							*/
-							
 						}
 						Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getAnonymize(); 
 						_log.debug("Exp " + exp.getLabel() + " needs to be anonymized " + isExptToBeAnonymized);
@@ -738,7 +746,7 @@ public class ExperimentFilter {
 			}
 		} catch (Exception ex) {
 			_log.error(ex.toString() + " " + ex.getLocalizedMessage());
-			throw new Exception(ex);
+			throw ex;
 		}
 		return exp;
 	}

@@ -34,6 +34,7 @@ import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncObserver;
 import org.nrg.xsync.tools.XsyncXnatInfo;
+import org.nrg.xsync.utils.ConflictCheckUtil;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.ResourceUtils;
 import org.nrg.xsync.utils.XSyncFailureHandler;
@@ -280,6 +281,8 @@ public class RemoteSubject {
 		 expSyncItem.setRemoteId(remoteId);
 		if (remoteId != null)  {
 			experiment.setId(remoteId);
+			ConflictCheckUtil.checkForConflict(experiment, remoteId, projectSyncConfiguration, 
+					_jdbcTemplate, _queryResultUtil, _manager);
 			 try {
 				 RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
 				 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());

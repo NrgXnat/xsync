@@ -56,6 +56,7 @@ import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncURIUtils;
 import org.nrg.xsync.tools.XsyncXnatInfo;
+import org.nrg.xsync.utils.ConflictCheckUtil;
 import org.nrg.xsync.utils.JSONUtils;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.ResourceUtils;
@@ -70,7 +71,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.xml.sax.SAXException;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 
 /**
  * @author Mohana Ramaratnam
@@ -110,8 +110,6 @@ public class XsyncExperimentTransfer {
 		_localProject = localProject;
 		_syncIfNotSyncedInPast = syncIfNotSyncedInPast;
 	}
-	
-	
 	
 	@SuppressWarnings("static-access")
 	public void syncExperiment(XnatExperimentdataI assess, XnatSubjectdataI remoteSubject) throws Exception {
@@ -401,6 +399,8 @@ public class XsyncExperimentTransfer {
 					XFTItem item = target.getItem().copy();
 					final XnatImagesessiondata targetWithRemoteId = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
 					targetWithRemoteId.setId(remote_id);
+				    ConflictCheckUtil.checkForConflict(targetWithRemoteId,remote_id, projectSyncConfiguration, 
+				    		_jdbcTemplate, _queryResultUtil, _manager);
 					expSyncItem.setRemoteId(remote_id);
 					//For each resource store the resource
 					 for (int i=0; i<resources.size(); i++) {

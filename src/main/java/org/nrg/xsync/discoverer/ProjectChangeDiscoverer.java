@@ -34,6 +34,7 @@ import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncObserver;
 import org.nrg.xsync.tools.XsyncXnatInfo;
+import org.nrg.xsync.utils.ConflictCheckUtil;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.ResourceUtils;
 import org.nrg.xsync.utils.XSyncFailureHandler;
@@ -442,7 +443,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         remoteSubject.sync();
     }
 
-    private void deleteSubject(String deletedSubjectLocalId, String deletedSubjectLabel) {
+    private void deleteSubject(String deletedSubjectLocalId, String deletedSubjectLabel) throws Exception {
         //Get the remote ID
         //If it exists; delete the remote subject
         String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
@@ -456,6 +457,8 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                 XnatSubjectdata subject = new XnatSubjectdata();
                 subject.setProject(_projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId());
                 subject.setId(remoteId);
+                ConflictCheckUtil.checkForConflict(subject, remoteId, _projectSyncConfiguration, 
+                		_jdbcTemplate, _queryResultUtil, _manager);
                 _log.debug("Deleting subject " + subject.getId() + " from remote project " + subject.getProject());
                 try {
                     RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);

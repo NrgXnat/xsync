@@ -256,6 +256,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                             // submit the config json again if this was called from submitConfig
                             if (configJson !== undefined) {
                                 XSYNC.xsyncconfig.firsttime = false;
+				XSYNC.xsyncconfig.newRemoteUrl = $('#xsync-config-remote-url').val()
                                 XSYNC.xsyncconfig.submitConfig(configJson)
                             }
                         });
@@ -407,6 +408,18 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
      Configuration Settings
      */
 
+    XSYNC.xsyncconfig.destinationChanged = false;
+    XSYNC.xsyncconfig.oldRemoteUrl = "";
+
+    XSYNC.xsyncconfig.displayNewDataWarning = function(){
+            xmodal.message({
+                title: 'Warning',
+                content: '<p><b>WARNING:</b>  Configuring XSync with <em>New Data Only</em> unchecked, can lead to some undesirable results, including data loss, on the destination side and should only be used under certain circumstances.</p><p>When <em>New Data Only</em> is unchecked, XSync will check for source-side changes prior to a project sync.  When there are changes to a session at the source-side, it will resend that session, <b><em>completely replacing the session at the destination</em></b>.</p><p>This option should not be used if project workflows require editing the destination session, as those edits will be lost.  It should only be used when all session changes are made on the source-side and the destination session is expected always reflect what is at the source.</p>',
+                width: '600px',
+                height: '350px'
+            });
+    }
+
     XSYNC.xsyncconfig.editConfig = function(){
         var $form;
         XSYNC.xsyncconfig.modal = xmodal.open({
@@ -416,6 +429,27 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             beforeShow: function(obj){
                 // Spawn everything
                 var spawnerConfig = spawnConfig();
+		setTimeout(function() {
+			var newonlyVal = $("#xsync-config-newonly").val();
+    			XSYNC.xsyncconfig.oldRemoteUrl = $('#xsync-config-remote-url').val();
+			if (newonlyVal == "false") {
+				XSYNC.xsyncconfig.displayNewDataWarning();
+			}
+	    		XSYNC.xsyncconfig.oldValue = $('#xsync-config-remote-url').val();
+	                $('#xsync-config-newonly').change(
+				function() {
+					var newonlyVal = $("#xsync-config-newonly").val();
+					if (newonlyVal == "false") {
+						XSYNC.xsyncconfig.displayNewDataWarning();
+					}
+				}
+			)
+	                $('#xsync-config-remote-url').change(
+				function() {
+	    				XSYNC.xsyncconfig.destinationChanged = true;
+				}
+			)
+		}, 500);
                 var $wrapper = obj.$modal.find('#xsync-config-dialog');
                 XNAT.spawner.spawn(spawnerConfig).render($wrapper);
 
@@ -456,6 +490,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 							console.log('XSYNC.xsyncconfig.configuration');
 							console.log(json);
 
+							XSYNC.xsyncconfig.newRemoteUrl = $('#xsync-config-remote-url').val()
 							XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
 							// $form.triggerHandler('reload-data');
 						}
@@ -956,7 +991,42 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 // },
                 onClose: function(){
                     xmodal.loading.closeAll();
-                    //window.location.reload();
+
+			if (XSYNC.xsyncconfig.destinationChanged == true && XSYNC.xsyncconfig.oldRemoteUrl != "" &&
+				XSYNC.xsyncconfig.oldRemoteUrl != XSYNC.xsyncconfig.newRemoteUrl) {
+
+			        var pModalOpts = {
+			            width: 720,
+			            height: 380,
+			            id: 'xmodal-remote-url',
+			            title: "Remote URL Modified",
+			            content: "<p><b>IMPORTANT:</b>  You have modified the <em>Destination XNAT</em> URL.  It is important to indicate whether or not this URL points to the same host/XNAT server as the previous configuration.</p><p>If the modified URL points to the same host/XNAT, the sync history should be updated to reflect this new URL.  Otherwise, the sync process will see this as a new host, which could result in XSync sending old data that should not be sent.</p><p>While normally XSync will skip sessions/subjects that already exist at the destination, if a subject/session has been renamed at the destination, then source/subjects with the old label may be resent.</p><p><b>Please indicate how to treat this new <em>Destination XNAT</em> URL:</b></p><p><b>OLD XNAT URL: &nbsp;" + XSYNC.xsyncconfig.oldRemoteUrl + "</b></p><p><b>NEW XNAT URL: &nbsp;" + XSYNC.xsyncconfig.newRemoteUrl + "</b></p>",
+			            ok: 'show',
+			            okLabel: 'Same Host - Update URL History',
+			            okAction: function(modl){
+			            	XNAT.xhr.post({
+				                url: XNAT.url.restUrl('/xapi/xsync/projects/' + XNAT.data.context.project + "/updateRemoteHostUrl"),
+				                success: function(data){
+				                    xmodal.message("Success","Remote Host URL information has been updated.");
+				                },
+				                error: function(){
+				                    xmodal.message("Error","There was an error.  The remote host url could not be updated.");
+				                }
+				            })
+			            },
+			            okClose: true,
+			            cancel: 'Cancel',
+			            cancelLabel: "Different Host - Don't modify history.",
+			            cancelAction: function(){
+			                xmodal.closeAll();
+			            },
+			            closeBtn: 'hide'
+			        };
+			
+			        xmodal.open(pModalOpts);
+								
+			}
+
                 }
             });
 

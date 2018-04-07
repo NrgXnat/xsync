@@ -30,12 +30,15 @@ import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xdat.om.XsyncXsyncassessordata;
+import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
+import org.nrg.xdat.om.XsyncXsyncremotemapdata;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xft.utils.SaveItemHelper;
 import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xnat.xsync.annotation.IdGenerator;
 import org.nrg.xsync.connection.RemoteConnectionManager;
@@ -45,7 +48,9 @@ import org.nrg.xsync.exception.XsyncCredentialsRequiredException;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
 import org.nrg.xsync.local.SingleExperimentTransfer;
 import org.nrg.xsync.manager.SynchronizationManager;
+import org.nrg.xsync.manifest.XsyncProjectHistory;
 import org.nrg.xsync.remote.alias.services.SyncStatusService;
+import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.StringStreamingResponseBody;
@@ -93,7 +98,9 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     private final XsyncXnatInfo              _xnatInfo;
     private final NamedParameterJdbcTemplate _jdbcTemplate;
     private final SyncStatusService 		 _syncStatusService;
+    private final SyncManifestService 		 _syncManifestService;
     private List<Resource> _resourceList;
+    private static final Logger _logger = LoggerFactory.getLogger(XsyncOperationsController.class);
 
     @Autowired
     public XsyncOperationsController(final RemoteConnectionManager manager,
@@ -106,7 +113,9 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                                      final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate,
                                      final Map<String, HttpMessageConverter<?>> converters,
                                      final ExecutorService executorService,
-                                     final SyncStatusService syncStatusService) {
+                                     final SyncStatusService syncStatusService,
+                                     final SyncManifestService syncManifestService
+                                     ) {
         super(userManagementService, roleHolder);
         _configService = configService;
         _mailService = mailService;
@@ -117,6 +126,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         _jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         _converters = new ArrayList<>(converters.values());
         _syncStatusService = syncStatusService;
+        _syncManifestService = syncManifestService;
         if (!converters.containsKey("stringHttpMessageConverter")) {
             _converters.add(new StringHttpMessageConverter());
         }
@@ -153,6 +163,78 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
     	else
     		return new ResponseEntity<>("Sync is currently running for this project. &nbsp;Please await the results of that sync or try again later.", HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Updates RemoteHostUrl in XSync data.", notes = "Updates the RemoteHostUrl in the XSync data with currently configured RemoteHostUrl for the project", response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
+    @XapiRequestMapping(value = "/projects/{projectId}/updateRemoteHostUrl", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
+    @ResponseBody
+    public ResponseEntity<String> updateRemoteHostUrl(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
+    	
+	    	//Check user credentials to see if the user is a member or an owner of the project
+	        final UserI user = getSessionUser();
+	    	try {
+	        	final HttpStatus status = canDeleteProject(projectId);
+	            if (status != null) {
+	                return new ResponseEntity<>(status);
+	            }
+	        }catch(Exception e) {
+	            if (_log.isInfoEnabled()) {
+	                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
+	            }
+	        }
+        	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(projectId);
+            final String remoteUrl = syncProjectConfiguration.getSyncinfo().getRemoteUrl();
+            final String remoteProjectId = syncProjectConfiguration.getSyncinfo().getRemoteProjectId();
+            if (remoteUrl != null) {
+           		boolean allOk = true;
+            	final ArrayList<XsyncXsyncremotemapdata> mapdatas = XsyncXsyncremotemapdata.getXsyncXsyncremotemapdatasByField(XsyncXsyncremotemapdata.SCHEMA_ELEMENT_NAME +
+            			"/source_project_id", projectId, user, false);
+            	if (mapdatas != null) {
+            		for (final XsyncXsyncremotemapdata mapdata : mapdatas) {
+            			if (!mapdata.getRemoteProjectId().equals(remoteProjectId)) {
+            				continue;
+            			}
+            			mapdata.setRemoteHostUrl(remoteUrl);
+            	        final EventMetaI c = EventUtils.DEFAULT_EVENT(user, "Updated RemoteHostUrl");
+            	        try {
+							SaveItemHelper.authorizedSave(mapdata, user, false, true, c);
+						} catch (Exception e) {
+							allOk = false;
+							_logger.error("ERROR:  Unable to update remote URL in RemoteMapData", e);
+						}
+            		}
+            	}
+            	
+            	final XsyncProjectHistory history = _syncManifestService.getRecentProjectSync(projectId, remoteProjectId);
+            	if (history != null) {
+            		final ArrayList<XsyncXsyncinfodata> infodatas = XsyncXsyncinfodata.getXsyncXsyncinfodatasByField(XsyncXsyncinfodata.SCHEMA_ELEMENT_NAME +
+            				"/remote_project_id", remoteProjectId, user, false);
+            		if (infodatas != null) {
+            			for (final XsyncXsyncinfodata infodata : infodatas) {
+            				if (!infodata.getRemoteUrl().equals(remoteUrl)) {
+            					continue;
+            				}
+            				infodata.setSyncStartTime(history.getStartDate());
+            				infodata.setSyncEndTime(history.getCompleteDate());
+            				final EventMetaI c = EventUtils.DEFAULT_EVENT(user, "Updated RemoteHostUrl");
+            				try {
+            					SaveItemHelper.authorizedSave(infodata, user, false, true, c);
+            				} catch (Exception e) {
+            					allOk = false;
+            					_logger.error("ERROR:  Unable to update remote URL in Xsyncinfodata", e);
+            				}
+            			}
+            		}
+            	}
+           		if (allOk) {
+           			return new ResponseEntity<>(projectId + " remote host url updated.", HttpStatus.OK);
+           		} else {
+           			return new ResponseEntity<>("Unable to update remote URL information.", HttpStatus.INTERNAL_SERVER_ERROR);
+           		}
+            }
+			return new ResponseEntity<>("Unable to update remote URL information.", HttpStatus.INTERNAL_SERVER_ERROR);
+			
     }
     
     

@@ -52,6 +52,7 @@ public class XsyncUtils {
 	public static final String SYNC_STATUS_CONNECTION_FAILED = "CONNECTION FAILED";
 	
 	public static final String SYNC_STATUS_DELETED = "DELETED";
+	public static final String SYNC_STATUS_CONFLICT = "CONFLICT";
 	public static final String SYNC_STATUS_WAITING_TO_SYNC="Waiting to Sync";
 	public static final String SYNC_STATUS_SYNC_REQUESTED="Sync Requested";
 

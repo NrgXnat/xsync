@@ -7,6 +7,7 @@ import java.util.Hashtable;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.nrg.mail.services.MailService;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
+import org.nrg.xsync.exception.XsyncIdConflictException;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.manifest.SubjectSyncItem;
 import org.slf4j.Logger;
@@ -36,7 +37,11 @@ public class XSyncFailureHandler {
 		if (preassigned_remote_id != null) {
 			subjectSyncInfo.setRemoteId(preassigned_remote_id);
 		}
-		subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+		if (e instanceof XsyncIdConflictException) {
+			subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_CONFLICT);
+		} else {
+			subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+		}
 		subjectSyncInfo.setXsiType(xsiType);
 		subjectSyncInfo.setMessage(ExceptionUtils.getStackTrace(e));
 		subjectSyncInfo.stateChanged();

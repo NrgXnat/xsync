@@ -2,8 +2,10 @@ package org.nrg.xsync.services.local.impl;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
+import org.apache.ecs.html.Map;
 import org.hibernate.HibernateException;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xsync.manifest.ExperimentSyncItem;
@@ -41,6 +43,24 @@ public class HibernateSyncHistoryService
 
     private XsyncProjectHistory syncHistory = new XsyncProjectHistory();
     private SyncManifest manifest = null;
+
+    @Transactional
+    @Override
+    public XsyncProjectHistory getRecentProjectSync(final String localProjectId, final String remoteProjectId) {
+    	final java.util.Map<String, Object> properties = new HashMap<>();
+    	properties.put("localProject",localProjectId);
+    	properties.put("remoteProject",remoteProjectId);
+        List<XsyncProjectHistory> histories = getDao().findByProperties(properties);
+        XsyncProjectHistory recentHistory = null;
+        for (final XsyncProjectHistory history : histories) {
+        	if (recentHistory == null) {
+        		recentHistory = history;
+        	} else if (history.getStartDate().after(recentHistory.getStartDate())) {
+        		recentHistory = history;
+        	}
+        }
+        return recentHistory;
+    }
 
     @Transactional
     @Override

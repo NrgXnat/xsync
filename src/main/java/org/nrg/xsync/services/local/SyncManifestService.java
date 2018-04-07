@@ -12,4 +12,5 @@ public interface SyncManifestService extends BaseHibernateService<XsyncProjectHi
     List<XsyncProjectHistory> findBySyncStatus(final String status);
     List<XsyncProjectHistory> findBySubject(final String subjectLabel);
     void persistHistory(final SyncManifest manifest);
+	XsyncProjectHistory getRecentProjectSync(String localProjectId, String remoteProjectId);
 }

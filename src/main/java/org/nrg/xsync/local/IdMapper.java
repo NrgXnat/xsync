@@ -16,6 +16,7 @@ import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.exception.XsyncRemoteConnectionException;
+import org.nrg.xsync.utils.ConflictCheckUtil;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 
 /**
  * @author Mohana Ramaratnam
@@ -41,6 +43,8 @@ public class IdMapper {
 	private final RemoteConnectionManager _manager;
 	private final QueryResultUtil _queryResultUtil;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
+	private final Gson _gson = new Gson();
+	
 	
 	public IdMapper(final RemoteConnectionManager manager, final QueryResultUtil queryResultUtil, final NamedParameterJdbcTemplate jdbcTemplate, final UserI user, final ProjectSyncConfiguration syncProjectConfiguration) {
 		_manager = manager;
@@ -73,11 +77,13 @@ public class IdMapper {
 	private String getAssignedRemoteId(String localXnatId) {
 		String remoteId = null;
         String remoteProjectId = syncProjectConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
+        String remoteUrl = syncProjectConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
 		String query = "select remote_xnat_id from xsync_xsyncremotemapdata";
-		query += " where local_xnat_id=:localXnatId and remote_project_id=:remoteProjectId";
+		query += " where local_xnat_id=:localXnatId and remote_project_id=:remoteProjectId and remote_host_url=:remoteUrl";
 		final MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("localXnatId", localXnatId);
 		parameters.addValue("remoteProjectId", remoteProjectId);
+		parameters.addValue("remoteUrl", remoteUrl);
 		 List<String> results = _jdbcTemplate.queryForList(query, parameters,String.class);
 		 if (results !=null && results.size()>=1) {
 			 remoteId = results.get(0);
@@ -98,12 +104,15 @@ public class IdMapper {
 
 		// correct ID
 		String remoteId = this.getAssignedRemoteId(newSubject.getId());
-		if (remoteId != null) //Subject has already been synced and so we have a remote id
+		if (remoteId != null) { //Subject has already been synced and so we have a remote id
 			newSubject.setId(remoteId);
-		else
+		    ConflictCheckUtil.checkForConflict(newSubject,remoteId, syncProjectConfiguration, 
+		    		_jdbcTemplate, _queryResultUtil, _manager);
+		} else {
 			// Let the remote site assign the ID
 			newSubject.setId("");
 			// correct shared projects
+		}
 		String remoteLabel = assignRemoteLabel(newSubject.getItem());
 		newSubject.setLabel(remoteLabel);
 		List<XnatProjectparticipant> sharedProjects = newSubject.getSharing_share();
@@ -126,12 +135,15 @@ public class IdMapper {
 					" so a new one is assigned");
 			remoteId = "";
 		}
-		if (remoteId != null) //Subject has already been synced and so we have a remote id
+		if (remoteId != null) { //Subject has already been synced and so we have a remote id
 			targetExperiment.setId(remoteId);
-		else
+		    ConflictCheckUtil.checkForConflict(targetExperiment,remoteId, syncProjectConfiguration, 
+		    		_jdbcTemplate, _queryResultUtil, _manager);
+		} else {
 			// Let the remote site assign the ID
 			targetExperiment.setId("");
 			// correct shared projects
+		}
 		String remoteLabel = assignRemoteLabel(((XnatExperimentdata)targetExperiment).getItem());
 		targetExperiment.setLabel(remoteLabel);
 		// correct shared projects
@@ -177,5 +189,5 @@ public class IdMapper {
 		 }
 		 return remote_id;
 	}
-	
+
 }
