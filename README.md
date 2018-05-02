@@ -10,6 +10,10 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 
 # ChangeLog #
+Version 1.3.2.1 As of May 2, 2018
+
+Minor bugfix release to fix compatibility issue with other plugins that supply an ExecutorService bean
+
 Version 1.3.2 As of Nov 14, 2017
 
 Added functionality for custom Id generator and download mapping data(supports XNAT version 1.7.3.1 and above).
