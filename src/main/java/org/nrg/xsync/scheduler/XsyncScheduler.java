@@ -8,10 +8,6 @@ import org.nrg.xsync.services.local.HourlySyncService;
 import org.nrg.xsync.services.local.MonthlySyncService;
 import org.nrg.xsync.services.local.WeeklySyncService;
 import org.nrg.xsync.services.local.XsyncAliasRefreshService;
-import org.nrg.xsync.services.local.impl.DailySync;
-import org.nrg.xsync.services.local.impl.HourlySync;
-import org.nrg.xsync.services.local.impl.MonthlySync;
-import org.nrg.xsync.services.local.impl.WeeklySync;
 import org.nrg.xsync.services.local.impl.XSyncAliasTokenRefresh;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -29,10 +25,27 @@ import org.springframework.scheduling.support.PeriodicTrigger;
 @EnableScheduling
 public class XsyncScheduler {
 	
-	@Autowired
 	private NrgPreferenceService _preferenceService;
+	private ConfigPaths _configPaths;
+	private HourlySyncService _hourlySyncService;
+	private DailySyncService _dailySyncService;
+	private WeeklySyncService _weeklySyncService;
+	private MonthlySyncService _monthlySyncService;
 	
 	
+	@Autowired
+	public XsyncScheduler(NrgPreferenceService preferenceService, ConfigPaths configPaths,
+				HourlySyncService hourlySyncService, DailySyncService dailySyncService,
+				WeeklySyncService weeklySyncService, MonthlySyncService monthlySyncService) {
+		super();
+		_preferenceService = preferenceService;
+		_configPaths = configPaths;
+		_hourlySyncService = hourlySyncService;
+		_dailySyncService = dailySyncService;
+		_weeklySyncService = weeklySyncService;
+		_monthlySyncService = monthlySyncService;
+	}
+
 	@Bean
 	public ThreadPoolExecutorFactoryBean threadPoolExecutorFactoryBean() {
 		//return new ThreadPoolExecutorFactoryBean();
@@ -43,8 +56,8 @@ public class XsyncScheduler {
 	}
 	
     @Bean
-    public XsyncSitePreferencesBean xsyncSitePreferencesBean(final NrgPreferenceService preferenceService, final ConfigPaths configPaths) {
-        return new XsyncSitePreferencesBean(preferenceService, configPaths);
+    public XsyncSitePreferencesBean xsyncSitePreferencesBean() {
+        return new XsyncSitePreferencesBean(_preferenceService, _configPaths);
     }
 
     @Bean
@@ -58,26 +71,26 @@ public class XsyncScheduler {
 
     @Bean
     //Run Hourly sync at 30 minutes past the hour, every hour
-    public TriggerTask syncProjectsMarkedAsHourlySync(final HourlySyncService hourlyService) {
-        return new TriggerTask(new HourlySync(hourlyService), new CronTrigger("0 30 * * * ?"));
+    public TriggerTask syncProjectsMarkedAsHourlySync() {
+        return new TriggerTask(_hourlySyncService, new CronTrigger("0 30 * * * ?"));
     }
 
     
     @Bean
     //Run Daily sync everyday at 00:00 hours
-    public TriggerTask syncProjectsMarkedAsDailySync(final DailySyncService dailyService) {
-        return new TriggerTask(new DailySync(dailyService), new CronTrigger("0 0 0 * * *"));
+    public TriggerTask syncProjectsMarkedAsDailySync() {
+        return new TriggerTask(_dailySyncService, new CronTrigger("0 0 0 * * *"));
     }
 
     @Bean
     //Run every SAT of the week  at 01:00 hours
-    public TriggerTask syncProjectsMarkedAsWeeklySync(final WeeklySyncService weeklyService) {
-        return new TriggerTask(new WeeklySync(weeklyService), new CronTrigger("0 0 1 ? * SAT"));
+    public TriggerTask syncProjectsMarkedAsWeeklySync() {
+        return new TriggerTask(_weeklySyncService, new CronTrigger("0 0 1 ? * SAT"));
     }
 
     @Bean
     //Run every month on 1st of the month at 02:00 hours
     public TriggerTask syncProjectsMarkedAsMonthlySync(final MonthlySyncService monthlyService) {
-        return new TriggerTask(new MonthlySync(monthlyService), new CronTrigger("0 0 2 1 * *"));
+        return new TriggerTask(_monthlySyncService, new CronTrigger("0 0 2 1 * *"));
     }
 }
