@@ -44,23 +44,19 @@ apply plugin: 'xnat-data-builder'
 
 repositories {
     mavenLocal()
-    mavenCentral()
+    maven {
+        url "http://maven.imagej.net/content/groups/public"
+        name "ImageJ Maven Repository"
+    }
     jcenter()
+    mavenCentral()
     maven {
-        url 'http://www.dcm4che.org/maven2'
-        name 'Dcm4che Repository'
+        url "https://nrgxnat.jfrog.io/nrgxnat/libs-release"
+        name "XNAT Release Repository"
     }
     maven {
-        url 'https://nrgxnat.artifactoryonline.com/nrgxnat/libs-release'
-        name 'XNAT Release Repository'
-    }
-    maven {
-        url 'https://nrgxnat.artifactoryonline.com/nrgxnat/libs-snapshot'
-        name 'XNAT Snapshot Repository'
-    }
-    maven {
-        url 'https://nrgxnat.artifactoryonline.com/nrgxnat/ext-release'
-        name 'XNAT External Release Repository'
+        url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot"
+        name "XNAT Snapshot Repository"
     }
 }
 
