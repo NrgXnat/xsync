@@ -70,6 +70,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -112,7 +113,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                                      final XsyncXnatInfo xnatInfo, final SerializerService serializer,
                                      final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate,
                                      final Map<String, HttpMessageConverter<?>> converters,
-                                     final ExecutorService executorService,
+                                     final ThreadPoolExecutorFactoryBean executorFactoryBean,
                                      final SyncStatusService syncStatusService,
                                      final SyncManifestService syncManifestService
                                      ) {
@@ -130,7 +131,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         if (!converters.containsKey("stringHttpMessageConverter")) {
             _converters.add(new StringHttpMessageConverter());
         }
-        _executorService = executorService;
+        _executorService = executorFactoryBean.getObject();
         _manager = manager;
     }
 
