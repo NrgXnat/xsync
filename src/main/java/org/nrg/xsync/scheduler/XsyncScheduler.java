@@ -49,9 +49,7 @@ public class XsyncScheduler {
     //Run Hourly sync at 30 minutes past the hour, every hour
     public TriggerTask syncProjectsMarkedAsHourlySync(HourlySyncService hourlySyncService) {
     	_logger.debug("Initializing HourlySync TriggerTask:  " + hourlySyncService);
-    	_logger.error("ERROR:  HourlySyncService is scheduled to run each minute!!!!! (DEBUG SETTING!!!!):  " + hourlySyncService);
-        return new TriggerTask(hourlySyncService, new CronTrigger("0 * * * * ?"));
-        //return new TriggerTask(hourlySyncService, new CronTrigger("0 30 * * * ?"));
+        return new TriggerTask(hourlySyncService, new CronTrigger("0 30 * * * ?"));
     }
 
     
