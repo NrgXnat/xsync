@@ -1,5 +1,6 @@
 package org.nrg.xsync.xapi;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.config.entities.Configuration;
 import org.nrg.config.services.ConfigService;
@@ -13,6 +14,8 @@ import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.utils.XsyncUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -80,6 +83,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 				}
 			}
 		}catch (Exception  exception) {
+			_logger.error("ERROR:  Xsync Setup Threw an Exception:  " + ExceptionUtils.getFullStackTrace(exception));
 			return new ResponseEntity<>(projectId + " Xsync Setup failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
 	}
@@ -89,7 +93,6 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
 	public ResponseEntity<JsonNode> setup(@PathVariable("projectId") final String projectId) throws Exception{
-		final UserI user = getSessionUser();
     	final HttpStatus status = canReadProject(projectId);
         if (status != null) {
             return new ResponseEntity<>(status);
@@ -103,6 +106,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 				JsonNode node = objectMapper.readTree(config);
 				return new ResponseEntity<>(node,  HttpStatus.OK);
 			}catch(Exception e) {
+				_logger.error("ERROR:  Error retrieving project setup:  " + ExceptionUtils.getFullStackTrace(e));
 				return new ResponseEntity<JsonNode>(HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		}else {
@@ -135,6 +139,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
             }
 			saveDicomAnonymizationToConfig(project,anonymizationScript);
 		}catch(Exception e) {
+			_logger.error("ERROR:  Error saving pre-sync DICOM anonymization script:  " + ExceptionUtils.getFullStackTrace(e));
         	return new ResponseEntity<>(projectId + " Pre-Sync DICOM Anonymization script could not be saved. ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
     	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved",  HttpStatus.OK);
@@ -154,9 +159,8 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	        }			
 			String config = _configService.getConfig("xsync", "presyncanonymization", Scope.Project, projectId).getContents();
 			return new ResponseEntity<>(config, HttpStatus.OK);
-		} catch(NullPointerException e) {
-			return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
 		} catch(Exception e) {
+			_logger.error("ERROR:  Error returning DICOM anonymization script:  " + ExceptionUtils.getFullStackTrace(e));
 			return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
 		}
 	}
@@ -165,4 +169,5 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	private final ConfigService              _configService;
 	private final SerializerService          _serializer;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
+	public static Logger _logger = LoggerFactory.getLogger(XsyncSetupController.class);
 }

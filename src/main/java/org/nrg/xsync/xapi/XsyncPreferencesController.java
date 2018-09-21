@@ -2,7 +2,9 @@ package org.nrg.xsync.xapi;
 
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NrgServiceException;
 import org.nrg.xapi.rest.AbstractXapiRestController;
@@ -191,6 +193,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 			_asperaProjectPrefs.setSshPort(projectId, asperaPrefs.getSshPort());
 			_asperaProjectPrefs.setUdpPort(projectId, asperaPrefs.getUdpPort());
 		} catch (Exception exception) {
+			_logger.error("ERROR:  Error setting preferences:  " + ExceptionUtils.getFullStackTrace(exception));
 			return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		return new ResponseEntity<>("XSync preferences set", HttpStatus.OK);
@@ -232,7 +235,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	private final XsyncSitePreferencesBean _prefs;
 	private final AsperaSitePrefs _asperaSitePrefs;
 	private final AsperaProjectPrefs _asperaProjectPrefs;
-	private static Logger _logger = Logger.getLogger(XsyncPreferencesController.class);
+	private static Logger _logger = LoggerFactory.getLogger(XsyncPreferencesController.class);
 	
 
 }

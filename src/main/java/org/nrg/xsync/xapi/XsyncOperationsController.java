@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
@@ -152,7 +153,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 	            }
 	        }catch(Exception e) {
 	            if (_log.isInfoEnabled()) {
-	                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
+	                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
 	            }
 	        }
 	    	final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, getSessionUser());
@@ -181,7 +182,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 	            }
 	        }catch(Exception e) {
 	            if (_log.isInfoEnabled()) {
-	                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
+	                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
 	            }
 	        }
         	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(projectId);
@@ -262,7 +263,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             }
         }catch(Exception e) {
             if (_log.isInfoEnabled()) {
-                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
+                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
             }
         }
     	if (_syncStatusService.isCurrentlySyncing(projectId)) {
@@ -281,10 +282,11 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             	try {
             		saved = okToSyncData.save(user, false, true, c);
             		if (!saved) {
-            			return new ResponseEntity<>("Unable to marc sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
+            			return new ResponseEntity<>("Unable to mark sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
             		}
             	} catch (Exception e) {
-            		return new ResponseEntity<>("Unable to marc sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
+            		_log.error("Unable to mark sync assessor for syncing:  " + ExceptionUtils.getFullStackTrace(e));
+            		return new ResponseEntity<>("Unable to mark sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
             	}
            	}
         } 
@@ -314,7 +316,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             }
         }catch(Exception e) {
             if (_log.isInfoEnabled()) {
-                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
+                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
             }
         }
 
@@ -505,7 +507,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             }
         }catch(Exception e) {
             if (_log.isInfoEnabled()) {
-                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
+                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
             }
         }
 
@@ -596,7 +598,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             }
         }catch(Exception e) {
             if (_log.isInfoEnabled()) {
-                _log.info("Unable to fech user permissions for user " + user.getLogin()  + " Project " + projectId );
+                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
             }
         }
 
