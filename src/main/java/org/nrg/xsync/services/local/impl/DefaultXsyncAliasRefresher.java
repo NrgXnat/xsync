@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.nrg.framework.services.SerializerService;
-import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
+import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;

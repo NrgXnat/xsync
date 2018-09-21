@@ -39,7 +39,7 @@ public abstract class AbstractSyncService extends AbstractXnatTask {
     private final XsyncXnatInfo                 _xnatInfo;
     private final ThreadPoolExecutorFactoryBean _executorFactoryBean;
     private final SyncStatusService				_syncStatusService;
-    protected final Logger logger = LoggerFactory.getLogger(getClass());
+    protected static final Logger logger = LoggerFactory.getLogger(AbstractSyncService.class);
 
     protected AbstractSyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService,
     		final CatalogService catalogService, final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil,

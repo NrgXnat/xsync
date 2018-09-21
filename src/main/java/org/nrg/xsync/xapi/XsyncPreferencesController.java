@@ -14,7 +14,7 @@ import org.nrg.xsync.aspera.AsperaProjectPrefs;
 import org.nrg.xsync.aspera.AsperaProjectPrefsInfo;
 import org.nrg.xsync.aspera.AsperaSitePrefs;
 import org.nrg.xsync.aspera.AsperaSitePrefsInfo;
-import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
+import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

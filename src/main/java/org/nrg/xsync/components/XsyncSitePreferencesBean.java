@@ -1,4 +1,4 @@
-package org.nrg.xsync.configuration;
+package org.nrg.xsync.components;
 
 import org.nrg.framework.configuration.ConfigPaths;
 import org.nrg.prefs.annotations.NrgPreference;
@@ -10,11 +10,13 @@ import org.nrg.xft.exception.InvalidValueException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * The Class XsyncSitePreferencesBean.
  * @author Mike Hodge
  */
+@Component
 @NrgPreferenceBean(toolId = XsyncSitePreferencesBean.XSYNC_TOOL_ID, toolName = "XSync Site Preferences")
 public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	@Autowired
