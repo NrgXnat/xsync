@@ -135,7 +135,11 @@ public class XsyncUtils {
         }
         
 		syncProject.setSourceProjectId(synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText());
-		syncProject.setNotificationEmails(synchronizationJson.get("notification_emails").asText());
+		if (synchronizationJson.get("notification_emails") != null) {
+			syncProject.setNotificationEmails(synchronizationJson.get("notification_emails").asText());
+		} else {
+			syncProject.setNotificationEmails("");
+		}
 		syncProject.setSyncEnabled(synchronizationJson.get("enabled").asBoolean());
 		item = XFTItem.NewItem(XsyncXsyncinfodata.SCHEMA_ELEMENT_NAME, _user);
 		XsyncXsyncinfodata syncinfo = new XsyncXsyncinfodata(item);

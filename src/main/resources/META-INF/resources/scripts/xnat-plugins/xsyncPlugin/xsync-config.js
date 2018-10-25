@@ -53,6 +53,8 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         XSYNC.xsyncconfig.configuration.identifiers = 'use_local';
         XSYNC.xsyncconfig.configuration.remote_url = 'http://';
         XSYNC.xsyncconfig.configuration.remote_project_id = '';
+        XSYNC.xsyncconfig.configuration.notification_emails = '';
+        XSYNC.xsyncconfig.configuration.customIdentifiers = '';
         XSYNC.xsyncconfig.configuration.anonymize = false;
 		XSYNC.xsyncconfig.configuration.no_of_retry_days = 3;
         // XSYNC.xsyncconfig.configuration.ok_to_sync = false;
@@ -70,11 +72,9 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         $("#xsync-config").spawn('button#xsync-begin-config.btn1', {
             type: 'button',
             html: 'Begin Configuration',
-            $: {
-                click: function(){
+            onclick: function(){
                     XSYNC.xsyncconfig.useDefaultConfig();
                     XSYNC.xsyncconfig.editConfig();
-                }
             }
         });
     };
@@ -452,6 +452,27 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 		}, 500);
                 var $wrapper = obj.$modal.find('#xsync-config-dialog');
                 XNAT.spawner.spawn(spawnerConfig).render($wrapper);
+		var xConfig = XSYNC.xsyncconfig.configuration;
+                for (var key in xConfig) {
+			if (xConfig.hasOwnProperty(key)) {
+				var configObj = xConfig[key];
+				if (typeof configObj === 'object') {
+					var configName = key;
+                			for (var key2 in configObj) {
+						if (xConfig.hasOwnProperty(key)) {
+							var configName2 = configName + "." + key2;
+                					$('[name="' + configName2 + '"]').val(configObj[key2]);
+						}
+					}
+				} else if (typeof configObj === 'boolean') {
+                			$('[type="checkbox"][title="' + key + '"]').val(xConfig[key]);
+                			$('[type="checkbox"][title="' + key + '"]').attr('checked',xConfig[key]);
+                			$('[name="' + key + '"]').val(xConfig[key]);
+				} else {
+                			$('[name="' + key + '"]').val(xConfig[key]);
+				}
+			}
+		}
 
                 $('#xsync-advanced-settings').show();
 
@@ -474,7 +495,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 						if(validateEmailAddresses() && validateNoOfRetryDays())
 						{
 							// Only include visible fields and checkboxes, which are of type 'hidden'
-							var json = form2js($('#root-panel').find(':input').filter(':visible, [type="hidden"]')
+							var json = form2js($('#root').find(':input').filter(':visible, [type="hidden"]')
 									.toArray());
 
 							// Source project not on the form
@@ -484,11 +505,8 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 							delete json.subjectDetailsCheckbox;
 							delete json.advancedSyncCheckbox;
 
-							console.log(json);
 							// don't trample on advanced settings that aren't defined in the UI
 							json = XSYNC.xsyncconfig.mergeConfig(json);
-							console.log('XSYNC.xsyncconfig.configuration');
-							console.log(json);
 
 							XSYNC.xsyncconfig.newRemoteUrl = $('#xsync-config-remote-url').val()
 							XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
@@ -513,7 +531,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             return {
                 kind: 'panel.form',
                 title: 'XSync Configuration',
-                load: "XSYNC.xsyncconfig.configuration",
+                //load: XSYNC.xsyncconfig.configuration,
                 refresh: "/xapi/xsync/setup/projects/" + XNAT.data.context.project,
                 action: "#",
                 contents: {
@@ -739,7 +757,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 							});
 
 							getCustomIdGeneratorsAjax.done(function(data, textStatus, jqXHR){
-								console.log(data);
+								//console.log(data);
 								$.each( data, function(key, value) { 
 									var option = new Option(key, value);
 									$("#xsync-config-custom-identifiers").append($(option));
@@ -893,7 +911,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 element: {
                     onblur: function(){
                         var xsiTypes = $(this).val().split(',');
-                        console.log(xsiTypes);
+                        //console.log(xsiTypes);
                         // split the list on comma
                         // append advanced section for each xsiType
                         // showHideAdvanced(this)
@@ -993,6 +1011,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     xmodal.loading.closeAll();
 
 			if (XSYNC.xsyncconfig.destinationChanged == true && XSYNC.xsyncconfig.oldRemoteUrl != "" &&
+				XSYNC.xsyncconfig.oldRemoteUrl != "http://" &&
 				XSYNC.xsyncconfig.oldRemoteUrl != XSYNC.xsyncconfig.newRemoteUrl) {
 
 			        var pModalOpts = {
