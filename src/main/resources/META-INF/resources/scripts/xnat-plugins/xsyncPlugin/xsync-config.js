@@ -495,7 +495,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 						if(validateEmailAddresses() && validateNoOfRetryDays())
 						{
 							// Only include visible fields and checkboxes, which are of type 'hidden'
-							var json = form2js($('#root-panel').find(':input').filter(':visible, [type="hidden"]').toArray());
+							var json = form2js($('#root.xnat-form-panel').find(':input').filter(':visible, [type="hidden"]').toArray());
 
 							// Source project not on the form
 							json.source_project_id = XNAT.data.context.project;

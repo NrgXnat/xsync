@@ -79,7 +79,7 @@ dependencies {
     implementation("org.nrg.xnat:xnat-data-models") {
         transitive = false
     }
-    implementation "org.nrg.xnat:tasks:1.7.4-SNAPSHOT"
+    implementation "org.nrg.xnat:tasks:1.7.5-SNAPSHOT"
 
     implementation("org.nrg.xdat:core") {
         transitive = false
