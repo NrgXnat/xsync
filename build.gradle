@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.7.5-SNAPSHOT'
+        vXnat = '1.7.5'
     }
     repositories {
         mavenLocal()
@@ -31,7 +31,7 @@ buildscript {
 }
 
 group 'org.nrg.xsync'
-version '1.3.3-SNAPSHOT'
+version '1.3.4-SNAPSHOT'
 
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'groovy'

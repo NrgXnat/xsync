@@ -1,9 +1,5 @@
 package org.nrg.xsync.services.local;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.framework.task.XnatTask;
@@ -26,6 +22,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+
 @XnatTask(taskId = "XsyncScheduledSync", description = "XSync Scheduled Sync Operations", 
 defaultExecutionResolver = "SingleNodeExecutionResolver", executionResolverConfigurable = true)
 public abstract class AbstractSyncService extends AbstractXnatTask {
@@ -45,7 +45,7 @@ public abstract class AbstractSyncService extends AbstractXnatTask {
     		final CatalogService catalogService, final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil,
     		final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean, final SyncStatusService syncStatusService,
     		final XnatTaskService taskService) {
-    	super(taskService);
+    	super(taskService, false, null, jdbcTemplate);
         _manager = manager;
         _configService = configService;
         _mailService = mailService;
