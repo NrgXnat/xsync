@@ -10,6 +10,10 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 
 # ChangeLog #
+Version 1.3.3 As of February 4, 2019
+
+Fixes to make XSync compatible with XNAT 1.7.5.
+
 Version 1.3.2.1 As of May 2, 2018
 
 Minor bugfix release to fix compatibility issue with other plugins that supply an ExecutorService bean
