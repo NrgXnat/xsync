@@ -16,6 +16,7 @@ import org.nrg.xsync.services.local.DailySyncService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 import org.springframework.stereotype.Service;
@@ -28,10 +29,11 @@ public class DefaultDailySyncService extends AbstractSyncService implements Dail
 	@Autowired
 	public DefaultDailySyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService,
 			final CatalogService catalogService,final SerializerService serializer, final JdbcTemplate jdbcTemplate, 
-			final QueryResultUtil queryResultUtil, final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean,
+			final QueryResultUtil queryResultUtil, final XsyncXnatInfo xnatInfo,
+			@Qualifier("xsyncThreadPoolExecutorFactoryBean") final ThreadPoolExecutorFactoryBean xsyncThreadPoolExecutorFactoryBean,
 			final SyncStatusService syncStatusService, final XnatTaskService taskService) {
 		super(manager, configService, mailService, catalogService,serializer, jdbcTemplate, queryResultUtil,
-				xnatInfo, executorFactoryBean, syncStatusService, taskService);
+				xnatInfo, xsyncThreadPoolExecutorFactoryBean, syncStatusService, taskService);
 	}
 
 	@Override

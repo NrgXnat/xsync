@@ -59,6 +59,7 @@ import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.http.HttpEntity;
@@ -114,7 +115,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                                      final XsyncXnatInfo xnatInfo, final SerializerService serializer,
                                      final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate,
                                      final Map<String, HttpMessageConverter<?>> converters,
-                                     final ThreadPoolExecutorFactoryBean executorFactoryBean,
+                                     @Qualifier("xsyncThreadPoolExecutorFactoryBean")
+                                        final ThreadPoolExecutorFactoryBean xsyncThreadPoolExecutorFactoryBean,
                                      final SyncStatusService syncStatusService,
                                      final SyncManifestService syncManifestService
                                      ) {
@@ -132,7 +134,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         if (!converters.containsKey("stringHttpMessageConverter")) {
             _converters.add(new StringHttpMessageConverter());
         }
-        _executorService = executorFactoryBean.getObject();
+        _executorService = xsyncThreadPoolExecutorFactoryBean.getObject();
         _manager = manager;
     }
 
