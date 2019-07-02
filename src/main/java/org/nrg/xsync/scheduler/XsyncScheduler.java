@@ -28,7 +28,7 @@ public class XsyncScheduler {
 	private static final Logger _logger = LoggerFactory.getLogger(XsyncScheduler.class);
 
 	@Bean(name = "xsyncThreadPoolExecutorFactoryBean")
-	public ThreadPoolExecutorFactoryBean threadPoolExecutorFactoryBean() {
+	public ThreadPoolExecutorFactoryBean xsyncThreadPoolExecutorFactoryBean() {
 		//return new ThreadPoolExecutorFactoryBean();
 		ThreadPoolExecutorFactoryBean tBean = new ThreadPoolExecutorFactoryBean();
 		tBean.setCorePoolSize(5);
