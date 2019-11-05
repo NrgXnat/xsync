@@ -10,6 +10,7 @@
 buildscript {
     ext {
         vXnat = '1.7.6-SNAPSHOT'
+        vXnatDev = '1.7.6.RAD-SNAPSHOT'
     }
     repositories {
         mavenLocal()
@@ -22,6 +23,14 @@ buildscript {
         maven {
             url 'https://nrgxnat.artifactoryonline.com/nrgxnat/libs-snapshot'
             name 'XNAT Snapshot Repository'
+        }
+        maven {
+            url "https://maven.radiologics.com/repository/snapshots"
+            name "Radiologics Snapshot Repository"
+        }
+        maven {
+            url "https://maven.radiologics.com/repository/internal"
+            name "Radiologics Release Repository"
         }
     }
     dependencies {
@@ -58,6 +67,14 @@ repositories {
         url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot"
         name "XNAT Snapshot Repository"
     }
+    maven {
+        url "https://maven.radiologics.com/repository/snapshots"
+        name "Radiologics Snapshot Repository"
+    }
+    maven {
+        url "https://maven.radiologics.com/repository/internal"
+        name "Radiologics Release Repository"
+    }
 }
 
 // Use this configuration to put dependencies into the fat jar
@@ -69,7 +86,7 @@ sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
 dependencyManagement.imports {
-    mavenBom "org.nrg:parent:${vXnat}"
+    mavenBom "org.nrg:parent:${vXnatDev}"
 }
 
 dependencies {
@@ -79,7 +96,7 @@ dependencies {
     implementation("org.nrg.xnat:xnat-data-models") {
         transitive = false
     }
-    implementation "org.nrg.xnat:tasks:1.7.5-SNAPSHOT"
+    implementation "org.nrg.xnat:tasks"
 
     implementation("org.nrg.xdat:core") {
         transitive = false

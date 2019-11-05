@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.CatEntryI;
 import org.nrg.xdat.model.XnatAbstractresourceI;
@@ -75,11 +76,14 @@ public class ResourceUtils {
           }
 	  }
 	  
-	  public Map<String, String> verify(String localCatalogFilePath, JsonNode remoteFiles) {
+	  public Map<String, String> verify(String localCatalogFilePath, JsonNode remoteFiles) throws NotFoundException {
 		  Map<String, String> filesNotFound = new HashMap<String, String>();
 		  JsonNode resultNode = getResultNode(remoteFiles);
 		  File catalogFile = new File(localCatalogFilePath);
-		  CatCatalogBean catalogBean = CatalogUtils.getCatalog(catalogFile);
+		  CatCatalogBean catalogBean = CatalogUtils.getCatalog(catalogFile, null);
+		  if (catalogBean == null) {
+		  	throw new NotFoundException("Catalog not found: " + localCatalogFilePath);
+		  }
 		  List<CatEntryI> entries = catalogBean.getEntries_entry();
 		  for (CatEntryI entry:entries) {
 			  String entryName = entry.getName();
