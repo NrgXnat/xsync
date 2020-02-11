@@ -10,7 +10,6 @@
 buildscript {
     ext {
         vXnat = '1.7.6.RAD'
-        vXnatDev = '1.7.6.RAD'
     }
     repositories {
         mavenLocal()
@@ -86,7 +85,7 @@ sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
 dependencyManagement.imports {
-    mavenBom "org.nrg:parent:${vXnatDev}"
+    mavenBom "org.nrg:parent:${vXnat}"
 }
 
 dependencies {
