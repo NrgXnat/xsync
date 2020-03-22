@@ -132,9 +132,6 @@ dependencies {
     implementation("dcm4che:dcm4che-core") { transitive = false }
     implementation("javax.mail:javax.mail-api") { transitive = false }
     implementation("com.google.code.gson:gson") { transitive = false }
-    implementation("stratum:stratum") {
-        transitive = false
-    }
 
     implementation("eu.bitwalker:UserAgentUtils") { transitive = false }
 
