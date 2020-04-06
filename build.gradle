@@ -100,9 +100,8 @@ dependencies {
     implementation("org.nrg.xdat:core") {
         transitive = false
     }
-    implementation("org.nrg:framework") {
-        transitive = false
-    }
+    annotationProcessor("org.nrg:framework")
+    compileOnly("org.nrg:framework")
     implementation("org.nrg:config") {
         transitive = false
     }
