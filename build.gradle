@@ -16,11 +16,11 @@ buildscript {
         mavenCentral()
         jcenter()
         maven {
-            url 'https://nrgxnat.artifactoryonline.com/nrgxnat/libs-release'
+            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-release'
             name 'XNAT Release Repository'
         }
         maven {
-            url 'https://nrgxnat.artifactoryonline.com/nrgxnat/libs-snapshot'
+            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
             name 'XNAT Snapshot Repository'
         }
         maven {
