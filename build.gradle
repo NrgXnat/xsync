@@ -9,12 +9,12 @@
 
 buildscript {
     ext {
-        vXnat = '1.7.7.RAD-SNAPSHOT'
+        vXnat = '1.7.7-ACTIVE-SNAPSHOT'
     }
     repositories {
-        mavenLocal()
-        mavenCentral()
-        jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
         maven {
             url 'https://nrgxnat.jfrog.io/nrgxnat/libs-release'
             name 'XNAT Release Repository'
@@ -23,18 +23,10 @@ buildscript {
             url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
             name 'XNAT Snapshot Repository'
         }
-        maven {
-            url "https://maven.radiologics.com/repository/snapshots"
-            name "Radiologics Snapshot Repository"
-        }
-        maven {
-            url "https://maven.radiologics.com/repository/internal"
-            name "Radiologics Release Repository"
-        }
     }
     dependencies {
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.3.RELEASE"
-        classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
+        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.7-SNAPSHOT"
+        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
     }
 }
 
