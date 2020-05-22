@@ -25,7 +25,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.7-SNAPSHOT"
+        classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
         classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
     }
 }
