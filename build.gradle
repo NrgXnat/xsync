@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.7.7-ACTIVE-SNAPSHOT'
+        vXnat = '1.8.0-SNAPSHOT'
     }
     repositories {
         maven {
@@ -27,6 +27,7 @@ buildscript {
     dependencies {
         classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
         classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
+	classpath "io.franzbecker:gradle-lombok:4.0.0"
     }
 }
 
@@ -41,6 +42,8 @@ apply plugin: 'maven-publish'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'xnat-data-builder'
+apply plugin: 'io.franzbecker.gradle-lombok'
+
 
 repositories {
     mavenLocal()
