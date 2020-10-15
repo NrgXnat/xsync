@@ -13,7 +13,7 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 Version 1.3.5-SNAPSHOT  As of October 15, 2020
 
 Added ability to modify fields, within a datatype, which contain references to subject IDs or image session IDs. 
-See section on Datatype Tranformation Before Sync 
+See section on Datatype Transformation Before Sync 
 
 Version 1.3.3 As of February 4, 2019
 
@@ -215,7 +215,7 @@ Among the xsync-*-controller listed, the two most required ones are:
 
    * set the Token Refresh Interval. Xsync uses tokens from the Destination XNAT to communicate. These tokens are refreshed by default every 10 hours. 
 
-# Datatype Tranformation Before Sync #
+# Datatype Transformation Before Sync #
 
 Xsync replaces ID references (subject, image session etc) as it transfers entities to the Remote XNAT. 
 If a datatype is modelled in a manner which contains these IDs in fields, Xsync does not replace values in these fields. 
@@ -260,6 +260,9 @@ private final String myXsiType = "icr:roiCollectionData";
 	}
 }
 ```
+
+The package need not be as shown in the above code, as long as the package in which you write the class is in the component scan things will be ok. 
+The only requirements are - add @Component and set the annotation @DatatypeTransformerAnnotation
 
 
 # Other Tips #
