@@ -10,7 +10,8 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 
 # ChangeLog #
-Version 1.3.5-SNAPSHOT As of October 15, 2020
+Version 1.3.5-SNAPSHOT  As of October 15, 2020
+
 Added ability to modify fields, within a datatype, which contain references to subject IDs or image session IDs. 
 See section on Datatype Tranformation Before Sync 
 
@@ -223,6 +224,8 @@ This may break the expectation of consumers of DataType on the Remote XNAT. The 
 To overcome this problem, as per Xsync version 1.3.5+, any datatype which is modelled in such a way that it contains references to ID's in subfields 
 other than XNAT schema for the base type (eg XnatImageAssessor), create a class like so:
 
+
+```
 package org.nrg.xnat.xsync.transformer.datatype;
 
 import java.util.Map;
@@ -246,7 +249,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ICRRoiCollectionPreSyncTransformer implements SyncTransformerI {
 
-	private final String myXsiType = "icr:roiCollectionData";
+private final String myXsiType = "icr:roiCollectionData";
 	
 	public void transform(XnatExperimentdata exp, Map<String, String> attributes) {
 		if (myXsiType.equals(exp.getXSIType())) {
@@ -256,7 +259,7 @@ public class ICRRoiCollectionPreSyncTransformer implements SyncTransformerI {
 		}
 	}
 }
-
+```
 
 
 # Other Tips #
