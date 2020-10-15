@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatExperimentdataI;
@@ -44,6 +45,8 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnat.exceptions.InvalidArchiveStructure;
 import org.nrg.xnat.xsync.anonymize.AnonymizerI;
 import org.nrg.xnat.xsync.anonymize.XsyncAnonymizer;
+import org.nrg.xnat.xsync.transformer.TransformerHelper;
+import org.nrg.xnat.xsync.transformer.XsyncDataTypeSpecificTransformer;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionXsiType;
 import org.nrg.xsync.configuration.json.SyncConfigurationResource;
@@ -58,13 +61,17 @@ import org.nrg.xsync.utils.XsyncRESTUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
+@Slf4j
 public class ExperimentFilter {
 	private static final Logger _log = LoggerFactory.getLogger(ExperimentFilter.class);
 
@@ -681,6 +688,7 @@ public class ExperimentFilter {
 			if(filterImagingAssessor(orig)!=null)
 			{
 				exp = correctIDandLabel(newSubject,orig);
+				transformOtherItemFieldsBeforeSync(newSubject,orig,exp);
 				filterExperimentResources(exp);
 				if (!orig.getId().equals(exp.getId())) {
 					for (final XnatAbstractresourceI res : exp.getResources_resource()) {
@@ -1134,8 +1142,10 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 					throws Exception {
 		XnatSubjectassessordataI assess = (XnatSubjectassessordataI) correctIDandLabel((XnatSubjectdata)newSubject,(XnatSubjectassessordata)orig);
 		assess=filterSubjectAssessor((XnatSubjectassessordata)assess);
+		transformOtherItemFieldsBeforeSync(origSubject, newSubject,orig,assess);
 		if(assess!=null)
 		{
+			
 			filterSubjectAssessorResources((XnatSubjectassessordata)assess);
 			for (final XnatAbstractresourceI res : assess.getResources_resource()) {
 				//modifySubjectAssessorResource((XnatAbstractresource) res, origSubject, newSubject);
@@ -1198,4 +1208,53 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 		}
 		return exp;
 	}
+	
+
+	private void transformOtherItemFieldsBeforeSync(XnatSubjectdata newSubject, XnatImagesessiondata orig, XnatImagesessiondata idAndLabelModifiedExp) {
+		//Note: Mohana - At this stage the labels and IDs have been transformed
+		//In case the data-model contains some fields which Xsync is not aware 
+		//that these fields contain Ids, use the SyncTransformer Bean to transform the 
+		//experiment.
+		try {
+			XsyncDataTypeSpecificTransformer dataTypeSpecificTransformer = XDAT.getContextService().getBean(XsyncDataTypeSpecificTransformer.class);
+			Map<String, String> attributes = new HashMap<String, String>();
+			attributes.put(TransformerHelper.LOCAL_PROJECT_ID,orig.getProject());
+			attributes.put(TransformerHelper.REMOTE_PROJECT_ID,newSubject.getProject());
+			attributes.put(TransformerHelper.LOCAL_SUBJECT_ID, orig.getSubjectId());
+			attributes.put(TransformerHelper.LOCAL_EXP_ID, orig.getId());
+			attributes.put(TransformerHelper.REMOTE_SUBJECT_LABEL, newSubject.getLabel());
+			attributes.put(TransformerHelper.REMOTE_SUBJECT_ID, newSubject.getId());
+			attributes.put(TransformerHelper.REMOTE_EXP_ID, idAndLabelModifiedExp.getId());
+			attributes.put(TransformerHelper.REMOTE_EXP_LABEL, idAndLabelModifiedExp.getLabel());
+			dataTypeSpecificTransformer.transformExperiment(idAndLabelModifiedExp, attributes);
+		}catch(NoSuchBeanDefinitionException nsbe) {
+			log.debug("No Bean which can transform for sync has been found");
+		}
+
+	}
+	
+	private void transformOtherItemFieldsBeforeSync(XnatSubjectdata origSubject,XnatSubjectdata newSubject,XnatSubjectassessordataI orig, XnatSubjectassessordataI idAndLabelModifiedExp) {
+		//Note: Mohana - At this stage the labels and IDs have been transformed
+		//In case the data-model contains some fields which Xsync is not aware 
+		//that these fields contain Ids, use the SyncTransformer Bean to transform the 
+		//experiment.
+		try {
+			XsyncDataTypeSpecificTransformer dataTypeSpecificTransformer = XDAT.getContextService().getBean(XsyncDataTypeSpecificTransformer.class);
+			Map<String, String> attributes = new HashMap<String, String>();
+			attributes.put(TransformerHelper.LOCAL_PROJECT_ID,orig.getProject());
+			attributes.put(TransformerHelper.REMOTE_PROJECT_ID,newSubject.getProject());
+			attributes.put(TransformerHelper.LOCAL_SUBJECT_ID, orig.getSubjectId());
+			attributes.put(TransformerHelper.LOCAL_EXP_ID, orig.getId());
+			attributes.put(TransformerHelper.REMOTE_SUBJECT_LABEL, newSubject.getLabel());
+			attributes.put(TransformerHelper.REMOTE_SUBJECT_ID, newSubject.getId());
+			attributes.put(TransformerHelper.REMOTE_EXP_ID, idAndLabelModifiedExp.getId());
+			attributes.put(TransformerHelper.REMOTE_EXP_LABEL, idAndLabelModifiedExp.getLabel());
+			dataTypeSpecificTransformer.transformSubjectAssessor((XnatSubjectassessordata)idAndLabelModifiedExp, attributes);
+		}catch(NoSuchBeanDefinitionException nsbe) {
+			log.debug("No Bean which can transform for sync has been found");
+		}
+
+	}
+	
+	
 }

@@ -524,7 +524,6 @@ public class RemoteSubject {
 		XsyncExperimentTransfer syncExptransfer = new XsyncExperimentTransfer(_manager,_xnatInfo, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration, user,
 					subjectSyncInfo, localSubject, _serializer, _syncStatusService, localProject, syncIfNotSyncedInPast);
 		syncExptransfer.syncExperiment(assess, remoteSubject);
-
 	}
 	
 

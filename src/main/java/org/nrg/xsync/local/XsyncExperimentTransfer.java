@@ -38,6 +38,8 @@ import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXReader;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.representations.ZipRepresentation;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
+import org.nrg.xnat.xsync.transformer.TransformerHelper;
+import org.nrg.xnat.xsync.transformer.XsyncDataTypeSpecificTransformer;
 import org.nrg.xsync.aspera.AsperaClient;
 import org.nrg.xsync.aspera.AsperaProjectPrefs;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
@@ -66,16 +68,20 @@ import org.nrg.xsync.utils.XsyncUtils;
 import org.restlet.data.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.xml.sax.SAXException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * @author Mohana Ramaratnam
  *
  */
+@Slf4j
 public class XsyncExperimentTransfer {
 	
 	private static final Logger _log = LoggerFactory.getLogger(XsyncExperimentTransfer.class);
@@ -343,6 +349,7 @@ public class XsyncExperimentTransfer {
 
 	private boolean storeXar( XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor) throws XsyncRemoteConnectionException{
 		_log.debug("Starting storeXar process");
+		System.out.println("Remote SUbject: " +target.getSubjectId() + " from subject " + targetsubject.getId() + " label " + targetsubject.getLabel());
 		 boolean stored = false;
 		 _syncStatusService.registerCurrentExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 		 //final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
@@ -467,7 +474,8 @@ public class XsyncExperimentTransfer {
 						 item = origAss.getItem().copy();
 						 final XnatImageassessordata targetAss = (XnatImageassessordata) BaseElement.GetGeneratedItem(item);
 						 experimentFilter.correctIDandLabel(targetAss, origAss, remote_id, target.getProject());
-
+						 transformOtherItemFieldsBeforeSync(targetAss,origAss,orig.getSubjectId(), remote_id, target.getProject(), targetsubject.getId(),targetsubject.getLabel());
+						 
 						 for (final XnatAbstractresourceI res : targetAss.getResources_resource()) {
 							 experimentMapper.modifyExptResource((XnatAbstractresource) res, orig,true);
 						 }
@@ -1191,6 +1199,29 @@ public class XsyncExperimentTransfer {
 			 XnatImagesessiondata targetExperiment = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
 			 resources = targetExperiment.getResources_resource();
 			 return resources;
+		}
+		
+		private void transformOtherItemFieldsBeforeSync(XnatImageassessordata targetAssessor,XnatImageassessordata origAss,String origSubjectId, 
+														String remoteImageSessionId, String remoteProjectId, String remoteSubjectId, 
+														String remoteSubjectLabel) {
+			//Note: Mohana - At this stage the labels and IDs have been transformed
+			//In case the data-model contains some fields which Xsync is not aware 
+			//that these fields contain Ids, use the SyncTransformer Bean to transform the 
+			//experiment.
+			try {
+				XsyncDataTypeSpecificTransformer dataTypeSpecificTransformer = XDAT.getContextService().getBean(XsyncDataTypeSpecificTransformer.class);
+				Map<String, String> attributes = new HashMap<String, String>();
+				attributes.put(TransformerHelper.LOCAL_PROJECT_ID,origAss.getProject());
+				attributes.put(TransformerHelper.REMOTE_PROJECT_ID,targetAssessor.getProject());
+				attributes.put(TransformerHelper.LOCAL_SUBJECT_ID, origSubjectId);
+				attributes.put(TransformerHelper.REMOTE_SUBJECT_LABEL, remoteSubjectLabel);
+				attributes.put(TransformerHelper.REMOTE_SUBJECT_ID, remoteSubjectId);
+				attributes.put(TransformerHelper.REMOTE_IMAGESESSION_ID, targetAssessor.getImagesessionId());
+				attributes.put(TransformerHelper.REMOTE_IMAGESESSION_LABEL, targetAssessor.getImageSessionData().getLabel());
+				dataTypeSpecificTransformer.transformImageAssessor(targetAssessor, attributes);
+			}catch(NoSuchBeanDefinitionException nsbe) {
+				log.debug("No Bean which can transform for sync has been found");
+			}
 		}
 
 }

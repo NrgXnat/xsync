@@ -6,9 +6,11 @@ import org.nrg.xdat.bean.XsyncXsyncassessordataBean;
 import org.nrg.xdat.bean.XsyncXsyncinfodataBean;
 import org.nrg.xdat.bean.XsyncXsyncprojectdataBean;
 import org.nrg.xdat.bean.XsyncXsyncremotemapdataBean;
-import org.springframework.context.annotation.ComponentScan;
+import org.nrg.xnat.xsync.transformer.XsyncDataTypeSpecificTransformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 
 @XnatPlugin(value = "xsyncPlugin",
 			name = "XSync Plugin",
@@ -43,6 +45,7 @@ import org.slf4j.LoggerFactory;
 	"org.nrg.xsync.xapi",
 	"org.nrg.xsync.utils",	
 	"org.nrg.xsync.connection",
+	"org.nrg.xnat.xsync.transformer",
 	"org.nrg.xsync.manifest"})
 public class XsyncPlugin {
 	
@@ -51,4 +54,11 @@ public class XsyncPlugin {
 	public XsyncPlugin() {
 		logger.info("Configuring XSync plugin");
 	}
+	
+	@Bean
+	XsyncDataTypeSpecificTransformer xsyncDataTypeSpecificTransformer() {
+		XsyncDataTypeSpecificTransformer dataTypeSpecificTransformer = new XsyncDataTypeSpecificTransformer();
+		return dataTypeSpecificTransformer;
+	}
+
 }
