@@ -2,13 +2,16 @@ package org.nrg.xsync.local;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +21,9 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.base.BaseElement;
+import org.nrg.xdat.bean.CatCatalogBean;
+import org.nrg.xdat.bean.reader.XDATXMLReader;
+import org.nrg.xdat.model.CatEntryI;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatImageassessordataI;
@@ -349,7 +355,6 @@ public class XsyncExperimentTransfer {
 
 	private boolean storeXar( XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor) throws XsyncRemoteConnectionException{
 		_log.debug("Starting storeXar process");
-		System.out.println("Remote SUbject: " +target.getSubjectId() + " from subject " + targetsubject.getId() + " label " + targetsubject.getLabel());
 		 boolean stored = false;
 		 _syncStatusService.registerCurrentExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 		 //final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
@@ -889,7 +894,10 @@ public class XsyncExperimentTransfer {
 			if (resource instanceof XnatResource) {
 				if (((XnatResource) resource).getUri() != null) {
 					String path = ((XnatResource) resource).getUri();
-					String search_string = "SCANS/"+ scanid+"/";
+					String search_string = "SCANS/";
+					if (null != scanid ) {
+						search_string += scanid+"/";
+					}
 					int scan_id_label_index = path.indexOf(search_string);
 					if (scan_id_label_index != -1) {
 						String newURI = path.substring(search_string.length());
@@ -901,8 +909,8 @@ public class XsyncExperimentTransfer {
 				}
 			}
 		}
-		
 
+	
 		File buildxar(XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target) throws Exception {
 			File xarFile;
 			
@@ -1061,24 +1069,90 @@ public class XsyncExperimentTransfer {
 		File buildImagingScanXar(XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target,XnatImagescandata scan) throws Exception {
 			File xarFile;
 			final String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
-			
+			List<String> zipPathTokens = new ArrayList<String>();
+			zipPathTokens.add(scan.getId());
 			try {
 				File experimentPath = new File(anonymizedSessionPath);
-				ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,scan.getId(),0);
+				if (!experimentPath.exists()) {
+					log.debug("Expected file path " + experimentPath + " for syncing scan " + scan.getId() + " session " + orig.getLabel() + " does not exist");
+					return null;
+				}
 				List<File> files = new ArrayList<File>();
-				if (experimentPath.exists()) {
-					File experimentScanPath = new File(anonymizedSessionPath+"SCANS"+File.separator+scan.getId());
-					if (experimentScanPath.exists()) {
-						files = (List<File>) FileUtils.listFiles(experimentScanPath,null,true);
+				List<XnatAbstractresource> scanFiles = scan.getFile();
+				
+				boolean allResourcesInOneRootSubFolder = true;
+				for (XnatAbstractresource a: scanFiles) {
+					String scanFolderId = scan.getId();
+					if (a instanceof XnatResource) {
+						XnatResource resc = (XnatResource)a;
+						String catalogFileURI = resc.getUri();
+						if (!catalogFileURI.startsWith("SCANS/" + scan.getId() + "/")) {
+							int indexOfScans = catalogFileURI.indexOf("SCANS/");
+							String[] pathTokens = catalogFileURI.substring(indexOfScans + 6).split("/");
+							scanFolderId = pathTokens[0];
+							if (!scanFolderId.equals(scan.getId())) {
+								zipPathTokens.add(scanFolderId);
+								allResourcesInOneRootSubFolder = false;
+							}
+						}
 					}
 				}
+				
+				if(allResourcesInOneRootSubFolder) {
+					File experimentScanPath = new File(anonymizedSessionPath+"SCANS"+File.separator+scan.getId());
+					if (experimentScanPath.exists()) {
+						List<File> rscfiles = (List<File>) FileUtils.listFiles(experimentScanPath,null,true);
+						files.addAll(rscfiles);
+						for (XnatAbstractresource a: scanFiles) {
+							if (a instanceof XnatResource) {
+								XnatResource resc = (XnatResource)a;
+								modifyExptScanResource(resc,scan.getId());
+							}
+						}
+					}
+				}else {
+					for (XnatAbstractresource a: scanFiles) {
+						if (a instanceof XnatResource) {
+							XnatResource resc = (XnatResource)a;
+							List<File> rscfiles = new ArrayList<File>();
+							String catalogFileURI = resc.getUri();
+							int indexOfScans = catalogFileURI.indexOf("SCANS/");
+							File catFile = null;
+							if (indexOfScans == 0) {
+								catFile = new File(anonymizedSessionPath.endsWith("/")?anonymizedSessionPath:anonymizedSessionPath+"/" + catalogFileURI);
+							}else {
+								catFile = new File(anonymizedSessionPath.endsWith("/")?anonymizedSessionPath:anonymizedSessionPath+"/" + catalogFileURI.substring(indexOfScans));
+							}
+							InputStream inputStream = new FileInputStream(catFile);
+							XDATXMLReader reader = new XDATXMLReader();
+		                    org.nrg.xdat.bean.base.BaseElement base = reader.parse(inputStream);
+		                    CatCatalogBean cat = (CatCatalogBean) base;
+		                    for (CatEntryI entry: cat.getEntries_entry()) {
+		                    	String relativePath = entry.getUri();
+		                    	File f = new File(catFile.getParent() + "/" + relativePath);
+		                    	if (f.exists()) {
+		                    		rscfiles.add(f);
+		                    	}
+		                    }
+		                    rscfiles.add(catFile);
+							files.addAll(rscfiles);
+							if (!allResourcesInOneRootSubFolder) { 
+								modifyExptScanResource(resc,null);
+							}else {
+								modifyExptScanResource(resc,scan.getId());
+							}
+						}
+					}
+				}
+				
+
+				
+				
+						
 				String expCachePath = SynchronizationManager.GET_SYNC_XAR_PATH(targetproject,orig);
 				new File(expCachePath).mkdirs();
 				File outF = new File(expCachePath, target.getLabel()+"_scan_"+ scan.getId()+"_" + (new Date()).getTime() + ".xml");
 
-				for (final XnatAbstractresourceI res : scan.getFile()) {
-					modifyExptScanResource((XnatAbstractresource) res,scan.getId());
-				}
 				
 				outF.deleteOnExit();
 				
@@ -1086,6 +1160,7 @@ public class XsyncExperimentTransfer {
 				scan.toXML(fw, false);
 				fw.close();
 				
+				ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,zipPathTokens,0);
 			
 				
 				rep.addEntry(target.getLabel()+"_"+scan.getId() + ".xml",outF);
