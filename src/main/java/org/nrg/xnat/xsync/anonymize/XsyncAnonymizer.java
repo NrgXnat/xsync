@@ -165,8 +165,10 @@ public class XsyncAnonymizer implements AnonymizerI {
 		final List<XnatResourcecatalogI> resources = scan.getFile();
 		final String project = scan.getProject();
 		DicomObject dicomObject = findDicomFileAndGetHeader(rootpath, resources, project, "DICOM", foundDicom);
-
-		if (dicomObject == null && !foundDicom.get()) {
+		if (dicomObject != null) {
+			return dicomObject;
+		}
+		if (!foundDicom.get()) {
 			return findDicomFileAndGetHeader(rootpath, resources, project, "secondary", foundDicom);
 		}
 
