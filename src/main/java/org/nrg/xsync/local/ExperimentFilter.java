@@ -407,42 +407,12 @@ public class ExperimentFilter {
 	 *            experiment for correction
 	 * @throws Exception
 	 */
-	private XnatImagesessiondata correctIDandLabel(XnatSubjectdataI targetsubject,XnatImagesessiondata origExperiment) throws Exception {
+	private XnatImagesessiondata correctIDandLabel(XnatSubjectdataI targetsubject, XnatImagesessiondata origExperiment)
+			throws Exception {
+		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
 		XFTItem item = origExperiment.getItem().copy();
 		XnatImagesessiondata targetExperiment = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
-		String newid = "";
-		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
-		String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origExperiment.getId());
-		_log.debug("correctIDandLabel (experiment=" + origExperiment.getLabel() + 
-				"): returned alreadyAssignedRemoteID(idMapper.getRemoteAssessionId)=" + alreadyAssignedRemoteId);
-		if (alreadyAssignedRemoteId == null) {
-			XsyncRESTUtils restUtil=new XsyncRESTUtils(_manager, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration);
-			alreadyAssignedRemoteId = restUtil.getRemoteExperimentId(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId(), targetsubject.getId(),origExperiment.getLabel(),origExperiment.getXSIType());
-			_log.debug("correctIDandLabel (experiment=" + origExperiment.getLabel() + 
-					"): returned alreadyAssignedRemoteID(getRemoteExperimentId)=" + alreadyAssignedRemoteId);
-		}
-		newid = alreadyAssignedRemoteId!=null?alreadyAssignedRemoteId:newid;
-		// WORKAROUND (TEMPORARY???):  We've had some cases where experiments have gotten assigned the assession number of
-		// the subject.  It's not clear why that is happening, but it causes a lot of problems when it does (one session overwrites
-		// the other). Let's set the id to null if it looks like a subject assession number
-		if (newid != null && newid.matches("^.*_S[0-9]*$")) {
-			_log.error("ERROR:  Experiment appears to have been assighed a subject assession number.  Setting it to null" +
-					" so a new one is assigned");
-			newid = "";
-		}
-		targetExperiment.setId(newid);
-		if (alreadyAssignedRemoteId != null && newid != null && alreadyAssignedRemoteId.equals(newid)) {
-			ConflictCheckUtil.checkForConflict(targetExperiment, newid, projectSyncConfiguration, 
-					_jdbcTemplate, _queryResultUtil, _manager);
-		}
-		//targetExperiment.setProject(targetsubject.getProject());
-		targetExperiment.setSubjectId(targetsubject.getLabel());
-		// correct shared projects
-		for (XnatExperimentdataShareI share : targetExperiment.getSharing_share()) {
-			if (share.getLabel() != null) {
-				share.setLabel("");
-			}
-		}
+		idMapper.correctIDandLabel(targetExperiment, targetsubject);
 		return targetExperiment;
 	}
 
@@ -470,7 +440,6 @@ public class ExperimentFilter {
 				share.setLabel("");
 			}
 		}
-		return;
 	}
 	
 

@@ -7,33 +7,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.net.AuthenticatedClientHttpRequestFactory;
 import org.nrg.framework.services.SerializerService;
-import org.nrg.framework.utilities.BasicXnatResourceLocator;
 import org.nrg.mail.services.MailService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
-import org.nrg.xdat.om.XnatExperimentdata;
-import org.nrg.xdat.om.XnatSubjectassessordata;
-import org.nrg.xdat.om.XsyncXsyncassessordata;
-import org.nrg.xdat.om.XsyncXsyncinfodata;
-import org.nrg.xdat.om.XsyncXsyncprojectdata;
-import org.nrg.xdat.om.XsyncXsyncremotemapdata;
+import org.nrg.xdat.om.*;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.event.EventMetaI;
@@ -41,7 +31,7 @@ import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xft.utils.SaveItemHelper;
 import org.nrg.xnat.services.archive.CatalogService;
-import org.nrg.xnat.xsync.annotation.IdGenerator;
+import org.nrg.xnat.xsync.generator.XsyncLabelGeneratorI;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteOperation;
 import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
@@ -56,12 +46,8 @@ import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.StringStreamingResponseBody;
 import org.nrg.xsync.utils.XsyncUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -91,6 +77,7 @@ import io.swagger.annotations.ApiResponses;
 @Api(description = "XNAT XSync Operations API")
 @XapiRestController
 @RequestMapping(value = "/xsync")
+@Slf4j
 public class XsyncOperationsController extends AbstractXapiProjectRestController {
 
 	private final QueryResultUtil            _queryResultUtil;
@@ -102,8 +89,6 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     private final NamedParameterJdbcTemplate _jdbcTemplate;
     private final SyncStatusService 		 _syncStatusService;
     private final SyncManifestService 		 _syncManifestService;
-    private List<Resource> _resourceList;
-    private static final Logger _logger = LoggerFactory.getLogger(XsyncOperationsController.class);
 
     @Autowired
     public XsyncOperationsController(final RemoteConnectionManager manager,
@@ -118,8 +103,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                                      @Qualifier("xsyncThreadPoolExecutorFactoryBean")
                                         final ThreadPoolExecutorFactoryBean xsyncThreadPoolExecutorFactoryBean,
                                      final SyncStatusService syncStatusService,
-                                     final SyncManifestService syncManifestService
-                                     ) {
+                                     final SyncManifestService syncManifestService,
+                                     final Map<String, XsyncLabelGeneratorI> idGenerators) {
         super(userManagementService, roleHolder);
         _configService = configService;
         _mailService = mailService;
@@ -136,6 +121,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
         _executorService = xsyncThreadPoolExecutorFactoryBean.getObject();
         _manager = manager;
+        _idGenerators = idGenerators;
     }
 
     @ApiOperation(value = "Exports the indicated project.", notes = "Starts the project export operation for the project with the indicated ID.", response = String.class)
@@ -154,14 +140,14 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 	                return new ResponseEntity<>(status);
 	            }
 	        }catch(Exception e) {
-	            if (_log.isInfoEnabled()) {
-	                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
+	            if (log.isInfoEnabled()) {
+	                log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
 	            }
 	        }
 	    	final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, getSessionUser());
 	        _executorService.submit(projectChange);
-	        if (_log.isInfoEnabled()) {
-	            _log.info("Project " + projectId + " is being exported by " + getSessionUser().getUsername());
+	        if (log.isInfoEnabled()) {
+	            log.info("Project " + projectId + " is being exported by " + getSessionUser().getUsername());
 	        }
 	        return new ResponseEntity<>(projectId + " synchronization started", HttpStatus.OK);
         }
@@ -183,8 +169,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 	                return new ResponseEntity<>(status);
 	            }
 	        }catch(Exception e) {
-	            if (_log.isInfoEnabled()) {
-	                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
+	            if (log.isInfoEnabled()) {
+	                log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
 	            }
 	        }
         	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(projectId);
@@ -205,7 +191,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 							SaveItemHelper.authorizedSave(mapdata, user, false, true, c);
 						} catch (Exception e) {
 							allOk = false;
-							_logger.error("ERROR:  Unable to update remote URL in RemoteMapData", e);
+							log.error("ERROR:  Unable to update remote URL in RemoteMapData", e);
 						}
             		}
             	}
@@ -226,7 +212,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             					SaveItemHelper.authorizedSave(infodata, user, false, true, c);
             				} catch (Exception e) {
             					allOk = false;
-            					_logger.error("ERROR:  Unable to update remote URL in Xsyncinfodata", e);
+            					log.error("ERROR:  Unable to update remote URL in Xsyncinfodata", e);
             				}
             			}
             		}
@@ -264,8 +250,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                 return new ResponseEntity<>(status);
             }
         }catch(Exception e) {
-            if (_log.isInfoEnabled()) {
-                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
+            if (log.isInfoEnabled()) {
+                log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
             }
         }
     	if (_syncStatusService.isCurrentlySyncing(projectId)) {
@@ -287,7 +273,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             			return new ResponseEntity<>("Unable to mark sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
             		}
             	} catch (Exception e) {
-            		_log.error("Unable to mark sync assessor for syncing:  " + ExceptionUtils.getFullStackTrace(e));
+            		log.error("Unable to mark sync assessor for syncing:  " + ExceptionUtils.getFullStackTrace(e));
             		return new ResponseEntity<>("Unable to mark sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
             	}
            	}
@@ -296,8 +282,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     	final SingleExperimentTransfer singleExperimentTransfer = new SingleExperimentTransfer(_manager, _configService, _serializer,
     			_queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, user, exp.getId());
         _executorService.submit(singleExperimentTransfer);
-        if (_log.isInfoEnabled()) {
-            _log.info("Experiment[ " + exp.getLabel() + "@" + projectId +"]" + experimentId + " is being exported by " + getSessionUser().getUsername());
+        if (log.isInfoEnabled()) {
+            log.info("Experiment[ " + exp.getLabel() + "@" + projectId +"]" + experimentId + " is being exported by " + getSessionUser().getUsername());
         }
         return new ResponseEntity<>(experimentId + " synchronization started", HttpStatus.OK);
     }
@@ -317,8 +303,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                 return new ResponseEntity<>(status);
             }
         }catch(Exception e) {
-            if (_log.isInfoEnabled()) {
-                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
+            if (log.isInfoEnabled()) {
+                log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
             }
         }
 
@@ -379,7 +365,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             return new ResponseEntity<>(responseText.toString(), HttpStatus.OK);
         } catch (Exception e) {
             final String message = "An error occurred trying to export the experiment " + experimentId;
-            _log.error(message, e);
+            log.error(message, e);
             return new ResponseEntity<>(message + ": " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -402,8 +388,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                 return new ResponseEntity<>(status);
             }
         }catch(Exception e) {
-            if (_log.isInfoEnabled()) {
-                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
+            if (log.isInfoEnabled()) {
+                log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
             }
         }
         final List<XsyncXsyncassessordata> okToSyncDatas = XsyncXsyncassessordata.getXsyncXsyncassessordatasByField("xsync:xsyncAssessorData/synced_experiment_id", experimentId, user, true);
@@ -423,7 +409,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             return new ResponseEntity<>(resp, HttpStatus.OK);
         } catch (Exception e) {
             final String message = "An error occurred while fetching sync status information " + experimentId;
-            _log.error(message, e);
+            log.error(message, e);
             return new ResponseEntity<>(message + ": " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -432,35 +418,23 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     /**
      * Gets Xsync custom id generator classes.
      *
-     * @param experimentId the experiment id
-     * @return the sync info
+     * @return the cutom generators
      */
     @ApiOperation(value = "Xsync custom Id generators.", notes = "Xsync custom Id generators.")
     @XapiRequestMapping(value = "/getXsyncCustomIdGenerators", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<Map<String, String>> getCustomIdentifers(){
-    	final Map<String,String> componentList = new TreeMap<String,String>();
+    public ResponseEntity<Set<String>> getCustomIdentifers(){
     	try {
-    		for (final Resource resource : getResourceList()) {
-    			final Properties properties = PropertiesLoaderUtils.loadProperties(resource);
-    			if (!properties.containsKey(IdGenerator.ID_GENERATOR)) {
-    				continue;
-    			}
-    			String qualifiedClassName=properties.getProperty(IdGenerator.ID_GENERATOR);
-    			String className=qualifiedClassName.substring(qualifiedClassName.lastIndexOf(".")+1);
-    			componentList.put(className,qualifiedClassName);
-    		}
-            return new ResponseEntity<>(componentList, HttpStatus.OK);
+            return new ResponseEntity<>(_idGenerators.keySet(), HttpStatus.OK);
         } catch (Exception e) {
-            _log.error("Error while fetching Xsync Identifier generator classes.", e);
-            return new ResponseEntity<>(componentList, HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("Error while fetching Xsync id generator classes.", e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     
     /**
      * Gets the mapping file.
      *
-     * @param experimentId the experiment id
      * @return the sync info
      * @throws Exception 
      */
@@ -488,11 +462,6 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     		}
     }
     
-    
-    private List<Resource> getResourceList() throws IOException {
-		return (_resourceList!=null) ? _resourceList : BasicXnatResourceLocator.getResources("classpath*:META-INF/xnat/xsync/*-xsync.properties");
-	}
-    
     @ApiOperation(value = "Mark session for sync.", notes = "Marks experiment to be synced.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
     @RequestMapping(value = "/requestSync/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
@@ -508,8 +477,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                 return new ResponseEntity<>(status);
             }
         }catch(Exception e) {
-            if (_log.isInfoEnabled()) {
-                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
+            if (log.isInfoEnabled()) {
+                log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
             }
         }
 
@@ -539,7 +508,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             return new ResponseEntity<>(experimentId + " has been marked to sync.", HttpStatus.OK);
         } catch (Exception e) {
             final String message = "An error occurred trying to export the experiment " + experimentId;
-            _log.error(message, e);
+            log.error(message, e);
             return new ResponseEntity<>(message + ": " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -562,8 +531,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 
         final RestTemplate template = getRestTemplate(operation);
         final HttpMethod method = HttpMethod.resolve(operation.getMethod());
-        if (_log.isDebugEnabled()) {
-            _log.debug("Attempting to " + method + " to URL " + operation.getUrl() + " as user " + username);
+        if (log.isDebugEnabled()) {
+            log.debug("Attempting to " + method + " to URL " + operation.getUrl() + " as user " + username);
         }
         final String value;
         switch (method) {
@@ -599,8 +568,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                 return ;
             }
         }catch(Exception e) {
-            if (_log.isInfoEnabled()) {
-                _log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
+            if (log.isInfoEnabled()) {
+                log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
             }
         }
 
@@ -660,8 +629,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         return template;
     }
 
-    private static final Logger _log = LoggerFactory.getLogger(XsyncOperationsController.class);
-    private final List<HttpMessageConverter<?>> _converters;
-    private final ExecutorService               _executorService;
-    private final RemoteConnectionManager       _manager;
+    private final List<HttpMessageConverter<?>>  _converters;
+    private final ExecutorService                _executorService;
+    private final RemoteConnectionManager        _manager;
+    private final Map<String, XsyncLabelGeneratorI> _idGenerators;
 }

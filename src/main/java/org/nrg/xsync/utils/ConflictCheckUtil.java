@@ -62,18 +62,17 @@ public class ConflictCheckUtil {
 		final RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(), projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 		final RemoteConnectionResponse connectionResponse = manager.getResult(connection,uri);
 		if (connectionResponse.wasSuccessful()) {
-			final List<Map<String, String>> result = getResultList(connectionResponse);;
-			if (result != null && result.size()>0) {
-				final String remoteSessionLabel = result.get(0).get("label");
-				final String remoteSessionProject = result.get(0).get("project");
-				if (exp.getLabel().equals(remoteSessionLabel) && remoteProjectId.equals(remoteSessionProject)) {
-					return;
-				} else {
-					throw new XsyncIdConflictException("Experiment " + remoteId + 
-							" exists at destination with a different label or in a different project.");
-				}
-			} else if (result.size() == 0) {
+			final List<Map<String, String>> result = getResultList(connectionResponse);
+			if (result == null || result.isEmpty()) {
 				return;
+			}
+			final String remoteSessionLabel = result.get(0).get("label");
+			final String remoteSessionProject = result.get(0).get("project");
+			if (exp.getLabel().equals(remoteSessionLabel) && remoteProjectId.equals(remoteSessionProject)) {
+				return;
+			} else {
+				throw new XsyncIdConflictException("Experiment " + remoteId +
+						" exists at destination with a different label or in a different project.");
 			}
 		}
 		throw new XsyncConflictCheckFailureException("Cound not check for experiment label conflict (EXPERIMENT=" + exp.getLabel() + ")");

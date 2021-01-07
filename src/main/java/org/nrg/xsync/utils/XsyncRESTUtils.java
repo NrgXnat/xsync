@@ -3,6 +3,7 @@
  */
 package org.nrg.xsync.utils;
 
+import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -61,27 +62,24 @@ public class XsyncRESTUtils {
 	/**
 	 * Gets the remote experiment id.
 	 *
-	 * @param remoteProjectId
-	 *            the remote project id
 	 * @param remoteSubjectLabel
 	 *            the remote subject label
 	 * @param remoteExperimentLabel
 	 *            the remote experiment label
 	 * @param xsiType
 	 *            the xsi type
-	 * @return the remote experiment id
-	 * @throws Exception
-	 *             the exception
+	 * @return the remote experiment id or null if none found
 	 */
-	public String getRemoteExperimentId(String remoteProjectId, String remoteSubjectLabel, String remoteExperimentLabel,
-			String xsiType) throws Exception {
+	public String getRemoteExperimentId(String remoteSubjectLabel, String remoteExperimentLabel, String xsiType) {
 		String expId = null;
+		XsyncXsyncinfodata syncInfo = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo();
+		String remoteProjectId = syncInfo.getRemoteProjectId();
 		try {
 			RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate,
 					_queryResultUtil);
 			RemoteConnection connection = remoteConnectionHandler.getConnection(
 					projectSyncConfiguration.getProject().getId(),
-					projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+					syncInfo.getRemoteUrl());
 			String uri = projectSyncConfiguration.getSynchronizationConfiguration().getRemote_url()
 					+ "/data/archive/projects/" + remoteProjectId + "/subjects/" + remoteSubjectLabel + "/experiments/"
 					+ remoteExperimentLabel + "?format=json&columns=ID,label";

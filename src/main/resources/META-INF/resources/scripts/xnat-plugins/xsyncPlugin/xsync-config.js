@@ -51,7 +51,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         XSYNC.xsyncconfig.configuration.sync_frequency = 'weekly';
         XSYNC.xsyncconfig.configuration.sync_new_only = true;
         XSYNC.xsyncconfig.configuration.identifiers = 'use_local';
-        XSYNC.xsyncconfig.configuration.remote_url = 'http://';
+        XSYNC.xsyncconfig.configuration.remote_url = 'https://';
         XSYNC.xsyncconfig.configuration.remote_project_id = '';
         XSYNC.xsyncconfig.configuration.notification_emails = '';
         XSYNC.xsyncconfig.configuration.customIdentifiers = '';
@@ -131,7 +131,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     true;
 
         var credHost =
-                    XSYNC.xsyncconfig.configuration.remote_url != "http://" ?
+                    XSYNC.xsyncconfig.configuration.remote_url != "https://" ?
                             XSYNC.xsyncconfig.configuration.remote_url :
                             $("#xsync-config-remote-url").val();
 
@@ -256,7 +256,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                             // submit the config json again if this was called from submitConfig
                             if (configJson !== undefined) {
                                 XSYNC.xsyncconfig.firsttime = false;
-				XSYNC.xsyncconfig.newRemoteUrl = $('#xsync-config-remote-url').val()
+				                XSYNC.xsyncconfig.newRemoteUrl = $('#xsync-config-remote-url').val()
                                 XSYNC.xsyncconfig.submitConfig(configJson)
                             }
                         });
@@ -429,62 +429,63 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             beforeShow: function(obj){
                 // Spawn everything
                 var spawnerConfig = spawnConfig();
-		setTimeout(function() {
-			var newonlyVal = $("#xsync-config-newonly").val();
-    			XSYNC.xsyncconfig.oldRemoteUrl = $('#xsync-config-remote-url').val();
-			if (newonlyVal == "false") {
-				XSYNC.xsyncconfig.displayNewDataWarning();
-			}
-	    		XSYNC.xsyncconfig.oldValue = $('#xsync-config-remote-url').val();
-	                $('#xsync-config-newonly').change(
-				function() {
-					var newonlyVal = $("#xsync-config-newonly").val();
-					if (newonlyVal == "false") {
-						XSYNC.xsyncconfig.displayNewDataWarning();
-					}
-				}
-			)
-	                $('#xsync-config-remote-url').change(
-				function() {
-	    				XSYNC.xsyncconfig.destinationChanged = true;
-				}
-			)
-		}, 500);
+                setTimeout(function() {
+                    var newonlyVal = $("#xsync-config-newonly").val();
+                        XSYNC.xsyncconfig.oldRemoteUrl = $('#xsync-config-remote-url').val();
+                        if (newonlyVal == "false") {
+                            XSYNC.xsyncconfig.displayNewDataWarning();
+                        }
+                        XSYNC.xsyncconfig.oldValue = $('#xsync-config-remote-url').val();
+                            $('#xsync-config-newonly').change(
+                        function() {
+                            var newonlyVal = $("#xsync-config-newonly").val();
+                            if (newonlyVal == "false") {
+                                XSYNC.xsyncconfig.displayNewDataWarning();
+                            }
+                        }
+                    )
+                    $('#xsync-config-remote-url').change(
+                        function() {
+                            XSYNC.xsyncconfig.destinationChanged = true;
+                        }
+                    )
+                }, 500);
                 var $wrapper = obj.$modal.find('#xsync-config-dialog');
                 XNAT.spawner.spawn(spawnerConfig).render($wrapper);
-		var xConfig = XSYNC.xsyncconfig.configuration;
-                for (var key in xConfig) {
-			if (xConfig.hasOwnProperty(key)) {
-				var configObj = xConfig[key];
-				if (typeof configObj === 'object') {
-					var configName = key;
-                			for (var key2 in configObj) {
-						if (xConfig.hasOwnProperty(key)) {
-							var configName2 = configName + "." + key2;
-                					$('[name="' + configName2 + '"]').val(configObj[key2]);
-						}
-					}
-				} else if (typeof configObj === 'boolean') {
-                			$('[type="checkbox"][title="' + key + '"]').val(xConfig[key]);
-                			$('[type="checkbox"][title="' + key + '"]').attr('checked',xConfig[key]);
-                			$('[name="' + key + '"]').val(xConfig[key]);
-				} else {
-                			$('[name="' + key + '"]').val(xConfig[key]);
-				}
-			}
-		}
+                getCustomIdentifiers(function() {
+                    var xConfig = XSYNC.xsyncconfig.configuration;
+                    for (var key in xConfig) {
+                        if (xConfig.hasOwnProperty(key)) {
+                            var configObj = xConfig[key];
+                            if (typeof configObj === 'object') {
+                                var configName = key;
+                                for (var key2 in configObj) {
+                                    if (xConfig.hasOwnProperty(key)) {
+                                        var configName2 = configName + "." + key2;
+                                        $('[name="' + configName2 + '"]').val(configObj[key2]);
+                                    }
+                                }
+                            } else if (typeof configObj === 'boolean') {
+                                $('[type="checkbox"][title="' + key + '"]').val(xConfig[key]);
+                                $('[type="checkbox"][title="' + key + '"]').attr('checked', xConfig[key]);
+                                $('[name="' + key + '"]').val(xConfig[key]);
+                            } else {
+                                $('[name="' + key + '"]').val(xConfig[key]);
+                            }
+                        }
+                    }
 
-                $('#xsync-advanced-settings').show();
+                    $('#xsync-advanced-settings').show();
 
-                // save <form> reference
-                $form = obj.$modal.find('form');
+                    // save <form> reference
+                    $form = obj.$modal.find('form');
 
-                // Trigger changes
-                $form.find('select').trigger('change');
-                $form.find('checkbox').trigger('change');
+                    // Trigger changes
+                    $form.find('select').trigger('change');
+                    $form.find('checkbox').trigger('change');
 
-                XSYNC.xsyncconfig.$form = $form;
-
+                    XSYNC.xsyncconfig.$form = $form;
+                });
             },
             buttons: {
                 submit: {
@@ -500,6 +501,9 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 							// Source project not on the form
 							json.source_project_id = XNAT.data.context.project;
 
+							// Strip trailing slashes
+                            json.remote_url = json.remote_url.replace(/\/$/,'');
+
 							// Delete stuff we don't want serialized
 							delete json.subjectDetailsCheckbox;
 							delete json.advancedSyncCheckbox;
@@ -507,8 +511,8 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 							// don't trample on advanced settings that aren't defined in the UI
 							json = XSYNC.xsyncconfig.mergeConfig(json);
 
-							XSYNC.xsyncconfig.newRemoteUrl = $('#xsync-config-remote-url').val()
-							XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
+							XSYNC.xsyncconfig.newRemoteUrl = json.remote_url;
+                            XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
 							// $form.triggerHandler('reload-data');
 						}
                     }
@@ -519,6 +523,38 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         });
     };
+
+    function getCustomIdentifiers(callback) {
+        function removeCustomOption() {
+            $('#xsync-config-custom-identifiers option[value="use_custom"]').remove();
+        }
+        let $customIdentifiersSelect = $("#xsync-config-custom-identifiers");
+        if ($customIdentifiersSelect.find('option').length === 0) {
+            var getCustomIdGeneratorsAjax = $.ajax({
+                type: "GET",
+                url: XNAT.url.csrfUrl('/xapi/xsync/getXsyncCustomIdGenerators')
+            });
+
+            getCustomIdGeneratorsAjax.done(function(data, textStatus, jqXHR){
+                if (data.length === 0) {
+                    removeCustomOption();
+                } else {
+                    $.each(data, function(idx, value) {
+                        var option = new Option(value, value);
+                        $customIdentifiersSelect.append($(option));
+                    });
+                }
+                callback();
+            });
+
+            getCustomIdGeneratorsAjax.fail(function(data, textStatus, error){
+                xmodal.message('Error', 'Failed to fetch custom identifiers, see console for details');
+                console.error(error);
+                removeCustomOption();
+                callback();
+            });
+        }
+    }
 
     function spawnConfig(){
 
@@ -743,30 +779,10 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 options: {
                     use_local: 'Local',
                     use_custom: 'Custom'
-                    // use_remote: 'Remote'
                 },
 				element: {
                     onchange: function(){
 						XSYNC.xsyncconfig.showHideCustomIdentifiers($(this).val());
-                        if($(this).val()=='use_custom')
-						{
-							var getCustomIdGeneratorsAjax = $.ajax({
-								type: "GET",
-								url: XNAT.url.csrfUrl('/xapi/xsync/getXsyncCustomIdGenerators')
-							});
-
-							getCustomIdGeneratorsAjax.done(function(data, textStatus, jqXHR){
-								//console.log(data);
-								$.each( data, function(key, value) { 
-									var option = new Option(key, value);
-									$("#xsync-config-custom-identifiers").append($(option));
-								});
-							});
-
-							getCustomIdGeneratorsAjax.fail(function(data, textStatus, error){
-								xmodal.message('Error', 'failed to fetch custom identifiers');
-							});
-						}									
 					}
 				}
 			}
@@ -1010,7 +1026,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     xmodal.loading.closeAll();
 
 			if (XSYNC.xsyncconfig.destinationChanged == true && XSYNC.xsyncconfig.oldRemoteUrl != "" &&
-				XSYNC.xsyncconfig.oldRemoteUrl != "http://" &&
+				XSYNC.xsyncconfig.oldRemoteUrl != "https://" &&
 				XSYNC.xsyncconfig.oldRemoteUrl != XSYNC.xsyncconfig.newRemoteUrl) {
 
 			        var pModalOpts = {

@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
+import org.nrg.framework.task.XnatTask;
 import org.nrg.framework.task.services.XnatTaskService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xnat.services.archive.CatalogService;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
  * @author Mohana Ramaratnam
  */
 @Service
+@XnatTask(taskId = "DefaultDailySyncService", description = "Xsync autosync", defaultExecutionResolver = "SingleNodeExecutionResolver")
 public class DefaultDailySyncService extends AbstractSyncService implements DailySyncService {
 	@Autowired
 	public DefaultDailySyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService,

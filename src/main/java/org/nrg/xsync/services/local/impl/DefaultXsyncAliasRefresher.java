@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.nrg.framework.services.SerializerService;
+import org.nrg.framework.task.XnatTask;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
  * @author Mohana Ramaratnam, Mike Hodge
  */
 @Service
+@XnatTask(taskId = "DefaultXsyncAliasRefresher", description = "Xsync alias refresh", defaultExecutionResolver = "SingleNodeExecutionResolver")
 public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 	
 	/** The logger. */

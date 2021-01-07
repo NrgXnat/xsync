@@ -171,7 +171,7 @@ public class RemoteSubject {
 		XnatSubjectdata newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
 		newSubject.setProject(remoteProjectId);
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
-		String subject_remote_id = null;
+		String subject_remote_id;
 		subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_BEGINING);
 		subjectSyncInfo.stateChanged();
 		try {

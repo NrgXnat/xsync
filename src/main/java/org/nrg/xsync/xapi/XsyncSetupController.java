@@ -152,13 +152,12 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			       @ApiResponse(code = 500, message = "Unexpected error")})
 	public ResponseEntity<String> getDICOMAnonymization(@PathVariable("projectId") String projectId) {
 		try {
-			final UserI user = getSessionUser();
 	    	final HttpStatus status = canReadProject(projectId);
 	        if (status != null) {
 	            return new ResponseEntity<>(status);
 	        }			
-			String config = _configService.getConfig("xsync", "presyncanonymization", Scope.Project, projectId).getContents();
-			return new ResponseEntity<>(config, HttpStatus.OK);
+			Configuration config = _configService.getConfig("xsync", "presyncanonymization", Scope.Project, projectId);
+			return new ResponseEntity<>(config == null ? "" : config.getContents(), HttpStatus.OK);
 		} catch(Exception e) {
 			_logger.error("ERROR:  Error returning DICOM anonymization script:  " + ExceptionUtils.getFullStackTrace(e));
 			return new ResponseEntity<>("", HttpStatus.NO_CONTENT);

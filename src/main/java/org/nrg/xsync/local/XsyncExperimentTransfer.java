@@ -900,7 +900,7 @@ public class XsyncExperimentTransfer {
 					}
 					int scan_id_label_index = path.indexOf(search_string);
 					if (scan_id_label_index != -1) {
-						String newURI = path.substring(search_string.length());
+						String newURI = path.substring(scan_id_label_index + search_string.length());
 						if (newURI.startsWith(File.separator) || newURI.startsWith("/")) {
 							newURI=newURI.substring(1);
 						}
@@ -1082,7 +1082,7 @@ public class XsyncExperimentTransfer {
 				
 				boolean allResourcesInOneRootSubFolder = true;
 				for (XnatAbstractresource a: scanFiles) {
-					String scanFolderId = scan.getId();
+					String scanFolderId;
 					if (a instanceof XnatResource) {
 						XnatResource resc = (XnatResource)a;
 						String catalogFileURI = resc.getUri();
