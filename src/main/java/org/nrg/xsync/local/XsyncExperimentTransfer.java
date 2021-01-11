@@ -9,12 +9,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -72,8 +71,6 @@ import org.nrg.xsync.utils.WorkFlowUtils;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.restlet.data.MediaType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -89,9 +86,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class XsyncExperimentTransfer {
-	
-	private static final Logger _log = LoggerFactory.getLogger(XsyncExperimentTransfer.class);
-
 	ProjectSyncConfiguration projectSyncConfiguration;
 	UserI user;
 	SubjectSyncItem subjectSyncInfo ;
@@ -100,7 +94,7 @@ public class XsyncExperimentTransfer {
 	private final RemoteConnectionManager _manager;
 	private final QueryResultUtil _queryResultUtil;
 	private XnatSubjectdataI localSubject;
-    private final SerializerService          _serializer;
+    private final SerializerService _serializer;
 	private final SyncStatusService _syncStatusService;
     private final XnatProjectdata _localProject;
     private final boolean _syncIfNotSyncedInPast;
@@ -337,7 +331,7 @@ public class XsyncExperimentTransfer {
 				 _syncStatusService.registerCompletedExperiment(_localProject.getId(), assessor.getLabel(), assessor.getXSIType());
 			 }
 		 }catch(Exception e) {
-			 _log.error("Unable to store assessor " + assessor.getLabel() + " " + e.getLocalizedMessage(),e);
+			 log.error("Unable to store assessor {} {}", assessor.getLabel(), e.getLocalizedMessage(),e);
 			 //Did we get a 500 - Duplicate Error?
 			 //Check if the session exists at the remote site
 			 boolean exists = lookForSessionAtDestination(orig,expSyncItem);
@@ -354,7 +348,7 @@ public class XsyncExperimentTransfer {
 	}
 
 	private boolean storeXar( XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor) throws XsyncRemoteConnectionException{
-		_log.debug("Starting storeXar process");
+		log.debug("Starting storeXar process");
 		 boolean stored = false;
 		 _syncStatusService.registerCurrentExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 		 //final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
@@ -382,11 +376,11 @@ public class XsyncExperimentTransfer {
 			 //would be pushed as separate transactions.
 			 long startTime=System.currentTimeMillis();
 			 final File xar=buildImagingSessionXar(orig, targetproject, targetsubject, target);
-			 _log.debug("BUILDING XAR FILE:  targetProject=" + targetproject + ", targetSubject=" + targetsubject.getLabel() + 
+			 log.debug("BUILDING XAR FILE:  targetProject={}, targetSubject={}", targetproject, targetsubject.getLabel() +
 					 ", target=" + target.getLabel() + ", file=" + xar.getName());
 			 long endTime= System.currentTimeMillis();
 			 long totalTime= endTime-startTime;
-			 _log.debug("Total Time to build XAR file :: "+totalTime);
+			 log.debug("Total Time to build XAR file :: "+totalTime);
 			 
 			 final RemoteConnectionResponse connectionResponse = 
 					 (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, xar) : _manager.importXar(connection, xar);
@@ -397,9 +391,9 @@ public class XsyncExperimentTransfer {
 				 //final String remote_id = idMapper.getRemoteId(remoteUrl,remoteProjectId,targetsubject.getLabel(), target.getLabel(), target.getXSIType());
 				 xar.delete();
 				 remote_id = xsyncUriUtils.getRemoteAssignedId(connectionResponse);
-				 _log.debug("assigned experiment remote_id=" + remote_id);
+				 log.debug("assigned experiment remote_id=" + remote_id);
 				 if (remote_id != null && remote_id.matches("^.*_S[0-9]*$")) {
-					 _log.error("ERROR:  Experiment appears to have been assigned a subject assession number!!! - " + remote_id);
+					 log.error("ERROR:  Experiment appears to have been assigned a subject assession number!!! - " + remote_id);
 				 }
 				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_IN_PROGRESS);
 				 saveSyncDetails(orig.getId(),remote_id,expSyncItem.getSyncStatus(),expSyncItem.getXsiType());
@@ -440,12 +434,12 @@ public class XsyncExperimentTransfer {
 						 scanSyncItem.setXsiType(scan.getXSIType());
 						 scanSyncItem.extractDetails(scan);
 
-						 _log.debug("Building Scan XAR file :: "+scan.getId());
+						 log.debug("Building Scan XAR file :: {}", scan.getId());
 						 long xarStartTime=System.currentTimeMillis();	 
-						 final File scanXar=buildImagingScanXar(orig, targetproject, targetsubject, target,scan);
+						 final File scanXar = buildImagingScanXar(orig, targetproject, target, scan);
 						 long xarEndTime= System.currentTimeMillis();
 						 long xarTotalTime= xarEndTime-xarStartTime;
-						 _log.debug("Total Time to build XAR file for scan :: "+xarTotalTime);
+						 log.debug("Total Time to build XAR file for scan :: {}", xarTotalTime);
 
 						 if (scanXar != null) {
 						 	 long xarProcStartTime=System.currentTimeMillis();
@@ -453,7 +447,7 @@ public class XsyncExperimentTransfer {
 									 (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, scanXar) : _manager.importXar(connection, scanXar);
 							 long xarProcEndTime= System.currentTimeMillis();
 							 long xarProcTotalTime= xarProcEndTime-xarProcStartTime;
-							 _log.debug("Total Time to process XAR file for scan "+scan.getId()+" :: "+xarProcTotalTime);
+							 log.debug("Total Time to process XAR file for scan {} :: {}", scan.getId(), xarProcTotalTime);
 							 final boolean scanStored = scanConnectionResponse.wasSuccessful();
 							 if (scanStored) {
 								 scanXar.delete();
@@ -535,8 +529,7 @@ public class XsyncExperimentTransfer {
 				 }
 			 }
 		 }catch(Exception e) {
-			 _log.error(e.getMessage(),e);
-			 _log.error(ExceptionUtils.getStackTrace(e));
+			 log.error("Could not sync experiment", e);
 			 _syncStatusService.registerFailedExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
 			 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 			 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " could not be synced. " + e.getMessage());
@@ -551,7 +544,7 @@ public class XsyncExperimentTransfer {
 					try {
 						FileUtils.deleteDirectory(localPath);
 					}catch(Exception ioe) {
-						_log.error("Unable to delete directory "+localPath, ioe);
+						log.error("Unable to delete directory {}", localPath, ioe);
 					}
 				} 
 		 }
@@ -566,13 +559,13 @@ public class XsyncExperimentTransfer {
 			final String node = _asperaProjectPrefs.getAsperaNodeUrl(projectId);
 			final String aUser = _asperaProjectPrefs.getAsperaNodeUser(projectId);
 			if (node == null || node.length()<1 || aUser == null || aUser.length()<1) {
-				_log.error("Aspera is enabled but not properly configured.  Using HTTPS transfers instead.");
+				log.error("Aspera is enabled but not properly configured.  Using HTTPS transfers instead.");
 				return false;
 			}
-			_log.info("Using Aspera for the data transfer method.");
+			log.info("Using Aspera for the data transfer method.");
 			return true;
 		}
-		_log.info("Using HTTPS for the data transfer method.");
+		log.info("Using HTTPS for the data transfer method.");
 		return false;
 	}
 
@@ -590,14 +583,14 @@ public class XsyncExperimentTransfer {
 						File.separator + xar.getName();
 				return _manager.importXar(connection, xarPath);
 			} else {
-				_log.warn("Aspera upload  and retries failed.  Failing over to standard http send.");
+				log.warn("Aspera upload  and retries failed.  Failing over to standard http send.");
 				exceptionOnHttpSend = true;
 				return _manager.importXar(connection, xar);
 			}
 		} catch (Exception e) {
-			_log.debug(ExceptionUtils.getStackTrace(e));
+			log.debug(ExceptionUtils.getStackTrace(e));
 			if (!exceptionOnHttpSend) {
-				_log.warn("Aspera upload failed with an exception.  Failing over to standard http send.");
+				log.warn("Aspera upload failed with an exception.  Failing over to standard http send.");
 				return _manager.importXar(connection, xar);
 			} else {
 				throw e;
@@ -640,12 +633,12 @@ public class XsyncExperimentTransfer {
 					       }
 					    }
 					}catch(Exception e) {
-						_log.debug(e.getMessage());
+						log.debug(e.getMessage());
 					}
 				}
 				}
 			}catch(Exception e) {
-				_log.debug(e.getMessage());
+				log.debug(e.getMessage());
 			}
 		 return exists;
 	}
@@ -705,9 +698,7 @@ public class XsyncExperimentTransfer {
 			}
 			
 		}catch(Exception e) {
-			_log.error(e.getMessage(),e);
-			_log.error(ExceptionUtils.getStackTrace(e));
-			
+			log.error("Unable to verify sync", e);
 		}finally {
 			expSyncItem.updateSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,"Subject " + localSubject.getLabel() + " experiment " + expSyncItem.getLocalLabel() + " ");
 			WorkFlowUtils wrkFlowUtils = new WorkFlowUtils(_manager,_queryResultUtil,_jdbcTemplate,projectSyncConfiguration);
@@ -717,7 +708,7 @@ public class XsyncExperimentTransfer {
 				try {
 					XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 					 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
-				} catch(Exception e) {_log.error("Failed to update sync assessor " + e.getMessage(),e);}
+				} catch(Exception e) {log.error("Failed to update sync assessor", e);}
 			 }
 			 saveSyncDetails(orig.getId(),remote_id,expSyncItem.getSyncStatus(),orig.getXSIType());
 		}
@@ -740,7 +731,7 @@ public class XsyncExperimentTransfer {
 			try {
 			 XSyncTools xsyncTools = new XSyncTools(user, _jdbcTemplate, _queryResultUtil);
 			 xsyncTools.updateSyncAssessor(expSyncItem,remoteProjectId ,remoteUrl);
-			}catch(Exception e) {_log.error("Failed to update sync assessor " + e.getMessage(),e);}
+			}catch(Exception e) {log.error("Failed to update sync assessor", e);}
 		 }
 		saveSyncDetails(orig.getId(),remote_id,expSyncItem.getSyncStatus(),expSyncItem.getXsiType());
 	}
@@ -890,32 +881,28 @@ public class XsyncExperimentTransfer {
 				return false;
 		}
 		
-		private void modifyExptScanResource(XnatAbstractresourceI resource, String scanid)  {
-			if (resource instanceof XnatResource) {
-				if (((XnatResource) resource).getUri() != null) {
-					String path = ((XnatResource) resource).getUri();
-					String search_string = "SCANS/";
-					if (null != scanid ) {
-						search_string += scanid+"/";
-					}
-					int scan_id_label_index = path.indexOf(search_string);
-					if (scan_id_label_index != -1) {
-						String newURI = path.substring(scan_id_label_index + search_string.length());
-						if (newURI.startsWith(File.separator) || newURI.startsWith("/")) {
-							newURI=newURI.substring(1);
-						}
-						((XnatResource) resource).setUri(newURI);
-					}
+		private void modifyExptScanResource(XnatAbstractresourceI resource, String scanDir)  {
+			if (!(resource instanceof XnatResource)) {
+				return;
+			}
+			XnatResource r = (XnatResource) resource;
+			String path = r.getUri();
+			if (path != null) {
+				Pattern stripScanPathRegex = Pattern.compile("^.*" + "SCANS" + File.separator +
+						(scanDir == null ? "[^"+ File.separator + "]*" : scanDir) + File.separator);
+				String relativePath = stripScanPathRegex.matcher(path).replaceAll("");
+				if (!path.equals(relativePath)) {
+					r.setUri(relativePath);
 				}
 			}
 		}
 
-	
+
 		File buildxar(XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target) throws Exception {
 			File xarFile;
-			
+
 			final String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
-			
+
 			try {
 				File experimentPath = new File(anonymizedSessionPath);
 				ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,(orig).getArchiveDirectoryName(),0);
@@ -928,7 +915,7 @@ public class XsyncExperimentTransfer {
 				File outF = new File(expCachePath, "expt_" + (new Date()).getTime() + ".xml");
 
 				outF.deleteOnExit();
-				
+
 				//target.setId("");
 				target.setProject(target.getProject());
 				target.setSubjectId(targetsubject.getLabel());
@@ -940,22 +927,22 @@ public class XsyncExperimentTransfer {
 				FileWriter fw = new FileWriter(outF);
 				target.toXML(fw, false);
 				fw.close();
-				
+
 				rep.addEntry(((XnatSubjectassessordata)target).getLabel() + ".xml",outF);
 				if (files.size() > 0) {
 					rep.addAll(files);
 				}
-				
+
 				rep.setDownloadName(target.getLabel()+".xar");
 				xarFile = new File(expCachePath, (new Date()).getTime()+"_"+target.getLabel()+".xar");
 				rep.write(new FileOutputStream(xarFile));
 			} catch (Exception e) {
-				_log.debug(e.toString() + "  " + e.getMessage());
+				log.debug("{} {}", e.toString(), e.getMessage());
 				//e.printStackTrace();
 				throw new Exception("Unable to retrieve/save session XML."+e.getMessage());
 			}
 			return xarFile;
-			
+
 
 			// return
 
@@ -994,15 +981,10 @@ public class XsyncExperimentTransfer {
 				xarFile = new File(expCachePath, (new Date()).getTime()+"_"+targetAss.getLabel()+".xar");
 				rep.write(new FileOutputStream(xarFile));
 			} catch (Exception e) {
-				_log.debug(e.toString() + "  " + e.getMessage());
-				//e.printStackTrace();
+				log.debug("{} {}", e.toString(), e.getMessage());
 				throw new Exception("Unable to retrieve/save session XML."+e.getMessage());
 			}
 			return xarFile;
-			
-
-			// return
-
 		}
 
 
@@ -1055,8 +1037,7 @@ public class XsyncExperimentTransfer {
 				xarFile = new File(expCachePath, (new Date()).getTime()+"_"+targetExperiment.getLabel()+".xar");
 				rep.write(new FileOutputStream(xarFile));
 			} catch (Exception e) {
-				_log.debug(e.toString() + "  " + e.getMessage());
-				//e.printStackTrace();
+				log.debug("{} {}", e.toString(), e.getMessage());
 				throw new Exception("Unable to retrieve/save session XML."+e.getMessage());
 			}
 			return xarFile;
@@ -1066,18 +1047,20 @@ public class XsyncExperimentTransfer {
 
 		}
 
-		File buildImagingScanXar(XnatImagesessiondata orig, String targetproject,XnatSubjectdata targetsubject, XnatImagesessiondata target,XnatImagescandata scan) throws Exception {
+		File buildImagingScanXar(XnatImagesessiondata orig, String targetProject, XnatImagesessiondata target,
+								 XnatImagescandata scan) throws Exception {
 			File xarFile;
 			final String anonymizedSessionPath = XsyncFileUtils.getAnonymizedSessionPath(orig);
-			List<String> zipPathTokens = new ArrayList<String>();
+			List<String> zipPathTokens = new ArrayList<>();
 			zipPathTokens.add(scan.getId());
 			try {
 				File experimentPath = new File(anonymizedSessionPath);
 				if (!experimentPath.exists()) {
-					log.debug("Expected file path " + experimentPath + " for syncing scan " + scan.getId() + " session " + orig.getLabel() + " does not exist");
+					log.debug("Expected file path {} for syncing scan {} session {} does not exist",
+							experimentPath, scan.getId(), orig.getLabel());
 					return null;
 				}
-				List<File> files = new ArrayList<File>();
+				List<File> files = new ArrayList<>();
 				List<XnatAbstractresource> scanFiles = scan.getFile();
 				
 				boolean allResourcesInOneRootSubFolder = true;
@@ -1114,33 +1097,32 @@ public class XsyncExperimentTransfer {
 					for (XnatAbstractresource a: scanFiles) {
 						if (a instanceof XnatResource) {
 							XnatResource resc = (XnatResource)a;
-							List<File> rscfiles = new ArrayList<File>();
+							List<File> rscfiles = new ArrayList<>();
 							String catalogFileURI = resc.getUri();
-							int indexOfScans = catalogFileURI.indexOf("SCANS/");
-							File catFile = null;
-							if (indexOfScans == 0) {
-								catFile = new File(anonymizedSessionPath.endsWith("/")?anonymizedSessionPath:anonymizedSessionPath+"/" + catalogFileURI);
-							}else {
-								catFile = new File(anonymizedSessionPath.endsWith("/")?anonymizedSessionPath:anonymizedSessionPath+"/" + catalogFileURI.substring(indexOfScans));
+							File catFile = new File(catalogFileURI);
+							if (!catFile.exists()) {
+								int indexOfScans = catalogFileURI.indexOf("SCANS/");
+								if (indexOfScans == 0) {
+									catFile = new File(anonymizedSessionPath, catalogFileURI);
+								} else {
+									catFile = new File(anonymizedSessionPath, catalogFileURI.substring(indexOfScans));
+								}
 							}
 							InputStream inputStream = new FileInputStream(catFile);
 							XDATXMLReader reader = new XDATXMLReader();
 		                    org.nrg.xdat.bean.base.BaseElement base = reader.parse(inputStream);
 		                    CatCatalogBean cat = (CatCatalogBean) base;
+		                    String catDir = catFile.getParent();
 		                    for (CatEntryI entry: cat.getEntries_entry()) {
 		                    	String relativePath = entry.getUri();
-		                    	File f = new File(catFile.getParent() + "/" + relativePath);
+		                    	File f = new File(catDir, relativePath);
 		                    	if (f.exists()) {
 		                    		rscfiles.add(f);
 		                    	}
 		                    }
 		                    rscfiles.add(catFile);
 							files.addAll(rscfiles);
-							if (!allResourcesInOneRootSubFolder) { 
-								modifyExptScanResource(resc,null);
-							}else {
-								modifyExptScanResource(resc,scan.getId());
-							}
+							modifyExptScanResource(resc,null);
 						}
 					}
 				}
@@ -1149,7 +1131,7 @@ public class XsyncExperimentTransfer {
 				
 				
 						
-				String expCachePath = SynchronizationManager.GET_SYNC_XAR_PATH(targetproject,orig);
+				String expCachePath = SynchronizationManager.GET_SYNC_XAR_PATH(targetProject,orig);
 				new File(expCachePath).mkdirs();
 				File outF = new File(expCachePath, target.getLabel()+"_scan_"+ scan.getId()+"_" + (new Date()).getTime() + ".xml");
 
@@ -1172,15 +1154,9 @@ public class XsyncExperimentTransfer {
 				xarFile = new File(expCachePath, (new Date()).getTime()+"_"+target.getLabel()+".xar");
 				rep.write(new FileOutputStream(xarFile));
 			} catch (Exception e) {
-				_log.debug(e.toString() + "  " + e.getMessage());
-				//e.printStackTrace();
-				throw new Exception("Unable to retrieve/save session XML."+e.getMessage());
+				throw new Exception("Unable to retrieve/save session XML", e);
 			}
 			return xarFile;
-			
-
-			// return
-
 		}
 
 
@@ -1200,7 +1176,7 @@ public class XsyncExperimentTransfer {
 
 				 return _manager.importImageSessionResource(connection, (XnatImagesessiondata)remoteImagingSession, resourceLabel, zipFile);
 			 }catch(Exception e) {
-				 _log.error(e.toString());
+				 log.error(e.toString());
 				 throw e;
 			 }
 			}
@@ -1211,7 +1187,7 @@ public class XsyncExperimentTransfer {
 				 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 				 return _manager.importSubjectAssessorResource(connection, (XnatSubjectdata)remoteSubject, subjectAssessor, resourceLabel, zipFile);
 			 }catch(Exception e) {
-				 _log.error(e.toString());
+				 log.error(e.toString());
 				 throw e;
 			 }
 		}
@@ -1260,9 +1236,10 @@ public class XsyncExperimentTransfer {
 						zipFile.delete();
 				}
 			}catch(Exception e) {
-				_log.error("Could not update resource " + resource.getLabel() + " for experiment " + target.getId(),e);
+				log.error("Could not update resource {} for experiment {}", resource.getLabel(), target.getId(), e);
 				resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-				resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " could not be updated. " + ExceptionUtils.getFullStackTrace(e) );
+				resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel +
+						" could not be updated. " + ExceptionUtils.getFullStackTrace(e) );
 				expSyncItem.addResources(resourceSyncItem);
 			}
 		}

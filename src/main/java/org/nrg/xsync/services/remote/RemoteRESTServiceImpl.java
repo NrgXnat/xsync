@@ -339,27 +339,22 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param subject the subject
 	 * @return response
 	 */
-	public RemoteConnectionResponse importSubject(RemoteConnection connection,XnatSubjectdata subject ) throws Exception{
+	public RemoteConnectionResponse importSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception{
 		int count = 0;
 		while(true) {
 		    try {
 		         return this.importSubjectWithoutRetry( connection, subject );
 		    } catch (RuntimeException e) {
+				// handle exception
+				if (count >= maxTries) throw e;
 		    	try {
-		    		e.printStackTrace();
-		    		logger.debug("Exception " + e.getMessage());
-			    	if (maxTries > 0) {
-				    	logger.error("importSubject: retrycount "+ count);
-				    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
-				    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());
-				    	logger.error("Sleeping for " + sleep + " milliseconds");
-			    		Thread.sleep(sleep);
-			    	}
+		    		logger.error("Exception in importSubject: retrycount {} of {}, sleeping for {}s",
+							count, maxTries, sleep/1000, e);
+					Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
-					e1.printStackTrace();
+					// Ignore
 				}
-		        // handle exception
-		        if (maxTries == 0 || ++count == maxTries) throw e;
+		    	count++;
 		    }
 		}
 	}
