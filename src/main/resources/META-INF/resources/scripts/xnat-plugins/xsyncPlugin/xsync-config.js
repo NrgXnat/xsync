@@ -54,7 +54,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         XSYNC.xsyncconfig.configuration.remote_url = 'https://';
         XSYNC.xsyncconfig.configuration.remote_project_id = '';
         XSYNC.xsyncconfig.configuration.notification_emails = '';
-        XSYNC.xsyncconfig.configuration.customIdentifiers = '';
+        XSYNC.xsyncconfig.configuration.customIdentifiers = 'dateTimeLabelGenerator';
         XSYNC.xsyncconfig.configuration.anonymize = false;
 		XSYNC.xsyncconfig.configuration.no_of_retry_days = 3;
         // XSYNC.xsyncconfig.configuration.ok_to_sync = false;
@@ -538,6 +538,12 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             getCustomIdGeneratorsAjax.done(function(data, textStatus, jqXHR){
                 if (data.length === 0) {
                     removeCustomOption();
+                } else if (data.length === 1) {
+                    $customIdentifiersSelect.after('<input type="hidden" name="' +
+                        $customIdentifiersSelect.attr('name') + '" value="' + data[0] + '"/>');
+                    $customIdentifiersSelect.after('<span id="' + $customIdentifiersSelect.prop('id') +
+                        '">' + data[0] + '</span>');
+                    $customIdentifiersSelect.remove();
                 } else {
                     $.each(data, function(idx, value) {
                         var option = new Option(value, value);
@@ -776,6 +782,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 id: 'xsync-config-identifiers',
                 name: 'identifiers',
                 label: 'Identifiers',
+                description: 'Use the source XNAT\'s labels for subject and session (Local) or perform remapping (Custom)',
                 options: {
                     use_local: 'Local',
                     use_custom: 'Custom'
@@ -789,22 +796,11 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         }
 		
 		XSYNC.xsyncconfig.showHideCustomIdentifiers = function(identifiers){
-			if(identifiers == 'use_custom')
-			{
-				var ele=document.getElementsByClassName('hidden');
-				for(var i=0;i<ele.length;i++)
-				{
-					if('customIdentifiers'==ele[i].getAttribute("data-name"))
-						ele[i].setAttribute('class','panel-element');
-				}
-			}
-			else{
-				var ele=document.getElementsByClassName('panel-element');
-				for(var i=0;i<ele.length;i++)
-				{
-					if('customIdentifiers'==ele[i].getAttribute("data-name"))
-						ele[i].setAttribute('class','hidden');
-				}
+            const target = $('.panel-element[data-name="customIdentifiers"]');
+			if (identifiers === 'use_custom') {
+                target.show();
+			} else {
+                target.hide();
 			}
 		};
 		
@@ -813,7 +809,8 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 kind: 'panel.select.menu',
                 id: 'xsync-config-custom-identifiers',
                 name: 'customIdentifiers',
-                label: 'Custom Identifiers'
+                label: 'Custom Identifiers',
+                description: 'The label re-mapping class (see your admin if you need something other than what you see offered)'
             }
         }
 
