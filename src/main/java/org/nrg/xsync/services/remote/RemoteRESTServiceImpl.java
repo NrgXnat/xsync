@@ -1,7 +1,13 @@
 package org.nrg.xsync.services.remote;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.om.WrkWorkflowdata;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectassessordata;
@@ -11,8 +17,6 @@ import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.manager.SynchronizationManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.NestedRuntimeException;
 import org.springframework.core.io.FileSystemResource;
@@ -20,6 +24,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
@@ -28,31 +33,33 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 /**
  * The Class RemoteRESTServiceImpl.
  */
 @Service
-//@EnableRetry
-//TODO update to retry when we upgrade spring to 4
+@Slf4j
 public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements RemoteRESTService {
-
-	/** The logger. */
-	public static Logger logger = LoggerFactory.getLogger(RemoteRESTServiceImpl.class);
 	// TODO:  Do we want this to be configurable?
 	public static final int TRUNCATE_LOG_OUTPUT_LENGTH = 1000;
 
 	private final XsyncSitePreferencesBean _prefs;
+	private final ObjectMapper _objectMapper;
 	private long sleep = 10;
 	private int maxTries = 1;
 
 
 	@Autowired
-	public RemoteRESTServiceImpl(final XsyncSitePreferencesBean prefs) {
+	public RemoteRESTServiceImpl(final XsyncSitePreferencesBean prefs, final SerializerService serializerService) {
 		_prefs = prefs;
+		_objectMapper = serializerService.getObjectMapper();
 	}
 
 	@PostConstruct
@@ -93,9 +100,9 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import?import-handler=XAR&localFilePath=" 
 						+ xarPath + "&removeLocalFileAfterImport=true", HttpMethod.POST, httpEntity, String.class);
 			}
-			logger.info(truncateStr(response));
-			logger.info(truncateStr(response.getBody()));
-			logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
+			log.info(truncateStr(response));
+			log.info(truncateStr(response.getBody()));
+			log.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 			// Tests for Bad Request and Internal Server Error in addition to OK and Created.  Those error statues will
 			// be thrown by invalid XAR requests, and we don't want a long wait with retry for errors returned by the
 			// XarImporter class.
@@ -132,20 +139,22 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		int count = 0;
 		while(true) {
 		    try {
-		    	 logger.debug("Attempting xar import:  File=" + xar.getName());
-		         return this.importXarWithoutRetry(connection, xar);
+		    	 log.debug("Attempting importXar: File={}", xar.getName());
+		         return importXarWithoutRetry(connection, xar);
 		    } catch (RuntimeException e) {
 		    	count++;
-	    		logger.error("Exception thrown during storeXAR process:\n" + ExceptionUtils.getStackTrace(e));
-	    		logger.error((maxTries>0 && maxTries>=count) ? "StoreXAR failed.  Maximum attemts has not yet been reached.  Upload will be reattempted in " + String.valueOf(sleep/1000) + " seconds." : 
-	    				"Maximum attemts has been reached.  StoreXAR will not be retried.");
-		        if (maxTries == 0 || count > maxTries) throw e;
-		    	try {
-					if (maxTries > 0) Thread.sleep(sleep);
-				} catch (InterruptedException e1) {
-					e1.printStackTrace();
+	    		log.error("Exception thrown during importXar", e);
+		        if (maxTries == 0 || count > maxTries) {
+		        	throw e;
+				} else {
+					log.error("importXar will be reattempted in {} seconds.", sleep/1000);
 				}
-	    		logger.error("Retrying importXar: retrycount "+ count + " out of " + maxTries);
+		    	try {
+					Thread.sleep(sleep);
+				} catch (InterruptedException e1) {
+		    		// Ignore
+				}
+	    		log.error("Retrying importXar: retry count {} out of {}", count, maxTries);
 		    }
 		}
 	}
@@ -158,39 +167,49 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @return true, if successful
 	 * @throws RuntimeException the runtime exception
 	 */
-	//@Retryable(maxAttempts=5,value=RuntimeException.class,backoff= @Backoff(delay=100, maxDelay=500))
-	//TODO update to retry when we upgrade spring to 4
-	private RemoteConnectionResponse importXarWithoutRetry(RemoteConnection connection,  File xar) throws RuntimeException{
-		//this.setAliasToken(connection);
+	private RemoteConnectionResponse importXarWithoutRetry(RemoteConnection connection, File xar)
+			throws RuntimeException {
+		final long fileSize = xar.length();
+		final boolean doAsync = fileSize > 10*1024*1024; // > 10MB
+
 		final MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 		body.add("field", "value");
-		body.add("import-handler","XAR");
-		body.add("file", new FileSystemResource(xar));
+		body.add("import-handler", "XAR");
+
+		String listener = null;
+		if (doAsync) {
+			listener = LISTENER_FMT.format(new Date());
+			String cacheUrl = "/user/cache/resources/" + listener + "/files/" + xar.getName();
+			uploadXarToCache(connection, xar, cacheUrl);
+			body.add("http-session-listener", listener);
+			body.add("src", cacheUrl);
+		} else {
+			body.add("file", new FileSystemResource(xar));
+		}
 		
 		ResponseEntity<String> response;
 		try {
 			try {
 				HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, true);
-				//header.setContentLength(xar.length());
+				header.setContentType(MediaType.MULTIPART_FORM_DATA);
 				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
-				logger.debug("Sending XAR to destination");
-				long starttime= System.currentTimeMillis();
-				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
-				long endtime=System.currentTimeMillis();
-				long totaltime=endtime-starttime;
-				logger.debug("Total Time to process XAR file:"+ totaltime +" ms.");
+				log.info("importXar file={} length={}", xar.getAbsolutePath(), fileSize);
+				long startTime= System.currentTimeMillis();
+				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import",
+						HttpMethod.POST, httpEntity, String.class);
+				long endTime = System.currentTimeMillis();
+				log.debug("Total time to import: {} ms", endTime - startTime);
 			} catch (XsyncHttpAuthenticationException authex) {
 				HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, false, true);
-				//header.setContentLength(xar.length());
-				logger.debug("Retrying after getting Authentication headers");
+				header.setContentType(MediaType.MULTIPART_FORM_DATA);
+				log.debug("Retrying after getting Authentication headers");
 				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
-				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import", HttpMethod.POST, httpEntity, String.class);
+				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import",
+						HttpMethod.POST, httpEntity, String.class);
 			}
-			logger.info("importXar"+xar.getAbsolutePath());
-			logger.info("POST file length: " + xar.length());
-			logger.info(truncateStr(response));
-			logger.info(truncateStr(response.getBody()));
-			logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
+			log.info("Response: {}\n{}\n{}", truncateStr(response), truncateStr(response.getBody()),
+					 truncateStr(response.getHeaders().get("Set-Cookie")));
+
 			// Tests for Bad Request and Internal Server Error in addition to OK and Created.  Those error statues will
 			// be thrown by invalid XAR requests, and we don't want a long wait with retry for errors returned by the
 			// XarImporter class.
@@ -198,26 +217,110 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final boolean    status     = COMPLETED_STATUSES.contains(statusCode) || ERROR_STATUSES.contains(statusCode);
 			if(!status){
 				throw new RuntimeException("importXar request failed. Retrying...");
-			}else{
-				return new RemoteConnectionResponse(response);
 			}
 		} catch (RuntimeException e) {
-			logger.error("importXar process failed for "+xar.getAbsolutePath());
-			logger.error(e.getMessage());
-			logger.error(ExceptionUtils.getStackTrace(e));
-			//Add error message here for logs.
+			log.error("importXar process failed for {}", xar.getAbsolutePath(), e);
 			if (e instanceof NestedRuntimeException) {
 				final Throwable specCause = ((NestedRuntimeException)e).getMostSpecificCause(); 
 				// Let's not keep trying these error types either.  They will be thrown by invalid XAR requests, and we don't want a
 				// long wait with retry for errors returned by the XarImporter class.
 				if (specCause instanceof HttpServerErrorException) {
-					return new RemoteConnectionResponse(new ResponseEntity<String>(HttpStatus.INTERNAL_SERVER_ERROR));
+					return new RemoteConnectionResponse(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
 				}
 			}
-			throw(e);
+			throw e;
+		}
+
+		if (doAsync) {
+			return new RemoteConnectionResponse(monitorAsyncImport(connection, listener));
+		} else {
+			return new RemoteConnectionResponse(response);
 		}
 	}
-	
+
+	private void uploadXarToCache(RemoteConnection connection, File xar, String cacheUrl) {
+		final MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+		body.add("file", new FileSystemResource(xar));
+		ResponseEntity<String> response;
+		String url = connection.getUrl() + "/data" + cacheUrl;
+		try {
+			HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, true);
+			final HttpEntity<?> httpEntity = new HttpEntity<>(body, header);
+			log.info("Uploading {} to user cache dir {}", xar.getAbsolutePath(), cacheUrl);
+			long startTime= System.currentTimeMillis();
+			response = getResttemplate().exchange(url, HttpMethod.PUT, httpEntity, String.class);
+			long endTime = System.currentTimeMillis();
+			log.debug("Total time to upload: {} ms", endTime - startTime);
+		} catch (XsyncHttpAuthenticationException authex) {
+			HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, false, true);
+			log.debug("Retrying after getting Authentication headers");
+			final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
+			response = getResttemplate().exchange(url, HttpMethod.POST, httpEntity, String.class);
+		}
+
+		if (!COMPLETED_STATUSES.contains(response.getStatusCode())) {
+			throw new RuntimeException("Failed to upload " + xar.getAbsolutePath() + ": " + response);
+		}
+	}
+
+	private ResponseEntity<String> monitorAsyncImport(RemoteConnection connection, String listener) {
+		boolean succeeded = false;
+		String finalMsg = null;
+		String url = connection.getUrl() + "/xapi/event_tracking/" + listener;
+		try {
+			final long start = System.currentTimeMillis();
+			int count = 0, tries = 3;
+			do {
+				RemoteConnectionResponse response = null;
+				try {
+					response = getResult(connection, url);
+					if (!response.wasSuccessful()) {
+						throw new HttpClientErrorException(response.getResponse().getStatusCode());
+					}
+					String json = response.getResponseBody();
+					log.debug("Import progress: {}", json);
+					JsonNode jsonNode = _objectMapper.readTree(json);
+					// succeeded is null while processing is running, so sleep and keep polling
+					JsonNode successNode = jsonNode.get("succeeded");
+					if (!(successNode instanceof NullNode)) {
+						// succeeded is T or F: either way, we can break out of this loop once we collect the final message
+						succeeded = successNode.asBoolean();
+						finalMsg = jsonNode.get("finalMessage").asText();
+						break;
+					}
+				} catch (HttpClientErrorException e) {
+					// We get 404s before progress tracking starts, treat these differently
+					// (maybe the XNAT is slammed and import thread hasn't started)
+					if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+						if (count < tries) {
+							count++;
+						} else {
+							// something is going wrong, break out
+							log.error("Issue polling import progress: {}", response, e);
+							finalMsg = "Polling failed: " + e.getResponseBodyAsString();
+							break;
+						}
+					}
+				}
+				try {
+					Thread.sleep(5000);
+				} catch (InterruptedException interruptedException) {
+					// Ignore
+				}
+			} while (System.currentTimeMillis() - start < TimeUnit.HOURS.toMillis(2));
+		} catch (Exception e) {
+			log.error("Exception when polling import progress", e);
+			throw new RuntimeException(e);
+		}
+
+		if (!succeeded) {
+			throw new RuntimeException(StringUtils.defaultIfBlank(finalMsg,
+					"Import did not complete within 2 hours"));
+		}
+
+		return new ResponseEntity<>(finalMsg, HttpStatus.OK);
+	}
+
 	/**
 	 * Import Zip without retry.
 	 *
@@ -243,12 +346,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 			response = getResttemplate().exchange(uri, HttpMethod.PUT, httpEntity, String.class);
 		}
-		logger.info(truncateStr(response));
-		logger.info(truncateStr(response.getBody()));
-		logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
+		log.info(truncateStr(response));
+		log.info(truncateStr(response.getBody()));
+		log.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 		final boolean status = COMPLETED_STATUSES.contains(response.getStatusCode());
 		if (zip != null) {
-			logger.warn("importZip"+zip.getName());
+			log.warn("importZip"+zip.getName());
 		}
 		if(!status){
 			throw new RuntimeException("importZip request failed. Retrying...");
@@ -271,12 +374,12 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.createWorkflowWithoutRetry( connection, wrk );
 		    } catch (RuntimeException e) {
 		    	try {
-		    		logger.debug("Exception " + e.getMessage());
+		    		log.debug("Exception " + e.getMessage());
 			    	if (maxTries > 0) {
-				    	logger.error("createWorkflow: retrycount "+ count);
-				    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
-				    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());
-				    	logger.error("Sleeping for " + sleep + " milliseconds");
+				    	log.error("createWorkflow: retrycount "+ count);
+				    	log.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
+				    	log.error("Referesh rate is " + _prefs.getSyncRetryInterval());
+				    	log.error("Sleeping for " + sleep + " milliseconds");
 			    		Thread.sleep(sleep);
 			    	}
 				} catch (InterruptedException e1) {
@@ -303,17 +406,17 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		
 		ResponseEntity<String> response;
 		try {
-			logger.debug("URL: " + connection.getUrl()+"/data/workflows?req_format=xml");
+			log.debug("URL: " + connection.getUrl()+"/data/workflows?req_format=xml");
 			final HttpEntity<?> httpEntity = new HttpEntity<>(wrkXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
 			response = getResttemplate().exchange(connection.getUrl()+"/data/workflows?req_format=xml", HttpMethod.PUT, httpEntity, String.class);
-			logger.debug(response.toString());
+			log.debug(response.toString());
 		} catch (XsyncHttpAuthenticationException authex) {
 			try {
 				final HttpEntity<?> httpEntity = new HttpEntity<>(wrkXml, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 				response = getResttemplate().exchange(connection.getUrl()+"/data/workflows?req_format=xml", HttpMethod.PUT, httpEntity, String.class);
-				logger.debug(response.toString());
+				log.debug(response.toString());
 			}catch(Exception e) {
-				logger.debug("Error while storing workflow " + e.getMessage());
+				log.debug("Error while storing workflow " + e.getMessage());
 				String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(wrk.getExternalid());
 				File wrkF = new File(cachePath + "failed_" + wrk.getId()+".xml");
 				if (!wrkF.getParentFile().exists())
@@ -325,7 +428,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			}
 		}
 		
-		logger.debug(response.toString());
+		log.debug(response.toString());
 		//return 	((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
 		return new RemoteConnectionResponse(response);
 	}
@@ -348,7 +451,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				// handle exception
 				if (count >= maxTries) throw e;
 		    	try {
-		    		logger.error("Exception in importSubject: retrycount {} of {}, sleeping for {}s",
+		    		log.error("Exception in importSubject: retrycount {} of {}, sleeping for {}s",
 							count, maxTries, sleep/1000, e);
 					Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
@@ -374,7 +477,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.deleteWithoutRetry( connection,uri);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("deleteSubject: retrycount "+ count);
+			    	log.error("deleteSubject: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -401,7 +504,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			    try {
 			    	subjectId = (String)experiment.getItem().getProperty("subject_ID");
 			    }catch(Exception e1) {
-			    	logger.error("Could not find a subject id " + experiment.getLabel(),e1);
+			    	log.error("Could not find a subject id " + experiment.getLabel(),e1);
 			    }
 			    if (subjectId != null) { 
 			    	String uri = connection.getUrl()+"/data/archive/projects/"+experiment.getProject()+"/subjects/"+subjectId+"/experiments/"+experiment.getId()+"?removeFiles=true";
@@ -409,7 +512,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			    }
 		    } catch (Exception e) {
 		    	try {
-			    	logger.error("deleteSubject: retrycount "+ count);
+			    	log.error("deleteSubject: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -435,7 +538,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.deleteWithoutRetry( connection, uri);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("deleteSubject: retrycount "+ count);
+			    	log.error("deleteSubject: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -461,7 +564,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.deleteWithoutRetry( connection, uri);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("deleteProjectResource: retrycount "+ count);
+			    	log.error("deleteProjectResource: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -491,7 +594,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    	 return this.importZipWithoutRetry( connection, uri, zipFile);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("importsubjectresource: retrycount "+ count);
+			    	log.error("importsubjectresource: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -517,7 +620,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.importZipWithoutRetry( connection, uri, zipFile);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("importsubjectresource: retrycount "+ count);
+			    	log.error("importsubjectresource: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -545,7 +648,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.importZipWithoutRetry( connection, uri, zipFile);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("importsubjectresource: retrycount "+ count);
+			    	log.error("importsubjectresource: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -575,7 +678,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    	
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("importsubjectresource: retrycount "+ count);
+			    	log.error("importsubjectresource: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -610,18 +713,18 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		
 		ResponseEntity<String> response = null;
 		try {
-			logger.debug("URL: " + connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true");
+			log.debug("URL: " + connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true");
 			final HttpEntity<?> httpEntity = new HttpEntity<>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
 			response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
-			logger.debug(response.toString());
+			log.debug(response.toString());
 		} catch (XsyncHttpAuthenticationException authex) {
 			try {
 				final HttpEntity<?> httpEntity = new HttpEntity<>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 				response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
-				logger.debug(response.toString());
+				log.debug(response.toString());
 			}catch(Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-				logger.debug("Error while storing subject " + e.getMessage());
+				log.error(ExceptionUtils.getStackTrace(e));
+				log.debug("Error while storing subject " + e.getMessage());
 				String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(subject.getProject());
 				File subjectF = new File(cachePath + "failed_" + subject.getLabel()+".xml");
 				if (!subjectF.getParentFile().exists())
@@ -632,15 +735,15 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				throw e;
 			}
 		} catch (Exception e) {
-			logger.debug("importSubjectWithoutRetry - Exception thrown - ", e);
+			log.debug("importSubjectWithoutRetry - Exception thrown - ", e);
 			if (response != null) {
-				logger.debug(response.toString());
+				log.debug(response.toString());
 			}
-			//logger.debug(subjectXml);
+			//log.debug(subjectXml);
 			throw e;
 		}
 		
-		logger.debug(response.toString());
+		log.debug(response.toString());
 		//return 	((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
 		return new RemoteConnectionResponse(response);
 	}
@@ -666,9 +769,9 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 			response = getResttemplate().exchange(uri, HttpMethod.DELETE, httpEntity, String.class);
 		}
-		logger.info(truncateStr(response));
-		logger.info(truncateStr(response.getBody()));
-		logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
+		log.info(truncateStr(response));
+		log.info(truncateStr(response.getBody()));
+		log.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 		return new RemoteConnectionResponse(response);
 	}
 	
@@ -689,7 +792,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			         return this.importSubjectAssessorWithoutRetry(  connection,  subject, assessor );
 			    } catch (RuntimeException e) {
 			    	try {
-				    	logger.error("importSubjectAssessor: retrycount "+ count);
+				    	log.error("importSubjectAssessor: retrycount "+ count);
 						if (maxTries > 0) Thread.sleep(sleep);
 					} catch (InterruptedException e1) {
 						e1.printStackTrace();
@@ -734,7 +837,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @param uri the uri
 	 * @return ResponseEntity wrapper
 	 */
-	public RemoteConnectionResponse getResult(RemoteConnection connection,String uri) throws Exception{
+	public RemoteConnectionResponse getResult(RemoteConnection connection,String uri) {
 		ResponseEntity<String> response;
 		try {
 			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, true));
@@ -743,9 +846,9 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			final HttpEntity<?> httpEntity = new HttpEntity<Object>(RemoteConnectionManager.GetAuthHeaders(connection, false, true));
 			response = getResttemplate().exchange(uri, HttpMethod.GET, httpEntity, String.class);
 		}
-		logger.info(truncateStr(response));
-		logger.info(truncateStr(response.getBody()));
-		logger.info(truncateStr(response.getHeaders().get("Set-Cookie")));
+		log.info(truncateStr(response));
+		log.info(truncateStr(response.getBody()));
+		log.info(truncateStr(response.getHeaders().get("Set-Cookie")));
 		return new RemoteConnectionResponse(response);
 	}
 	
@@ -762,5 +865,5 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 
 	private static final List<HttpStatus> COMPLETED_STATUSES = Arrays.asList(HttpStatus.OK, HttpStatus.CREATED);
 	private static final List<HttpStatus> ERROR_STATUSES = Arrays.asList(HttpStatus.BAD_REQUEST, HttpStatus.INTERNAL_SERVER_ERROR);
-
+	private static final DateFormat LISTENER_FMT = new SimpleDateFormat("yyyyMMdd_HHmmssS");
 }

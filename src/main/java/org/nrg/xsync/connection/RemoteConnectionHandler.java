@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.xsync.exception.XsyncRemoteConnectionException;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.utils.QueryResultUtil;
@@ -16,6 +17,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  * @author Mohana Ramaratnam
  *
  */
+@Slf4j
 public class RemoteConnectionHandler {
 	public RemoteConnectionHandler(final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil) {
 		this(new NamedParameterJdbcTemplate(jdbcTemplate), queryResultUtil);
@@ -64,7 +66,6 @@ public class RemoteConnectionHandler {
 		conn.setUsername(remoteAliasEntity.getRemote_alias_token());
 		conn.setPassword(remoteAliasEntity.getRemote_alias_password());
 		conn.setLocalProject(remoteAliasEntity.getLocal_project());
-		conn.getAcquiredDate();
 		return conn;
 	}
 
