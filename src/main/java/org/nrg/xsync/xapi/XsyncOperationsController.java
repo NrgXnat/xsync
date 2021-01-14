@@ -140,15 +140,11 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 	                return new ResponseEntity<>(status);
 	            }
 	        }catch(Exception e) {
-	            if (log.isInfoEnabled()) {
-	                log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
-	            }
+                log.info("Unable to fetch user permissions for user {} Project {}", user.getLogin(), projectId);
 	        }
 	    	final ProjectChangeDiscoverer projectChange = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, getSessionUser());
 	        _executorService.submit(projectChange);
-	        if (log.isInfoEnabled()) {
-	            log.info("Project " + projectId + " is being exported by " + getSessionUser().getUsername());
-	        }
+            log.info("Project {} is being exported by {}", projectId, user.getUsername());
 	        return new ResponseEntity<>(projectId + " synchronization started", HttpStatus.OK);
         }
     	else
@@ -531,9 +527,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 
         final RestTemplate template = getRestTemplate(operation);
         final HttpMethod method = HttpMethod.resolve(operation.getMethod());
-        if (log.isDebugEnabled()) {
-            log.debug("Attempting to " + method + " to URL " + operation.getUrl() + " as user " + username);
-        }
+        log.debug("Attempting to {} {} as user {}", method, operation.getUrl(), username);
         final String value;
         switch (method) {
             case GET:

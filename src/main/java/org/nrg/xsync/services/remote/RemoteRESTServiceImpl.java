@@ -135,7 +135,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	 * @return true, if successful
 	 * @throws RuntimeException the runtime exception
 	 */
-	public RemoteConnectionResponse importXar(RemoteConnection connection,  File xar) throws RuntimeException{
+	public RemoteConnectionResponse importXar(RemoteConnection connection, File xar) throws RuntimeException{
 		int count = 0;
 		while(true) {
 		    try {
@@ -155,6 +155,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    		// Ignore
 				}
 	    		log.error("Retrying importXar: retry count {} out of {}", count, maxTries);
+		    	connection.useRefreshedAliasToken();
 		    }
 		}
 	}
@@ -170,7 +171,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 	private RemoteConnectionResponse importXarWithoutRetry(RemoteConnection connection, File xar)
 			throws RuntimeException {
 		final long fileSize = xar.length();
-		final boolean doAsync = fileSize > 10*1024*1024; // > 10MB
+		final boolean doAsync = fileSize > 5*1024*1024; // > 5MB
 
 		final MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 		body.add("field", "value");
@@ -193,7 +194,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				HttpHeaders header = RemoteConnectionManager.GetAuthHeaders(connection, true);
 				header.setContentType(MediaType.MULTIPART_FORM_DATA);
 				final HttpEntity<?> httpEntity = new HttpEntity<Object>(body, header);
-				log.info("importXar file={} length={}", xar.getAbsolutePath(), fileSize);
+				log.info("importXar file={} length={} async={}", xar.getAbsolutePath(), fileSize, doAsync);
 				long startTime= System.currentTimeMillis();
 				response = getResttemplate().exchange(connection.getUrl()+"/data/services/import",
 						HttpMethod.POST, httpEntity, String.class);
@@ -713,9 +714,10 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		
 		ResponseEntity<String> response = null;
 		try {
-			log.debug("URL: " + connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true");
+			String url = connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true";
+			log.debug("URL: {}", url);
 			final HttpEntity<?> httpEntity = new HttpEntity<>(subjectXml, RemoteConnectionManager.GetAuthHeaders(connection, true));
-			response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
+			response = getResttemplate().exchange(url, HttpMethod.PUT, httpEntity, String.class);
 			log.debug(response.toString());
 		} catch (XsyncHttpAuthenticationException authex) {
 			try {
