@@ -87,7 +87,7 @@ dependencies {
     implementation("org.nrg.xnat:web") {
         transitive = false
     }
-    implementation("org.nrg.xnat:xnat-data-models:1.8.0-ROI-SNAPSHOT") {
+    implementation("org.nrg.xnat:xnat-data-models") {
         transitive = false
     }
     implementation "org.nrg.xnat:tasks"
