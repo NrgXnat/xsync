@@ -39,6 +39,8 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
+import javax.net.ssl.SSLHandshakeException;
+
 /**
  * The Class XsyncPreferencesController.
  *
@@ -198,11 +200,14 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 			}catch(FileNotFoundException fne) {
 		    	 return new ResponseEntity<>("User does not have access to the project " + remoteProjectId, HttpStatus.FORBIDDEN);
 			}catch (IOException ioe) {
-			    	 return new ResponseEntity<>("User " + username + " probably has Collaborator level access. Xsync will fail.", HttpStatus.FORBIDDEN);
+        		_logger.error("Issue querying user permissions", ioe);
+				 return new ResponseEntity<>("User " + username + " probably has Collaborator level access. Xsync will fail.", HttpStatus.FORBIDDEN);
 			}catch(Exception e) {
-			         return new ResponseEntity<>("Could not connect", HttpStatus.BAD_REQUEST);
+				_logger.error("Issue querying user permissions", e);
+				 return new ResponseEntity<>("Could not connect", HttpStatus.BAD_REQUEST);
 	        }
         } catch (Exception e) {
+			_logger.error("Issue querying user permissions", e);
         	return new ResponseEntity<>("Could not connect", HttpStatus.BAD_REQUEST);
         }
 		if (!found) {
