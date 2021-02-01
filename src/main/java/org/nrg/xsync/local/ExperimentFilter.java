@@ -417,13 +417,12 @@ public class ExperimentFilter {
 	}
 
 	/**
-	 * @param targetsubject
-	 *            subject for experiment for correction
-	 * @param origExperiment
-	 *            experiment for correction
-	 * @throws Exception
+	 * @param targetAssessor
+	 *            assessor for correction
+	 * @param origAss
+	 *            orig assessor
 	 */
-	public void correctIDandLabel(XnatImageassessordata targetAssessor,XnatImageassessordata origAss,String remoteImageSessionId, String remoteProjectId) throws Exception {
+	public void correctIDandLabel(XnatImageassessordata targetAssessor,XnatImageassessordata origAss,String remoteImageSessionId, String remoteProjectId) {
 		String newid = "";
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
 		String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origAss.getId());
@@ -659,66 +658,60 @@ public class ExperimentFilter {
 				exp = correctIDandLabel(newSubject,orig);
 				transformOtherItemFieldsBeforeSync(newSubject,orig,exp);
 				filterExperimentResources(exp);
-				if (!orig.getId().equals(exp.getId())) {
-					for (final XnatAbstractresourceI res : exp.getResources_resource()) {
-						modifyExptResource((XnatAbstractresource) res, orig, false);
+				for (final XnatAbstractresourceI res : exp.getResources_resource()) {
+					modifyExptResource(res, orig, false);
+				}
+
+				resetPrearchive(exp);
+				filterScantypes(exp);
+				applyScanFilters(exp);
+				for (final XnatImagescandataI scan : exp.getScans_scan()) {
+					scan.setImageSessionId(exp.getLabel());
+					for (final XnatAbstractresourceI res : scan.getFile()) {
+						modifyExptResource(res, orig, true);
 					}
-	
-					if (exp instanceof XnatImagesessiondata) {
-						resetPrearchive((XnatImagesessiondata) exp);
-						filterScantypes(exp);
-						applyScanFilters(exp);
-						for (final XnatImagescandataI scan : ((XnatImagesessiondata) exp).getScans_scan()) {
-							scan.setImageSessionId(exp.getLabel());
-							for (final XnatAbstractresourceI res : scan.getFile()) {
-								modifyExptResource((XnatAbstractresource) res, orig, true);
-							}
-						}
-						
-						filterRecons(exp);
-						for (final XnatReconstructedimagedataI recon : ((XnatImagesessiondata) exp)
-								.getReconstructions_reconstructedimage()) {
-							recon.setImageSessionId(exp.getLabel());
-							ReconstructionFilter reconFilter = new ReconstructionFilter();
-							reconFilter.correctIDandLabel(recon);
-							for (final XnatAbstractresourceI res : recon.getIn_file()) {
-								modifyExptResource((XnatAbstractresource) res, orig, false);
-							}
-							for (final XnatAbstractresourceI res : recon.getOut_file()) {
-								modifyExptResource((XnatAbstractresource) res, orig, false);
-							}
-						}
-						filterAssessors(orig, exp);
-						for (final XnatImageassessordataI assess : ((XnatImagesessiondata) exp).getAssessors_assessor()) {
-							for (XnatExperimentdataShareI share : assess.getSharing_share()) {
-								if (share.getLabel() != null) {
-									share.setLabel("");
-								}
-							}
-							/*
-							for (final XnatAbstractresourceI res : assess.getResources_resource()) {
-								modifyExptResource((XnatAbstractresource) res, orig);
-							}
-	
-							for (final XnatAbstractresourceI res : assess.getIn_file()) {
-								modifyExptResource((XnatAbstractresource) res, orig);
-							}
-	
-							for (final XnatAbstractresourceI res : assess.getOut_file()) {
-								modifyExptResource((XnatAbstractresource) res, orig);
-							}
-							*/
-						}
-						Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getAnonymize(); 
-						_log.debug("Exp " + exp.getLabel() + " needs to be anonymized " + isExptToBeAnonymized);
-						if (isExptToBeAnonymized) {
-							_log.debug("About to anonymize " + exp.getLabel());
-							 anonymize((XnatImagesessiondata)exp, newSubject.getProject());
-							_log.debug("DONE - anonymize " + exp.getLabel());						
-						}
-					} else {
+				}
+
+				filterRecons(exp);
+				for (final XnatReconstructedimagedataI recon : exp
+						.getReconstructions_reconstructedimage()) {
+					recon.setImageSessionId(exp.getLabel());
+					ReconstructionFilter reconFilter = new ReconstructionFilter();
+					reconFilter.correctIDandLabel(recon);
+					for (final XnatAbstractresourceI res : recon.getIn_file()) {
+						modifyExptResource(res, orig, false);
 					}
-					
+					for (final XnatAbstractresourceI res : recon.getOut_file()) {
+						modifyExptResource(res, orig, false);
+					}
+				}
+				filterAssessors(orig, exp);
+				for (final XnatImageassessordataI assess : exp.getAssessors_assessor()) {
+					for (XnatExperimentdataShareI share : assess.getSharing_share()) {
+						if (share.getLabel() != null) {
+							share.setLabel("");
+						}
+					}
+					/*
+					for (final XnatAbstractresourceI res : assess.getResources_resource()) {
+						modifyExptResource((XnatAbstractresource) res, orig);
+					}
+
+					for (final XnatAbstractresourceI res : assess.getIn_file()) {
+						modifyExptResource((XnatAbstractresource) res, orig);
+					}
+
+					for (final XnatAbstractresourceI res : assess.getOut_file()) {
+						modifyExptResource((XnatAbstractresource) res, orig);
+					}
+					*/
+				}
+				Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getAnonymize();
+				_log.debug("Exp " + exp.getLabel() + " needs to be anonymized " + isExptToBeAnonymized);
+				if (isExptToBeAnonymized) {
+					_log.debug("About to anonymize " + exp.getLabel());
+					 anonymize(exp, newSubject.getProject());
+					_log.debug("DONE - anonymize " + exp.getLabel());
 				}
 			}
 		} catch (Exception ex) {
@@ -942,8 +935,8 @@ public class ExperimentFilter {
 /**
  * Find and remove experiment resources.
  *
- * @param assessor
- *            the exp
+ * @param scan
+ *            the scan
  * @param resourcesCfg
  *            the resource type
  * @return true, if successful

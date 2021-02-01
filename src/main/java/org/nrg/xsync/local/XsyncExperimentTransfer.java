@@ -1056,9 +1056,8 @@ public class XsyncExperimentTransfer {
         try {
             File experimentPath = new File(anonymizedSessionPath);
             if (!experimentPath.exists()) {
-                log.debug("Expected file path {} for syncing scan {} session {} does not exist",
-                        experimentPath, scan.getId(), orig.getLabel());
-                return null;
+                throw new Exception("Expected file path " + experimentPath + " for syncing scan " + scan.getId() +
+                        " session " + orig.getLabel() + " does not exist");
             }
             List<File> files = new ArrayList<>();
             List<XnatAbstractresource> scanFiles = scan.getFile();
