@@ -1,6 +1,6 @@
 # XSYNC plugin #
 
- XSYNC implemented as a XNAT 1.8.0-SNAPSHOT plugin.
+ XSYNC implemented as an XNAT 1.8.0 plugin.
 
 Xsync plugin enables automatic synchronization of data from a project in one XNAT system to a project in a second system. Xsync is configurable to ensure that only the desired data is delivered, and if required, data is properly de-identified, and that it is delivered on a pre-set schedule. 
 
@@ -10,32 +10,43 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 
 # ChangeLog #
-Version 1.3.5-SNAPSHOT  As of October 15, 2020
+
+## Version 1.4.0  As of March 4, 2021 ##
+
+Fixes to make XSync compatible with XNAT 1.8.0.
+
+Support for asynchronous xar import for large xars
+
+Made custom identifiers (aka re-labelers) functional
+
+Bugfixes around handling secondary scans and duplicated scan IDs.
+
+## Version 1.3.5-SNAPSHOT  As of October 15, 2020 ##
 
 Added ability to modify fields, within a datatype, which contain references to subject IDs or image session IDs. 
 See section on Datatype Transformation Before Sync 
 
-Version 1.3.3 As of February 4, 2019
+## Version 1.3.3 As of February 4, 2019 ##
 
 Fixes to make XSync compatible with XNAT 1.7.5.
 
-Version 1.3.2.1 As of May 2, 2018
+## Version 1.3.2.1 As of May 2, 2018 ##
 
 Minor bugfix release to fix compatibility issue with other plugins that supply an ExecutorService bean
 
-Version 1.3.2 As of Nov 14, 2017
+## Version 1.3.2 As of Nov 14, 2017 ##
 
 Added functionality for custom Id generator and download mapping data(supports XNAT version 1.7.3.1 and above).
 
-Version 1.3.1 As of Aug 9, 2017
+## Version 1.3.1 As of Aug 9, 2017 ##
 
 XAPI and other changes for compatibility with latest XNAT version 1.7.3.1 code.
 
-Version 1.3.1-SNAPSHOT As of June 14, 2017
+## Version 1.3.1-SNAPSHOT As of June 14, 2017 ##
 
 XAPI and other changes for compatibility with latest XNAT version 1.7.3-SNAPSHOT code.
 
-Version 1.3-SNAPSHOT As of May 23, 2017
+## Version 1.3-SNAPSHOT As of May 23, 2017 ##
 
 Revised sync blocking behavior with a service and UI for reporting on current sync status. 
 
@@ -45,7 +56,7 @@ Fix for issue where sessions can fail to sync if they are arriving when a sync i
 
 Fix for issue where data can be overwritten if configured URL is modified to point to a shadow server.
 
-Version 1.2 May 3, 2017
+## Version 1.2 May 3, 2017 ##
 
 Xsync Token Refresh Issue fixed
 
