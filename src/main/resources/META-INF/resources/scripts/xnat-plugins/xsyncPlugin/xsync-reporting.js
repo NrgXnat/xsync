@@ -25,15 +25,14 @@ window.XSYNC = getObject(window.XSYNC);
 
 		// Displays overview of sync history in table format
 		var xsyncHistory = XNAT.table({ className: 'xnat-table sortable' });
-		xsyncHistory.tr();
-		xsyncHistory
-				.th({className:'sort', html: 'Date <i>&nbsp;</i>'})
-				.th({className:'sort', html: 'Status <i>&nbsp;</i>'})
+		xsyncHistory.thead().tr()
+				.th({className:'sort', html: 'Date <i class="arrows">&nbsp;</i>'})
+				.th({className:'sort', html: 'Status <i class="arrows">&nbsp;</i>'})
 				.th('Subjects')
 				.th('Subject Assessments')
 				.th('Derived Assessments')
 				.th('Project Resources')
-				.th({className:'sort', html: 'Total <i>&nbsp;</i>'});
+				.th({className:'sort', html: 'Total <i class="arrows">&nbsp;</i>'});
 
 		var getSyncHistory = xhr.getJSON(xsyncUrl('/history/projects/' + projectContext));
 
@@ -67,7 +66,7 @@ window.XSYNC = getObject(window.XSYNC);
 				];
 			});
 
-			xsyncHistory.rows(allHistory.reverse());
+			xsyncHistory.tbody().rows(allHistory.reverse());
 
 			if (data.length) {
 				$("#xsync-history-header").show();
