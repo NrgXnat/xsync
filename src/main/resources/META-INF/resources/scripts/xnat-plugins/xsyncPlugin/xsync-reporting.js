@@ -243,9 +243,14 @@ window.XSYNC = getObject(window.XSYNC);
 				items: {
 					localLabel: "Label",
 					syncStatus: "Status",
-					syncMessage: "Message"
+					syncMessage: {
+						label: "Message",
+						apply: function(){
+							return window.escapeHtml(this.syncMessage);
+						}
+					}
 				}
-			}).get()
+			}).get();
 		}
 		else {
 			panelContent = '<i class="pad20h">Nothing synced.</i>';
