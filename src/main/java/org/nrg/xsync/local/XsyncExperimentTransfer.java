@@ -16,6 +16,10 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.NotFileFilter;
+import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.XDAT;
@@ -1083,7 +1087,9 @@ public class XsyncExperimentTransfer {
             if (allResourcesInOneRootSubFolder) {
                 File experimentScanPath = new File(anonymizedSessionPath + "SCANS" + File.separator + scan.getId());
                 if (experimentScanPath.exists()) {
-                    List<File> rscfiles = (List<File>) FileUtils.listFiles(experimentScanPath, null, true);
+                    IOFileFilter filter = new NotFileFilter(new SuffixFileFilter(new String[] {".lock"}));
+                    List<File> rscfiles = (List<File>) FileUtils.listFiles(experimentScanPath, filter,
+                            DirectoryFileFilter.DIRECTORY);
                     files.addAll(rscfiles);
                     for (XnatAbstractresource a : scanFiles) {
                         if (a instanceof XnatResource) {
