@@ -46,6 +46,7 @@ import org.nrg.xft.XFTItem;
 import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXReader;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.representations.ZipRepresentation;
+import org.nrg.xnat.utils.CatalogUtils;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
 import org.nrg.xnat.xsync.transformer.TransformerHelper;
 import org.nrg.xnat.xsync.transformer.XsyncDataTypeSpecificTransformer;
@@ -1087,16 +1088,16 @@ public class XsyncExperimentTransfer {
             if (allResourcesInOneRootSubFolder) {
                 File experimentScanPath = new File(anonymizedSessionPath + "SCANS" + File.separator + scan.getId());
                 if (experimentScanPath.exists()) {
-                    IOFileFilter filter = new NotFileFilter(new SuffixFileFilter(new String[] {".lock"}));
-                    List<File> rscfiles = (List<File>) FileUtils.listFiles(experimentScanPath, filter,
-                            DirectoryFileFilter.DIRECTORY);
-                    files.addAll(rscfiles);
+                    List<File> rscfiles = (List<File>) FileUtils.listFiles(experimentScanPath,
+                            CatalogUtils.XNAT_CATALOGABLE_FILE_FILTER, DirectoryFileFilter.DIRECTORY);
                     for (XnatAbstractresource a : scanFiles) {
                         if (a instanceof XnatResource) {
                             XnatResource resc = (XnatResource) a;
                             modifyExptScanResource(resc, scan.getId());
+                            rscfiles.add(new File(experimentScanPath, resc.getUri()));
                         }
                     }
+                    files.addAll(rscfiles);
                 }
             } else {
                 for (XnatAbstractresource a : scanFiles) {

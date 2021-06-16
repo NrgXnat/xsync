@@ -17,6 +17,7 @@ import org.nrg.xft.event.EventMetaI;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.representations.ZipRepresentation;
+import org.nrg.xnat.utils.CatalogUtils;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.restlet.data.MediaType;
 import org.slf4j.Logger;
@@ -40,9 +41,8 @@ public class XsyncFileUtils {
 			if (pathToFiles.exists()) {
 				ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,pathToFiles.getParent(),0);
 
-				IOFileFilter filter = new NotFileFilter(new SuffixFileFilter(new String[] {"_catalog.xml", ".lock"}));
-				ArrayList<File> filteredFiles = new ArrayList<File>(org.apache.commons.io.FileUtils.listFiles(pathToFiles,
-						filter, DirectoryFileFilter.DIRECTORY));
+				ArrayList<File> filteredFiles = new ArrayList<>(org.apache.commons.io.FileUtils.listFiles(pathToFiles,
+						CatalogUtils.XNAT_CATALOGABLE_FILE_FILTER, DirectoryFileFilter.DIRECTORY));
 				if (filteredFiles.size()> 0) {
 					rep.addAllAtRelativeDirectory(path, filteredFiles);
 				}
