@@ -44,31 +44,11 @@ apply plugin: 'eclipse'
 apply plugin: 'xnat-data-builder'
 apply plugin: 'io.franzbecker.gradle-lombok'
 
-
 repositories {
     mavenLocal()
-    maven {
-        url "http://maven.imagej.net/content/groups/public"
-        name "ImageJ Maven Repository"
-    }
-    jcenter()
+    maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
+    maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
     mavenCentral()
-    maven {
-        url "https://nrgxnat.jfrog.io/nrgxnat/libs-release"
-        name "XNAT Release Repository"
-    }
-    maven {
-        url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot"
-        name "XNAT Snapshot Repository"
-    }
-    maven {
-        url "https://maven.radiologics.com/repository/snapshots"
-        name "Radiologics Snapshot Repository"
-    }
-    maven {
-        url "https://maven.radiologics.com/repository/internal"
-        name "Radiologics Release Repository"
-    }
 }
 
 // Use this configuration to put dependencies into the fat jar
