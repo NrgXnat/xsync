@@ -9,6 +9,7 @@ import org.nrg.framework.services.SerializerService;
 import org.nrg.framework.task.XnatTask;
 import org.nrg.framework.task.services.XnatTaskService;
 import org.nrg.mail.services.MailService;
+import org.nrg.xnat.services.XnatAppInfo;
 import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.remote.alias.services.SyncStatusService;
@@ -32,9 +33,9 @@ public class DefaultWeeklySyncService extends AbstractSyncService implements Wee
     public DefaultWeeklySyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService, final CatalogService catalogService,
     		final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil,
     		final XsyncXnatInfo xnatInfo, @Qualifier("xsyncThreadPoolExecutorFactoryBean") final ThreadPoolExecutorFactoryBean xsyncThreadPoolExecutorFactoryBean,
-    		final SyncStatusService syncStatusService, final XnatTaskService taskService) {
+    		final SyncStatusService syncStatusService, final XnatTaskService taskService, final XnatAppInfo xnatAppInfo) {
         super(manager, configService, mailService, catalogService, serializer, jdbcTemplate, queryResultUtil,
-        		xnatInfo, xsyncThreadPoolExecutorFactoryBean, syncStatusService, taskService);
+        		xnatInfo, xsyncThreadPoolExecutorFactoryBean, syncStatusService, taskService, xnatAppInfo);
     }
 
 	@Override

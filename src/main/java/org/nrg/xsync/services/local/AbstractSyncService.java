@@ -7,6 +7,7 @@ import org.nrg.framework.task.services.XnatTaskService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.services.XnatAppInfo;
 import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xnat.task.AbstractXnatTask;
 import org.nrg.xsync.connection.RemoteConnectionManager;
@@ -39,12 +40,13 @@ public abstract class AbstractSyncService extends AbstractXnatTask {
     private final XsyncXnatInfo                 _xnatInfo;
     private final ThreadPoolExecutorFactoryBean _executorFactoryBean;
     private final SyncStatusService				_syncStatusService;
+    private final XnatAppInfo                   _xnatAppInfo;
     protected static final Logger logger = LoggerFactory.getLogger(AbstractSyncService.class);
 
     protected AbstractSyncService(final RemoteConnectionManager manager, final ConfigService configService, final MailService mailService,
     		final CatalogService catalogService, final SerializerService serializer, final JdbcTemplate jdbcTemplate, final QueryResultUtil queryResultUtil,
     		final XsyncXnatInfo xnatInfo, final ThreadPoolExecutorFactoryBean executorFactoryBean, final SyncStatusService syncStatusService,
-    		final XnatTaskService taskService) {
+    		final XnatTaskService taskService, final XnatAppInfo xnatAppInfo) {
     	super(taskService, false, null, jdbcTemplate);
         _manager = manager;
         _configService = configService;
@@ -56,6 +58,7 @@ public abstract class AbstractSyncService extends AbstractXnatTask {
         _xnatInfo = xnatInfo;
         _executorFactoryBean = executorFactoryBean;
         _syncStatusService = syncStatusService;
+        _xnatAppInfo = xnatAppInfo;
     }
 
     protected ProjectChangeDiscoverer getProjectChangeDiscoverer(final String projectId, final UserI user) throws XsyncNotConfiguredException {
@@ -83,6 +86,9 @@ public abstract class AbstractSyncService extends AbstractXnatTask {
     }
     
     protected void doSync(List<Map<String, Object>> queryResultsRows) {
+        if(!_xnatAppInfo.isPrimaryNode()) {
+            return;
+        }
         //TODO
         //The user who sets up the sync will
         //All project access will be done by the admin user
