@@ -20,6 +20,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
@@ -137,7 +138,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    } catch (RuntimeException e) {
 		    	count++;
 	    		logger.error("Exception thrown during storeXAR process:\n" + ExceptionUtils.getStackTrace(e));
-	    		logger.error((maxTries>0 && maxTries>=count) ? "StoreXAR failed.  Maximum attemts has not yet been reached.  Upload will be reattempted in " + String.valueOf(sleep/1000) + " seconds." : 
+	    		logger.debug((maxTries>0 && maxTries>=count) ? "StoreXAR failed.  Maximum attemts has not yet been reached.  Upload will be reattempted in " + String.valueOf(sleep/1000) + " seconds." : 
 	    				"Maximum attemts has been reached.  StoreXAR will not be retried.");
 		        if (maxTries == 0 || count > maxTries) throw e;
 		    	try {
@@ -145,7 +146,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
-	    		logger.error("Retrying importXar: retrycount "+ count + " out of " + maxTries);
+	    		logger.debug("Retrying importXar: retrycount "+ count + " out of " + maxTries);
 		    }
 		}
 	}
@@ -273,10 +274,10 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    	try {
 		    		logger.debug("Exception " + e.getMessage());
 			    	if (maxTries > 0) {
-				    	logger.error("createWorkflow: retrycount "+ count);
-				    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
-				    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());
-				    	logger.error("Sleeping for " + sleep + " milliseconds");
+				    	logger.debug("createWorkflow: retrycount "+ count);
+				    	logger.debug("Refresh rate is " + _prefs.getSyncRetryCountInt());
+				    	logger.debug("Refresh rate is " + _prefs.getSyncRetryInterval());
+				    	logger.debug("Sleeping for " + sleep + " milliseconds");
 			    		Thread.sleep(sleep);
 			    	}
 				} catch (InterruptedException e1) {
@@ -349,10 +350,10 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    		e.printStackTrace();
 		    		logger.debug("Exception " + e.getMessage());
 			    	if (maxTries > 0) {
-				    	logger.error("importSubject: retrycount "+ count);
-				    	logger.error("Referesh rate is " + _prefs.getSyncRetryCountInt());
-				    	logger.error("Referesh rate is " + _prefs.getSyncRetryInterval());
-				    	logger.error("Sleeping for " + sleep + " milliseconds");
+				    	logger.debug("importSubject: retrycount "+ count);
+				    	logger.debug("Refresh rate is " + _prefs.getSyncRetryCountInt());
+				    	logger.debug("Refresh rate is " + _prefs.getSyncRetryInterval());
+				    	logger.debug("Sleeping for " + sleep + " milliseconds");
 			    		Thread.sleep(sleep);
 			    	}
 				} catch (InterruptedException e1) {
@@ -379,7 +380,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.deleteWithoutRetry( connection,uri);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("deleteSubject: retrycount "+ count);
+			    	logger.debug("deleteSubject: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -414,7 +415,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			    }
 		    } catch (Exception e) {
 		    	try {
-			    	logger.error("deleteSubject: retrycount "+ count);
+			    	logger.debug("deleteSubject: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -440,7 +441,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.deleteWithoutRetry( connection, uri);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("deleteSubject: retrycount "+ count);
+			    	logger.debug("deleteSubject: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -466,7 +467,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.deleteWithoutRetry( connection, uri);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("deleteProjectResource: retrycount "+ count);
+			    	logger.debug("deleteProjectResource: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -496,7 +497,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    	 return this.importZipWithoutRetry( connection, uri, zipFile);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("importsubjectresource: retrycount "+ count);
+			    	logger.debug("importsubjectresource: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -522,7 +523,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.importZipWithoutRetry( connection, uri, zipFile);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("importsubjectresource: retrycount "+ count);
+			    	logger.debug("importsubjectresource: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -550,7 +551,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		         return this.importZipWithoutRetry( connection, uri, zipFile);
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("importsubjectresource: retrycount "+ count);
+			    	logger.debug("importsubjectresource: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -580,7 +581,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 		    	
 		    } catch (RuntimeException e) {
 		    	try {
-			    	logger.error("importsubjectresource: retrycount "+ count);
+			    	logger.debug("importsubjectresource: retrycount "+ count);
 					if (maxTries > 0) Thread.sleep(sleep);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -636,6 +637,29 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				fw.close();
 				throw e;
 			}
+		} catch (HttpClientErrorException clientEx) {
+			// In the case of shared sessions, we get a 409 Conflict when posting XML.  In such cases, let's to a PUT without XML to get the assession number
+			if (clientEx.getMessage().contains("409 Conflict")) { 
+				try {
+					logger.debug("RECEIVED CONFLICT RESPONSE (shared subject) - Retry PUT without XML");
+					logger.debug("URL: "+connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=false");
+					final HttpEntity<?> httpEntity = new HttpEntity<>(null, RemoteConnectionManager.GetAuthHeaders(connection, true));
+					response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=false", HttpMethod.PUT, httpEntity, String.class);
+				}catch(Exception e) {
+					logger.debug("importSubjectWithoutRetry - HttpClientErrorException thrown - ", e);
+					if (response != null) {
+						logger.debug(response.toString());
+					}
+					throw e;
+				}
+			} else {
+				logger.debug("importSubjectWithoutRetry - Exception thrown - ", clientEx);
+				if (response != null) {
+					logger.debug(response.toString());
+				}
+				//logger.debug(subjectXml);
+				throw clientEx;
+			}
 		} catch (Exception e) {
 			logger.debug("importSubjectWithoutRetry - Exception thrown - ", e);
 			if (response != null) {
@@ -644,14 +668,10 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			//logger.debug(subjectXml);
 			throw e;
 		}
-		
 		logger.debug(response.toString());
 		//return 	((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
 		return new RemoteConnectionResponse(response);
 	}
-
-	
-
 	
 	/**
 	 * Delete subject without retry.
@@ -694,7 +714,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			         return this.importSubjectAssessorWithoutRetry(  connection,  subject, assessor );
 			    } catch (RuntimeException e) {
 			    	try {
-				    	logger.error("importSubjectAssessor: retrycount "+ count);
+				    	logger.debug("importSubjectAssessor: retrycount "+ count);
 						if (maxTries > 0) Thread.sleep(sleep);
 					} catch (InterruptedException e1) {
 						e1.printStackTrace();
