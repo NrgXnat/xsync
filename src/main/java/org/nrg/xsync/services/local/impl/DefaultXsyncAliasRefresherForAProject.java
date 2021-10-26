@@ -81,7 +81,8 @@ public class DefaultXsyncAliasRefresherForAProject implements Runnable{
 				break;
 		    } catch (RuntimeException re) {
 		    	try {
-		    		logger.error(ExceptionUtils.getStackTrace(re));
+		    		logger.error("Exception thrown while refreshing token for project " + _connEntity.getLocal_project() + "\n" + 
+		    				ExceptionUtils.getMessage(re));
 		    		logger.error("XsyncAliasTokenRefresh: retrycount "+ count + " out of " + maxTries);
 					if (maxTries > 0) Thread.sleep(sleep);
 			     } catch (InterruptedException e1) {

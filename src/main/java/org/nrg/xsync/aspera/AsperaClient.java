@@ -45,7 +45,7 @@ public class AsperaClient {
 
         final String commandStr = StringUtils.join(command, " ");
 //        _logger.info(Arrays.toString(command));
-        _logger.error("Executing system command -- " + commandStr);
+        _logger.debug("Executing system command -- " + commandStr);
         this.status.setMessage(commandStr);
 
         final Runtime rt = Runtime.getRuntime();
@@ -67,7 +67,7 @@ public class AsperaClient {
         if (stdInput != null) {
 	        while ((s = stdInput.readLine()) != null) {
 	        	//_logger.info(s);
-	            _logger.error(s);
+	            _logger.debug(s);
 	            this.status.setMessage(s);
 	        }
             stdInput.close();
@@ -127,7 +127,7 @@ public class AsperaClient {
 
         String commandStr = StringUtils.join(command, " ");
 //        _logger.info(Arrays.toString(command));
-        _logger.error("Executing system command -- " + commandStr);
+        _logger.debug("Executing system command -- " + commandStr);
         this.status.setMessage(commandStr);
 
         Runtime rt = Runtime.getRuntime();
@@ -149,7 +149,7 @@ public class AsperaClient {
         if (stdInput != null) {
 	        while ((s = stdInput.readLine()) != null) {
 	        	//_logger.info(s);
-	            _logger.error(s);
+	            _logger.debug(s);
 	            this.status.setMessage(s);
 	        }
             stdInput.close();
