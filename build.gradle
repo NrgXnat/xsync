@@ -12,21 +12,22 @@ buildscript {
         vXnat = '1.7.4'
     }
     repositories {
-        mavenLocal()
-        mavenCentral()
-        jcenter()
         maven {
-            url 'https://nrgxnat.artifactoryonline.com/nrgxnat/libs-release'
+            url "https://plugins.gradle.org/m2/"
+        }
+        maven {
+            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-release'
             name 'XNAT Release Repository'
         }
         maven {
-            url 'https://nrgxnat.artifactoryonline.com/nrgxnat/libs-snapshot'
+            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
             name 'XNAT Snapshot Repository'
         }
     }
     dependencies {
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.3.RELEASE"
         classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
+        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
+	classpath "io.franzbecker:gradle-lombok:4.0.0"
     }
 }
 
@@ -41,26 +42,32 @@ apply plugin: 'maven-publish'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'xnat-data-builder'
+apply plugin: 'io.franzbecker.gradle-lombok'
+
 
 repositories {
     mavenLocal()
-    mavenCentral()
+    maven {
+        url "http://maven.imagej.net/content/groups/public"
+        name "ImageJ Maven Repository"
+    }
     jcenter()
+    mavenCentral()
     maven {
-        url 'http://www.dcm4che.org/maven2'
-        name 'Dcm4che Repository'
+        url "https://nrgxnat.jfrog.io/nrgxnat/libs-release"
+        name "XNAT Release Repository"
     }
     maven {
-        url 'https://nrgxnat.artifactoryonline.com/nrgxnat/libs-release'
-        name 'XNAT Release Repository'
+        url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot"
+        name "XNAT Snapshot Repository"
     }
     maven {
-        url 'https://nrgxnat.artifactoryonline.com/nrgxnat/libs-snapshot'
-        name 'XNAT Snapshot Repository'
+        url "https://maven.radiologics.com/repository/snapshots"
+        name "Radiologics Snapshot Repository"
     }
     maven {
-        url 'https://nrgxnat.artifactoryonline.com/nrgxnat/ext-release'
-        name 'XNAT External Release Repository'
+        url "https://maven.radiologics.com/repository/internal"
+        name "Radiologics Release Repository"
     }
 }
 
@@ -88,9 +95,8 @@ dependencies {
     implementation("org.nrg.xdat:core") {
         transitive = false
     }
-    implementation("org.nrg:framework") {
-        transitive = false
-    }
+    annotationProcessor("org.nrg:framework")
+    compileOnly("org.nrg:framework")
     implementation("org.nrg:config") {
         transitive = false
     }
@@ -113,27 +119,63 @@ dependencies {
         transitive = false
     }
 
-    implementation("org.slf4j:slf4j-api") { transitive = false }
     implementation("org.restlet:org.restlet") { transitive = false }
-    implementation("com.fasterxml.jackson.core:jackson-databind") { transitive = false }
     implementation("org.apache.axis:axis") { transitive = false }
     implementation("dcm4che:dcm4che-core") { transitive = false }
     implementation("javax.mail:javax.mail-api") { transitive = false }
     implementation("com.google.code.gson:gson") { transitive = false }
+
+    implementation("eu.bitwalker:UserAgentUtils") { transitive = false }
+
+    compileAndInclude group: 'net.sf.opencsv', name: 'opencsv', version: '2.3'
+
+    implementation "commons-beanutils:commons-beanutils"
+    implementation "commons-codec:commons-codec"
+    implementation "commons-collections:commons-collections"
+    implementation "commons-configuration:commons-configuration"
+    implementation "commons-digester:commons-digester"
+    implementation "commons-discovery:commons-discovery"
+    implementation "commons-fileupload:commons-fileupload"
+    implementation "commons-net:commons-net"
+
+    implementation "org.apache.commons:commons-configuration2"
+    implementation "org.apache.commons:commons-math"
+    //implementation "org.apache.commons:commons-text"
     implementation("stratum:stratum") {
         transitive = false
     }
 
-    implementation("eu.bitwalker:UserAgentUtils") { transitive = false }
+    implementation "org.hibernate:hibernate-core"
 
-    implementation("org.springframework:spring-core") { transitive = false }
-    implementation("org.springframework:spring-context") { transitive = false }
-    implementation("org.springframework:spring-tx") { transitive = false }
-    implementation("org.springframework:spring-web") { transitive = false }
+    implementation "org.springframework:spring-aop"
+    implementation "org.springframework:spring-context-support"
+    implementation "org.springframework:spring-jms"
+    implementation "org.springframework:spring-messaging"
+    implementation "org.springframework:spring-orm"
+    implementation "org.springframework:spring-oxm"
+    implementation "org.springframework:spring-tx"
+    implementation "org.springframework:spring-webmvc"
+    implementation "org.springframework.security:spring-security-acl"
+    implementation "org.springframework.security:spring-security-aspects"
+    implementation "org.springframework.security:spring-security-config"
+    implementation "org.springframework.security:spring-security-taglibs"
+    implementation "org.springframework.ldap:spring-ldap-core"
 
-    implementation("io.springfox:springfox-swagger2") { transitive = false }
-    implementation("io.springfox:springfox-swagger-ui") { transitive = false }
-    compileAndInclude group: 'net.sf.opencsv', name: 'opencsv', version: '2.3'
+    implementation "com.fasterxml.jackson.core:jackson-annotations"
+    implementation "com.fasterxml.jackson.core:jackson-core"
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+
+    implementation "io.springfox:springfox-swagger2"
+    implementation "io.springfox:springfox-swagger-ui"
+
+    implementation "org.slf4j:slf4j-api"
+    implementation "org.slf4j:slf4j-log4j12"
+
+    implementation "ecs:ecs"
+
+    implementation "com.google.code.findbugs:jsr305"
+    implementation "org.jetbrains:annotations"
+    implementation "org.kohsuke.metainf-services:metainf-services"
 }
 
 configurations {
@@ -154,24 +196,6 @@ sourceSets {
         }
     }
 }
-
-if (hasProperty("rt.17.jar")) {
-    // Solution for bootstrap classpath warning and possible issues with compatibility with 1.7 libraries
-    // was taken from this post on discuss.gradle.org: http://bit.ly/24xD9j0
-    def rt17jar = property "rt.17.jar"
-    logger.info "Using ${rt17jar} as the bootstrap class path jar."
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            options.fork = true
-            options.compilerArgs << "-XDignore.symbol.file"
-            options.bootClasspath = rt17jar
-        }
-    }
-} else {
-    logger.warn "No value was set for the rt.17.jar build property, using the default bootstrap class path. You should consider setting rt.17.jar to indicate a jar file containing the Java 1.7 run-time library:\n"
-    logger.warn "  ./gradlew -Prt.17.jar=rt-1.7.0_45.jar war\n"
-}
-
 
 task fatJar(type: Jar) {
     zip64 true
