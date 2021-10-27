@@ -638,13 +638,14 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				throw e;
 			}
 		} catch (HttpClientErrorException clientEx) {
-			// In the case of shared sessions, we get a 409 Conflict when posting XML.  In such cases, let's to a PUT without XML to get the assession number
+			// In the case of shared sessions, we get a 409 Conflict when posting XML.  In such cases, let's do a GET.  This will return
+			// XML that will need to be handled later.
 			if (clientEx.getMessage().contains("409 Conflict")) { 
 				try {
-					logger.debug("RECEIVED CONFLICT RESPONSE (shared subject) - Retry PUT without XML");
-					logger.debug("URL: "+connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=false");
+					logger.debug("RECEIVED CONFLICT RESPONSE (shared subject) - Try GET operation to return subject XML");
+					logger.debug("URL: "+connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?format=xml");
 					final HttpEntity<?> httpEntity = new HttpEntity<>(null, RemoteConnectionManager.GetAuthHeaders(connection, true));
-					response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=false", HttpMethod.PUT, httpEntity, String.class);
+					response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?format=xml", HttpMethod.GET, httpEntity, String.class);
 				}catch(Exception e) {
 					logger.debug("importSubjectWithoutRetry - HttpClientErrorException thrown - ", e);
 					if (response != null) {
@@ -668,7 +669,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			//logger.debug(subjectXml);
 			throw e;
 		}
-		logger.debug(response.toString());
+		//logger.debug(response.toString());
 		//return 	((response.getStatusCode().value()==HttpStatus.OK.value()) || (response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
 		return new RemoteConnectionResponse(response);
 	}

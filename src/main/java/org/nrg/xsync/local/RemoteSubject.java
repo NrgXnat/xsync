@@ -231,7 +231,11 @@ public class RemoteSubject {
 			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 			 RemoteConnectionResponse response = _manager.importSubject(connection, (XnatSubjectdata)remoteSubject);
 			 if (response.wasSuccessful()) {
-				 subject_remote_id = response.getResponseBody();
+				 if (!response.getResponseBody().contains("<")) {
+					 subject_remote_id = response.getResponseBody();
+				 } else {
+					 subject_remote_id = response.getResponseBody().replace("\n", "").replace("\r", "").replaceFirst("^.*xnat:Subject ID=[\"]", "").replaceFirst("[\"].*$","");
+				 }
 				 //WorkFlowUtils wrkFlowUtils = new WorkFlowUtils(_manager, _queryResultUtil,_jdbcTemplate, projectSyncConfiguration);
 				 //wrkFlowUtils.createWorkflowAtRemote((XnatSubjectdata)remoteSubject,subject_remote_id,remoteSubject.getProject(),"Complete");
 			 } else 
