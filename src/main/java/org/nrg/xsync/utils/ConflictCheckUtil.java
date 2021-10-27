@@ -40,8 +40,22 @@ public class ConflictCheckUtil {
 					if (subject.getLabel().equals(remoteSessionLabel) && remoteProjectId.equals(remoteSessionProject)) {
 						return;
 					} else {
-						throw new XsyncIdConflictException("Subject " + remoteId + 
-								" exists at destination with a different label or in a different project.");
+						// Check project to see if subject was shared in
+						final String subjURI = remoteUrl +"/data/subjects/"+remoteId+"/projects?format=json";
+						final RemoteConnectionResponse subjResponse = manager.getResult(connection,subjURI);
+						final List<Map<String, String>> projList = getResultList(subjResponse);
+						boolean isShared = false;
+						for (final Map<String, String> pMap : projList) {
+							if (pMap.containsKey("ID") && pMap.get("ID").equals(remoteSessionProject)) {
+								isShared = true;
+							}
+						}
+						if (isShared) {
+							return;
+						} else {			
+							throw new XsyncIdConflictException("Subject " + remoteId + 
+									" exists at destination with a different label or in a different project.");
+						}
 					}
 				}
 			} else if (result.size() == 0) {
