@@ -626,16 +626,31 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 				response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?inbody=true", HttpMethod.PUT, httpEntity, String.class);
 				logger.debug(response.toString());
 			}catch(Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-				logger.debug("Error while storing subject " + e.getMessage());
-				String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(subject.getProject());
-				File subjectF = new File(cachePath + "failed_" + subject.getLabel()+".xml");
-				if (!subjectF.getParentFile().exists())
-					subjectF.getParentFile().mkdirs();
-				FileWriter fw = new FileWriter(subjectF);
-				subject.toXML(fw, false);
-				fw.close();
-				throw e;
+				if (e.getMessage().contains("409 Conflict")) { 
+					try {
+						logger.debug("RECEIVED CONFLICT RESPONSE (shared subject) - Try GET operation to return subject XML");
+						logger.debug("URL: "+connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?format=xml");
+						final HttpEntity<?> httpEntity = new HttpEntity<>(null, RemoteConnectionManager.GetAuthHeaders(connection, true));
+						response = getResttemplate().exchange(connection.getUrl()+"/data/archive/projects/"+subject.getProject()+"/subjects/"+subject.getLabel()+"?format=xml", HttpMethod.GET, httpEntity, String.class);
+					}catch(Exception e2) {
+						logger.debug("importSubjectWithoutRetry - HttpClientErrorException thrown - ", e2);
+						if (response != null) {
+							logger.debug(response.toString());
+						}
+						throw e;
+					}
+				} else {
+					logger.error(ExceptionUtils.getStackTrace(e));
+					logger.debug("Error while storing subject " + e.getMessage());
+					String cachePath = SynchronizationManager.GET_SYNC_FILE_PATH(subject.getProject());
+					File subjectF = new File(cachePath + "failed_" + subject.getLabel()+".xml");
+					if (!subjectF.getParentFile().exists())
+						subjectF.getParentFile().mkdirs();
+					FileWriter fw = new FileWriter(subjectF);
+					subject.toXML(fw, false);
+					fw.close();
+					throw e;
+				}
 			}
 		} catch (HttpClientErrorException clientEx) {
 			// In the case of shared sessions, we get a 409 Conflict when posting XML.  In such cases, let's do a GET.  This will return
