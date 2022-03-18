@@ -1,47 +1,17 @@
 package org.nrg.xsync.local;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
-import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.io.filefilter.NotFileFilter;
-import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.bean.reader.XDATXMLReader;
-import org.nrg.xdat.model.CatEntryI;
-import org.nrg.xdat.model.XnatAbstractresourceI;
-import org.nrg.xdat.model.XnatExperimentdataI;
-import org.nrg.xdat.model.XnatImageassessordataI;
-import org.nrg.xdat.model.XnatImagescandataI;
-import org.nrg.xdat.model.XnatImagesessiondataI;
-import org.nrg.xdat.model.XnatSubjectassessordataI;
-import org.nrg.xdat.model.XnatSubjectdataI;
-import org.nrg.xdat.om.XnatAbstractresource;
-import org.nrg.xdat.om.XnatImageassessordata;
-import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.xdat.om.XnatResource;
-import org.nrg.xdat.om.XnatSubjectassessordata;
-import org.nrg.xdat.om.XnatSubjectdata;
+import org.nrg.xdat.model.*;
+import org.nrg.xdat.om.*;
 import org.nrg.xft.XFTItem;
 import org.nrg.xft.schema.Wrappers.XMLWrapper.SAXReader;
 import org.nrg.xft.security.UserI;
@@ -68,22 +38,16 @@ import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncURIUtils;
 import org.nrg.xsync.tools.XsyncXnatInfo;
-import org.nrg.xsync.utils.ConflictCheckUtil;
-import org.nrg.xsync.utils.JSONUtils;
-import org.nrg.xsync.utils.QueryResultUtil;
-import org.nrg.xsync.utils.ResourceUtils;
-import org.nrg.xsync.utils.WorkFlowUtils;
-import org.nrg.xsync.utils.XsyncFileUtils;
-import org.nrg.xsync.utils.XsyncUtils;
+import org.nrg.xsync.utils.*;
 import org.restlet.data.MediaType;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.xml.sax.SAXException;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import lombok.extern.slf4j.Slf4j;
+import java.io.*;
+import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * @author Mohana Ramaratnam
@@ -122,6 +86,10 @@ public class XsyncExperimentTransfer {
     }
 
     @SuppressWarnings("static-access")
+    /**
+     * Sync the experiment identified by assess and associate to the remoteSubject
+     *
+     */
     public void syncExperiment(XnatExperimentdataI assess, XnatSubjectdataI remoteSubject) throws Exception {
         if (assess.getXSIType().startsWith("xsync:")) {
             return;

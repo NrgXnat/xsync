@@ -11,6 +11,10 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 # ChangeLog #
 
+## Version 1.5.0-SNAPSHOT  As of March 14, 2022 ##
+
+Added a synchronization tab on the subject report page. The subject meta-data and the resources at the subject level can be synced on demand. Experiments will not sync. Only Site Admins/Project Owners and Members can start the re-sync
+
 ## Version 1.4.0  As of March 4, 2021 ##
 
 Fixes to make XSync compatible with XNAT 1.8.0.

@@ -1,11 +1,5 @@
 package org.nrg.xsync.manager;
 
-import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.om.XnatExperimentdata;
@@ -25,6 +19,12 @@ import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Mohana Ramaratnam
@@ -71,13 +71,13 @@ public class SynchronizationManager {
 			manifest.syncInfoToDatabase();
 	    }		
 	}
-	
-	public static void END_SYNC(final SerializerService serializer, String projectId, final NamedParameterJdbcTemplate jdbcTemplate, boolean save) {
+
+	public static void END_SYNC(final SerializerService serializer, String projectId, final NamedParameterJdbcTemplate jdbcTemplate, boolean save, boolean notify) {
 		Date now = new Date();
 //		projectSyncEndTime.put(projectId,now);
-	    SyncManifest manifest = syncManifests.get(projectId);
-	    if (manifest != null) {
-		  manifest.setSync_end_time(now);
+		SyncManifest manifest = syncManifests.get(projectId);
+		if (manifest != null) {
+			manifest.setSync_end_time(now);
 			XsyncUtils xsyncUtils = new XsyncUtils(serializer, jdbcTemplate, manifest.getSync_user());
 			XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
 			syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
@@ -100,14 +100,18 @@ public class SynchronizationManager {
 			}catch(Exception e) {
 				_log.debug("Unable to save synchronization  details for project: " + projectId + " Cause:" + e.getMessage(),e);
 			}
-			if (manifest.shouldNotify())
+			if ( notify || manifest.shouldNotify())
 				manifest.informUser();
 			File syncInfoFilePath = new File(GET_SYNC_FILE_PATH(projectId)+projectId+"_sync.html");
 			manifest.syncInfoToFile(syncInfoFilePath);
 			manifest.syncInfoToDatabase();
 			//Clean up the cache path contents
 			if (manifest.wasSyncSuccessfull()) cleanUp(projectId);
-	    }
+		}
+	}
+
+	public static void END_SYNC(final SerializerService serializer, String projectId, final NamedParameterJdbcTemplate jdbcTemplate, boolean save) {
+		END_SYNC(serializer,projectId,jdbcTemplate,save, false);
 	}
 	
 	public static SyncManifest getProjectManifest(String projectId) {

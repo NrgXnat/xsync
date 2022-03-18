@@ -6,11 +6,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.CatEntryI;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatAbstractresource;
+import org.nrg.xdat.om.XnatImageassessordata;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xnat.utils.CatalogUtils;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
@@ -22,6 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @author Mohana Ramaratnam
  *
  */
+@Slf4j
 public class ResourceUtils {
 	
 	private final ProjectSyncConfiguration   _projectSyncConfiguration;
@@ -121,7 +124,38 @@ public class ResourceUtils {
 		  JsonNode resultNode = resultSetNode.get("Result");
 		  return resultNode;
 	  }
-	  
-	  
+
+	@SuppressWarnings("unused")
+	private String getResourcePath(XnatImageassessordata orig, XnatAbstractresource resource) {
+		String path  = null;
+		XnatAbstractresource origResource = null;
+		for (XnatAbstractresourceI r:orig.getResources_resource()) {
+			if (r.getLabel().equals(resource.getLabel())) {
+				origResource = (XnatAbstractresource)r;
+				break;
+			}
+		}
+		if (origResource != null) {
+			try {
+				path = origResource.getFullPath(orig.getArchiveRootPath());
+			}catch(Exception e) {
+				log.error("Could not get resource {} path", resource.getLabel(), e);
+			}
+		}
+		return path;
+	}
+
+	@SuppressWarnings("unused")
+	private String getResourcePath(String parent, XnatAbstractresource resource) {
+		String path  = null;
+		try {
+			path = resource.getFullPath(parent);
+		}catch(Exception e) {
+			log.error("Could not get resource {} path", resource.getLabel(), e);
+		}
+		return path;
+	}
+
+
 
 }

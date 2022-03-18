@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SyncStatusHolder {
 	
-	public enum SyncType { PROJECT_SYNC, EXPERIMENT_SYNC, NONE_SINCE_STARTUP }; 
+	public enum SyncType { PROJECT_SYNC, EXPERIMENT_SYNC, NONE_SINCE_STARTUP, SUBJECT_SYNC };
 	private final Map<String,ProjectSyncStatus> statusMap = new HashMap<>();
 	
 	public ProjectSyncStatus getProjectSyncStatus(String projectId) {

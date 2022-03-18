@@ -1,0 +1,179 @@
+<!-- Sequence: 19 -->
+<!-- allowGuest: false -->
+<script type = "text/javascript" >
+    var userHasPermissionToSyncInformation = false;
+#if($data.getSession().getAttribute("userHelper").canCreate("xnat:subjectData/project", $om.getProject()))
+	userHasPermissionToSyncInformation = true;
+#end
+
+
+function loadHistory() {
+    XNAT.xhr.getJSON({
+        url: XNAT.url.csrfUrl('/xapi/xsync/history/latest/projects/' + XNAT.data.context.project + '/subjects/$!om.getLabel()'),
+        type: "GET",
+        success: function(data) {
+            var history = data;
+            var syncAuthorizedBy = document.getElementById('authorizedBy');
+            var syncAuthorizedDate = document.getElementById('authorizedDate');
+            var remoteSessionReport = document.getElementById('remoteSessionReport');
+            var syncStatus = document.getElementById('syncStatus');
+
+            if (typeof history === 'undefined') {
+                syncStatus.innerHTML = 'Not available';
+                syncAuthorizedBy.innerHTML = 'Not available';
+                syncAuthorizedDate.innerHTML = 'Not available';
+            } else {
+                var remoteHost = history['remoteHost'];
+                var subjectHistories = history['subjectHistories'];
+                if (typeof subjectHistories === 'undefined') {
+                    syncStatus.innerHTML = 'Not available';
+                    syncAuthorizedBy.innerHTML = 'Not available';
+                    syncAuthorizedDate.innerHTML = 'Not available';
+                    remoteSessionReport.innerHTML = 'Not available';
+                } else {
+                    var subjectSyncStatus = subjectHistories[0]['syncStatus'];
+                    syncStatus.innerHTML = subjectSyncStatus;
+                    syncAuthorizedBy.innerHTML = history['syncUser'];
+                    var timestamp = subjectHistories[0]['created'];
+                    var date = new Date(timestamp);
+                    syncAuthorizedDate.innerHTML = date.toLocaleString();
+                    var remoteLink = "";
+                    if (syncStatus === "Waiting to Sync") {
+                        remoteLink = "Not available";
+                    } else {
+                        remoteLink = "<a target=\"_blank\" href=\"" + remoteHost + "/data/projects/" + history['remoteProject'] + "?format=html\">here</a>";
+                    }
+                    remoteSessionReport.innerHTML = remoteLink;
+
+                }
+            }
+            $("#syncDetailsTableDiv").show();
+        },
+        failure: function(o) {
+            syncStatus.innerHTML = 'Not available';
+            syncAuthorizedBy.innerHTML = 'Not available';
+            syncAuthorizedDate.innerHTML = 'Not available';
+            $("#syncDetailsTableDiv").show();
+        },
+        error: function(o) {
+            $("#syncDetailsTableDiv").hide();
+        }
+    });
+}
+
+
+function loadConfiguration() {
+    if (userHasPermissionToSyncInformation === true) {
+        XNAT.xhr.getJSON({
+            url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
+            type: "GET",
+            success: function(data) {
+                var configuration = data;
+                $("#syncDetailsTableDiv").hide();
+                if (typeof configuration.enabled === 'undefined') {
+                    document.getElementById('showDivIfSynchronizationConfigured').style.display = 'none';
+                    document.getElementById('showDivIfSynchronizationConfigured').style.display = 'block';
+                    document.getElementById('showPermissionDenied').style.display = "none";
+                } else {
+                    if (configuration.enabled === true) {
+                        loadHistory();
+                        document.getElementById('showDivIfSynchronizationConfigured').style.display = 'block';
+                        document.getElementById('showDivIfSynchronizationNotConfigured').style.display = 'none';
+                        document.getElementById('showPermissionDenied').style.display = "none";
+                    } else {
+                        document.getElementById('showDivIfSynchronizationConfigured').style.display = 'none';
+                        document.getElementById('showDivIfSynchronizationNotConfigured').style.display = 'block';
+                        document.getElementById('showPermissionDenied').style.display = "none";
+                    }
+                }
+            },
+            error: function(o) {
+                document.getElementById('showDivIfSynchronizationNotConfigured').style.display = "block";
+                document.getElementById('showPermissionDenied').style.display = "none";
+            }
+        });
+    } else {
+        document.getElementById('showDivIfSynchronizationConfigured').style.display = 'none';
+        document.getElementById('showDivIfSynchronizationNotConfigured').style.display = "none";
+        document.getElementById('showPermissionDenied').style.display = "block";
+    }
+}
+$(document).ready(function() {
+    loadConfiguration();
+});
+
+function manualSync(projectId, xnat_id, exp_label) {
+    var syncurl = serverRoot + '/xapi/xsync/syncsubject/' + xnat_id + '?XNAT_CSRF=' + csrfToken;
+    xmodal.confirm({
+        title: 'Confirm Manual Sync',
+        width: '500px',
+        height: '300px',
+        content: 'Click "OK" to begin synchronization. &nbsp;Please note warnings below.<br><br><b>Note that this could block other sync operations, as multiple concurrent sync processes are not allowed. &nbsp;' +
+            ' <br><br><b>Note also that this may cause ' +
+            'loss of data on the remote side as any current subject will be overwritten</b>.',
+        okAction: function() {
+            $.ajax({
+                url: syncurl,
+                type: "POST",
+                success: function(data) {
+                    xmodal.alert({
+                        title: 'Data Synchronization',
+                        content: "Sync request for this subject (" + exp_label + ") has been sent.",
+                        label: 'OK'
+                    });
+
+                },
+                error: function(data) {
+                    xmodal.loading.close();
+                    if (!window.leaving) {
+                        if (data.status == "423") {
+                            xModalMessage('Manual sync failed', 'Another sync operation is running.  Please try again later');
+                        } else {
+                            xModalMessage('Manual sync failed', 'Unable to sync subject ' + exp_label + '.  (' + data.statusText + ')');
+                        }
+                    }
+                }
+            })
+        }
+    });
+};
+
+
+</script>
+
+<div id="showDivIfSynchronizationConfigured">
+	<div id="syncDetailsTableDiv" style="display:none">
+		<table id="syncDetailsTable">
+			<tr>
+				<th align="left">Sync Status:</th>
+				<td id="syncStatus"></td>
+			</tr>
+			<tr>
+				<th align="left">Authorized By:</th>
+				<td id="authorizedBy"></td>
+			</tr>
+			<tr>
+				<th align="left">Authorized On:</th>
+				<td id="authorizedDate"></td>
+			</tr>
+			<tr>
+				<th align="left">Remote Subject report:</th>
+				<td id="remoteSessionReport"></td>
+			</tr>
+			<tr>
+			<th align="left">
+				<input type="button" title="Initiate sync process for this session.  Note that this could block other sync processes."
+							 value="(Re)Sync Subject Metadata and Resources now" onclick="javascript:manualSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');">
+			 </th>
+			</tr>
+		</table>
+	</div>
+</div>
+
+<div id="showDivIfSynchronizationNotConfigured" style="padding-top:40px;padding-bottom:40px">
+Project $!om.getProject() is not configured to sync
+</div>
+
+<div id="showPermissionDenied" style="padding-top:40px;padding-bottom:40px">
+ You do not have sufficient permission to access this information.
+</div>

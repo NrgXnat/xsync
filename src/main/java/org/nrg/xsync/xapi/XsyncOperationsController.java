@@ -38,6 +38,7 @@ import org.nrg.xsync.discoverer.ProjectChangeDiscoverer;
 import org.nrg.xsync.exception.XsyncCredentialsRequiredException;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
 import org.nrg.xsync.local.SingleExperimentTransfer;
+import org.nrg.xsync.local.SingleSubjectTransfer;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.manifest.XsyncProjectHistory;
 import org.nrg.xsync.remote.alias.services.SyncStatusService;
@@ -283,7 +284,47 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
         return new ResponseEntity<>(experimentId + " synchronization started", HttpStatus.OK);
     }
-    
+
+    @ApiOperation(value = "Exports the metadata and resources for indicated subject.", notes = "Starts the Subject export operation as indicated by the ID. WARNING: Will overwrite remote data", response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "The experiment export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
+    @RequestMapping(value = "/syncsubject/{subjectId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
+    @ResponseBody
+    public ResponseEntity<String> syncSingleSubject(@PathVariable("subjectId") final String subjectId) throws URISyntaxException, XsyncNotConfiguredException {
+        final UserI user = getSessionUser();
+
+        //Is the Subject ID in the DB
+        XnatSubjectdata subject = XnatSubjectdata.getXnatSubjectdatasById(subjectId, user, false);
+        if (subject == null) {
+            //Incorrect Subject ID
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        //Get the project id
+        String projectId = subject.getProject();
+        //Check user credentials to see if the user is a member or an owner of the project
+        try {
+            final HttpStatus status = canDeleteProject(projectId);
+            if (status != null) {
+                return new ResponseEntity<>(status);
+            }
+        }catch(Exception e) {
+            if (log.isInfoEnabled()) {
+                log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
+            }
+        }
+        if (_syncStatusService.isCurrentlySyncing(projectId)) {
+            return new ResponseEntity<>(HttpStatus.LOCKED);
+        }
+
+        final SingleSubjectTransfer singleSubjectTransfer = new SingleSubjectTransfer(_manager, _configService, _serializer,
+                _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, user, subject.getId());
+        _executorService.submit(singleSubjectTransfer);
+        if (log.isInfoEnabled()) {
+            log.info("Experiment[ " + subject.getLabel() + "@" + projectId +"]" + subjectId + " is being exported by " + getSessionUser().getUsername());
+        }
+        return new ResponseEntity<>(subjectId + " synchronization started", HttpStatus.OK);
+    }
+
+
     @ApiOperation(value = "Sets OK to Sync Status for the experiment.", notes = "Sets OK to Sync Status for the experiment.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/experiments/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)

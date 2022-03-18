@@ -8,9 +8,16 @@ import org.nrg.xsync.manifest.SyncManifest;
 import org.nrg.xsync.manifest.XsyncProjectHistory;
 
 public interface SyncManifestService extends BaseHibernateService<XsyncProjectHistory> {
+
     XsyncProjectHistory findByStartDate(final Date date);
+
     List<XsyncProjectHistory> findBySyncStatus(final String status);
+
     List<XsyncProjectHistory> findBySubject(final String subjectLabel);
+
     void persistHistory(final SyncManifest manifest);
-	XsyncProjectHistory getRecentProjectSync(String localProjectId, String remoteProjectId);
+
+    XsyncProjectHistory getRecentProjectSync(String localProjectId, String remoteProjectId);
+
+    XsyncProjectHistory findMostRecentBySubject(final String projectId, final String subjectLabel);
 }

@@ -1,190 +1,199 @@
 <!-- Sequence: 19 -->
 <!-- allowGuest: false -->
-<script type="text/javascript" >
+<script type = "text/javascript" >
+    var userHasPermissionToSyncInformation = false;
+#if($data.getSession().getAttribute("userHelper").canCreate("$om.getXSIType()/project", $om.getProject()))
+    userHasPermissionToSyncInformation = true;
+#end
 
 function loadConfiguration() {
-	XNAT.xhr.getJSON({
-	  url:XNAT.url.csrfUrl('/xapi/xsync/setup/projects/'+XNAT.data.context.project),
-	  type:"GET",
-	  success: function(data){
-	      var configuration = data;
-	      var xnatXsiType='$om.getXSIType()';
-	      var disp = 'none';
-	      var displayShowDoesNotNeedOkToSync = 'none';
-	      if (typeof configuration.imaging_sessions === 'undefined') {
-		  displayShowDoesNotNeedOkToSync = 'block';		      
-	      }else {
-		if (typeof configuration.imaging_sessions.xsi_types === 'undefined') {
-		  displayShowDoesNotNeedOkToSync = 'block';		      
-		}else {
-		  for (i = 0; i < configuration.imaging_sessions.xsi_types.length; i++) {
-		     var xsiType = configuration.imaging_sessions.xsi_types[i];
-		     if (xsiType.xsi_type==xnatXsiType) {
-		         if (typeof xsiType.needs_ok_to_sync === 'undefined' || !xsiType.needs_ok_to_sync) {
-		            displayShowDoesNotNeedOkToSync = 'block';		      
-		         }else if (xsiType.needs_ok_to_sync) {
-		            disp = 'block';
-		         }
-		     }
-		  }
-		}
-	      }
-	      document.getElementById('showDivIfSynchronizationNotConfigured').style.display="none";
-	      document.getElementById('showDivIfSynchronizationConfigured').style.display=disp;
-	      document.getElementById('showDoesNotNeedOkToSync').style.display=displayShowDoesNotNeedOkToSync;
-	      if (document.getElementById('showDoesNotNeedOkToSync').style.display=='none') {
-		  if (document.getElementById('OkToSync').checked) {
-			$("#syncDetailsTableDiv").show();
-		  } else {
-			$("#syncDetailsTableDiv").hide();
-		  } 
-	      }
+    if (userHasPermissionToSyncInformation === true) {
+        document.getElementById('showPermissionDenied').style.display = "none";
 
-	  },
-	  error: function(o) {
-	      document.getElementById('showDivIfSynchronizationConfigured').style.display="none";
-	      document.getElementById('showDoesNotNeedOkToSync').style.display="none";
-	      document.getElementById('showDivIfSynchronizationNotConfigured').style.display="block";
-	  }
-	});
+        XNAT.xhr.getJSON({
+            url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
+            type: "GET",
+            success: function(data) {
+                var configuration = data;
+                var xnatXsiType = '$om.getXSIType()';
+                var disp = 'none';
+                var displayShowDoesNotNeedOkToSync = 'none';
+                if (typeof configuration.imaging_sessions === 'undefined') {
+                    displayShowDoesNotNeedOkToSync = 'block';
+                } else {
+                    if (typeof configuration.imaging_sessions.xsi_types === 'undefined') {
+                        displayShowDoesNotNeedOkToSync = 'block';
+                    } else {
+                        for (i = 0; i < configuration.imaging_sessions.xsi_types.length; i++) {
+                            var xsiType = configuration.imaging_sessions.xsi_types[i];
+                            if (xsiType.xsi_type == xnatXsiType) {
+                                if (typeof xsiType.needs_ok_to_sync === 'undefined' || !xsiType.needs_ok_to_sync) {
+                                    displayShowDoesNotNeedOkToSync = 'block';
+                                } else if (xsiType.needs_ok_to_sync) {
+                                    disp = 'block';
+                                }
+                            }
+                        }
+                    }
+                }
+                document.getElementById('showDivIfSynchronizationNotConfigured').style.display = "none";
+                document.getElementById('showDivIfSynchronizationConfigured').style.display = disp;
+                document.getElementById('showDoesNotNeedOkToSync').style.display = displayShowDoesNotNeedOkToSync;
+                if (document.getElementById('showDoesNotNeedOkToSync').style.display == 'none') {
+                    if (document.getElementById('OkToSync').checked) {
+                        $("#syncDetailsTableDiv").show();
+                    } else {
+                        $("#syncDetailsTableDiv").hide();
+                    }
+                }
+
+            },
+            error: function(o) {
+                document.getElementById('showDivIfSynchronizationConfigured').style.display = "none";
+                document.getElementById('showDoesNotNeedOkToSync').style.display = "none";
+                document.getElementById('showDivIfSynchronizationNotConfigured').style.display = "block";
+            }
+        });
+    } else {
+        document.getElementById('showDivIfSynchronizationConfigured').style.display = 'none';
+        document.getElementById('showDoesNotNeedOkToSync').style.display = "none";
+        document.getElementById('showDivIfSynchronizationNotConfigured').style.display = "none";
+        document.getElementById('showPermissionDenied').style.display = "block";
+    }
 }
-$(document).ready(function(){
-	loadConfiguration();
+$(document).ready(function() {
+    loadConfiguration();
 });
 
 
-function setOkToSync(projectId,xnat_id, exp_label) {
-	var syncChoice = document.getElementById('OkToSync').checked;
-	var exporturl = serverRoot + '/xapi/xsync/experiments/'+xnat_id+'?okToSync='+syncChoice+'&XNAT_CSRF='+csrfToken ;
-	$.ajax({
-	  url:exporturl,
-	  type:"POST",
-	  success: function(data){
-			  xmodal.alert({
-					title: 'Data Synchronization',
-					width: '540px',
-					height: '270px',
-					content: data ,
-					label: 'OK'
-				});
-			  if (syncChoice) {
-			    getSyncInfo(projectId,xnat_id, exp_label);
-				
-			  } else {
-				$("#syncDetailsTableDiv").hide();
-			  } 
-	  },
-	  error: ajaxCallFailed
-	});
+function setOkToSync(projectId, xnat_id, exp_label) {
+    var syncChoice = document.getElementById('OkToSync').checked;
+    var exporturl = serverRoot + '/xapi/xsync/experiments/' + xnat_id + '?okToSync=' + syncChoice + '&XNAT_CSRF=' + csrfToken;
+    $.ajax({
+        url: exporturl,
+        type: "POST",
+        success: function(data) {
+            xmodal.alert({
+                title: 'Data Synchronization',
+                width: '540px',
+                height: '270px',
+                content: data,
+                label: 'OK'
+            });
+            if (syncChoice) {
+                getSyncInfo(projectId, xnat_id, exp_label);
+
+            } else {
+                $("#syncDetailsTableDiv").hide();
+            }
+        },
+        error: ajaxCallFailed
+    });
 };
 
-function getSyncInfo(projectId,xnat_id, exp_label) {
-	var syncChoice = document.getElementById('OkToSync').checked;
-	var exporturl = serverRoot + '/xapi/xsync/experiments/'+xnat_id+'/syncStatus?XNAT_CSRF='+csrfToken ;
-	$.ajax({
-	  url:exporturl,
-	  type:"GET",
-	  success: function(response){
-	  
-				var data=JSON.parse(response);
-				$('#syncStatus').html(data['syncStatus']);
-				$('#authorizedBy').html(data['authorizedBy']);
-				$('#authorizedDate').html(data['authorizedDate']);
-				if(data['syncStatus'] == "Waiting to Sync")
-				{
-				$('#remoteSessionReport').html("Not available");
-				}
-				else{
-				console.log('setting remoteSessionReport');
-				$('#remoteSessionReport').html('<a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a>');
-				}
-				$("#syncDetailsTableDiv").show();
-	  },
-	  error: ajaxCallFailed
-	});
+function getSyncInfo(projectId, xnat_id, exp_label) {
+    var syncChoice = document.getElementById('OkToSync').checked;
+    var exporturl = serverRoot + '/xapi/xsync/experiments/' + xnat_id + '/syncStatus?XNAT_CSRF=' + csrfToken;
+    $.ajax({
+        url: exporturl,
+        type: "GET",
+        success: function(response) {
+
+            var data = JSON.parse(response);
+            $('#syncStatus').html(data['syncStatus']);
+            $('#authorizedBy').html(data['authorizedBy']);
+            $('#authorizedDate').html(data['authorizedDate']);
+            if (data['syncStatus'] == "Waiting to Sync") {
+                $('#remoteSessionReport').html("Not available");
+            } else {
+                console.log('setting remoteSessionReport');
+                $('#remoteSessionReport').html('<a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a>');
+            }
+            $("#syncDetailsTableDiv").show();
+        },
+        error: ajaxCallFailed
+    });
 };
 
 function ajaxCallFailed(o) {
-	xmodal.loading.close();
-	if (!window.leaving) {
-		//alert(o.status + " " + o.statusText + " " +  o.responseText);
-	    	xModalMessage('Unable to mark experiment as Ok to sync', 'Unable to mark experiment as Ok to sync');
-	}
+    xmodal.loading.close();
+    if (!window.leaving) {
+        //alert(o.status + " " + o.statusText + " " +  o.responseText);
+        xModalMessage('Unable to mark experiment as Ok to sync', 'Unable to mark experiment as Ok to sync');
+    }
 }
 
-function manualSync(projectId,xnat_id, exp_label, hasSessionMarkButton) {
-	var syncurl = serverRoot + '/xapi/xsync/syncexperiment/'+xnat_id+'?XNAT_CSRF='+csrfToken ;
-	xmodal.confirm({
-		title: 'Confirm Manual Sync',
-		width: '500px',
-		height: '300px',
-		content:  ((hasSessionMarkButton) ?
-				'Click "OK" to begin synchronization. &nbsp;Please note warnings below.<br><br><b>Note that this could block other sync operations, as multiple concurrent sync processes are not allowed. &nbsp;' +
-				' Use the <em>Mark Session for Sync</em> button to request sync as part of the standard project sync process.</b><br><br><b>Note also that this may cause ' +
-				'loss of data on the remote side as any current session will be overwritten</b>.'
-				:
-				'Click "OK" to begin synchronization. &nbsp;Please note warnings below.<br><br><b>Note that this could block other sync operations, as multiple concurrent sync processes are not allowed. &nbsp;' +
-				'</b><br><br><b>Note also that this may cause ' +
-				'loss of data on the remote side as any current session will be overwritten</b>.'
-			),
-		okAction: function() {
-					$.ajax({
-					  url:syncurl,
-					  type:"POST",
-					  success: function(data){
-							xmodal.alert({
-									title: 'Data Synchronization',
-									content: "Sync request for this experiment (" + exp_label + ") has been sent." ,
-									label: 'OK'
-								});
-					  
-					  },
-					  error: function(data){
-							xmodal.loading.close();
-							if (!window.leaving) {
-								if (data.status == "423") {
-							 		xModalMessage('Manual sync failed','Another sync operation is running.  Please try again later');
-								} else {
-							 		xModalMessage('Manual sync failed','Unable to sync session ' + exp_label + '.  (' + data.statusText + ')');
-								}
-							}
-					  }
-					})
-		}
-	});
+function manualSync(projectId, xnat_id, exp_label, hasSessionMarkButton) {
+    var syncurl = serverRoot + '/xapi/xsync/syncexperiment/' + xnat_id + '?XNAT_CSRF=' + csrfToken;
+    xmodal.confirm({
+        title: 'Confirm Manual Sync',
+        width: '500px',
+        height: '300px',
+        content: ((hasSessionMarkButton) ?
+            'Click "OK" to begin synchronization. &nbsp;Please note warnings below.<br><br><b>Note that this could block other sync operations, as multiple concurrent sync processes are not allowed. &nbsp;' +
+            ' Use the <em>Mark Session for Sync</em> button to request sync as part of the standard project sync process.</b><br><br><b>Note also that this may cause ' +
+            'loss of data on the remote side as any current session will be overwritten</b>.' :
+            'Click "OK" to begin synchronization. &nbsp;Please note warnings below.<br><br><b>Note that this could block other sync operations, as multiple concurrent sync processes are not allowed. &nbsp;' +
+            '</b><br><br><b>Note also that this may cause ' +
+            'loss of data on the remote side as any current session will be overwritten</b>.'
+        ),
+        okAction: function() {
+            $.ajax({
+                url: syncurl,
+                type: "POST",
+                success: function(data) {
+                    xmodal.alert({
+                        title: 'Data Synchronization',
+                        content: "Sync request for this experiment (" + exp_label + ") has been sent.",
+                        label: 'OK'
+                    });
+
+                },
+                error: function(data) {
+                    xmodal.loading.close();
+                    if (!window.leaving) {
+                        if (data.status == "423") {
+                            xModalMessage('Manual sync failed', 'Another sync operation is running.  Please try again later');
+                        } else {
+                            xModalMessage('Manual sync failed', 'Unable to sync session ' + exp_label + '.  (' + data.statusText + ')');
+                        }
+                    }
+                }
+            })
+        }
+    });
 };
 
-function requestSync(projectId,xnat_id, exp_label) {
-	var syncurl = serverRoot + '/xapi/xsync/requestSync/'+xnat_id+'?XNAT_CSRF='+csrfToken ;
-	xmodal.confirm({
-		width: '500px',
-		height: '250px',
-		title: 'Request Manual Sync',
-		content:  'Click "OK" to mark this session for syncing. &nbsp;Please note warning below.  ' + 
-				'<br><br><b>Note that this may cause loss of data on the remote side as any current session will be overwritten</b>.',
-		okAction: function() {
-					$.ajax({
-					  url:syncurl,
-					  type:"POST",
-					  success: function(data){
-							xmodal.alert({
-									title: 'Data Synchronization',
-									content: "Session (" + exp_label + ") has been marked to sync." ,
-									label: 'OK'
-								});
-					  
-					  },
-					  error: function(data){
-							xmodal.loading.close();
-							if (!window.leaving) {
-							 	xModalMessage('Sync request failed','Unable to mark session ' + exp_label + ' to sync.  (' + data.statusText + ')');
-							}
-					  }
-					})
-		}
-	});
-};
+function requestSync(projectId, xnat_id, exp_label) {
+    var syncurl = serverRoot + '/xapi/xsync/requestSync/' + xnat_id + '?XNAT_CSRF=' + csrfToken;
+    xmodal.confirm({
+        width: '500px',
+        height: '250px',
+        title: 'Request Manual Sync',
+        content: 'Click "OK" to mark this session for syncing. &nbsp;Please note warning below.  ' +
+            '<br><br><b>Note that this may cause loss of data on the remote side as any current session will be overwritten</b>.',
+        okAction: function() {
+            $.ajax({
+                url: syncurl,
+                type: "POST",
+                success: function(data) {
+                    xmodal.alert({
+                        title: 'Data Synchronization',
+                        content: "Session (" + exp_label + ") has been marked to sync.",
+                        label: 'OK'
+                    });
 
+                },
+                error: function(data) {
+                    xmodal.loading.close();
+                    if (!window.leaving) {
+                        xModalMessage('Sync request failed', 'Unable to mark session ' + exp_label + ' to sync.  (' + data.statusText + ')');
+                    }
+                }
+            })
+        }
+    });
+};
 </script>
 
 #set($xsyncAssessorDataType="xsync:xsyncAssessorData")
@@ -192,11 +201,11 @@ function requestSync(projectId,xnat_id, exp_label) {
 #foreach ($assessor in 	$om.getSubjectData().getExperiments_experiment($xsyncAssessorDataType))
   #if($assessor.getSyncedExperimentId().equals($om.getId()))
 	#set($syncAssessor = $assessor)
-  #end	
+  #end
 #end
 
 #set($checked="")
-#if ($!syncAssessor.getOktosync()) 
+#if ($!syncAssessor.getOktosync())
  #set($checked="checked")
 #end
 
@@ -205,23 +214,23 @@ function requestSync(projectId,xnat_id, exp_label) {
 	onclick="javascript:setOkToSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');" $checked>Ok To Sync
 	<div id="syncDetailsTableDiv" style="display:none">
 		<table id="syncDetailsTable">
-			<tr> 
+			<tr>
 				<th align="left">Sync Status:</th>
 				<td id="syncStatus">$!syncAssessor.getSyncStatus()</td>
 			</tr>
-			<tr> 
+			<tr>
 				<th align="left">Authorized By:</th>
 				<td id="authorizedBy">$!syncAssessor.getAuthorizedBy()</td>
 			</tr>
-			<tr> 
+			<tr>
 				<th align="left">Authorized On:</th>
 				<td id="authorizedDate">$!syncAssessor.getDate()</td>
 			</tr>
-			<tr> 
+			<tr>
 				<th align="left">Remote Session report:</th>
 				<td id="remoteSessionReport">#if ($syncAssessor.getSyncStatus() == "Waiting to Sync") Not available #else <a href="$!{syncAssessor.getRemoteUrl()}/data/experiments/$!syncAssessor.getRemoteId()?format=html">here</a>#end </td>
 			</tr>
-			<tr> 
+			<tr>
 			<th align="left">
 				<input type="button" title="Initiate sync process for this session.  Note that this could block other sync processes."
 							 value="Sync This Session Now" onclick="javascript:manualSync('$!om.getProject()','$!om.getId()','$!om.getLabel()', true);"></th>
@@ -240,19 +249,24 @@ Project $!om.getProject() is not configured to sync
 <div id="showDoesNotNeedOkToSync">
 	<div style="padding:10px;margin:10px;">
 	NOTE:  OK To Sync is not required for this project.  Sessions matching configuration will sync automatically.
-	The button below may be used below to force a sync/resync of sessions, however it should be used with caution and 
+	The button below may be used below to force a sync/resync of sessions, however it should be used with caution and
 	only under special circumstances, as it will overwrite any existing data for the session at the destination.
 	</div>
 	<table>
-	<tr> 
+	<tr>
 	<th align="left"><input type="button" title="Initiate sync process for this session.  Note that this could block other sync processes."
 					 value="Sync This Session Now" onclick="javascript:manualSync('$!om.getProject()','$!om.getId()','$!om.getLabel()', false);"></th>
 	<td>
-			<!--  TODO:  This does not yet work for configurations non-require-ok-to-sync configurations 
+			<!--  TODO:  This does not yet work for configurations non-require-ok-to-sync configurations
 			<input type="button" title="Request this session to be synced as part of the next sync operation"
 					 value="Mark Session for Sync" onclick="javascript:requestSync('$!om.getProject()','$!om.getId()','$!om.getLabel()');">
 			-->
 	</td>
 	</tr>
 	</table>
+</div>
+
+
+<div id="showPermissionDenied" style="padding-top:40px;padding-bottom:40px">
+ You do not have sufficient permission to access this information.
 </div>

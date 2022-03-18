@@ -6,8 +6,11 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.ecs.html.Map;
+import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
+import org.hibernate.criterion.Restrictions;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
+import org.nrg.xdat.entities.UserRole;
 import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.ScanSyncItem;
@@ -64,6 +67,9 @@ public class HibernateSyncHistoryService
         return recentHistory;
     }
 
+
+
+
     @Transactional
     @Override
     public XsyncProjectHistory findByStartDate(final Date date) {
@@ -81,6 +87,12 @@ public class HibernateSyncHistoryService
     public List<XsyncProjectHistory> findBySubject(final String subjectLabel) {
         return new ArrayList<>();
     }
+
+    @Transactional
+    public XsyncProjectHistory findMostRecentBySubject(final String projectId, final String subjectLabel) {
+        return getDao().findMostRecentBySubject(projectId,subjectLabel);
+    }
+
 
     @Transactional
     public synchronized void persistHistory(SyncManifest manifest) {

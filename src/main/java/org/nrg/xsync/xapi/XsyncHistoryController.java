@@ -6,8 +6,10 @@ import java.util.List;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
+import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
+import org.nrg.xft.search.CriteriaCollection;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.manifest.XsyncProjectHistory;
 import org.nrg.xsync.services.local.SyncManifestService;
@@ -40,7 +42,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
 	@Autowired
 	public XsyncHistoryController(final SyncManifestService service, final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
         super(userManagementService, roleHolder);
-        _service = service;
+        this.service = service;
 	}
 
 	
@@ -61,7 +63,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         if (status != null) {
             return new ResponseEntity<>(status);
         }    	
-        return new ResponseEntity<>(_service.getAll(), HttpStatus.OK);
+        return new ResponseEntity<>(service.getAll(), HttpStatus.OK);
     }
 
     /**
@@ -79,7 +81,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         if (status != null) {
             return new ResponseEntity<>(status);
         }
-        return new ResponseEntity<>(_service.retrieve(id), HttpStatus.OK);
+        return new ResponseEntity<>(service.retrieve(id), HttpStatus.OK);
     }
 
     /**
@@ -97,7 +99,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         if (status != null) {
             return new ResponseEntity<>(status);
         }
-    	List<XsyncProjectHistory> allHistory = _service.getAll();
+    	List<XsyncProjectHistory> allHistory = service.getAll();
         List<XsyncProjectHistory> filteredHistory = new ArrayList<>();
 
         for (XsyncProjectHistory history : allHistory) {
@@ -108,6 +110,35 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         return new ResponseEntity<>(filteredHistory, HttpStatus.OK);
     }
 
+
+    /**
+     * Gets the most recent sync history by project and subject label.
+     *
+     * @param projectId the project id
+     * @param subjectLabel the subject label
+     * @return the most recent sync history by project
+     * @throws Exception the exception
+     */
+    @XapiRequestMapping(value="/latest/projects/{projectId}/subjects/{subjectLabel}", method=RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<XsyncProjectHistory> getMostRecentSyncHistoryByProject(@PathVariable("projectId") String projectId, @PathVariable("subjectLabel") String subjectLabel) throws Exception {
+        final UserI user = getSessionUser();
+        final HttpStatus status = canReadProject(projectId);
+        if (status != null) {
+            return new ResponseEntity<>(status);
+        }
+
+        XnatSubjectdata subject  = XnatSubjectdata.GetSubjectByProjectIdentifier(projectId, subjectLabel, user, false);
+        if (subject != null) {
+            XsyncProjectHistory latest = service.findMostRecentBySubject(projectId,subjectLabel);
+            if (latest == null) {
+              return new ResponseEntity("{}",HttpStatus.OK);
+            }
+            return new ResponseEntity(latest, HttpStatus.OK);
+        }
+        return new ResponseEntity("Subject identified by " + subjectLabel + " does not exist", HttpStatus.BAD_REQUEST);
+    }
+
     /** The service. */
-    private final SyncManifestService _service;
+    private final SyncManifestService service;
 }

@@ -33,7 +33,7 @@ import org.springframework.context.annotation.ComponentScan;
 									)
 			},
 			entityPackages = {"org.nrg.xsync.remote.alias", "org.nrg.xsync.manifest"},
-			log4jPropertiesFile="/META-INF/resources/xsyncLog4j.properties")
+		    logConfigurationFile = "META-INF/resources/xsync_plugin-logback.xml")
 @ComponentScan({
 	"org.nrg.xsync.aspera",
 	"org.nrg.xsync.components",
