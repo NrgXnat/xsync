@@ -50,13 +50,15 @@ public class HibernateSyncHistoryService
     	final java.util.Map<String, Object> properties = new HashMap<>();
     	properties.put("localProject",localProjectId);
     	properties.put("remoteProject",remoteProjectId);
-        List<XsyncProjectHistory> histories = getDao().findByProperties(properties);
         XsyncProjectHistory recentHistory = null;
-        for (final XsyncProjectHistory history : histories) {
-        	if (recentHistory == null) {
-        		recentHistory = history;
-        	} else if (history.getStartDate().after(recentHistory.getStartDate())) {
-        		recentHistory = history;
+        List<XsyncProjectHistory> histories = getDao().findByProperties(properties);
+        if (histories != null) {
+        	for (final XsyncProjectHistory history : histories) {
+        		if (recentHistory == null) {
+        			recentHistory = history;
+        		} else if (history.getStartDate().after(recentHistory.getStartDate())) {
+        			recentHistory = history;
+        		}
         	}
         }
         return recentHistory;

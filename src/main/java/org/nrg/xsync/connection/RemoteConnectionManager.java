@@ -328,7 +328,7 @@ public class RemoteConnectionManager {
 	 * Import xar.
 	 *
 	 * @param connection the connection
-	 * @param xar the xar
+	 * @param xarPath the xar path
 	 * @return the remote connection response
 	 * @throws Exception the exception
 	 */

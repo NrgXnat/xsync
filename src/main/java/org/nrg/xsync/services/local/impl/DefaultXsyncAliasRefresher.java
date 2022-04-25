@@ -1,13 +1,15 @@
 package org.nrg.xsync.services.local.impl;
 
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.framework.services.SerializerService;
-import org.nrg.xsync.configuration.XsyncSitePreferencesBean;
+import org.nrg.framework.task.XnatTask;
+import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
@@ -15,10 +17,10 @@ import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.nrg.xsync.services.local.XsyncAliasRefreshService;
 import org.nrg.xsync.services.remote.RemoteRESTService;
 import org.nrg.xsync.utils.QueryResultUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 import org.springframework.stereotype.Service;
 
 
@@ -27,11 +29,10 @@ import org.springframework.stereotype.Service;
  *
  * @author Mohana Ramaratnam, Mike Hodge
  */
+@Slf4j
 @Service
+@XnatTask(taskId = "DefaultXsyncAliasRefresher", description = "Xsync alias refresh", defaultExecutionResolver = "SingleNodeExecutionResolver")
 public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
-	
-	/** The logger. */
-	private static final Logger logger = LoggerFactory.getLogger(DefaultXsyncAliasRefresher.class);
 	
 	private final RemoteAliasService _aliasService;
 	private final RemoteRESTService _restService;
@@ -39,15 +40,21 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 	private final SerializerService _serializer;
 	private final QueryResultUtil _queryResultUtil;
 	private final XsyncSitePreferencesBean _prefs;
+	private final ExecutorService _executorService;
 
 	@Autowired
-	public DefaultXsyncAliasRefresher(final RemoteAliasService aliasService, final RemoteRESTService restService, final JdbcTemplate jdbcTemplate, final SerializerService serializer, final QueryResultUtil queryResultUtil,final  XsyncSitePreferencesBean prefs) {
+	public DefaultXsyncAliasRefresher(final RemoteAliasService aliasService, final RemoteRESTService restService,
+									  final JdbcTemplate jdbcTemplate, final SerializerService serializer,
+									  final QueryResultUtil queryResultUtil,final  XsyncSitePreferencesBean prefs,
+                                     @Qualifier("xsyncThreadPoolExecutorFactoryBean") 
+										  final ThreadPoolExecutorFactoryBean xsyncThreadPoolExecutorFactoryBean) {
 		_aliasService = aliasService;
 		_restService = restService;
 		_jdbcTemplate = jdbcTemplate;
 		_serializer = serializer;
 		_queryResultUtil = queryResultUtil;
-		_prefs=prefs;
+		_prefs = prefs;
+		_executorService = xsyncThreadPoolExecutorFactoryBean.getObject();
 	}
 
 	/* (non-Javadoc)
@@ -62,7 +69,7 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 		long nextTokenRefreshTimeInMills = Calendar.getInstance().getTimeInMillis() + _prefs.getTokenRefreshIntervalInMillis();
 
 		final List<RemoteAliasEntity> remoteAliasEntities = _aliasService.getAll();
-		if (remoteAliasEntities == null || remoteAliasEntities.size()<1) {
+		if (remoteAliasEntities == null || remoteAliasEntities.isEmpty()) {
 			return;
 		}
 		for (final RemoteAliasEntity connEntity:remoteAliasEntities) {
@@ -73,10 +80,9 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 			if (!willExpireBeforeNextRefresh(connEntity,nextTokenRefreshTimeInMills)) {
 				continue;
 			}
-			logger.info("Refreshing Alias for " + conn.getUrl());
-			final DefaultXsyncAliasRefresherForAProject myRunnable = new DefaultXsyncAliasRefresherForAProject(connEntity, conn,_restService,_serializer,_aliasService);
-		    Thread t = new Thread(myRunnable);
-		    t.start();
+			log.info("Refreshing Alias for {}", conn.getUrl());
+			final DefaultXsyncAliasRefresherForAProject myRunnable = new DefaultXsyncAliasRefresherForAProject(connEntity, conn, _restService,_serializer,_aliasService);
+			_executorService.submit(myRunnable);
 		}
 	}
 	
@@ -87,9 +93,9 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 		if (results!=null && results.size()>0) {
 			final Map<String,Object> syncProjectData = results.get(0);
 			try {
-				isEnabled = (((Integer)syncProjectData.get("sync_enabled")).intValue()==1);
-			}catch(Exception e) {
-				e.printStackTrace();
+				isEnabled = ((Integer) syncProjectData.get("sync_enabled") ==1);
+			} catch(Exception e) {
+				log.error("Unable to determine if project sync enabled for {}", sourceProjectId, e);
 			}
 		}
 		return isEnabled;
@@ -100,14 +106,9 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 	 */
 	private boolean willExpireBeforeNextRefresh(RemoteAliasEntity connEntity, long nextTokenRefreshTimeInMills) {
 		boolean willExpireBeforeNextRefresh = false;
-		final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 		Date tokenExpiresDate = connEntity.getEstimatedExpirationTime();
-		Date nextTokenRefreshDate = new Date(nextTokenRefreshTimeInMills);
-		//System.out.println("Expirtaion Date: " + formatter.format(tokenExpiresDate));
-		//System.out.println("Token Refresh Date: " + formatter.format(nextTokenRefreshDate));
 		//in milliseconds
 		long diff = tokenExpiresDate.getTime() - nextTokenRefreshTimeInMills;
-		//System.out.println("Diff in Millis: " + diff);
 		if (diff < 0) { //Alias Token will expire before the next token refresh
 			willExpireBeforeNextRefresh = true;
 		}else { //How long do we have before the token expires
@@ -116,8 +117,6 @@ public class DefaultXsyncAliasRefresher implements XsyncAliasRefreshService{
 				willExpireBeforeNextRefresh = true;
 			}
 		}
-		//System.out.println("Next Refresh Date: " + formatter.format(nextTokenRefreshDate));
-		//System.out.println("Will Refresh: " + willExpireBeforeNextRefresh);
 		return willExpireBeforeNextRefresh;
 	}
 }

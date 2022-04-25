@@ -13,7 +13,7 @@ import org.nrg.xsync.configuration.ProjectSyncConfiguration;
  * 
  * @author Atul
  */
-public interface XsyncIdGeneratorI {
+public interface XsyncLabelGeneratorI {
 
 	/**
 	 * Using this API every site can use their own custom id format for Subject and Session labels.

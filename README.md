@@ -1,6 +1,6 @@
 # XSYNC plugin #
 
- XSYNC implemented as a XNAT 1.7 plugin.
+ XSYNC implemented as an XNAT 1.8.0 plugin.
 
 Xsync plugin enables automatic synchronization of data from a project in one XNAT system to a project in a second system. Xsync is configurable to ensure that only the desired data is delivered, and if required, data is properly de-identified, and that it is delivered on a pre-set schedule. 
 
@@ -10,19 +10,43 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 
 # ChangeLog #
-Version 1.3.2 As of Nov 14, 2017
+
+## Version 1.4.0  As of March 4, 2021 ##
+
+Fixes to make XSync compatible with XNAT 1.8.0.
+
+Support for asynchronous xar import for large xars
+
+Made custom identifiers (aka re-labelers) functional
+
+Bugfixes around handling secondary scans and duplicated scan IDs.
+
+## Version 1.3.5-SNAPSHOT  As of October 15, 2020 ##
+
+Added ability to modify fields, within a datatype, which contain references to subject IDs or image session IDs. 
+See section on Datatype Transformation Before Sync 
+
+## Version 1.3.3 As of February 4, 2019 ##
+
+Fixes to make XSync compatible with XNAT 1.7.5.
+
+## Version 1.3.2.1 As of May 2, 2018 ##
+
+Minor bugfix release to fix compatibility issue with other plugins that supply an ExecutorService bean
+
+## Version 1.3.2 As of Nov 14, 2017 ##
 
 Added functionality for custom Id generator and download mapping data(supports XNAT version 1.7.3.1 and above).
 
-Version 1.3.1 As of Aug 9, 2017
+## Version 1.3.1 As of Aug 9, 2017 ##
 
 XAPI and other changes for compatibility with latest XNAT version 1.7.3.1 code.
 
-Version 1.3.1-SNAPSHOT As of June 14, 2017
+## Version 1.3.1-SNAPSHOT As of June 14, 2017 ##
 
 XAPI and other changes for compatibility with latest XNAT version 1.7.3-SNAPSHOT code.
 
-Version 1.3-SNAPSHOT As of May 23, 2017
+## Version 1.3-SNAPSHOT As of May 23, 2017 ##
 
 Revised sync blocking behavior with a service and UI for reporting on current sync status. 
 
@@ -32,7 +56,7 @@ Fix for issue where sessions can fail to sync if they are arriving when a sync i
 
 Fix for issue where data can be overwritten if configured URL is modified to point to a shadow server.
 
-Version 1.2 May 3, 2017
+## Version 1.2 May 3, 2017 ##
 
 Xsync Token Refresh Issue fixed
 
@@ -201,6 +225,56 @@ Among the xsync-*-controller listed, the two most required ones are:
    * set the Sync Retry Interval and Maximum Retries in case Xsync encounters problems communicating with the Destination XNAT. These default to 2 Hours and 2 respectively. 
 
    * set the Token Refresh Interval. Xsync uses tokens from the Destination XNAT to communicate. These tokens are refreshed by default every 10 hours. 
+
+# Datatype Transformation Before Sync #
+
+Xsync replaces ID references (subject, image session etc) as it transfers entities to the Remote XNAT. 
+If a datatype is modelled in a manner which contains these IDs in fields, Xsync does not replace values in these fields. 
+This may break the expectation of consumers of DataType on the Remote XNAT. The icr:roiCollectionData is one such data-model. It contains a field subjectID.
+
+To overcome this problem, as per Xsync version 1.3.5+, any datatype which is modelled in such a way that it contains references to ID's in subfields 
+other than XNAT schema for the base type (eg XnatImageAssessor), create a class like so:
+
+
+```
+package org.nrg.xnat.xsync.transformer.datatype;
+
+import java.util.Map;
+
+import org.nrg.xdat.om.XnatExperimentdata;
+import org.nrg.xnat.xsync.annotation.DatatypeTransformerAnnotation;
+import org.nrg.xnat.xsync.transformer.SyncTransformerI;
+import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * @author Mohana Ramaratnam (mohanakannan9@gmail.com)
+ * 
+ * This class is responsible for modifying the fields within the icr:ROICollection
+ * to replace subject_id and other fields.
+ *
+ */
+@Component
+@DatatypeTransformerAnnotation(xsiType="icr:roiCollectionData")
+@Slf4j
+public class ICRRoiCollectionPreSyncTransformer implements SyncTransformerI {
+
+private final String myXsiType = "icr:roiCollectionData";
+	
+	public void transform(XnatExperimentdata exp, Map<String, String> attributes) {
+		if (myXsiType.equals(exp.getXSIType())) {
+			//Your action to replace values required from attributes
+			//The keys in the attributes are from the class
+			//org.nrg.xnat.xsync.transformer.TransformerHelper
+		}
+	}
+}
+```
+
+The package need not be as shown in the above code, as long as the package in which you write the class is in the component scan things will be ok. 
+The only requirements are - add @Component and set the annotation @DatatypeTransformerAnnotation
+
 
 # Other Tips #
 

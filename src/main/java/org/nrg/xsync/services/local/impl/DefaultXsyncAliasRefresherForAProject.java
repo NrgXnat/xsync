@@ -2,13 +2,16 @@ package org.nrg.xsync.services.local.impl;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.nrg.framework.exceptions.NotFoundException;
+import org.nrg.framework.services.ContextService;
 import org.nrg.framework.services.SerializerService;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xsync.connection.RemoteConnection;
+import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
@@ -20,19 +23,17 @@ import org.nrg.xsync.services.remote.RemoteRESTService;
  * @author Mohana Ramaratnam
  *
  */
+@Slf4j
 public class DefaultXsyncAliasRefresherForAProject implements Runnable{
 
-	RemoteConnection _conn;
-	RemoteAliasEntity _connEntity;
+	private final RemoteConnection _conn;
+	private final RemoteAliasEntity _connEntity;
 	private final RemoteRESTService _restService;
 	private final SerializerService _serializer;
 	private final RemoteAliasService _aliasService;
-	private long sleep = 900000; //in Millis = 15 minutes
-	private int maxTries = 4;
+	private static final long sleep = TimeUnit.MINUTES.toMillis(15L);
+	private static final int maxTries = 4;
 
-	/** The logger. */
-	public static Logger logger = LoggerFactory.getLogger(DefaultXsyncAliasRefresherForAProject.class);
-	
 	public DefaultXsyncAliasRefresherForAProject(RemoteAliasEntity connEntity, RemoteConnection conn, 
 			final RemoteRESTService restService, final SerializerService serializer, final RemoteAliasService aliasService) {
 		_connEntity = connEntity;
@@ -45,12 +46,15 @@ public class DefaultXsyncAliasRefresherForAProject implements Runnable{
 	public void run() {
 		//Refresh the token
 		int count = 0;
+		if (!RemoteConnectionHandler.lock(_conn)) {
+			log.info("Alias token refresh already running for {} {}", _conn.getLocalProject(), _conn.getUrl());
+			return;
+		}
 		while(true) {
-			_conn.lock();
 		    try {
 		    	final String tokenUrl = _conn.getUrl() + "/data/services/tokens/issue/" + _conn.getUsername() + "/" + _conn.getPassword();
 				final RemoteConnectionResponse remoteResponse = _restService.getResult(_conn, tokenUrl);
-				logger.debug("Token issue called - " + tokenUrl + " - (SUCCESS=" + remoteResponse.wasSuccessful() + ")");
+				log.debug("Token issue called - {} - (SUCCESS={})", tokenUrl, remoteResponse.wasSuccessful());
 				/* IMPORTANT - September 27, 2016
 				 * The following code was replaced as XNAT was sending the estimatedExpirationDate
 				 * in a format which is not a standard date format and so the deserialize method is failing
@@ -63,47 +67,41 @@ public class DefaultXsyncAliasRefresherForAProject implements Runnable{
 					_aliasService.update(connEntity);
 				 */
 				if (!remoteResponse.wasSuccessful()) {
-					throw new RuntimeException("XsyncAliasTokenRefresh Failed for project " + _conn.getLocalProject() + " (HTTP Status Code " + remoteResponse.getResponse().getStatusCode() +") . Retrying...");
+					throw new RuntimeException("XsyncAliasTokenRefresh Failed for project " + _conn.getLocalProject() +
+							" (HTTP Status Code " + remoteResponse.getResponse().getStatusCode() +"). Retrying...");
 				}
 				final Map<String, String> token = _serializer.deserializeJsonToMapOfStrings(remoteResponse.getResponse().getBody());
 				final String alias = token.get("alias");
 				final String secret = token.get("secret");
 				final String expirationTime = token.get("estimatedExpirationTime");
-				final Long l = Long.parseLong(expirationTime);
+				final long l = Long.parseLong(expirationTime);
+				final Date expirationDate = new Date(l);
 				_conn.setUsername(alias);
 				_conn.setPassword(secret);
 				_connEntity.setRemote_alias_token(alias);
-				_connEntity.setRemote_alias_password(secret);	
-				final Date expirationDate = new Date(l);
+				_connEntity.setRemote_alias_password(secret);
 				_connEntity.setEstimatedExpirationTime(expirationDate);
 				_aliasService.update(_connEntity);
-				logger.debug("Connection information successfully updated");
+				log.debug("Connection information successfully updated");
 				break;
-		    } catch (RuntimeException re) {
-		    	try {
-		    		logger.error("Exception thrown while refreshing token for project " + _connEntity.getLocal_project() + "\n" + 
-		    				ExceptionUtils.getMessage(re));
-		    		logger.error("XsyncAliasTokenRefresh: retrycount "+ count + " out of " + maxTries);
-					if (maxTries > 0) Thread.sleep(sleep);
-			     } catch (InterruptedException e1) {
-				      e1.printStackTrace();
-			     }
-	             // handle exception
+		    } catch (Exception e) {
 	             if (maxTries == 0 || ++count == maxTries) {
-	             		AdminUtils.sendAdminEmail("XSync token refresh failure", "XSync token refresh failure for local project  " +
-		       			_connEntity.getLocal_project() + ", host " + _conn.getUrl() + 
-		       	         	". Attempted to refresh token " + maxTries + " times. New credentials may need to be provided.");
-	               		throw re;
+	             		AdminUtils.sendAdminEmail("XSync token refresh failure",
+								"XSync token refresh failure for local project  " +
+										_connEntity.getLocal_project() + ", host " + _conn.getUrl() +
+										". Attempted to refresh token " + maxTries + " times. " +
+										"New credentials may need to be provided or the offending entity (id=" +
+										_connEntity.getId() + ") removed from the xhbm_remote_alias_entity table.");
+	             		break;
 	             }
-	    	} catch(Exception e) {
-		    	try {
-					Thread.sleep(5000);
-			    } catch (InterruptedException e1) {
-			    	 // Do nothing
-			    }
-	    		logger.error(ExceptionUtils.getStackTrace(e));
-	    	}finally{
-	    		_conn.unlock();
+				try {
+					log.error("XsyncAliasTokenRefresh: retrycount {} out of {}", count, maxTries, e);
+					Thread.sleep(sleep);
+				} catch (InterruptedException e1) {
+					// Ignore
+				}
+	    	} finally {
+	    		RemoteConnectionHandler.unlock(_conn);
 	    	}
 		}
 	}

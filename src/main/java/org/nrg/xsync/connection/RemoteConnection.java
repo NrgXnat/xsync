@@ -1,5 +1,11 @@
 package org.nrg.xsync.connection;
 
+import lombok.extern.slf4j.Slf4j;
+import org.nrg.framework.exceptions.NotFoundException;
+import org.nrg.xdat.XDAT;
+import org.nrg.xsync.remote.alias.RemoteAliasEntity;
+import org.nrg.xsync.remote.alias.services.RemoteAliasService;
+
 import java.util.Date;
 
 /**
@@ -7,6 +13,7 @@ import java.util.Date;
  *
  */
 
+@Slf4j
 public class RemoteConnection {
 	/**
 	 * 
@@ -15,9 +22,12 @@ public class RemoteConnection {
 	String username;
 	String password;
 	String localProject;
-	boolean locked = false;
 	Date acquiredTime;
-	
+	long remoteAliasId;
+
+	public RemoteConnection(long remoteAliasId) {
+		this.remoteAliasId = remoteAliasId;
+	}
 
 	public String getUrl() {
 		return url;
@@ -50,20 +60,7 @@ public class RemoteConnection {
 	public void setLocalProject(String localProject) {
 		this.localProject = localProject;
 	}
-	
-	public void lock() {
-		locked = true;
-	}
 
-	public void unlock() {
-		locked = false;
-	}
-
-	
-	public boolean isLocked() {
-		return locked;
-	}
-	
 	public Date getAcquiredDate() {
 		return acquiredTime;
 	}
@@ -75,4 +72,26 @@ public class RemoteConnection {
 		acquiredTime = d;
 	}
 
+	public long getRemoteAliasId() {
+		return remoteAliasId;
+	}
+
+	public void setRemoteAliasId(long remoteAliasId) {
+		this.remoteAliasId = remoteAliasId;
+	}
+
+	public void useRefreshedAliasToken() {
+		RemoteAliasService ras = XDAT.getContextService().getBeanSafely(RemoteAliasService.class);
+		if (ras == null) {
+			log.error("Cannot refresh remote alias bc no RemoteAliasService found");
+			return;
+		}
+		try {
+			RemoteAliasEntity remoteAliasEntity = ras.get(remoteAliasId);
+			setUsername(remoteAliasEntity.getRemote_alias_token());
+			setPassword(remoteAliasEntity.getRemote_alias_password());
+		} catch (NotFoundException e) {
+			log.error("Cannot find remote alias", e);
+		}
+	}
 }

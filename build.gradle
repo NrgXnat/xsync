@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.7.4'
+        vXnat = '1.8.3-SNAPSHOT'
     }
     repositories {
         maven {
@@ -32,7 +32,7 @@ buildscript {
 }
 
 group 'org.nrg.xsync'
-version '1.3.3-SNAPSHOT'
+version '1.5.0-SNAPSHOT'
 
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'groovy'
@@ -44,31 +44,11 @@ apply plugin: 'eclipse'
 apply plugin: 'xnat-data-builder'
 apply plugin: 'io.franzbecker.gradle-lombok'
 
-
 repositories {
     mavenLocal()
-    maven {
-        url "http://maven.imagej.net/content/groups/public"
-        name "ImageJ Maven Repository"
-    }
-    jcenter()
+    maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
+    maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
     mavenCentral()
-    maven {
-        url "https://nrgxnat.jfrog.io/nrgxnat/libs-release"
-        name "XNAT Release Repository"
-    }
-    maven {
-        url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot"
-        name "XNAT Snapshot Repository"
-    }
-    maven {
-        url "https://maven.radiologics.com/repository/snapshots"
-        name "Radiologics Snapshot Repository"
-    }
-    maven {
-        url "https://maven.radiologics.com/repository/internal"
-        name "Radiologics Release Repository"
-    }
 }
 
 // Use this configuration to put dependencies into the fat jar
@@ -76,8 +56,8 @@ configurations {
     compile.extendsFrom(compileAndInclude)
 }
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 dependencyManagement.imports {
     mavenBom "org.nrg:parent:${vXnat}"
@@ -90,7 +70,7 @@ dependencies {
     implementation("org.nrg.xnat:xnat-data-models") {
         transitive = false
     }
-    implementation "org.nrg.xnat:tasks:1.7.4-SNAPSHOT"
+    implementation "org.nrg.xnat:tasks"
 
     implementation("org.nrg.xdat:core") {
         transitive = false
@@ -140,10 +120,7 @@ dependencies {
 
     implementation "org.apache.commons:commons-configuration2"
     implementation "org.apache.commons:commons-math"
-    //implementation "org.apache.commons:commons-text"
-    implementation("stratum:stratum") {
-        transitive = false
-    }
+    implementation "org.apache.commons:commons-text"
 
     implementation "org.hibernate:hibernate-core"
 

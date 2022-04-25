@@ -1,13 +1,11 @@
 package org.nrg.xsync.utils;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Date;
 
 //import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.*;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.XnatAbstractresourceI;
@@ -42,15 +40,11 @@ public class XsyncFileUtils {
 			if (pathToFiles.exists()) {
 				ZipRepresentation rep=new ZipRepresentation(MediaType.APPLICATION_ZIP,pathToFiles.getParent(),0);
 
-				ArrayList<File> files = new ArrayList<File>(org.apache.commons.io.FileUtils.listFiles(pathToFiles,null,true));
-				ArrayList<File> fileteredFiles = new ArrayList<File>();
-				//Hack
-				for (File f:files) {
-					if (!f.getName().endsWith("_catalog.xml"))
-						fileteredFiles.add(f);
-				}
-				if (fileteredFiles.size()> 0) {
-					rep.addAllAtRelativeDirectory(path, fileteredFiles);
+				IOFileFilter filter = new NotFileFilter(new SuffixFileFilter(new String[] {"_catalog.xml", ".lock"}));
+				ArrayList<File> filteredFiles = new ArrayList<File>(org.apache.commons.io.FileUtils.listFiles(pathToFiles,
+						filter, DirectoryFileFilter.DIRECTORY));
+				if (filteredFiles.size()> 0) {
+					rep.addAllAtRelativeDirectory(path, filteredFiles);
 				}
 				zipFile = new File(expCachePath, (new Date()).getTime()+".zip");
 				zipFile.deleteOnExit();

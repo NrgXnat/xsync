@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatAbstractresourceI;
@@ -40,8 +41,6 @@ import org.nrg.xsync.utils.ResourceUtils;
 import org.nrg.xsync.utils.XSyncFailureHandler;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -52,9 +51,8 @@ import com.google.gson.reflect.TypeToken;
  * @author Mohana Ramaratnam
  *
  */
+@Slf4j
 public class RemoteSubject {
-	private static final Logger _log = LoggerFactory.getLogger(RemoteSubject.class);
-
 	boolean syncAllStates;
 	XnatSubjectdataI localSubject;
 	ProjectSyncConfiguration projectSyncConfiguration;
@@ -95,32 +93,31 @@ public class RemoteSubject {
 	}
 
 	public void syncExperiment(XnatExperimentdata experiment) throws Exception {
-		_log.debug("Syncing remote experiment");
-		XnatSubjectdata remoteSubject = null;
+		log.debug("Syncing remote experiment");
 		//_syncStatusService.registerCurrentExperiment(localProject.getId(), experiment.getLabel(), experiment.getXSIType());
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
 
 		try {
-			remoteSubject = syncSubject();
+			XnatSubjectdata remoteSubject = syncSubject();
 			String subject_remote_id = remoteSubject.getId();
-			_log.debug("Remote subject id :: "+subject_remote_id);
+			log.debug("Remote subject id :: {}", subject_remote_id);
 			if (subject_remote_id != null) {
 				pushExperiment(experiment,remoteSubject, false);
 				//_syncStatusService.registerCompletedExperiment(localProject.getId(), experiment.getLabel(), experiment.getXSIType());
 				subjectSyncInfo.stateChanged();
 			}	
 		}catch(Exception e) {
-			_log.error("Error syncing subject " + experiment.getLabel() + "  " + e.getMessage());
+			log.error("Error syncing experiment {}", experiment.getLabel(), e);
 			//_syncStatusService.registerFailedExperiment(localProject.getId(), experiment.getLabel(), experiment.getXSIType());
 			XSyncFailureHandler.handle(localSubject.getProject(),localSubject.getId(),localSubject.getXSIType(),idMapper.getRemoteAccessionId(this.localSubject.getId()), subjectSyncInfo, e);
 			throw e;
 		}
 		SynchronizationManager.UPDATE_MANIFEST(localSubject.getProject(), subjectSyncInfo);
-		_log.debug("Syncing subject END: " + localSubject.getLabel());
+		log.debug("Syncing experiment END: {}", experiment.getLabel());
 	}
 	
 	private XnatSubjectdata syncSubject() throws Exception {
-		_log.debug("Syncing subject BEGIN: " + localSubject.getLabel());
+		log.debug("Syncing subject BEGIN: {}", localSubject.getLabel());
 		final XFTItem item = ((XnatSubjectdata)localSubject).getItem().copy();
 		// Remove assessors from the item.  They will be synced separately.
 		final List<XFTItem> subjAssessors  = item.getChildrenOfType("xnat:subjectAssessorData", true);
@@ -160,18 +157,19 @@ public class RemoteSubject {
 		}else {
 			newSubject.setId(null);
 		}
+		log.debug("Syncing subject END: {}", localSubject.getLabel());
 		return newSubject;
 	}
 	
 	public void sync() throws Exception{
-		_log.debug("Syncing subject BEGIN: " + localSubject.getLabel());
+		log.debug("Syncing subject BEGIN: " + localSubject.getLabel());
 		XFTItem item = ((XnatSubjectdata)localSubject).getItem().copy();
 		String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
 	
 		XnatSubjectdata newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
 		newSubject.setProject(remoteProjectId);
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, user, projectSyncConfiguration);
-		String subject_remote_id = null;
+		String subject_remote_id;
 		subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_BEGINING);
 		subjectSyncInfo.stateChanged();
 		try {
@@ -206,7 +204,7 @@ public class RemoteSubject {
 //				subjectSyncInfo.stateChanged();
 			}	
 		}catch(Exception e) {
-			_log.error("Error syncing subject " + newSubject.getLabel() + "  " + e.getMessage());
+			log.error("Error syncing subject {}", newSubject.getLabel(), e);
 			XSyncFailureHandler.handle(localSubject.getProject(),localSubject.getId(),localSubject.getXSIType(),idMapper.getRemoteAccessionId(this.localSubject.getId()), subjectSyncInfo, e);
 			throw e;
 		}
@@ -214,7 +212,7 @@ public class RemoteSubject {
 		subjectSyncInfo.updateSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED,"Subject " + localSubject.getLabel() );
 		subjectSyncInfo.stateChanged();
 		SynchronizationManager.UPDATE_MANIFEST(localSubject.getProject(), subjectSyncInfo);
-		_log.debug("Syncing subject END: " + localSubject.getLabel());	
+		log.debug("Syncing subject END: {}", localSubject.getLabel());	
 	}
 
 	
@@ -243,10 +241,9 @@ public class RemoteSubject {
 			 return subject_remote_id;
 		 }catch(Exception e) {
 			  saveSyncDetails(localSubject.getId(), null, null, XsyncUtils.SYNC_STATUS_FAILED, localSubject.getXSIType());
-			 _log.error(e.toString());
+			 log.error("Error syncing subject metadata, remote label: {}", remoteSubject.getLabel(), e);
 			 throw e;
 		 }
-		
 	}
 	
 	private RemoteConnectionResponse deleteSubjectResource(XnatSubjectdataI remoteSubject, String resourceLabel) throws Exception {
@@ -255,7 +252,7 @@ public class RemoteSubject {
 			 RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 			 return _manager.deleteSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel);
 		 }catch(Exception e) {
-			 _log.error(e.toString());
+			 log.error("Error deleting remote subject {} resource {}", remoteSubject.getLabel(), resourceLabel, e);
 			 throw e;
 		 }
 		}
@@ -267,7 +264,7 @@ public class RemoteSubject {
 
 			 return _manager.importSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel, zipFile);
 		 }catch(Exception e) {
-			 _log.error(e.toString());
+			 log.error("Error updating remote subject {} resource {}", remoteSubject.getLabel(), resourceLabel, e);
 			 throw e;
 		 }
 		}
@@ -303,7 +300,7 @@ public class RemoteSubject {
 				 subjectSyncInfo.addExperiment(expSyncItem);
 				 return response;
 			 }catch(Exception e) {
-				 _log.error(e.toString());
+				 log.error("Error deleting experiment {}", experiment.getLabel(), e);
 				 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + localLabel + " could not be deleted. " + e.getMessage());
 				 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 				 subjectSyncInfo.addExperiment(expSyncItem);
@@ -349,7 +346,7 @@ public class RemoteSubject {
 						}
 						subjectSyncInfo.addResources(resourceSyncItem);
 					}catch(Exception e) {
-						_log.error("Could not delete resource " + resource.getLabel() + " for subject " + remoteSubject.getId(),e);
+						log.error("Could not delete resource {} for subject {}", resource.getLabel(), remoteSubject.getId(), e);
 						ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),resource.getLabel());
 						resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
 						resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + resource.getLabel() + " could not be deleted. " + e.getMessage());
@@ -416,7 +413,7 @@ public class RemoteSubject {
 				if (zipFile != null) zipFile.delete();
 			}
 		}catch(Exception e) {
-			_log.error("Could not update resource " + resource.getLabel() + " for subject " + remoteSubject.getId(),e);
+			log.error("Could not update resource {} for subject {}", resource.getLabel(), remoteSubject.getId(), e);
 			ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),rLabel);
 			if (resource.getFileCount() != null)
 				resourceSyncItem.setFileCount(resource.getFileCount());
@@ -456,7 +453,7 @@ public class RemoteSubject {
 						exp.getItem().setProperty("subject_ID", remoteSubject.getId());
 						this.deleteExperiment(exp);
 					}catch(Exception e) {
-						_log.error("Could not delete experiment " + experiment.getId() + " for subject " + remoteSubject.getId() + " " + e.getMessage(),e);
+						log.error("Could not delete experiment {} for subject {}", experiment.getId(), remoteSubject.getId(), e);
 					}
 				}
 			}
@@ -528,7 +525,6 @@ public class RemoteSubject {
 		XsyncExperimentTransfer syncExptransfer = new XsyncExperimentTransfer(_manager,_xnatInfo, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration, user,
 					subjectSyncInfo, localSubject, _serializer, _syncStatusService, localProject, syncIfNotSyncedInPast);
 		syncExptransfer.syncExperiment(assess, remoteSubject);
-
 	}
 	
 
@@ -547,7 +543,7 @@ public class RemoteSubject {
 			try {
 				path = origResource.getFullPath(orig.getArchiveRootPath());
 			}catch(Exception e) {
-				_log.error(e.getMessage(),e);
+				log.error("Could not get resource {} path", resource.getLabel(), e);
 			}
 		}
 		return path;
@@ -558,9 +554,8 @@ public class RemoteSubject {
 		String path  = null;
 		try {
 			path = resource.getFullPath(parent);
-			System.out.println("Resource Path " + path + " Label " + resource.getLabel());
 		}catch(Exception e) {
-			_log.error(e.getMessage(),e);
+			log.error("Could not get resource {} path", resource.getLabel(), e);
 		}
 		return path;
 	}
@@ -587,7 +582,7 @@ public class RemoteSubject {
 		    try {
 			    fileComparison = projectResourceVerifier.verify(archiveDirectory, remoteProjectId , rsc.getLabel(), uri);
 		    }catch(Exception e) {
-		    	_log.error(e.getMessage(),e);
+		    	log.error("Could not verify remote subject {} resources", remoteSubjectId, e);
 	 			fileComparison = new HashMap<String,String>();
 				fileComparison.put(XsyncUtils.XSYNC_VERIFICATION_STATUS, XsyncUtils.XSYNC_VERIFICATION_STATUS_FAILED_TO_CONNECT);
 		    }

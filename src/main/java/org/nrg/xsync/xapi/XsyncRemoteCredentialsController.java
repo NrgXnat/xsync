@@ -11,17 +11,18 @@ import java.util.Date;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
-import org.nrg.config.services.ConfigService;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
-import org.nrg.xft.security.UserI;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.nrg.xsync.utils.XsyncUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -38,6 +39,8 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
+import javax.net.ssl.SSLHandshakeException;
+
 /**
  * The Class XsyncPreferencesController.
  *
@@ -50,16 +53,15 @@ import io.swagger.annotations.ApiResponses;
 public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestController {
 	
 	private final RemoteAliasService 		_remoteAliasService;
-	private final ConfigService              _configService;
 	private final SerializerService          _serializer;
+	public static Logger _logger = LoggerFactory.getLogger(XsyncRemoteCredentialsController.class);
 	
 
 
 	@Autowired
-	public XsyncRemoteCredentialsController(final RemoteAliasService remoteAliasService, final UserManagementServiceI userManagementService, final RoleHolder roleHolder,final ConfigService configService,final SerializerService serializer) {
+	public XsyncRemoteCredentialsController(final RemoteAliasService remoteAliasService, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final SerializerService serializer) {
         super(userManagementService, roleHolder);
         _remoteAliasService = remoteAliasService;
-		_configService = configService;
 		_serializer = serializer;
 	}
 
@@ -94,7 +96,6 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	        	return new ResponseEntity<>("Could not save remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );
 	        	
 	        }
-			final UserI user = getSessionUser();
 	    	final HttpStatus status = canEditProject(localProject);
 	        if (status != null) {
 	            return new ResponseEntity<>(status);
@@ -157,7 +158,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	           		return new  ResponseEntity<>("XSync saving of remote credentials failed ", HttpStatus.BAD_REQUEST);
 	        }
 		}catch (Exception  exception) {
-			exception.printStackTrace();
+        	_logger.error("ERROR:  Saving of remote credentials failed " + ExceptionUtils.getFullStackTrace(exception));
         	return new ResponseEntity<>("XSync saving of remote credentials failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
 		return new ResponseEntity<>("XSync remote credentials set.", HttpStatus.OK );
@@ -199,11 +200,14 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 			}catch(FileNotFoundException fne) {
 		    	 return new ResponseEntity<>("User does not have access to the project " + remoteProjectId, HttpStatus.FORBIDDEN);
 			}catch (IOException ioe) {
-			    	 return new ResponseEntity<>("User " + username + " probably has Collaborator level access. Xsync will fail.", HttpStatus.FORBIDDEN);
+        		_logger.error("Issue querying user permissions", ioe);
+				 return new ResponseEntity<>("User " + username + " probably has Collaborator level access. Xsync will fail.", HttpStatus.FORBIDDEN);
 			}catch(Exception e) {
-			         return new ResponseEntity<>("Could not connect", HttpStatus.BAD_REQUEST);
+				_logger.error("Issue querying user permissions", e);
+				 return new ResponseEntity<>("Could not connect", HttpStatus.BAD_REQUEST);
 	        }
         } catch (Exception e) {
+			_logger.error("Issue querying user permissions", e);
         	return new ResponseEntity<>("Could not connect", HttpStatus.BAD_REQUEST);
         }
 		if (!found) {
@@ -234,7 +238,6 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	        if (host==null || host.length()<1 || localProject==null || localProject.length()<1) {
 	        	return new ResponseEntity<>("Could not check remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );
 	        }
-			final UserI user = getSessionUser();
 	    	final HttpStatus status = canEditProject(localProject);
 	        if (status != null) {
 	            return new ResponseEntity<>(status);

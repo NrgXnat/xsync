@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatExperimentdataI;
@@ -44,6 +45,8 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnat.exceptions.InvalidArchiveStructure;
 import org.nrg.xnat.xsync.anonymize.AnonymizerI;
 import org.nrg.xnat.xsync.anonymize.XsyncAnonymizer;
+import org.nrg.xnat.xsync.transformer.TransformerHelper;
+import org.nrg.xnat.xsync.transformer.XsyncDataTypeSpecificTransformer;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionXsiType;
 import org.nrg.xsync.configuration.json.SyncConfigurationResource;
@@ -58,13 +61,17 @@ import org.nrg.xsync.utils.XsyncRESTUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
+@Slf4j
 public class ExperimentFilter {
 	private static final Logger _log = LoggerFactory.getLogger(ExperimentFilter.class);
 
@@ -400,53 +407,22 @@ public class ExperimentFilter {
 	 *            experiment for correction
 	 * @throws Exception
 	 */
-	private XnatImagesessiondata correctIDandLabel(XnatSubjectdataI targetsubject,XnatImagesessiondata origExperiment) throws Exception {
+	private XnatImagesessiondata correctIDandLabel(XnatSubjectdataI targetsubject, XnatImagesessiondata origExperiment)
+			throws Exception {
+		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
 		XFTItem item = origExperiment.getItem().copy();
 		XnatImagesessiondata targetExperiment = (XnatImagesessiondata) BaseElement.GetGeneratedItem(item);
-		String newid = "";
-		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
-		String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origExperiment.getId());
-		_log.debug("correctIDandLabel (experiment=" + origExperiment.getLabel() + 
-				"): returned alreadyAssignedRemoteID(idMapper.getRemoteAssessionId)=" + alreadyAssignedRemoteId);
-		if (alreadyAssignedRemoteId == null) {
-			XsyncRESTUtils restUtil=new XsyncRESTUtils(_manager, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration);
-			alreadyAssignedRemoteId = restUtil.getRemoteExperimentId(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId(), targetsubject.getId(),origExperiment.getLabel(),origExperiment.getXSIType());
-			_log.debug("correctIDandLabel (experiment=" + origExperiment.getLabel() + 
-					"): returned alreadyAssignedRemoteID(getRemoteExperimentId)=" + alreadyAssignedRemoteId);
-		}
-		newid = alreadyAssignedRemoteId!=null?alreadyAssignedRemoteId:newid;
-		// WORKAROUND (TEMPORARY???):  We've had some cases where experiments have gotten assigned the assession number of
-		// the subject.  It's not clear why that is happening, but it causes a lot of problems when it does (one session overwrites
-		// the other). Let's set the id to null if it looks like a subject assession number
-		if (newid != null && newid.matches("^.*_S[0-9]*$")) {
-			_log.error("ERROR:  Experiment appears to have been assighed a subject assession number.  Setting it to null" +
-					" so a new one is assigned");
-			newid = "";
-		}
-		targetExperiment.setId(newid);
-		if (alreadyAssignedRemoteId != null && newid != null && alreadyAssignedRemoteId.equals(newid)) {
-			ConflictCheckUtil.checkForConflict(targetExperiment, newid, projectSyncConfiguration, 
-					_jdbcTemplate, _queryResultUtil, _manager);
-		}
-		//targetExperiment.setProject(targetsubject.getProject());
-		targetExperiment.setSubjectId(targetsubject.getLabel());
-		// correct shared projects
-		for (XnatExperimentdataShareI share : targetExperiment.getSharing_share()) {
-			if (share.getLabel() != null) {
-				share.setLabel("");
-			}
-		}
+		idMapper.correctIDandLabel(targetExperiment, targetsubject);
 		return targetExperiment;
 	}
 
 	/**
-	 * @param targetsubject
-	 *            subject for experiment for correction
-	 * @param origExperiment
-	 *            experiment for correction
-	 * @throws Exception
+	 * @param targetAssessor
+	 *            assessor for correction
+	 * @param origAss
+	 *            orig assessor
 	 */
-	public void correctIDandLabel(XnatImageassessordata targetAssessor,XnatImageassessordata origAss,String remoteImageSessionId, String remoteProjectId) throws Exception {
+	public void correctIDandLabel(XnatImageassessordata targetAssessor,XnatImageassessordata origAss,String remoteImageSessionId, String remoteProjectId) {
 		String newid = "";
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
 		String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origAss.getId());
@@ -463,7 +439,6 @@ public class ExperimentFilter {
 				share.setLabel("");
 			}
 		}
-		return;
 	}
 	
 
@@ -681,67 +656,62 @@ public class ExperimentFilter {
 			if(filterImagingAssessor(orig)!=null)
 			{
 				exp = correctIDandLabel(newSubject,orig);
+				transformOtherItemFieldsBeforeSync(newSubject,orig,exp);
 				filterExperimentResources(exp);
-				if (!orig.getId().equals(exp.getId())) {
-					for (final XnatAbstractresourceI res : exp.getResources_resource()) {
-						modifyExptResource((XnatAbstractresource) res, orig, false);
+				for (final XnatAbstractresourceI res : exp.getResources_resource()) {
+					modifyExptResource(res, orig, false);
+				}
+
+				resetPrearchive(exp);
+				filterScantypes(exp);
+				applyScanFilters(exp);
+				for (final XnatImagescandataI scan : exp.getScans_scan()) {
+					scan.setImageSessionId(exp.getLabel());
+					for (final XnatAbstractresourceI res : scan.getFile()) {
+						modifyExptResource(res, orig, true);
 					}
-	
-					if (exp instanceof XnatImagesessiondata) {
-						resetPrearchive((XnatImagesessiondata) exp);
-						filterScantypes(exp);
-						applyScanFilters(exp);
-						for (final XnatImagescandataI scan : ((XnatImagesessiondata) exp).getScans_scan()) {
-							scan.setImageSessionId(exp.getLabel());
-							for (final XnatAbstractresourceI res : scan.getFile()) {
-								modifyExptResource((XnatAbstractresource) res, orig, true);
-							}
-						}
-						
-						filterRecons(exp);
-						for (final XnatReconstructedimagedataI recon : ((XnatImagesessiondata) exp)
-								.getReconstructions_reconstructedimage()) {
-							recon.setImageSessionId(exp.getLabel());
-							ReconstructionFilter reconFilter = new ReconstructionFilter();
-							reconFilter.correctIDandLabel(recon);
-							for (final XnatAbstractresourceI res : recon.getIn_file()) {
-								modifyExptResource((XnatAbstractresource) res, orig, false);
-							}
-							for (final XnatAbstractresourceI res : recon.getOut_file()) {
-								modifyExptResource((XnatAbstractresource) res, orig, false);
-							}
-						}
-						filterAssessors(orig, exp);
-						for (final XnatImageassessordataI assess : ((XnatImagesessiondata) exp).getAssessors_assessor()) {
-							for (XnatExperimentdataShareI share : assess.getSharing_share()) {
-								if (share.getLabel() != null) {
-									share.setLabel("");
-								}
-							}
-							/*
-							for (final XnatAbstractresourceI res : assess.getResources_resource()) {
-								modifyExptResource((XnatAbstractresource) res, orig);
-							}
-	
-							for (final XnatAbstractresourceI res : assess.getIn_file()) {
-								modifyExptResource((XnatAbstractresource) res, orig);
-							}
-	
-							for (final XnatAbstractresourceI res : assess.getOut_file()) {
-								modifyExptResource((XnatAbstractresource) res, orig);
-							}
-							*/
-						}
-						Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getAnonymize(); 
-						_log.debug("Exp " + exp.getLabel() + " needs to be anonymized " + isExptToBeAnonymized);
-						if (isExptToBeAnonymized) {
-							_log.debug("About to anonymize " + exp.getLabel());
-							 anonymize((XnatImagesessiondata)exp, newSubject.getProject());
-							_log.debug("DONE - anonymize " + exp.getLabel());						
-						}
-					} else {
+				}
+
+				filterRecons(exp);
+				for (final XnatReconstructedimagedataI recon : exp
+						.getReconstructions_reconstructedimage()) {
+					recon.setImageSessionId(exp.getLabel());
+					ReconstructionFilter reconFilter = new ReconstructionFilter();
+					reconFilter.correctIDandLabel(recon);
+					for (final XnatAbstractresourceI res : recon.getIn_file()) {
+						modifyExptResource(res, orig, false);
 					}
-					
+					for (final XnatAbstractresourceI res : recon.getOut_file()) {
+						modifyExptResource(res, orig, false);
+					}
+				}
+				filterAssessors(orig, exp);
+				for (final XnatImageassessordataI assess : exp.getAssessors_assessor()) {
+					for (XnatExperimentdataShareI share : assess.getSharing_share()) {
+						if (share.getLabel() != null) {
+							share.setLabel("");
+						}
+					}
+					/*
+					for (final XnatAbstractresourceI res : assess.getResources_resource()) {
+						modifyExptResource((XnatAbstractresource) res, orig);
+					}
+
+					for (final XnatAbstractresourceI res : assess.getIn_file()) {
+						modifyExptResource((XnatAbstractresource) res, orig);
+					}
+
+					for (final XnatAbstractresourceI res : assess.getOut_file()) {
+						modifyExptResource((XnatAbstractresource) res, orig);
+					}
+					*/
+				}
+				Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getAnonymize();
+				_log.debug("Exp " + exp.getLabel() + " needs to be anonymized " + isExptToBeAnonymized);
+				if (isExptToBeAnonymized) {
+					_log.debug("About to anonymize " + exp.getLabel());
+					 anonymize(exp, newSubject.getProject());
+					_log.debug("DONE - anonymize " + exp.getLabel());
 				}
 			}
 		} catch (Exception ex) {
@@ -965,8 +935,8 @@ public class ExperimentFilter {
 /**
  * Find and remove experiment resources.
  *
- * @param assessor
- *            the exp
+ * @param scan
+ *            the scan
  * @param resourcesCfg
  *            the resource type
  * @return true, if successful
@@ -1134,8 +1104,10 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 					throws Exception {
 		XnatSubjectassessordataI assess = (XnatSubjectassessordataI) correctIDandLabel((XnatSubjectdata)newSubject,(XnatSubjectassessordata)orig);
 		assess=filterSubjectAssessor((XnatSubjectassessordata)assess);
+		transformOtherItemFieldsBeforeSync(origSubject, newSubject,orig,assess);
 		if(assess!=null)
 		{
+			
 			filterSubjectAssessorResources((XnatSubjectassessordata)assess);
 			for (final XnatAbstractresourceI res : assess.getResources_resource()) {
 				//modifySubjectAssessorResource((XnatAbstractresource) res, origSubject, newSubject);
@@ -1198,4 +1170,53 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 		}
 		return exp;
 	}
+	
+
+	private void transformOtherItemFieldsBeforeSync(XnatSubjectdata newSubject, XnatImagesessiondata orig, XnatImagesessiondata idAndLabelModifiedExp) {
+		//Note: Mohana - At this stage the labels and IDs have been transformed
+		//In case the data-model contains some fields which Xsync is not aware 
+		//that these fields contain Ids, use the SyncTransformer Bean to transform the 
+		//experiment.
+		try {
+			XsyncDataTypeSpecificTransformer dataTypeSpecificTransformer = XDAT.getContextService().getBean(XsyncDataTypeSpecificTransformer.class);
+			Map<String, String> attributes = new HashMap<String, String>();
+			attributes.put(TransformerHelper.LOCAL_PROJECT_ID,orig.getProject());
+			attributes.put(TransformerHelper.REMOTE_PROJECT_ID,newSubject.getProject());
+			attributes.put(TransformerHelper.LOCAL_SUBJECT_ID, orig.getSubjectId());
+			attributes.put(TransformerHelper.LOCAL_EXP_ID, orig.getId());
+			attributes.put(TransformerHelper.REMOTE_SUBJECT_LABEL, newSubject.getLabel());
+			attributes.put(TransformerHelper.REMOTE_SUBJECT_ID, newSubject.getId());
+			attributes.put(TransformerHelper.REMOTE_EXP_ID, idAndLabelModifiedExp.getId());
+			attributes.put(TransformerHelper.REMOTE_EXP_LABEL, idAndLabelModifiedExp.getLabel());
+			dataTypeSpecificTransformer.transformExperiment(idAndLabelModifiedExp, attributes);
+		}catch(NoSuchBeanDefinitionException nsbe) {
+			log.debug("No Bean which can transform for sync has been found");
+		}
+
+	}
+	
+	private void transformOtherItemFieldsBeforeSync(XnatSubjectdata origSubject,XnatSubjectdata newSubject,XnatSubjectassessordataI orig, XnatSubjectassessordataI idAndLabelModifiedExp) {
+		//Note: Mohana - At this stage the labels and IDs have been transformed
+		//In case the data-model contains some fields which Xsync is not aware 
+		//that these fields contain Ids, use the SyncTransformer Bean to transform the 
+		//experiment.
+		try {
+			XsyncDataTypeSpecificTransformer dataTypeSpecificTransformer = XDAT.getContextService().getBean(XsyncDataTypeSpecificTransformer.class);
+			Map<String, String> attributes = new HashMap<String, String>();
+			attributes.put(TransformerHelper.LOCAL_PROJECT_ID,orig.getProject());
+			attributes.put(TransformerHelper.REMOTE_PROJECT_ID,newSubject.getProject());
+			attributes.put(TransformerHelper.LOCAL_SUBJECT_ID, orig.getSubjectId());
+			attributes.put(TransformerHelper.LOCAL_EXP_ID, orig.getId());
+			attributes.put(TransformerHelper.REMOTE_SUBJECT_LABEL, newSubject.getLabel());
+			attributes.put(TransformerHelper.REMOTE_SUBJECT_ID, newSubject.getId());
+			attributes.put(TransformerHelper.REMOTE_EXP_ID, idAndLabelModifiedExp.getId());
+			attributes.put(TransformerHelper.REMOTE_EXP_LABEL, idAndLabelModifiedExp.getLabel());
+			dataTypeSpecificTransformer.transformSubjectAssessor((XnatSubjectassessordata)idAndLabelModifiedExp, attributes);
+		}catch(NoSuchBeanDefinitionException nsbe) {
+			log.debug("No Bean which can transform for sync has been found");
+		}
+
+	}
+	
+	
 }

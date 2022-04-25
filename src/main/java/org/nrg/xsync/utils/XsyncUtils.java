@@ -21,6 +21,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xft.utils.SaveItemHelper;
 import org.nrg.xft.utils.ValidationUtils.ValidationResults;
 import org.nrg.xnat.utils.WorkflowUtils;
+import org.nrg.xsync.local.IdMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -135,14 +136,20 @@ public class XsyncUtils {
         }
         
 		syncProject.setSourceProjectId(synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText());
-		syncProject.setNotificationEmails(synchronizationJson.get("notification_emails").asText());
+		if (synchronizationJson.get("notification_emails") != null) {
+			syncProject.setNotificationEmails(synchronizationJson.get("notification_emails").asText());
+		} else {
+			syncProject.setNotificationEmails("");
+		}
 		syncProject.setSyncEnabled(synchronizationJson.get("enabled").asBoolean());
 		item = XFTItem.NewItem(XsyncXsyncinfodata.SCHEMA_ELEMENT_NAME, _user);
 		XsyncXsyncinfodata syncinfo = new XsyncXsyncinfodata(item);
         syncinfo.setSyncFrequency(synchronizationJson.get("sync_frequency").asText());
 		syncinfo.setSyncNewOnly(synchronizationJson.get("sync_new_only").asBoolean());
 		syncinfo.setIdentifiers(synchronizationJson.get("identifiers").asText());
-		syncinfo.setCustomIdentifierClass(synchronizationJson.get("customIdentifiers").asText());
+		if (syncinfo.getIdentifiers().equals(IdMapper.USE_CUSTOM)) {
+			syncinfo.setCustomIdentifierClass(synchronizationJson.get("customIdentifiers").asText());
+		}
 		syncinfo.setRemoteUrl(synchronizationJson.get("remote_url").asText());
 		syncinfo.setRemoteProjectId(synchronizationJson.get("remote_project_id").asText());
 		boolean destinationChange = false;

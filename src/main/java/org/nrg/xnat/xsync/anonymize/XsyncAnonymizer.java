@@ -8,14 +8,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.dcm4che2.io.DicomInputStream;
+import org.nrg.action.ServerException;
 import org.nrg.transaction.operations.CopyOp;
 import org.nrg.transaction.OperationI;
 import org.nrg.transaction.TransactionException;
-import org.nrg.xdat.bean.CatCatalogBean;
 import org.nrg.xdat.model.CatEntryI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatResourcecatalogI;
@@ -28,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.Nullable;
 
 // TODO: Auto-generated Javadoc
 /**
@@ -158,66 +161,61 @@ public class XsyncAnonymizer implements AnonymizerI {
 	 * @return the dicom object
 	 */
 	private DicomObject getDicomObject(String rootpath, final XnatImagescandataI scan) {
+		AtomicBoolean foundDicom = new AtomicBoolean(false);
 		final List<XnatResourcecatalogI> resources = scan.getFile();
+		final String project = scan.getProject();
+		DicomObject dicomObject = findDicomFileAndGetHeader(rootpath, resources, project, "DICOM", foundDicom);
+		if (dicomObject != null) {
+			return dicomObject;
+		}
+		if (!foundDicom.get()) {
+			return findDicomFileAndGetHeader(rootpath, resources, project, "secondary", foundDicom);
+		}
 
-		final List<File> files = new ArrayList<>();
-		boolean foundDicom = false;
+		return null;
+	}
+
+	/**
+	 * Find single DICOM file in scan resources and read its DicomObject
+	 * @param rootpath the rootpath
+	 * @param resources the scan resources
+	 * @param project the scan project
+	 * @param desiredLabel the resource label we want to inspect for DICOM
+	 * @param foundDicom field to set indicating we found a resource with desiredLabel
+	 * @return the DicomObject or null if no DICOM files found
+	 */
+	@Nullable
+	private DicomObject findDicomFileAndGetHeader(String rootpath,
+												  List<XnatResourcecatalogI> resources,
+												  String project,
+												  String desiredLabel,
+												  AtomicBoolean foundDicom) {
 		for (XnatResourcecatalogI resource : resources) {
 
 			final String type = resource.getLabel();
-			if ("DICOM".equals(type)) {
-				foundDicom = true;
-				final File catalogFile = CatalogUtils.getCatalogFile(rootpath, resource);
-				CatCatalogBean cat = CatalogUtils.getCatalog(catalogFile);
-				for (CatEntryI match : CatalogUtils.getEntriesByRegex(cat, ".*.dcm")) {
-					String parentPath = (new File(resource.getUri())).getParent();
-					files.add(CatalogUtils.getFile(match, parentPath));
+			if (desiredLabel.equals(type)) {
+				foundDicom.set(true);
 
-					if (files.size() >= 1) {
-						DicomObject dcmObject = null;
+				CatalogUtils.CatalogData catalogData;
+				try {
+					catalogData = CatalogUtils.CatalogData.getOrCreate(rootpath, resource, project);
+				} catch (ServerException e) {
+					logger.warn("Unable to ready catalog data for resource {}", resource.getXnatAbstractresourceId());
+					continue;
+				}
+				for (CatEntryI entry : catalogData.catBean.getEntries_entry()) {
+					File file = CatalogUtils.getFile(entry, catalogData.catPath, project);
+					if (file != null) {
 						try {
-							dcmObject = this.getHeader(files.get(0));
-						} catch (FileNotFoundException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+							return this.getHeader(file);
 						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						return dcmObject;
-					}
-				}
-			}
-		}
-		//If no DICOMs exist, check to see if secondary image exists
-		if (!foundDicom) {
-			for (XnatResourcecatalogI resource : resources) {
-
-				final String type = resource.getLabel();
-				if ("secondary".equals(type)) {
-					final File catalogFile = CatalogUtils.getCatalogFile(rootpath, resource);
-					CatCatalogBean cat = CatalogUtils.getCatalog(catalogFile);
-					for (CatEntryI match : CatalogUtils.getEntriesByRegex(cat, ".*.dcm")) {
-						String parentPath = (new File(resource.getUri())).getParent();
-						files.add(CatalogUtils.getFile(match, parentPath));
-
-						if (files.size() >= 1) {
-							DicomObject dcmObject = null;
-							try {
-								dcmObject = this.getHeader(files.get(0));
-							} catch (FileNotFoundException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							return dcmObject;
+							// Ignore, not DICOM
 						}
 					}
 				}
 			}
 		}
+
 		return null;
 	}
 
