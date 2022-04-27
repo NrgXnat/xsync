@@ -123,3 +123,57 @@ siteSettings:
                             placeholder: 33001
                             description: >
                                 The remote server's UDP port
+        cliTransferDefaults:
+            kind: tab
+            label: CLI Transfer Client Settings
+            group: xsyncConfig
+            active: false
+            contents:
+                cliTransferPanel:
+                    kind: panel.form
+                    name: cliTransferPanel
+                    label: XSync CLI Transfer Client Settings
+                    method: POST
+                    url: /xapi/xsyncSitePreferences/cliTransfer 
+                    contentType: json 
+                    contents:
+                        message:
+                            tag: div.message.bold
+                            content: >
+                                NOTICE: This sets default CLI Transfer Client settings.  These site-level 
+                                settings may be useful if one of your destination sites supports CLI client transfers
+                                and multiple projects will connect to the same CLI client script, as these
+                                will become the default settings for project connections.  <b>Please note, however, that
+                                CLI client settings must be configured and enabled for each project.</b>
+                        cliTransferScript:
+                            kind: panel.input.text
+                            name: cliTransferScript
+                            label: CLI Client Script
+                            description: >
+                                The path to the transfer client script
+                        cliTransferHost:
+                            kind: panel.input.text
+                            name: cliTransferHost
+                            label: CLI Client Host
+                            description: >
+                                The host the client sends to (supplied via the --host parameter)
+                        cliTransferUser:
+                            kind: panel.input.text
+                            name: cliTransferUser
+                            label: CLI Client User
+                            description: >
+                                The username sends to (supplied via the --user parameter)
+                        cliTransferRemoteDir:
+                            kind: panel.input.text
+                            name: cliTransferRemoteDir
+                            label: Remote Destination Directory
+                            size: 30
+                            description: >
+                                (OPTIONAL) The remote directory to which the files will be sent (supplied via the --rdir parameter)
+                        cliTransferPrivateKey:
+                            kind: panel.input.text
+                            name: cliTransferPrivateKey
+                            label: Private Key Location
+                            size: 30
+                            description: >
+                                (OPTIONAL)  The location of the private key used to connect to the server (supplied via the --key parameter)

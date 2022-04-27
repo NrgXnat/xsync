@@ -1,18 +1,5 @@
 package org.nrg.xsync.aspera;
 
-import java.io.File;
-
-import org.nrg.framework.constants.Scope;
-import org.nrg.prefs.annotations.NrgPreference;
-import org.nrg.prefs.annotations.NrgPreferenceBean;
-import org.nrg.prefs.beans.AbstractPreferenceBean;
-import org.nrg.prefs.exceptions.InvalidPreferenceName;
-import org.nrg.prefs.services.NrgPreferenceService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 public class AsperaSitePrefsInfo {
 	
 	private String asperaNodeUrl;

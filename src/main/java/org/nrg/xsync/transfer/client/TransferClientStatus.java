@@ -1,12 +1,12 @@
-package org.nrg.xsync.aspera;
+package org.nrg.xsync.transfer.client;
 
 import java.util.ArrayList;
 import java.util.Date;
 
-public class AsperaStatus {
+public class TransferClientStatus {
 
     // Keep a static array of all statuses
-    public static ArrayList<AsperaStatus> list = new ArrayList<>();
+    public static ArrayList<TransferClientStatus> list = new ArrayList<>();
     private String project;
     private String session;
     private String status;
@@ -18,7 +18,7 @@ public class AsperaStatus {
 //    private String percent;
 //    private String currentFile;
 
-    public AsperaStatus() {
+    public TransferClientStatus() {
         this.timestamp = new Date();
         this.status = "idle";
     }

@@ -17,7 +17,8 @@ import org.springframework.stereotype.Component;
 @NrgPreferenceBean(toolId = "xsyncAsperaSite", toolName = "XSync Aspera Site Preferences")
 public class AsperaSitePrefs extends AbstractPreferenceBean {
 
-    @Autowired
+    private static final long serialVersionUID = 3746363482831017436L;
+	@Autowired
     protected AsperaSitePrefs(final NrgPreferenceService preferenceService) {
         super(preferenceService);
     }

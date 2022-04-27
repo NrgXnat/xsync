@@ -36,6 +36,8 @@ import org.springframework.context.annotation.ComponentScan;
 			log4jPropertiesFile="/META-INF/resources/xsyncLog4j.properties")
 @ComponentScan({
 	"org.nrg.xsync.aspera",
+	"org.nrg.xsync.transfer.client.cli",
+	"org.nrg.xsync.transfer.client.prefs",
 	"org.nrg.xsync.components",
 	"org.nrg.xsync.scheduler",
 	"org.nrg.xsync.services",

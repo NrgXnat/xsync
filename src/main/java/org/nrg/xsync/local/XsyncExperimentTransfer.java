@@ -67,6 +67,9 @@ import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.tools.XsyncURIUtils;
 import org.nrg.xsync.tools.XsyncXnatInfo;
+import org.nrg.xsync.transfer.TransferClientI;
+import org.nrg.xsync.transfer.client.cli.CliTransferClient;
+import org.nrg.xsync.transfer.client.cli.prefs.CliTransferProjectPrefs;
 import org.nrg.xsync.utils.ConflictCheckUtil;
 import org.nrg.xsync.utils.JSONUtils;
 import org.nrg.xsync.utils.QueryResultUtil;
@@ -101,9 +104,11 @@ public class XsyncExperimentTransfer {
     private final SyncStatusService _syncStatusService;
     private final XnatProjectdata _localProject;
     private final boolean _syncIfNotSyncedInPast;
-    private final int _asperaRetry = 1;
+    private final int _clientRetry = 1;
     final AsperaClient _aspera = XDAT.getContextService().getBean(AsperaClient.class);
+    final CliTransferClient _cliClient = XDAT.getContextService().getBean(CliTransferClient.class);
     final AsperaProjectPrefs _asperaProjectPrefs = XDAT.getContextService().getBean(AsperaProjectPrefs.class);
+    final CliTransferProjectPrefs _cliProjectPrefs = XDAT.getContextService().getBean(CliTransferProjectPrefs.class);
 
     public XsyncExperimentTransfer(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil, NamedParameterJdbcTemplate jdbcTemplate, ProjectSyncConfiguration projectSyncConfiguration, UserI user, SubjectSyncItem subjectSyncInfo, XnatSubjectdataI localSubject, SerializerService serializer, SyncStatusService syncStatusService, XnatProjectdata localProject, boolean syncIfNotSyncedInPast) {
         this.user = user;
@@ -378,8 +383,7 @@ public class XsyncExperimentTransfer {
             long endTime = System.currentTimeMillis();
             log.debug("Total Time to build XAR file :: {}", endTime - startTime);
 
-            final RemoteConnectionResponse connectionResponse =
-                    (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, xar) : _manager.importXar(connection, xar);
+            final RemoteConnectionResponse connectionResponse = sendXar(_localProject.getId(), connection, xar);
 
             stored = connectionResponse.wasSuccessful();
             if (stored) {
@@ -441,8 +445,7 @@ public class XsyncExperimentTransfer {
 
                     if (scanXar != null) {
                         long xarProcStartTime = System.currentTimeMillis();
-                        final RemoteConnectionResponse scanConnectionResponse =
-                                (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, scanXar) : _manager.importXar(connection, scanXar);
+                        final RemoteConnectionResponse scanConnectionResponse = sendXar(_localProject.getId(), connection, scanXar);
                         long xarProcEndTime = System.currentTimeMillis();
                         long xarProcTotalTime = xarProcEndTime - xarProcStartTime;
                         log.debug("Total Time to process XAR file for scan {} :: {}", scan.getId(), xarProcTotalTime);
@@ -492,8 +495,7 @@ public class XsyncExperimentTransfer {
                     final File assXar = buildxar(orig, origAss, targetAss);
 
                     if (assXar != null) {
-                        final RemoteConnectionResponse assConnectionResponse =
-                                (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, assXar) : _manager.importXar(connection, assXar);
+                        final RemoteConnectionResponse assConnectionResponse = sendXar(_localProject.getId(), connection, assXar);
                         final boolean assStored = assConnectionResponse.wasSuccessful();
                         if (assStored) {
                             assXar.delete();
@@ -556,48 +558,91 @@ public class XsyncExperimentTransfer {
 
     private boolean shouldUseAspera() {
         final String projectId = _localProject.getId();
+        if (_asperaProjectPrefs == null) {
+        	return false;
+        }
         final Boolean enabled = _asperaProjectPrefs.getAsperaEnabled(projectId);
         if (enabled) {
-            final String node = _asperaProjectPrefs.getAsperaNodeUrl(projectId);
-            final String aUser = _asperaProjectPrefs.getAsperaNodeUser(projectId);
-            if (node == null || node.length() < 1 || aUser == null || aUser.length() < 1) {
-                log.error("Aspera is enabled but not properly configured.  Using HTTPS transfers instead.");
+            final String cNode = _asperaProjectPrefs.getAsperaNodeUrl(projectId);
+            final String cUser = _asperaProjectPrefs.getAsperaNodeUser(projectId);
+            if (cNode == null || cNode.length() < 1 || cUser == null || cUser.length() < 1) {
+                log.error("Aspera is enabled but not properly configured.  Using alternate transfer method.");
                 return false;
             }
             log.info("Using Aspera for the data transfer method.");
             return true;
         }
-        log.info("Using HTTPS for the data transfer method.");
+        log.info("Using alternate transfer method.");
         return false;
     }
 
-    private RemoteConnectionResponse asperaXarSend(final String projectID, final RemoteConnection connection, final File xar) throws Exception {
+    private boolean shouldUseCli() {
+        if (_cliProjectPrefs == null) {
+        	return false;
+        }
+        final String projectId = _localProject.getId();
+        final Boolean enabled = _cliProjectPrefs.getCliTransferEnabled(projectId);
+        if (enabled) {
+            final String cNode = _cliProjectPrefs.getCliTransferHost(projectId);
+            final String cUser = _cliProjectPrefs.getCliTransferUser(projectId);
+            if (cNode == null || cNode.length() < 1 || cUser == null || cUser.length() < 1) {
+                log.error("CLI client transfer is enabled but not properly configured.  Using anternate transfer method.");
+                return false;
+            }
+            log.info("Using CLI client transfer for the data transfer method.");
+            return true;
+        }
+        log.info("Using alternate transfer method.");
+        return false;
+    }
+
+    private boolean doClientUpload(TransferClientI client, String projectID, File xar) {
         int retryCount = 0;
         boolean uploadSuccess = false;
-        boolean exceptionOnHttpSend = false;
         try {
-            while (!uploadSuccess && retryCount <= _asperaRetry) {
-                uploadSuccess = _aspera.upload(projectID, xar);
+            while (!uploadSuccess && retryCount <= _clientRetry) {
+                uploadSuccess = client.upload(projectID, xar);
                 retryCount += 1;
             }
             if (uploadSuccess) {
-                final String xarPath = _asperaProjectPrefs.getDestinationDirectory(_localProject.getId()) +
-                        File.separator + xar.getName();
-                return _manager.importXar(connection, xarPath);
-            } else {
-                log.warn("Aspera upload  and retries failed.  Failing over to standard http send.");
-                exceptionOnHttpSend = true;
-                return _manager.importXar(connection, xar);
-            }
+            	return true;
+            } 
         } catch (Exception e) {
-            log.debug(ExceptionUtils.getStackTrace(e));
-            if (!exceptionOnHttpSend) {
-                log.warn("Aspera upload failed with an exception.  Failing over to standard http send.");
-                return _manager.importXar(connection, xar);
-            } else {
-                throw e;
-            }
+               log.warn(client.getClass().getName() + " upload failed with an exception.  Failing over to alternate send.");
+               if (log.isDebugEnabled()) {
+               	log.debug(ExceptionUtils.getStackTrace(e));
+               } else {
+               	log.warn(e.toString());
+               }
         }
+        return false;
+    }
+
+    private RemoteConnectionResponse sendXar(final String projectID, final RemoteConnection connection, final File xar) throws Exception {
+    	boolean clientAttempt = false;
+    	try {
+	        if (shouldUseAspera()) {
+	    	    clientAttempt = true;
+	        	if (doClientUpload(_aspera, projectID, xar)) {
+	                final String xarPath = _asperaProjectPrefs.getDestinationDirectory(_localProject.getId()) +
+	                        File.separator + xar.getName();
+	                return _manager.importXar(connection, xarPath);
+	        	}
+	        }
+	        if (shouldUseCli()) {
+	    	    clientAttempt = true;
+	        	if (doClientUpload(_cliClient, projectID, xar)) {
+	                final String xarPath = _cliProjectPrefs.getCliTransferRemoteDir(_localProject.getId()) +
+	                        File.separator + xar.getName();
+	                return _manager.importXar(connection, xarPath);
+	        	}
+	        }
+    	} catch (Exception e) {
+    		log.error("Exception thrown during client transfer process");
+    		log.error(ExceptionUtils.getStackTrace(e));
+    	}
+        if (clientAttempt) log.warn("Client transfer methods failed.  Failing over to standard http send.");
+        return _manager.importXar(connection, xar);
     }
 
     private boolean lookForSessionAtDestination(XnatSubjectassessordata orig, ExperimentSyncItem expSyncItem) {

@@ -17,6 +17,10 @@ import org.nrg.xsync.aspera.AsperaProjectPrefsInfo;
 import org.nrg.xsync.aspera.AsperaSitePrefs;
 import org.nrg.xsync.aspera.AsperaSitePrefsInfo;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
+import org.nrg.xsync.transfer.client.cli.prefs.CliTransferProjectPrefs;
+import org.nrg.xsync.transfer.client.cli.prefs.CliTransferProjectPrefsInfo;
+import org.nrg.xsync.transfer.client.cli.prefs.CliTransferSitePrefs;
+import org.nrg.xsync.transfer.client.cli.prefs.CliTransferSitePrefsInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -46,13 +50,16 @@ import io.swagger.annotations.ApiResponses;
 public class XsyncPreferencesController extends AbstractXapiRestController {
 
 	@Autowired
-	public XsyncPreferencesController(final XsyncSitePreferencesBean prefs, final AsperaSitePrefs asperaSitePrefs,
-			final AsperaProjectPrefs asperaProjectPrefs, final UserManagementServiceI userManagementService,
-			final RoleHolder roleHolder) {
+	public XsyncPreferencesController(final XsyncSitePreferencesBean prefs, 
+			final AsperaSitePrefs asperaSitePrefs, final AsperaProjectPrefs asperaProjectPrefs, 
+			final CliTransferSitePrefs cliTransferSitePrefs, final CliTransferProjectPrefs cliTransferProjectPrefs, 
+			final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
 		super(userManagementService, roleHolder);
 		_prefs = prefs;
 		_asperaSitePrefs = asperaSitePrefs;
 		_asperaProjectPrefs = asperaProjectPrefs;
+		_cliTransferSitePrefs = cliTransferSitePrefs;
+		_cliTransferProjectPrefs = cliTransferProjectPrefs;
 	}
 
 	/**
@@ -232,10 +239,108 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(prefsInfo, HttpStatus.OK);
 	}
 
+	/**
+	 * Sets the preferences.
+	 *
+	 * @param jsonbody
+	 *            the jsonbody
+	 * @return the response entity
+	 */
+	@XapiRequestMapping(value = "xsyncSitePreferences/cliTransfer", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Admin)
+	@ApiOperation(value = "Sets the XSync site aspera preferences")
+	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site preferences set."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<String> setCliTransferPreferences(@RequestBody CliTransferSitePrefsInfo cliTransferPrefs) {
+		try {
+			_cliTransferSitePrefs.setCliTransferScript(cliTransferPrefs.getCliTransferScript());
+			_cliTransferSitePrefs.setCliTransferHost(cliTransferPrefs.getCliTransferHost());
+			_cliTransferSitePrefs.setCliTransferUser(cliTransferPrefs.getCliTransferUser());
+			_cliTransferSitePrefs.setCliTransferRemoteDir(cliTransferPrefs.getCliTransferRemoteDir());
+			_cliTransferSitePrefs.setCliTransferPrivateKey(cliTransferPrefs.getCliTransferPrivateKey());
+			_cliTransferSitePrefs.setCliTransferPrivateKey(cliTransferPrefs.getCliTransferPrivateKey());
+		} catch (Exception exception) {
+			return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<>("XSync preferences set", HttpStatus.OK);
+	}
+
+	/**
+	 * Gets the preferences.
+	 *
+	 * @return the preferences
+	 */
+	@XapiRequestMapping(value = "xsyncSitePreferences/cliTransfer", method = RequestMethod.GET, produces = {
+			MediaType.APPLICATION_JSON_VALUE })
+	@ApiOperation(value = "Gets the XSync site preferences", response = Properties.class)
+	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site CLI Transfer preferences retrieved."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<CliTransferSitePrefsInfo> getCliTransferPreferences() throws NrgServiceException {
+		return new ResponseEntity<>(new CliTransferSitePrefsInfo(_cliTransferSitePrefs), HttpStatus.OK);
+	}
+
+	/**
+	 * Sets the preferences.
+	 *
+	 * @param jsonbody
+	 *            the jsonbody
+	 * @return the response entity
+	 */
+	@XapiRequestMapping(value = "xsyncProjectPreferences/project/{projectId}/cliTransfer", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Owner)
+	@ApiOperation(value = "Sets the XSync project aspera preferences")
+	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site preferences set."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<String> setCliTransferProjectPreferences(@PathVariable("projectId") final String projectId,
+			@RequestBody CliTransferProjectPrefsInfo cliTransferPrefs) {
+		try {
+			_cliTransferProjectPrefs.setCliTransferEnabled(projectId, cliTransferPrefs.getCliTransferEnabled());
+			_cliTransferProjectPrefs.setCliTransferScript(projectId, cliTransferPrefs.getCliTransferScript());
+			_cliTransferProjectPrefs.setCliTransferHost(projectId, cliTransferPrefs.getCliTransferHost());
+			_cliTransferProjectPrefs.setCliTransferUser(projectId, cliTransferPrefs.getCliTransferUser());
+			_cliTransferProjectPrefs.setCliTransferRemoteDir(projectId, cliTransferPrefs.getCliTransferRemoteDir());
+			_cliTransferProjectPrefs.setCliTransferPrivateKey(projectId, cliTransferPrefs.getCliTransferPrivateKey());
+			_cliTransferProjectPrefs.setCliTransferPrivateKey(projectId, cliTransferPrefs.getCliTransferPrivateKey());
+		} catch (Exception exception) {
+			_logger.error("ERROR:  Error setting preferences:  " + ExceptionUtils.getFullStackTrace(exception));
+			return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<>("XSync preferences set", HttpStatus.OK);
+	}
+
+	/**
+	 * Gets the preferences.
+	 *
+	 * @return the preferences
+	 */
+	@XapiRequestMapping(value = "xsyncProjectPreferences/project/{projectId}/cliTransfer", method = RequestMethod.GET, produces = {
+			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Read)
+	@ApiOperation(value = "Gets the XSync project preferences", response = Properties.class)
+	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site CLI Transfer preferences retrieved."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<CliTransferProjectPrefsInfo> getCliTransferProjectPreferences(
+			@PathVariable("projectId") final String projectId) throws NrgServiceException {
+		final CliTransferProjectPrefsInfo prefsInfo = new CliTransferProjectPrefsInfo(_cliTransferProjectPrefs, projectId);
+		// Get site defaults, if project settings have not been configured
+		if ((prefsInfo.getCliTransferHost() == null || prefsInfo.getCliTransferHost().length() < 1)
+				&& (prefsInfo.getCliTransferUser() == null || prefsInfo.getCliTransferUser().length() < 1)
+				&& (_cliTransferSitePrefs.getCliTransferHost() != null || _cliTransferSitePrefs.getCliTransferHost().length() > 0)
+				&& (_cliTransferSitePrefs.getCliTransferUser() != null || _cliTransferSitePrefs.getCliTransferUser().length() > 0)) {
+			_logger.warn("WARNING: Project CLI Transfer preferences not found for project " + projectId + 
+					".  Returning site preferences instead for project preference call.");
+			prefsInfo.setCliTransferEnabled(false);
+			prefsInfo.setCliTransferScript(_cliTransferSitePrefs.getCliTransferScript());
+			prefsInfo.setCliTransferHost(_cliTransferSitePrefs.getCliTransferHost());
+			prefsInfo.setCliTransferUser(_cliTransferSitePrefs.getCliTransferUser());
+			prefsInfo.setCliTransferRemoteDir(_cliTransferSitePrefs.getCliTransferRemoteDir());
+			prefsInfo.setCliTransferPrivateKey(_cliTransferSitePrefs.getCliTransferPrivateKey());
+		}
+		return new ResponseEntity<>(prefsInfo, HttpStatus.OK);
+	}
+
 	private final XsyncSitePreferencesBean _prefs;
 	private final AsperaSitePrefs _asperaSitePrefs;
 	private final AsperaProjectPrefs _asperaProjectPrefs;
+	private final CliTransferSitePrefs _cliTransferSitePrefs;
+	private final CliTransferProjectPrefs _cliTransferProjectPrefs;
 	private static Logger _logger = LoggerFactory.getLogger(XsyncPreferencesController.class);
-	
 
 }
