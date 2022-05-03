@@ -8,5 +8,5 @@ import org.nrg.xdat.om.XnatImagesessiondata;
 
 
 public interface AnonymizerI {
-	void anonymize(final XnatImagesessiondata session, final String destProject) throws Exception;     
+	void anonymize(XnatImagesessiondata session, String destProject, String cacheSessionPath) throws Exception;
 }

@@ -23,7 +23,6 @@ import org.nrg.xdat.model.XnatResourcecatalogI;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
 import org.nrg.xnat.utils.CatalogUtils;
-import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,23 +83,16 @@ public class XsyncAnonymizer implements AnonymizerI {
 	 */
 	// have to rename files.
 	@Override
-	public void anonymize(final XnatImagesessiondata session, final String destproject) throws Exception {
-		//String exptCachePath = SynchronizationManager.GET_SYNC_FILE_PATH(session.getProject());
-		String exptCachePath =  SynchronizationManager.GET_SYNC_FILE_PATH_TO_SESSION(session.getProject(),session) ;
+	public void anonymize(final XnatImagesessiondata session, final String destProject, final String cacheSessionPath) throws Exception {
 		try {
-			//File cachePath = new File(exptCachePath + File.separator + "ARCHIVECOPY" + File.separator + session.getLabel() + File.separator);
-			File cachePath = new File(exptCachePath);
-			//FileUtils.copyDirectoryToDirectory(session.getSessionDir(), cachePath);
-			//Smart copy - dont copy all the data; only what is needed
-			//copyScanFiles(session,cachePath);
-			ExportAnonymizer anonymizer = new ExportAnonymizer(_xsyncXnatInfo, session, destproject, cachePath.getAbsolutePath());
-			this.applyAnonymizationToFiles(session,cachePath.getAbsolutePath(),anonymizer);
+			ExportAnonymizer anonymizer = new ExportAnonymizer(_xsyncXnatInfo, session, destProject, cacheSessionPath);
+			this.applyAnonymizationToFiles(session, cacheSessionPath, anonymizer);
 		} catch (TransactionException e) {
 			logger.error("applyAnonymizationToFiles", e);
 			throw new Exception(e);
 		}
 		try {
-			this.applyAnonymizationToXml(session,exptCachePath);
+			this.applyAnonymizationToXml(session, cacheSessionPath);
 		} catch (Exception e) {
 			throw new Exception("Failed to anonymize xml:" + session.getLabel());
 		}

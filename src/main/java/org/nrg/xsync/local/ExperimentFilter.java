@@ -547,29 +547,21 @@ public class ExperimentFilter {
 	 *            the resource
 	 * @param orig
 	 *            the orig
-	 * @throws IOException
-	 *             Signals that an I/O exception has occurred.
-	 * @throws UnknownPrimaryProjectException
-	 *             the unknown primary project exception
-	 * @throws InvalidArchiveStructure
-	 *             the invalid archive structure
-	 * @throws ElementNotFoundException
-	 *             the element not found exception
-	 * @throws FieldNotFoundException
-	 *             the field not found exception
-	 * @throws XFTInitException
-	 *             the XFT init exception
+	 * @throws Exception
 	 */
+	public void modifyExptResource(XnatAbstractresourceI resource, XnatExperimentdata orig, boolean copy) throws Exception {
+		modifyExptResource(resource, orig, copy, SynchronizationManager.GET_SYNC_FILE_PATH(orig.getProject(), orig));
+	}
 
-	public void modifyExptResource(XnatAbstractresourceI resource, XnatExperimentdata orig, boolean copy) throws IOException, UnknownPrimaryProjectException, InvalidArchiveStructure,ElementNotFoundException, FieldNotFoundException, XFTInitException, Exception {
+	public void modifyExptResource(XnatAbstractresourceI resource, XnatExperimentdata orig, boolean copy, String cacheSessionPath) throws Exception {
 		String filepath = orig.getArchiveRootPath() + "arc001/";// +
 		// orig.getArchiveDirectoryName();
-		String newFilepath = SynchronizationManager.GET_SYNC_FILE_PATH(orig.getProject(),orig);
+
 		boolean hasResourceBeenModified = hasResourceBeenModified((XnatAbstractresource)resource, orig.getId());
 		
 		if (resource instanceof XnatResource) {
 			String path = ((XnatResource) resource).getUri();
-			String newURI = path.replace(File.pathSeparator, "/").replace(filepath, newFilepath);
+			String newURI = path.replace(File.pathSeparator, "/").replace(filepath, cacheSessionPath);
 			((XnatResource) resource).setUri(newURI);
 			if (hasResourceBeenModified) {
 				if (copy) copyFiles(path, newURI);
@@ -579,7 +571,7 @@ public class ExperimentFilter {
 			}
 		} else if (resource instanceof XnatResourceseries) {
 			String path = ((XnatResourceseries) resource).getPath();
-			String newURI = path.replace(filepath, newFilepath);
+			String newURI = path.replace(filepath, cacheSessionPath);
 			((XnatResourceseries) resource).setPath(newURI);
 			if (hasResourceBeenModified) {
 				if (copy) copyFiles(path, newURI);
@@ -655,11 +647,12 @@ public class ExperimentFilter {
 		try {
 			if(filterImagingAssessor(orig)!=null)
 			{
+				String cacheSessionPath = SynchronizationManager.GET_SYNC_FILE_PATH(orig.getProject(), orig);
 				exp = correctIDandLabel(newSubject,orig);
 				transformOtherItemFieldsBeforeSync(newSubject,orig,exp);
 				filterExperimentResources(exp);
 				for (final XnatAbstractresourceI res : exp.getResources_resource()) {
-					modifyExptResource(res, orig, false);
+					modifyExptResource(res, orig, false, cacheSessionPath);
 				}
 
 				resetPrearchive(exp);
@@ -668,7 +661,7 @@ public class ExperimentFilter {
 				for (final XnatImagescandataI scan : exp.getScans_scan()) {
 					scan.setImageSessionId(exp.getLabel());
 					for (final XnatAbstractresourceI res : scan.getFile()) {
-						modifyExptResource(res, orig, true);
+						modifyExptResource(res, orig, true, cacheSessionPath);
 					}
 				}
 
@@ -679,10 +672,10 @@ public class ExperimentFilter {
 					ReconstructionFilter reconFilter = new ReconstructionFilter();
 					reconFilter.correctIDandLabel(recon);
 					for (final XnatAbstractresourceI res : recon.getIn_file()) {
-						modifyExptResource(res, orig, false);
+						modifyExptResource(res, orig, false, cacheSessionPath);
 					}
 					for (final XnatAbstractresourceI res : recon.getOut_file()) {
-						modifyExptResource(res, orig, false);
+						modifyExptResource(res, orig, false, cacheSessionPath);
 					}
 				}
 				filterAssessors(orig, exp);
@@ -710,7 +703,7 @@ public class ExperimentFilter {
 				_log.debug("Exp " + exp.getLabel() + " needs to be anonymized " + isExptToBeAnonymized);
 				if (isExptToBeAnonymized) {
 					_log.debug("About to anonymize " + exp.getLabel());
-					 anonymize(exp, newSubject.getProject());
+					 anonymize(exp, newSubject.getProject(), cacheSessionPath);
 					_log.debug("DONE - anonymize " + exp.getLabel());
 				}
 			}
@@ -722,20 +715,15 @@ public class ExperimentFilter {
 	}
 	
 	
-	private void anonymize(XnatImagesessiondata exp, String destProject) throws Exception {
+	private void anonymize(XnatImagesessiondata exp, String destProject, String cacheSessionPath) throws Exception {
 		if (exp.getScans_scan() != null && exp.getScans_scan().size() > 0) {
 			//Check to see if there are any files which have been copied. If there are any, anonymization needs to be performed
 			boolean hasDataToBeAnonymized = checkIfHasDataToBeAnonymized(exp);
 			if (hasDataToBeAnonymized) {
 				try {
-					File sessionDir = exp.getSessionDir();
-					if (sessionDir != null) {
-						AnonymizerI simpleExportAnonymizer = new XsyncAnonymizer(_xsyncXnatInfo);
-						simpleExportAnonymizer.anonymize((XnatImagesessiondata) exp, destProject);
-					}else {
-						_log.debug("There are no files to anonymize");
-					}
-				}catch(Exception e) {
+					AnonymizerI simpleExportAnonymizer = new XsyncAnonymizer(_xsyncXnatInfo);
+					simpleExportAnonymizer.anonymize(exp, destProject, cacheSessionPath);
+				} catch(Exception e) {
 					_log.error(e.getMessage());
 					throw e;
 				}
