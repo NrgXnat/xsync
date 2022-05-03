@@ -170,19 +170,21 @@ public class SubjectDataSync {
     public XnatSubjectdata syncSubject() throws Exception {
         log.debug("Syncing subject BEGIN: {}", localSubject.getLabel());
         final XFTItem item = ((XnatSubjectdata)localSubject).getItem().copy();
-        // Remove assessors from the item.  They will be synced separately.
-        final List<XFTItem> subjAssessors  = item.getChildrenOfType("xnat:subjectAssessorData", true);
-        for (final XFTItem subjAssessor : subjAssessors) {
-            item.removeItem(subjAssessor);
-        }
-
+        XnatSubjectdata newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
         final String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-        final XnatSubjectdata newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
         newSubject.setProject(remoteProjectId);
 
         final IdMapper idMapper = new IdMapper(manager, queryResultUtil, jdbcTemplate, user, projectSyncConfiguration);
-
         idMapper.correctIDandLabel(newSubject);
+
+        // Remove assessors from the item.  They will be synced separately.
+        // This is the easiest way to remove assessors from the subject bean
+        final XFTItem newItem = newSubject.getItem();
+        final List<XFTItem> subjAssessors  = newItem.getChildrenOfType("xnat:subjectAssessorData", true);
+        for (final XFTItem subjAssessor : subjAssessors) {
+            newItem.removeItem(subjAssessor);
+        }
+        newSubject = (XnatSubjectdata) BaseElement.GetGeneratedItem(item);
 
         //Go through resources; if they are in config and modified since last sync, keep them
         final ResourceFilter resourceMapper = new ResourceFilter(user, jdbcTemplate, queryResultUtil);
