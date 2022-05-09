@@ -181,7 +181,7 @@ public class SynchronizationManager {
 
 	
 	public static String GET_SYNC_XAR_PATH(String projectId, XnatExperimentdata exp) {
-		return GET_SYNC_FILE_PATH(projectId) + "XAR" + File.separator +  exp.getLabel() + File.separator ;
+		return GET_SYNC_FILE_PATH(projectId) + "XAR-" + exp.getLabel() + File.separator ;
 	}
 
 }

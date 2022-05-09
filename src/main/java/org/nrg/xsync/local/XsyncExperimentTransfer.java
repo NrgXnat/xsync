@@ -352,7 +352,7 @@ public class XsyncExperimentTransfer {
 
             stored = connectionResponse.wasSuccessful();
             if (stored) {
-                xar.delete();
+                FileUtils.deleteDirectory(xar.getParentFile());
                 remote_id = xsyncUriUtils.getRemoteAssignedId(connectionResponse);
                 log.debug("Experiment remote_id={}", remote_id);
                 if (remote_id != null && remote_id.matches("^.*_S[0-9]*$")) {
@@ -417,7 +417,7 @@ public class XsyncExperimentTransfer {
                         log.debug("Total Time to process XAR file for scan {} :: {}", scan.getId(), xarProcTotalTime);
                         final boolean scanStored = scanConnectionResponse.wasSuccessful();
                         if (scanStored) {
-                            scanXar.delete();
+                            FileUtils.deleteDirectory(scanXar.getParentFile());
                             String remoteScanId = xsyncUriUtils.getRemoteAssignedId(scanConnectionResponse);
                             scanSyncItem.setRemoteId(remoteScanId);
                             scanSyncItem.updateResourceStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
@@ -465,7 +465,7 @@ public class XsyncExperimentTransfer {
                                 (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, assXar) : _manager.importXar(connection, assXar);
                         final boolean assStored = assConnectionResponse.wasSuccessful();
                         if (assStored) {
-                            assXar.delete();
+                            FileUtils.deleteDirectory(assXar.getParentFile());
                             String remoteAssId = xsyncUriUtils.getRemoteAssignedId(assConnectionResponse);
                             expAssSyncItem.setRemoteId(remoteAssId);
                             expAssSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
