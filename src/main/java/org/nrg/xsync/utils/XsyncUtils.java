@@ -87,8 +87,6 @@ public class XsyncUtils {
 
 	public static final long GLOBAL_SLEEP_IN_MILLIS = 900000; //15 Minutes
 	public static final int GLOBAL_RETRY_COUNTS = 3; //15 Minutes
-	public static final String GROOVY_SCRIPT_ENGINE = "groovy";
-	public static final String EVAL_PLACE_HOLDER = "$VALUE";
 
 	public static final String REPORT_FORMAT_JSON = "JSON";
 	public static final String REPORT_FORMAT_CSV = "CSV";
@@ -97,7 +95,10 @@ public class XsyncUtils {
 	
 	public enum FilterType 
 	{
-		CONTAINS,REGEX,EVAL
+		CONTAINS,
+		REGEX,
+		@Deprecated
+		EVAL
 	}
 	
 	private static final Logger _log = LoggerFactory.getLogger(XsyncUtils.class);

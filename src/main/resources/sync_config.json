@@ -58,14 +58,6 @@
 							"John",
 							"Doe"
 						]
-					},
-					{
-						"sync_type": "include",
-						"xml_path": "xnat:experimentdata/date",
-						"filter_type": "eval",
-						"filter_values": [
-							"new Date().parse('yyyy-MM-dd', '$VALUE') > new Date().parse('yyyy-MM-dd', '1988-04-19')"
-						]
 					}
 				]
 			}
@@ -117,10 +109,10 @@
 				"filters": [
 			          {
 			            "sync_type": "include",
-			            "xml_path": "xnat:experimentdata/meta/insert_date",
-			            "filter_type": "eval",
+			            "xml_path": "xnat:experimentdata/meta/status",
+			            "filter_type": "contains",
 			            "filter_values": [
-			              "new Date().parse('yyyy-MM-dd', '$VALUE') < new Date().parse('yyyy-MM-dd', (new Date()).format( 'yyyy-MM-dd'))"
+			              "active"
 			            ]
 			          }
 			        ],
@@ -145,17 +137,17 @@
 					{
 						"sync_type": "include",
 						"xml_path": "xnat:imageScanData/frames",
-						"filter_type": "eval",
+						"filter_type": "regex",
 						"filter_values": [
-							"Double.valueOf($VALUE)<200"
+							"^(1\\d{2}|\\d{1,2})(\\.\\d{1,})?$"
 						]
 					},
 					{
 						"sync_type": "include",
 						"xml_path": "xnat:mrScanData/fieldStrength",
-						"filter_type": "eval",
+						"filter_type": "regex",
 						"filter_values": [
-							"Double.valueOf($VALUE)>5"
+							"^([6-9]|\\d{2,})(\\.\\d{1,})?$"
 						]
 					}
 				]

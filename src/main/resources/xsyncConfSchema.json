@@ -112,7 +112,6 @@
 											"type": "string",
 											"enum": [
 												"regex",
-												"eval",
 												"contains"
 											]
 										},

@@ -10,6 +10,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.nrg.xdat.base.BaseElement;
@@ -334,23 +335,8 @@ public class SyncConfigurationXsiType {
 						break;
 				}
 			}
-		} else if (XsyncUtils.FilterType.EVAL.toString().equalsIgnoreCase(filter_type)) {
-			if (filterList != null && !filterList.isEmpty()) {
-				ScriptEngineManager mgr = new ScriptEngineManager();
-				ScriptEngine engine = mgr.getEngineByName(XsyncUtils.GROOVY_SCRIPT_ENGINE);
-				for (String evalText : filterList) {
-					try {
-						Object obj = engine.eval(evalText.replace(XsyncUtils.EVAL_PLACE_HOLDER, value));
-						if (obj != null && obj instanceof Boolean) {
-							contains = Boolean.valueOf(obj.toString());
-						}
-					} catch (ScriptException e) {
-						logger.error("Issue in Groovy Eval script. Please re-check the script in xsync filters. " + evalText);
-						e.printStackTrace();
-						throw new XsyncConfigurationException("Issue in Groovy Eval script. Please re-check the script in xsync filters. " + evalText);
-					}
-				}
-			}
+		} else if (StringUtils.equalsIgnoreCase("eval", filter_type)) {
+			logger.error("The \"eval\" filter type is not supported.");
 		}
 		return contains;
 	}
