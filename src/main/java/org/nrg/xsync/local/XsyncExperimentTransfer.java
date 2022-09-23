@@ -27,6 +27,7 @@ import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
+import org.nrg.xsync.exception.XsyncInvalidFilterType;
 import org.nrg.xsync.exception.XsyncRemoteConnectionException;
 import org.nrg.xsync.exception.XsyncStoreException;
 import org.nrg.xsync.manager.SynchronizationManager;
@@ -146,29 +147,23 @@ public class XsyncExperimentTransfer {
                         cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata) remoteSubject, orig);
                         if (cleaned_assessor != null) {
                             cleaned_assessor.setProject(remoteSubject.getProject());
-                            if (cleaned_assessor != null) {
-                                boolean stored = storeXar((XnatImagesessiondata) orig, remoteSubject.getProject(), (XnatSubjectdata) remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
-                                if (!stored)
-                                    throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel());
+                            boolean stored = storeXar((XnatImagesessiondata) orig, remoteSubject.getProject(), (XnatSubjectdata) remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
+                            if (!stored) {
+                                throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel());
                             }
                         } else {
-                            final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(), orig.getLabel());
-                            expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER);
-                            expSyncItem.setMessage("Experiment " + orig.getLabel() + " skipped due to filter.");
-                            subjectSyncInfo.addExperiment(expSyncItem);
-                            //throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + orig.getLabel() );
-                            saveSyncDetails(orig.getId(), remoteSubject.getId(), XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER, orig.getXSIType());
-                            //return;
+                            recordExcludedAssessor(remoteSubject, orig, XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER, "Experiment " + orig.getLabel() + " skipped due to filter.");
                         }
+                    } catch (XsyncInvalidFilterType e) {
+                        recordExcludedAssessor(remoteSubject, orig, XsyncUtils.SYNC_STATUS_INVALID_FILTER, "Experiment " + orig.getLabel() + " skipped due to invalid filter type " + e.getFilterType() + ", please check XSync configuration.");
                     } catch (Exception e) {
-                        cleaned_assessor = null;
                         throw e;
                     }
 
                 }
             }
         } else { //Its a Subject Assessor
-            XnatSubjectassessordata orig = (XnatSubjectassessordata) XnatSubjectassessordata.getXnatSubjectassessordatasById(origId, user, true);
+            XnatSubjectassessordata orig = XnatSubjectassessordata.getXnatSubjectassessordatasById(origId, user, true);
             if (isSubjectAssessorConfiguredToBeSyned(orig.getXSIType())) {
 			/*	if (subjectAssessorNeedsOkToSync(orig.getXSIType())) {
 					if (hasBeenMarkedOkToSyncAndNotSyncedYet(orig.getId())) {
@@ -203,6 +198,13 @@ public class XsyncExperimentTransfer {
 
     }
 
+    private void recordExcludedAssessor(final XnatSubjectdataI remoteSubject, final XnatImagesessiondata orig, String status, String message) {
+        final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(), orig.getLabel());
+        expSyncItem.setSyncStatus(status);
+        expSyncItem.setMessage(message);
+        subjectSyncInfo.addExperiment(expSyncItem);
+        saveSyncDetails(orig.getId(), remoteSubject.getId(), status, orig.getXSIType());
+    }
 
     private boolean isImagingSessionConfiguredToBeSyned(String xsiType) {
         return projectSyncConfiguration.isImagingSessionToBeSynced(xsiType);

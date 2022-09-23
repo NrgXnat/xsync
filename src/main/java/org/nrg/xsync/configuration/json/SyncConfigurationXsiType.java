@@ -1,32 +1,28 @@
 package org.nrg.xsync.configuration.json;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatImagescandataI;
-import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xdat.om.XnatSubjectassessordata;
 import org.nrg.xft.exception.ElementNotFoundException;
 import org.nrg.xft.exception.FieldNotFoundException;
 import org.nrg.xft.exception.XFTInitException;
 import org.nrg.xnat.helpers.xmlpath.XMLPathShortcuts;
 import org.nrg.xsync.exception.XsyncConfigurationException;
+import org.nrg.xsync.exception.XsyncInvalidFilterType;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.nrg.xsync.utils.XsyncUtils.FilterType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The Class SyncConfigurationXsiType.
@@ -46,10 +42,10 @@ public class SyncConfigurationXsiType {
 	SyncConfigurationResource resources;
 	
 	/** The scan filters. */
-	List<SyncConfigurationFilter> scan_filters =new ArrayList<SyncConfigurationFilter>();
+	List<SyncConfigurationFilter> scan_filters = new ArrayList<>();
 	
 	/** The filters. */
-	List<SyncConfigurationFilter> filters =new ArrayList<SyncConfigurationFilter>();
+	List<SyncConfigurationFilter> filters = new ArrayList<>();
 
 	/**
 	 * @return the xsi_type
@@ -122,6 +118,7 @@ public class SyncConfigurationXsiType {
 	 *
 	 * @return the filters
 	 */
+	@SuppressWarnings("unused")
 	public List<SyncConfigurationFilter> getFilters() {
 		return filters;
 	}
@@ -148,8 +145,8 @@ public class SyncConfigurationXsiType {
 		cfg.setXsi_type(xsiType);
 		cfg.setNeeds_ok_to_sync(false);
 		cfg.setResources(SyncConfigurationResource.GetDefaultSyncConfigurationResource());
-		cfg.setScan_filters(new ArrayList<SyncConfigurationFilter>());
-		cfg.setFilters(new ArrayList<SyncConfigurationFilter>());
+		cfg.setScan_filters(new ArrayList<>());
+		cfg.setFilters(new ArrayList<>());
 		return cfg;
 	}
 
@@ -161,13 +158,7 @@ public class SyncConfigurationXsiType {
 	 * @return true, if is resource allowed to sync
 	 */
 	public boolean isResourceAllowedToSync(String label) {
-		boolean isAllowed = false;
-		if (resources == null) {
-			return true;
-		}else {
-			isAllowed = resources.isAllowedToSync(label);
-		}
-		return isAllowed;
+		return resources == null || resources.isAllowedToSync(label);
 	}
 
 	/**
@@ -180,61 +171,52 @@ public class SyncConfigurationXsiType {
 	 *             the exception
 	 */
 	public boolean isAllowedToSyncFilters(BaseElement item) throws Exception {
-		boolean isAllowed = false;
-		boolean excluded = false;
-		List<SyncConfigurationFilter> inclusionFilter = new ArrayList<SyncConfigurationFilter>();
-		List<SyncConfigurationFilter> exclusionFilter = new ArrayList<SyncConfigurationFilter>();
 		List<SyncConfigurationFilter> filtersByObj = getFiltersByObjectType(item);
+		if (filtersByObj == null || filtersByObj.isEmpty()) {
+			return true;
+		}
+
+		boolean                       isAllowed       = false;
+		boolean                       excluded        = false;
+		List<SyncConfigurationFilter> inclusionFilter = new ArrayList<>();
+		List<SyncConfigurationFilter> exclusionFilter = new ArrayList<>();
 		try {
-			if (filtersByObj == null || filtersByObj.isEmpty()) {
-				isAllowed = true;
-			} else {
-				for (Iterator<SyncConfigurationFilter> iterator = filtersByObj.iterator(); iterator.hasNext();) {
-					SyncConfigurationFilter filter = iterator.next();
-					if (XsyncUtils.SYNC_TYPE_ALL.equals(filter.getSync_type())) {
+			for (final SyncConfigurationFilter filter : filtersByObj) {
+				if (XsyncUtils.SYNC_TYPE_ALL.equals(filter.getSync_type())) {
+					return true;
+				}
+				if (XsyncUtils.SYNC_TYPE_NONE.equals(filter.getSync_type())) {
+					return false;
+				}
+				if (XsyncUtils.SYNC_TYPE_EXCLUDE.equals(filter.getSync_type())) {
+					exclusionFilter.add(filter);
+				} else if (XsyncUtils.SYNC_TYPE_INCLUDE.equals(filter.getSync_type())) {
+					inclusionFilter.add(filter);
+				}
+			}
+			if (!exclusionFilter.isEmpty()) {
+				for (final SyncConfigurationFilter filter : exclusionFilter) {
+					if (!isIncludedInFilterList(filter.getFilter_values(), filter.getFilter_type(), getValue(item, filter))) {
 						isAllowed = true;
-						return isAllowed;
-					} else if (XsyncUtils.SYNC_TYPE_NONE.equals(filter.getSync_type())) {
+					} else {
 						isAllowed = false;
-						return isAllowed;
-					} else if (XsyncUtils.SYNC_TYPE_EXCLUDE.equals(filter.getSync_type())) {
-						exclusionFilter.add(filter);
-					} else if (XsyncUtils.SYNC_TYPE_INCLUDE.equals(filter.getSync_type())) {
-						inclusionFilter.add(filter);
+						excluded = true;
+						break;
 					}
 				}
-				if (!exclusionFilter.isEmpty()) {
-					Iterator<SyncConfigurationFilter> iter = exclusionFilter.iterator();
-					while (iter.hasNext()) {
-						SyncConfigurationFilter fltr = iter.next();
-						String value = getValue(item, fltr);
-						if (!isIncludedInFilterList(fltr.getFilter_values(), fltr.getFilter_type(), value)) {
-							isAllowed = true;
-						} else {
-							isAllowed = false;
-							excluded=true;
-							break;
-						}
-					}
-				}
-				if (!excluded && !inclusionFilter.isEmpty()) {
-					Iterator<SyncConfigurationFilter> iter = inclusionFilter.iterator();
-					while (iter.hasNext()) {
-						SyncConfigurationFilter fltr = iter.next();
-						String value = getValue(item, fltr);
-						if (isIncludedInFilterList(fltr.getFilter_values(), fltr.getFilter_type(), value)) {
-							isAllowed = true;
-						} else {
-							isAllowed = false;
-							break;
-						}
+			}
+			if (!excluded && !inclusionFilter.isEmpty()) {
+				for (final SyncConfigurationFilter filter : inclusionFilter) {
+					if (isIncludedInFilterList(filter.getFilter_values(), filter.getFilter_type(), getValue(item, filter))) {
+						isAllowed = true;
+					} else {
+						isAllowed = false;
+						break;
 					}
 				}
 			}
 		} catch (XFTInitException | ElementNotFoundException | FieldNotFoundException e) {
-			logger.error("Errors in filters configuration.  Kindly check xsync configuration JSON.", e);
-			e.printStackTrace();
-			throw new XsyncConfigurationException("Errors in filters configuration.  Kindly check xsync configuration.");
+			throw new XsyncConfigurationException("Errors in filters configuration.  Kindly check xsync configuration JSON.", e);
 		}
 		return isAllowed;
 	}
@@ -259,8 +241,8 @@ public class SyncConfigurationXsiType {
 	 *
 	 * @param item
 	 *            the item
-	 * @param fltr
-	 *            the fltr
+	 * @param filter
+	 *            the filter
 	 * @return the value
 	 * @throws XFTInitException
 	 *             the XFT init exception
@@ -269,15 +251,13 @@ public class SyncConfigurationXsiType {
 	 * @throws FieldNotFoundException
 	 *             the field not found exception
 	 */
-	private String getValue(BaseElement item, SyncConfigurationFilter fltr)
+	private String getValue(BaseElement item, SyncConfigurationFilter filter)
 			throws XFTInitException, ElementNotFoundException, FieldNotFoundException {
 		Object val = null;
 		if (item instanceof XnatExperimentdataI) {
-			val = ((XnatSubjectassessordata) item).getItem()
-					.getProperty(getCompleteXMLPath(XMLPathShortcuts.EXPERIMENT_DATA, fltr.getXml_path()));
+			val = item.getItem().getProperty(getCompleteXMLPath(XMLPathShortcuts.EXPERIMENT_DATA, filter.getXml_path()));
 		} else if (item instanceof XnatImagescandataI) {
-			val = ((XnatImagescandata) item).getItem()
-					.getProperty(getCompleteXMLPath(XMLPathShortcuts.IMAGE_SCAN_DATA, fltr.getXml_path()));
+			val = item.getItem().getProperty(getCompleteXMLPath(XMLPathShortcuts.IMAGE_SCAN_DATA, filter.getXml_path()));
 		}
 		return val == null ? null : val.toString();
 	}
@@ -292,8 +272,7 @@ public class SyncConfigurationXsiType {
 	 * @return the complete XML path
 	 */
 	private String getCompleteXMLPath(String xsiType, String xmlPath) {
-		String completePath = XMLPathShortcuts.getInstance().getShortcuts(xsiType, true).get(xmlPath);
-		return completePath == null ? xmlPath : completePath;
+		return StringUtils.getIfBlank(XMLPathShortcuts.getInstance().getShortcuts(xsiType, true).get(xmlPath), () -> xmlPath);
 	}
 
 	/**
@@ -301,44 +280,24 @@ public class SyncConfigurationXsiType {
 	 *
 	 * @param filterList
 	 *            the filter list
-	 * @param filter_type
+	 * @param filterType
 	 *            the filter type
 	 * @param value
 	 *            the value
 	 * @return true, if is included in filter list
-	 * @throws ScriptException
-	 *             the script exception
-	 * @throws XFTInitException
-	 * @throws XsyncConfigurationException 
+	 * @throws XsyncConfigurationException When an error is encountered in the XSync configuration.
 	 */
-	private boolean isIncludedInFilterList(ArrayList<String> filterList, String filter_type, String value)
-			throws ScriptException, XsyncConfigurationException {
-		if (!isFilterTypePresentInEnum(filter_type)) {
-			String errMsg=new StringBuilder("\"").append(filter_type).append("\" does not belong to filter types permissible values.").toString();
-			logger.error(errMsg);
-			throw new XsyncConfigurationException(errMsg);
+	private boolean isIncludedInFilterList(List<String> filterList, String filterType, String value) throws XsyncConfigurationException {
+		if (!isFilterTypePresentInEnum(filterType)) {
+			throw new XsyncInvalidFilterType(filterType);
 		}
-		boolean contains = false;
-		if (XsyncUtils.FilterType.CONTAINS.toString().equalsIgnoreCase(filter_type)) {
-			if (filterList.contains(value)) {
-				contains = true;
-			}
-		} else if (XsyncUtils.FilterType.REGEX.toString().equalsIgnoreCase(filter_type)) {
-			if (filterList != null && !filterList.isEmpty()) {
-				Pattern pattern = null;
-				Matcher matcher = null;
-				for (String regex : filterList) {
-					pattern = Pattern.compile(regex);
-					matcher = pattern.matcher(value);
-					contains = matcher.matches();
-					if (contains)
-						break;
-				}
-			}
-		} else if (StringUtils.equalsIgnoreCase("eval", filter_type)) {
-			logger.error("The \"eval\" filter type is not supported.");
+		if (XsyncUtils.FilterType.CONTAINS.toString().equalsIgnoreCase(filterType)) {
+			return filterList.contains(value);
 		}
-		return contains;
+		if (CollectionUtils.isEmpty(filterList)) {
+			return false;
+		}
+		return filterList.stream().map(Pattern::compile).map(pattern -> pattern.matcher(value)).anyMatch(Matcher::matches);
 	}
 
 	/**
@@ -349,12 +308,8 @@ public class SyncConfigurationXsiType {
 	 * @return true, if filter type present in enum
 	 */
 	private static boolean isFilterTypePresentInEnum(String filterType) {
-
-		for (FilterType filter : XsyncUtils.FilterType.values()) {
-			if (filter.toString().equalsIgnoreCase(filterType)) {
-				return true;
-			}
-		}
-		return false;
+		return Arrays.stream(FilterType.values())
+					 .map(Objects::toString)
+					 .anyMatch(type -> type.equalsIgnoreCase(filterType));
 	}
 }

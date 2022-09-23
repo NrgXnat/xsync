@@ -5,28 +5,20 @@ package org.nrg.xsync.exception;
  *
  * @author Atul Kaushal
  */
-public class XsyncConfigurationException extends Exception{
-	
+public class XsyncConfigurationException extends Exception {
+	private static final long serialVersionUID = -745838472566855025L;
 
-	/** The Constant serialVersionUID. */
-	private static final long serialVersionUID = 7981307002637808309L;
-	
-	/** The cause. */
-	String _cause;
-	
 	/**
-	 * Instantiates a new xsync configuration exception.
-	 *
-	 * @param cause the cause
+	 * {@inheritDoc}
 	 */
-	public XsyncConfigurationException(String cause) {
-		_cause = cause;
+	public XsyncConfigurationException(final String message) {
+		super(message);
 	}
-	
-	/* (non-Javadoc)
-	 * @see java.lang.Throwable#getMessage()
+
+	/**
+	 * {@inheritDoc}
 	 */
-	public String getMessage() {
-		return _cause;
+	public XsyncConfigurationException(final String message, final Throwable cause) {
+		super(message, cause);
 	}
 }

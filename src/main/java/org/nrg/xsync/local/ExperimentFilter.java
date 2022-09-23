@@ -1,38 +1,11 @@
 package org.nrg.xsync.local;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.base.BaseElement;
-import org.nrg.xdat.model.XnatAbstractresourceI;
-import org.nrg.xdat.model.XnatExperimentdataI;
-import org.nrg.xdat.model.XnatExperimentdataShareI;
-import org.nrg.xdat.model.XnatImageassessordataI;
-import org.nrg.xdat.model.XnatImagescandataI;
-import org.nrg.xdat.model.XnatReconstructedimagedataI;
-import org.nrg.xdat.model.XnatSubjectassessordataI;
-import org.nrg.xdat.model.XnatSubjectdataI;
-import org.nrg.xdat.om.WrkWorkflowdata;
-import org.nrg.xdat.om.XnatAbstractresource;
-import org.nrg.xdat.om.XnatExperimentdata;
-import org.nrg.xdat.om.XnatImageassessordata;
-import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatResource;
-import org.nrg.xdat.om.XnatResourceseries;
-import org.nrg.xdat.om.XnatSubjectassessordata;
-import org.nrg.xdat.om.XnatSubjectdata;
-import org.nrg.xdat.om.XsyncXsyncassessordata;
+import org.nrg.xdat.model.*;
+import org.nrg.xdat.om.*;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
 import org.nrg.xft.ItemI;
 import org.nrg.xft.XFTItem;
@@ -57,15 +30,14 @@ import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.ConflictCheckUtil;
 import org.nrg.xsync.utils.QueryResultUtil;
-import org.nrg.xsync.utils.XsyncRESTUtils;
 import org.nrg.xsync.utils.XsyncUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * @author Mohana Ramaratnam
@@ -73,8 +45,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ExperimentFilter {
-	private static final Logger _log = LoggerFactory.getLogger(ExperimentFilter.class);
-
 	UserI _user;
 	ProjectSyncConfiguration projectSyncConfiguration;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
@@ -104,7 +74,7 @@ public class ExperimentFilter {
 		
 		List<XnatSubjectassessordataI> existingExperiments = subject.getExperiments_experiment();
 		int total_experiments = existingExperiments.size();
-		_log.debug("Existing experiments " + total_experiments);
+		log.debug("Existing experiments {}", total_experiments);
 		int i = 0;
 		List<String> experimentIds = new ArrayList<String>();
 
@@ -154,20 +124,20 @@ public class ExperimentFilter {
 		String query = _queryResultUtil.getQueryForFetchingSubjectExperimentsDeletedSinceLastSync();
 		//Columns
 		// id,label,element_name,project,status,last_modified, sync_start_time 		
-		_log.debug("Query is " + query);
+		log.debug("Query is {}", query);
 		List<Map<String,Object>> experiments = _jdbcTemplate.queryForList(query, parameters);
 		
 		if (experiments != null && experiments.size()>0) {
 			for (Map<String,Object> row:experiments) {
 				if (projectSyncConfiguration.isSubjectAssessorToBeSynced((String)row.get("element_name")) || projectSyncConfiguration.isImagingSessionToBeSynced((String)row.get("element_name"))) {
 					if (row.get("status").equals("deleted")) {
-						_log.debug("Experiment Deleted: " + (String)row.get("id"));
+						log.debug("Experiment Deleted: {}", row.get("id"));
 						experimentsDeleted.add(createNew((String)row.get("id"),(String)row.get("label"),subject,(String)row.get("element_name")));
 					}
 				}
 			}
 		}else {
-			_log.debug("No experiment has been deleted for subject");
+			log.debug("No experiment has been deleted for subject");
 		}
 		
 		String lastSyncStatusOfSubject=getLastSyncStatusForSubject(localSubjectId,localProjectId,subject.getProject());
@@ -184,16 +154,16 @@ public class ExperimentFilter {
 						final Date experimentInsertDate = (Date)row.get("insert_date");
 						int dateComparison = experimentInsertDate.compareTo(syncStartDate);
 						if (XsyncUtils.SYNC_STATUS_FAILED.equals(lastSyncStatusOfSubject) || dateComparison >= 0) { //Inserted at endTime or After endTime
-							_log.debug("Experiment Added: " + currentExpId);
+							log.debug("Experiment Added: {}", currentExpId);
 							experimentsAdded.add(getExperiment(currentExpId,experimentsConfiguredToBeSynced));
 						}else {
 							final Date experimentModifiedDate = (Date)row.get("last_modified");
 							dateComparison = experimentModifiedDate.compareTo(syncStartDate);
 							if (dateComparison >= 0) { //Modified at endTime or After endTime
-								_log.debug("Experiment Modified: " + currentExpId);
+								log.debug("Experiment Modified: {}", currentExpId);
 								experimentsModified.add(getExperiment(currentExpId,experimentsConfiguredToBeSynced));
 							} else {
-								_log.debug("Experiment neither added or modified: " + currentExpId);
+								log.debug("Experiment neither added or modified: {}", currentExpId);
 							}
 						}
 						//Is its sync status failed?
@@ -227,7 +197,7 @@ public class ExperimentFilter {
 					for (final Map<String,Object> row:experiments) {
 						if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
 							final String currentExpId = (String)row.get("id");
-							_log.debug("Experiment Marked OK to Sync: " + currentExpId);
+							log.debug("Experiment Marked OK to Sync: {}", currentExpId);
 							final XnatExperimentdataI exp = getExperiment(currentExpId);
 							final String existingSyncStatus = (String)row.get("sync_status");
 							boolean hasBeenSynced = false;
@@ -246,7 +216,7 @@ public class ExperimentFilter {
 									if (experimentModifiedDate != null) {
 										int dateComparison = experimentModifiedDate.compareTo(syncEndDate);
 										if (dateComparison >= 0) { //Modified at endTime or After endTime
-											_log.debug("Experiment Modified: " + currentExpId);
+											log.debug("Experiment Modified: {}", currentExpId);
 											experimentsModified.add(exp);
 										}
 									}
@@ -261,8 +231,9 @@ public class ExperimentFilter {
 							}
 						}
 					}
-				}else 
-				 _log.debug("None of the configured experiments have changed for subject " + subject.getId());
+				} else {
+					log.debug("None of the configured experiments have changed for subject {}", subject.getId());
+				}
 		}
 		
 		Map<String,List<XnatExperimentdataI>> filteredResults = new HashMap<String,List<XnatExperimentdataI>>();
@@ -289,8 +260,8 @@ public class ExperimentFilter {
 		parameters.addValue("localProjectId", localProjectId);
 		parameters.addValue("remoteProjectId", remoteProjectId);
 
-		String query = _queryResultUtil.getLastSyncStatusForSubject();		
-		_log.debug("Query is " + query);
+		String query = _queryResultUtil.getLastSyncStatusForSubject();
+		log.debug("Query is {}", query);
 		List<Map<String,Object>> syncStatusList = _jdbcTemplate.queryForList(query, parameters);
 		if(syncStatusList!=null && !syncStatusList.isEmpty()) {
 			syncStatus=(String) syncStatusList.get(0).get("sync_status");
@@ -334,9 +305,7 @@ public class ExperimentFilter {
 	}
 
 	private XnatExperimentdataI getExperiment(String id) {
-		XnatExperimentdataI exp = null;
-		exp = XnatExperimentdata.getXnatExperimentdatasById(id, _user, false);
-		return exp;
+		return XnatExperimentdata.getXnatExperimentdatasById(id, _user, false);
 	}
 
 	private Map<String,Object> getExperimentTimeLineDetails(XnatExperimentdata exp, Object sync_start_time) throws Exception {
@@ -373,10 +342,10 @@ public class ExperimentFilter {
         	final Date infoInsert  =  (info.get("insert_date") instanceof Date) ? (Date)info.get("insert_date") : null;
         	final Date infoModified  =  (info.get("last_modified") instanceof Date) ? (Date)info.get("last_modified") : null;
         	if (workflow.getPipelineName().equalsIgnoreCase("Transferred")) {
-        		if (infoInsert==null || workflowModified.after(infoInsert)) {
+        		if (infoInsert==null || workflowModified != null && workflowModified.after(infoInsert)) {
         			info.put("insert_date", workflowModified);
         		}
-        		if (infoModified==null || workflowModified.after(infoModified)) {
+        		if (infoModified==null || workflowModified != null && workflowModified.after(infoModified)) {
         			info.put("last_modified", workflowModified);
         		}
         	}
@@ -395,7 +364,7 @@ public class ExperimentFilter {
             o.setProperty("project", subject.getProject());
             o.setProperty("subject_ID", subject.getId());
         }catch(Exception e) {
-        	_log.error("Could not instantiate the experiment " + id,e);
+			log.error("Could not instantiate the experiment {}", id, e);
         }
         return new XnatExperimentdata(o);
 	}
@@ -453,8 +422,7 @@ public class ExperimentFilter {
 		String newid = "";
 		IdMapper idMapper = new IdMapper(_manager, _queryResultUtil, _jdbcTemplate, _user, projectSyncConfiguration);
 		String alreadyAssignedRemoteId = idMapper.getRemoteAccessionId(origExperiment.getId());
-		_log.debug("correctIDandLabel (experiment=" + origExperiment.getLabel() + 
-				"): returned alreadyAssignedRemoteID(idMapper.getRemoteAssessionId)=" + alreadyAssignedRemoteId);
+		log.debug("correctIDandLabel (experiment={}): returned alreadyAssignedRemoteID(idMapper.getRemoteAssessionId)={}", origExperiment.getLabel(), alreadyAssignedRemoteId);
 		if (alreadyAssignedRemoteId != null) {
 			newid = alreadyAssignedRemoteId;
 		}
@@ -462,7 +430,7 @@ public class ExperimentFilter {
 		// the subject.  It's not clear why that is happening, but it causes a lot of problems when it does (one session overwrites
 		// the other). Let's set the id to null if it looks like a subject assession number
 		if (newid != null && newid.matches("^.*_S[0-9]*$")) {
-			_log.error("ERROR:  Experiment appears to have been assighed a subject assession number.  Setting it to null" +
+			log.error("ERROR:  Experiment appears to have been assighed a subject assession number.  Setting it to null" +
 					" so a new one is assigned");
 			newid = "";
 		}
@@ -528,16 +496,9 @@ public class ExperimentFilter {
 				return 0;
 			}
 		});
-		final XsyncXsyncassessordata syncAssessor = assessors.get(0); 
-		final Date syncTime = (syncAssessor.getSyncTime() instanceof Date) ? (Date)syncAssessor.getSyncTime() : null;
-		if (syncTime==null) {
-			return true;
-		}
-		final ResourceFilter resourceFilter = new ResourceFilter(_user,_jdbcTemplate,_queryResultUtil);
-		if (!resourceFilter.hasResourceBeenModified(resource, syncTime)) {
-			return false;
-		}
-		return true;
+		final XsyncXsyncassessordata syncAssessor = assessors.get(0);
+		final Date                   syncTime     = (syncAssessor.getSyncTime() instanceof Date) ? (Date) syncAssessor.getSyncTime() : null;
+		return syncTime == null || new ResourceFilter(_user, _jdbcTemplate, _queryResultUtil).hasResourceBeenModified(resource, syncTime);
 	}
 	
 	/**
@@ -621,7 +582,7 @@ public class ExperimentFilter {
 				FileUtils.copyDirectory(source, dest);
 			}
 		} catch (IOException e) {
-			_log.error("", e);
+			log.error("", e);
 			throw e;
 			// don't continue if the file copy failed
 		}
@@ -700,15 +661,15 @@ public class ExperimentFilter {
 					*/
 				}
 				Boolean isExptToBeAnonymized = projectSyncConfiguration.getSynchronizationConfiguration().getAnonymize();
-				_log.debug("Exp " + exp.getLabel() + " needs to be anonymized " + isExptToBeAnonymized);
+				log.debug("Exp {} needs to be anonymized {}", exp.getLabel(), isExptToBeAnonymized);
 				if (isExptToBeAnonymized) {
-					_log.debug("About to anonymize " + exp.getLabel());
+					log.debug("About to anonymize {}", exp.getLabel());
 					 anonymize(exp, newSubject.getProject(), cacheSessionPath);
-					_log.debug("DONE - anonymize " + exp.getLabel());
+					log.debug("DONE - anonymize {}", exp.getLabel());
 				}
 			}
 		} catch (Exception ex) {
-			_log.error(ex.toString() + " " + ex.getLocalizedMessage());
+			log.error("{} {}", ex, ex.getLocalizedMessage());
 			throw ex;
 		}
 		return exp;
@@ -724,7 +685,7 @@ public class ExperimentFilter {
 					AnonymizerI simpleExportAnonymizer = new XsyncAnonymizer(_xsyncXnatInfo);
 					simpleExportAnonymizer.anonymize(exp, destProject, cacheSessionPath);
 				} catch(Exception e) {
-					_log.error(e.getMessage());
+					log.error(e.getMessage());
 					throw e;
 				}
 			}
@@ -1011,7 +972,6 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	 * @return true, if successful
 	 */
 	private boolean findAndRemoveScantypes(XnatExperimentdata exp, SyncConfigurationImagingSessionXsiType sessionOption) {
-		boolean found = false;
 		if (sessionOption == null || sessionOption.getScan_types() == null) {
 			return false;
 		}
@@ -1019,11 +979,10 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 		for (int i = 0; i < scans.size(); i++) {
 			if (!sessionOption.isAllowedToSyncScan(scans.get(i).getType())) {
 				((XnatImagesessiondata) exp).removeScans_scan(i);
-				found = true;
 				return true;
 			}
 		}
-		return found;
+		return false;
 	}
 	
 	/**
@@ -1036,7 +995,6 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	 * @throws Exception the exception
 	 */
 	private boolean findAndRemoveScanFilters(XnatExperimentdata exp, SyncConfigurationImagingSessionXsiType sessionOption) throws IndexOutOfBoundsException, Exception {
-		boolean found = false;
 		if (sessionOption == null || sessionOption.getScan_filters() == null) {
 			return false;
 		}
@@ -1045,14 +1003,12 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 			XnatImagescandataI scan= scans.get(i);
 			if (!sessionOption.isAllowedToSyncFilters((BaseElement)scan)) {
 				((XnatImagesessiondata) exp).removeScans_scan(i);
-				found = true;
 				return true;
 			}
 		}
-		return found;
+		return false;
 	}
 
-	
 	/**
 	 * Find and remove assessors.
 	 *
@@ -1131,14 +1087,7 @@ private boolean findAndRemoveScanResources(XnatImagescandataI scan, SyncConfigur
 	 * @throws Exception 
 	 */
 	private boolean findAndRemoveExperiment(XnatExperimentdata exp, SyncConfigurationXsiType session) throws Exception {
-		if (session == null) {
-			return false;
-		}
-		try {
-			return session.isAllowedToSyncFilters(exp);
-		} catch (Exception e) {
-			throw e;
-		}
+		return session != null && session.isAllowedToSyncFilters(exp);
 	}
 	
 	
