@@ -1,6 +1,6 @@
 # XSYNC plugin #
 
- XSYNC implemented as an XNAT 1.8.0 plugin.
+XSYNC implemented as an XNAT 1.8.0 plugin.
 
 Xsync plugin enables automatic synchronization of data from a project in one XNAT system to a project in a second system. Xsync is configurable to ensure that only the desired data is delivered, and if required, data is properly de-identified, and that it is delivered on a pre-set schedule. 
 
@@ -11,9 +11,12 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 # ChangeLog #
 
-## Version 1.5.0-SNAPSHOT  As of March 14, 2022 ##
+## Version 1.5.0  As of October 11, 2022 ##
 
-Added a synchronization tab on the subject report page. The subject meta-data and the resources at the subject level can be synced on demand. Experiments will not sync. Only Site Admins/Project Owners and Members can start the re-sync
+* Added a synchronization tab on the subject report page. The subject meta-data and the resources at the subject level can be synced on demand. Experiments will not sync. Only Site Admins/Project Owners and Members can start the re-sync
+* Removed eval filter type
+
+**Requires XNAT 1.8.3 or newer**
 
 ## Version 1.4.0  As of March 4, 2021 ##
 
@@ -25,7 +28,7 @@ Made custom identifiers (aka re-labelers) functional
 
 Bugfixes around handling secondary scans and duplicated scan IDs.
 
-## Version 1.3.5-SNAPSHOT  As of October 15, 2020 ##
+## Version 1.3.5  As of October 15, 2020 ##
 
 Added ability to modify fields, within a datatype, which contain references to subject IDs or image session IDs. 
 See section on Datatype Transformation Before Sync 
@@ -46,11 +49,11 @@ Added functionality for custom Id generator and download mapping data(supports X
 
 XAPI and other changes for compatibility with latest XNAT version 1.7.3.1 code.
 
-## Version 1.3.1-SNAPSHOT As of June 14, 2017 ##
+## Version 1.3.1 As of June 14, 2017 ##
 
 XAPI and other changes for compatibility with latest XNAT version 1.7.3-SNAPSHOT code.
 
-## Version 1.3-SNAPSHOT As of May 23, 2017 ##
+## Version 1.3 As of May 23, 2017 ##
 
 Revised sync blocking behavior with a service and UI for reporting on current sync status. 
 
