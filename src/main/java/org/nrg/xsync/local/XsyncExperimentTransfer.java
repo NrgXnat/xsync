@@ -562,7 +562,7 @@ public class XsyncExperimentTransfer {
         	return false;
         }
         final Boolean enabled = _asperaProjectPrefs.getAsperaEnabled(projectId);
-        if (enabled) {
+        if (enabled != null && enabled) {
             final String cNode = _asperaProjectPrefs.getAsperaNodeUrl(projectId);
             final String cUser = _asperaProjectPrefs.getAsperaNodeUser(projectId);
             if (cNode == null || cNode.length() < 1 || cUser == null || cUser.length() < 1) {
