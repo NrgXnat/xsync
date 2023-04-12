@@ -106,7 +106,7 @@ div.col2 {
     border: none;
 }
 
-div.xmodal div.panel h3.panel-title {
+.xmodal .panel h3.panel-title {
     margin: 0 !important;
 }
 
