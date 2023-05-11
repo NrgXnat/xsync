@@ -24,6 +24,7 @@ buildscript {
         classpath "io.franzbecker:gradle-lombok:4.0.0"
         classpath "io.spring.gradle:dependency-management-plugin:1.0.11.RELEASE"
         classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
+        classpath "net.linguica.gradle:maven-settings-plugin:0.5"         
     }
 }
 
@@ -36,6 +37,7 @@ apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: "org.nrg.xnat.build.xnat-data-builder"
 apply plugin: 'io.franzbecker.gradle-lombok'
+apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
 version '1.6.0-SNAPSHOT'
@@ -183,4 +185,19 @@ task fatJar(type: Jar) {
         exclude "META-INF/*.RSA"
     }
     with jar
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact fatJar
+        }
+    }
+    repositories{ 
+        maven {
+            url "https://nrgxnat.jfrog.io/nrgxnat/libs-${project.version.endsWith("-SNAPSHOT") ? "snapshot" : "release"}"
+            // The value for name must match <id> in ~/.m2/settings.xml
+            name = "XNAT_Artifactory"        
+        }
+    }
 }
