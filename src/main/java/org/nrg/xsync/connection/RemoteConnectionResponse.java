@@ -1,7 +1,11 @@
 package org.nrg.xsync.connection;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -9,27 +13,41 @@ import org.springframework.http.ResponseEntity;
  * @author Mohana Ramaratnam
  *
  */
+@Slf4j
 public class RemoteConnectionResponse {
 
-	ResponseEntity<String> _response;
-	
-	public RemoteConnectionResponse(ResponseEntity<String> response) {
-		_response = response;
+	HttpStatus status = null;
+	String responseBody;
+
+	public RemoteConnectionResponse(final CloseableHttpResponse  response) {
+		if (response != null) {
+			status = HttpStatus.valueOf(response.getStatusLine().getStatusCode());
+			try {
+				responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+			} catch(Exception e) {
+				log.error("Could not extract responseBody {}", e.getMessage());
+			}
+		}
 	}
-	
+
+	public RemoteConnectionResponse(final ResponseEntity<String> response) {
+		if (response != null) {
+			status = response.getStatusCode();
+			responseBody = response.getBody();
+		}
+	}
+
 	public boolean wasSuccessful() {
-		return 	((_response.getStatusCode().value()==HttpStatus.OK.value()) || (_response.getStatusCode().value()==HttpStatus.CREATED.value()))?true:false;
+		if (null == status)
+			return false;
+		return 	((status.value() == HttpStatus.OK.value()) || (status.value() == HttpStatus.CREATED.value())) ? true : false;
 	}
 	
 	public String getResponseBody() {
-		return _response.getBody();
+		return responseBody;
 	}
-	
-	public List<String> getResponseHeader(String name) {
-		return _response.getHeaders().get(name);
-	}
-	
+
 	public ResponseEntity<String> getResponse() {
-		return _response;
+		return new ResponseEntity<>(responseBody, status);
 	}
 }

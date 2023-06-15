@@ -11,6 +11,12 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 # ChangeLog #
 
+## Version 1.6.0 As of June 15, 2022 ##
+
+* Fixed handling of resource files which when zipped generate a large size file. 
+* Max. Total Uncompressed File Size Setting decides size of a single zip file and generates smaller chunks.
+* Fixed history table and email text wrt display of completion date.
+
 ## Version 1.5.0  As of October 11, 2022 ##
 
 * Added a synchronization tab on the subject report page. The subject meta-data and the resources at the subject level can be synced on demand. Experiments will not sync. Only Site Admins/Project Owners and Members can start the re-sync

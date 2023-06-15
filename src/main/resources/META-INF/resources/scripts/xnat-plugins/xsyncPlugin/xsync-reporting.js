@@ -156,7 +156,10 @@ window.XSYNC = getObject(window.XSYNC);
 	function generateOverviewTab(history) {
 
 		var startDate = new Date(history.startDate);
-		var completeDate = new Date(history.completeDate);
+		var completeDate;
+		if (new Date(history.completeDate).toString() !== 'Invalid Date') {
+			completeDate = new Date(history.completeDate);
+		}
 
 		return {
 			kind: 'tab',
@@ -183,7 +186,7 @@ window.XSYNC = getObject(window.XSYNC);
 						completed: {
 							kind: 'panel.element',
 							label: 'Completed',
-							contents: localDate(completeDate)+ ' ' + localTime(completeDate)
+							contents: completeDate === undefined? '' : localDate(completeDate) + ' ' + localTime(completeDate)
 						},
 						destinationXnat: {
 							kind: 'panel.element',

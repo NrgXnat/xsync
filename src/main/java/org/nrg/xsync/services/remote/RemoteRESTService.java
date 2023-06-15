@@ -14,23 +14,23 @@ import org.nrg.xsync.connection.RemoteConnectionResponse;
  *
  */
 public interface RemoteRESTService {
-	public RemoteConnectionResponse deleteProjectResource(RemoteConnection connection, String projectId, String resourceLabel) throws Exception;
-	public RemoteConnectionResponse importProjectResource(RemoteConnection connection, String projectId, String resourceLabel, File zipFile) throws Exception;
-	public RemoteConnectionResponse createWorkflow(RemoteConnection connection, WrkWorkflowdata wrk) throws Exception;
+	public RemoteConnectionResponse deleteProjectResource(final RemoteConnection connection, final String projectId, final String resourceLabel) throws Exception;
+	public RemoteConnectionResponse importProjectResource(final RemoteConnection connection, final String projectId, final String resourceLabel, final File zipFile, final boolean updateStats) throws Exception;
+	public RemoteConnectionResponse createWorkflow(final RemoteConnection connection, final WrkWorkflowdata wrk) throws Exception;
 
 	
-	public RemoteConnectionResponse importSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception;
-	public RemoteConnectionResponse deleteSubject(RemoteConnection connection, XnatSubjectdata subject) throws Exception;
-	public RemoteConnectionResponse deleteSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel) throws Exception;
-	public RemoteConnectionResponse importSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel, File zipFile) throws Exception;
-	public RemoteConnectionResponse importImageSessionResource(RemoteConnection connection, XnatExperimentdata experiment, String resourceLabel, File zipFile) throws Exception;
+	public RemoteConnectionResponse importSubject(final RemoteConnection connection, final XnatSubjectdata subject) throws Exception;
+	public RemoteConnectionResponse deleteSubject(final RemoteConnection connection, final XnatSubjectdata subject) throws Exception;
+	public RemoteConnectionResponse deleteSubjectResource(final RemoteConnection connection, final XnatSubjectdata subject, final String resourceLabel) throws Exception;
+	public RemoteConnectionResponse importSubjectResource(final RemoteConnection connection, final XnatSubjectdata subject, final String resourceLabel, final File zipFile, final boolean updateStats) throws Exception;
+	public RemoteConnectionResponse importImageSessionResource(final RemoteConnection connection, final XnatExperimentdata experiment, final String resourceLabel, final File zipFile, final boolean updateStats) throws Exception;
 
-	public RemoteConnectionResponse deleteExperiment(RemoteConnection connection, XnatExperimentdata experiment) throws Exception;
-	public RemoteConnectionResponse importSubjectAssessor(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor ) throws Exception;
-	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile ) throws Exception;
+	public RemoteConnectionResponse deleteExperiment(final RemoteConnection connection, final XnatExperimentdata experiment) throws Exception;
+	public RemoteConnectionResponse importSubjectAssessor(final RemoteConnection connection, final XnatSubjectdata subject, final XnatSubjectassessordata assessor ) throws Exception;
+	public RemoteConnectionResponse importSubjectAssessorResource(final RemoteConnection connection, final XnatSubjectdata subject, final XnatSubjectassessordata assessor, final String resourceLabel, final File zipFile, final boolean updateStats ) throws Exception;
 
-	public RemoteConnectionResponse importXar(RemoteConnection connection,File xar) throws Exception;
-	public RemoteConnectionResponse importXar(RemoteConnection connection,String xarPath) throws Exception;
-    public RemoteConnectionResponse getResult(RemoteConnection connection, String uri) throws Exception;
+	public RemoteConnectionResponse importXar(final RemoteConnection connection, final File xar) throws Exception;
+	public RemoteConnectionResponse importXar(final RemoteConnection connection, final String xarPath) throws Exception;
+    public RemoteConnectionResponse getResult(final RemoteConnection connection, final String uri) throws Exception;
 
 }

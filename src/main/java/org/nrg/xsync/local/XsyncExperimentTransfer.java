@@ -22,6 +22,7 @@ import org.nrg.xnat.xsync.transformer.TransformerHelper;
 import org.nrg.xnat.xsync.transformer.XsyncDataTypeSpecificTransformer;
 import org.nrg.xsync.aspera.AsperaClient;
 import org.nrg.xsync.aspera.AsperaProjectPrefs;
+import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -165,23 +166,6 @@ public class XsyncExperimentTransfer {
         } else { //Its a Subject Assessor
             XnatSubjectassessordata orig = XnatSubjectassessordata.getXnatSubjectassessordatasById(origId, user, true);
             if (isSubjectAssessorConfiguredToBeSyned(orig.getXSIType())) {
-			/*	if (subjectAssessorNeedsOkToSync(orig.getXSIType())) {
-					if (hasBeenMarkedOkToSyncAndNotSyncedYet(orig.getId())) {
-						boolean updateOkToSyncAssessorStatus = true;
-						XnatSubjectassessordata cleaned_assessor = (XnatSubjectassessordata)experimentFilter.prepareSubjectAssessorToSync((XnatSubjectdata)localSubject,(XnatSubjectdata)remoteSubject, orig);
-						cleaned_assessor.setProject(remoteSubject.getProject());
-						boolean stored = storeAssessor(origId, orig, (XnatSubjectdata)remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
-						if (!stored)
-							throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel() );
-					}else {
-						//Not marked OK to Sync - skip it
-						 ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(),orig.getLabel());
-						 expSyncItem.setXsiType(orig.getXSIType());
-						 expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
-						 expSyncItem.setMessage("Subject " + localSubject.getLabel() + " experiment " + orig.getLabel() + " has been skipped as it has not been marked ok to sync");
-						 subjectSyncInfo.addExperiment(expSyncItem);
-					}					
-				}else { */ // NO OKs required, sync it
                 boolean updateOkToSyncAssessorStatus = false;
                 XnatSubjectassessordataI targetExp = experimentFilter.prepareSubjectAssessorToSync((XnatSubjectdata) localSubject, (XnatSubjectdata) remoteSubject, orig);
                 if (targetExp != null) {
@@ -192,7 +176,6 @@ public class XsyncExperimentTransfer {
                     if (!stored)
                         throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel());
                 }
-                //}
             }
         }
 
@@ -277,25 +260,33 @@ public class XsyncExperimentTransfer {
                         if (resourcePath.exists() && resourcePath.isFile()) {
                             resourcePath = resourcePath.getParentFile();
                         }
-                        File zipFile = null;
-                        try {
-                            zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
-                            RemoteConnectionResponse updateResponse = this.updateSubjectAssessorResource(remotesubject, assessor, resource.getLabel(), zipFile);
-                            ResourceSyncItem resourceSyncItem = new ResourceSyncItem(null, resource.getLabel());
-                            resourceSyncItem.setFileCount(resource.getFileCount() != null ? resource.getFileCount() : 0);
-                            resourceSyncItem.setFileSize(resource.getFileSize() != null ? resource.getFileSize() : new Long(0));
-                            if (updateResponse.wasSuccessful()) {
-                                resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
-                            } else {
-                                resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+                        final XsyncSitePreferencesBean syncPrefsBean = XDAT.getContextService().getBeanSafely(XsyncSitePreferencesBean.class);
+                        List<File> zipFiles =  new XsyncFileUtils().buildMultipleZips(remoteProjectId, resourcePath, syncPrefsBean.getSyncMaxUncompressedZipFileSizeAsLong());
+                        StringBuilder responses = new StringBuilder();
+                        boolean allPartsSentSuccessfully = true;
+                        int counter = 0;
+                        for (File zipFile : zipFiles) {
+                            try {
+                                ++counter;
+                                RemoteConnectionResponse updateResponse = this.updateSubjectAssessorResource(remotesubject, assessor, resource.getLabel(), zipFile, (counter == zipFiles.size()));
+                                allPartsSentSuccessfully = allPartsSentSuccessfully && updateResponse.wasSuccessful();
+                                responses.append(updateResponse.getResponseBody());
+                            } catch (Exception e) {
+                                log.error("Ecountered {} while sending resource {} for experiment {}", e.getMessage(), resource.getLabel(), orig.getLabel());
+                                throw (e);
+                            } finally {
+                                if (zipFile != null) zipFile.delete();
                             }
-                            expSyncItem.addResources(resourceSyncItem);
-                        } catch (Exception e) {
-                            throw (e);
-                        } finally {
-                            if (zipFile != null) zipFile.delete();
                         }
-
+                        ResourceSyncItem resourceSyncItem = new ResourceSyncItem(null, resource.getLabel());
+                        resourceSyncItem.setFileCount(resource.getFileCount() != null ? resource.getFileCount() : 0);
+                        resourceSyncItem.setFileSize(resource.getFileSize() != null ? resource.getFileSize() : new Long(0));
+                        if (allPartsSentSuccessfully) {
+                            resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
+                        } else {
+                            resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+                        }
+                        expSyncItem.addResources(resourceSyncItem);
                     }
                 }
                 verifySync(remoteProjectId, expSyncItem, orig, remotesubject, updateSyncAssessor);
@@ -1142,23 +1133,23 @@ public class XsyncExperimentTransfer {
     }
 
 
-    private RemoteConnectionResponse updateImagingSessionResource(XnatImagesessiondataI remoteImagingSession, String resourceLabel, File zipFile) throws Exception {
+    private RemoteConnectionResponse updateImagingSessionResource(XnatImagesessiondataI remoteImagingSession, String resourceLabel, File zipFile, final boolean updateStats) throws Exception {
         try {
             RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
             RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(), projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 
-            return _manager.importImageSessionResource(connection, (XnatImagesessiondata) remoteImagingSession, resourceLabel, zipFile);
+            return _manager.importImageSessionResource(connection, (XnatImagesessiondata) remoteImagingSession, resourceLabel, zipFile, updateStats);
         } catch (Exception e) {
             log.error(e.toString());
             throw e;
         }
     }
 
-    private RemoteConnectionResponse updateSubjectAssessorResource(XnatSubjectdataI remoteSubject, XnatSubjectassessordata subjectAssessor, String resourceLabel, File zipFile) throws Exception {
+    private RemoteConnectionResponse updateSubjectAssessorResource(XnatSubjectdataI remoteSubject, XnatSubjectassessordata subjectAssessor, String resourceLabel, File zipFile, final boolean updateStats) throws Exception {
         try {
             RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
             RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(), projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-            return _manager.importSubjectAssessorResource(connection, (XnatSubjectdata) remoteSubject, subjectAssessor, resourceLabel, zipFile);
+            return _manager.importSubjectAssessorResource(connection, (XnatSubjectdata) remoteSubject, subjectAssessor, resourceLabel, zipFile, updateStats);
         } catch (Exception e) {
             log.error(e.toString());
             throw e;
@@ -1190,24 +1181,30 @@ public class XsyncExperimentTransfer {
             if (resourcePath.exists() && resourcePath.isFile()) {
                 resourcePath = resourcePath.getParentFile();
             }
-            File zipFile = null;
-            try {
-                zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
-                RemoteConnectionResponse updateResponse = this.updateImagingSessionResource(target, resource.getLabel(), zipFile);
-                if (updateResponse.wasSuccessful()) {
-                    resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
-                    resourceSyncItem.setMessage("Exoeriment " + target.getLabel() + " resource " + rLabel + " updated. ");
-                } else {
-                    resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-                    resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " could not be updated. " + updateResponse.getResponseBody());
+            final XsyncSitePreferencesBean syncPrefsBean = XDAT.getContextService().getBeanSafely(XsyncSitePreferencesBean.class);
+            List<File> zipFiles = new XsyncFileUtils().buildMultipleZips(remoteProjectId, resourcePath, syncPrefsBean.getSyncMaxUncompressedZipFileSizeAsLong());
+            StringBuilder responses = new StringBuilder();
+            boolean allResponsesWereSuccessful = true;
+            int counter = 0;
+            for (File zipFile : zipFiles) {
+                try {
+                    ++counter;
+                    RemoteConnectionResponse updateResponse = this.updateImagingSessionResource(target, resource.getLabel(), zipFile, counter == zipFiles.size());
+                    allResponsesWereSuccessful = allResponsesWereSuccessful && updateResponse.wasSuccessful();
+                    responses.append(updateResponse.getResponseBody());
+                } finally {
+                    if (zipFile != null)
+                        zipFile.delete();
                 }
-                expSyncItem.addResources(resourceSyncItem);
-            } catch (Exception e) {
-                throw (e);
-            } finally {
-                if (zipFile != null)
-                    zipFile.delete();
             }
+            if (allResponsesWereSuccessful) {
+                resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED);
+                resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " updated. ");
+            } else {
+                resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+                resourceSyncItem.setMessage("Experiment " + target.getLabel() + " resource " + rLabel + " could not be updated. " + responses.toString());
+            }
+            expSyncItem.addResources(resourceSyncItem);
         } catch (Exception e) {
             log.error("Could not update resource {} for experiment {}", resource.getLabel(), target.getId(), e);
             resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);

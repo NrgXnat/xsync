@@ -1,10 +1,13 @@
 package org.nrg.xsync.manifest;
 
+import org.nrg.xsync.tools.XSyncTools;
+import org.nrg.xsync.utils.XsyncFileUtils;
+
 /**
  * @author Mohana Ramaratnam
  *
  */
-public class ResourceSyncItem extends SyncedItem{
+public class ResourceSyncItem extends SyncedItem {
 
 	Integer fileCount;
 	Object fileSize;
@@ -45,4 +48,36 @@ public class ResourceSyncItem extends SyncedItem{
 	public void setFileSize(Object fileSize) {
 		this.fileSize = fileSize;
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder stringBuilder = new StringBuilder();
+		final  String newline = XSyncTools.NEWLINE;
+		stringBuilder.append("Local ID:");
+		stringBuilder.append(getLocalId());
+		stringBuilder.append(newline);
+		stringBuilder.append("Local Label:");
+		stringBuilder.append(getLocalLabel());
+		stringBuilder.append(newline);
+		stringBuilder.append("Remote Label:");
+		stringBuilder.append(getRemoteLabel());
+		stringBuilder.append(newline);
+		stringBuilder.append("File Count: ");
+		stringBuilder.append(getFileCount());
+		stringBuilder.append(newline);
+		stringBuilder.append("File Size: ");
+		stringBuilder.append(XsyncFileUtils.getHumanReadableFileSize((Long)getFileSize()));
+		stringBuilder.append(newline);
+		stringBuilder.append("Message: ");
+		stringBuilder.append(getMessage());
+		stringBuilder.append(newline);
+		stringBuilder.append("Sync Status: ");
+		stringBuilder.append(getSyncStatus());
+		stringBuilder.append(newline);
+		stringBuilder.append("Sync Time: ");
+		stringBuilder.append(getSyncTime());
+		stringBuilder.append(newline);
+		return stringBuilder.toString();
+	}
+
 }

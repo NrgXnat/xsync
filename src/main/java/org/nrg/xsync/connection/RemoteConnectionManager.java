@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.nrg.xdat.om.WrkWorkflowdata;
@@ -74,6 +76,20 @@ public class RemoteConnectionManager {
 		return headers;
 	}
 
+
+	public static void  addAuthHeaders(RemoteConnection connection, HttpUriRequest post, boolean useJSESSIONID, boolean refreshCache){
+		if (useJSESSIONID) {
+			final String JSESSIONID = getJsessionId(connection);
+			if (JSESSIONID!=null && JSESSIONID.length()>0) {
+				post.addHeader(HttpHeaders.COOKIE, "JSESSIONID=" + JSESSIONID);
+			}
+		}
+		if (refreshCache) {
+			getJsessionId(connection, true);
+		}
+		post.setHeader("Authorization", "Basic " + getBase64Credentials(connection));
+	}
+
 	/**
 	 * Gets the auth headers.
 	 *
@@ -85,7 +101,13 @@ public class RemoteConnectionManager {
 		// We won't refresh the JSESSSIONID cache unless we're told to
 		return GetAuthHeaders(connection, useJSESSIONID, false);
 	}
-	
+
+	public static void addAuthHeaders(RemoteConnection connection, HttpUriRequest post, boolean useJSESSIONID) {
+		// We won't refresh the JSESSSIONID cache unless we're told to
+		addAuthHeaders(connection, post, useJSESSIONID, false);
+	}
+
+
 	/**
 	 * Gets the auth headers (sends credentials.  does not use the cache version).
 	 *
@@ -251,8 +273,8 @@ public class RemoteConnectionManager {
 	 * @return the remote connection response
 	 * @throws Exception the exception
 	 */
-	public RemoteConnectionResponse importProjectResource(RemoteConnection connection, String projectId, String resourceLabel, File zipFile) throws Exception {
-		return _remoteRESTService.importProjectResource(connection, projectId, resourceLabel, zipFile);
+	public RemoteConnectionResponse importProjectResource(RemoteConnection connection, String projectId, String resourceLabel, File zipFile, final boolean updateStats) throws Exception {
+		return _remoteRESTService.importProjectResource(connection, projectId, resourceLabel, zipFile, updateStats);
 	}
 
 	/**
@@ -265,22 +287,22 @@ public class RemoteConnectionManager {
 	 * @return the remote connection response
 	 * @throws Exception the exception
 	 */
-	public RemoteConnectionResponse importSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel, File zipFile) throws Exception{
-		return _remoteRESTService.importSubjectResource(connection, subject, resourceLabel, zipFile);
+	public RemoteConnectionResponse importSubjectResource(RemoteConnection connection, XnatSubjectdata subject, String resourceLabel, File zipFile, final boolean updateStats) throws Exception{
+		return _remoteRESTService.importSubjectResource(connection, subject, resourceLabel, zipFile, updateStats);
 	}
 
 	/**
 	 * Import MRSession resource.
 	 *
 	 * @param connection the connection
-	 * @param experiment the experiment
+	 * @param subject the subject
 	 * @param resourceLabel the resource label
 	 * @param zipFile the zip file
 	 * @return the remote connection response
 	 * @throws Exception the exception
 	 */
-	public RemoteConnectionResponse importImageSessionResource(RemoteConnection connection, XnatExperimentdata subject, String resourceLabel, File zipFile) throws Exception{
-		return _remoteRESTService.importImageSessionResource(connection, subject, resourceLabel, zipFile);
+	public RemoteConnectionResponse importImageSessionResource(RemoteConnection connection, XnatExperimentdata subject, String resourceLabel, File zipFile, final boolean updateStats) throws Exception{
+		return _remoteRESTService.importImageSessionResource(connection, subject, resourceLabel, zipFile, updateStats);
 	}
 
 	
@@ -320,8 +342,8 @@ public class RemoteConnectionManager {
 	 * @return the remote connection response
 	 * @throws Exception the exception
 	 */
-	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile ) throws Exception {
-		return _remoteRESTService.importSubjectAssessorResource(connection, subject, assessor, resourceLabel, zipFile);
+	public RemoteConnectionResponse importSubjectAssessorResource(RemoteConnection connection,XnatSubjectdata subject,XnatSubjectassessordata assessor, String resourceLabel, File zipFile, final boolean updateStats ) throws Exception {
+		return _remoteRESTService.importSubjectAssessorResource(connection, subject, assessor, resourceLabel, zipFile, updateStats);
 	}
 
 	/**

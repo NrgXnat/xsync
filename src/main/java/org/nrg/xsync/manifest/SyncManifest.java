@@ -274,7 +274,7 @@ public class SyncManifest{
 			sb.append("<td>").append(this.localProjectId).append("</td>");
 			sb.append("<td>").append(this.remoteProjectId).append("</td>");
 			sb.append("<td>").append(this.getSync_start_time()).append("</td>");
-			sb.append("<td>").append(this.getSync_end_time()).append("</td>");
+			sb.append("<td>").append(this.getSync_end_time() != null ? this.getSync_end_time() : "--").append("</td>");
 			sb.append("<td>").append(this.wasSyncSuccessfull() ? "Synced" : "Sync Failed/Incomplete").append("</td>");
 			sb.append("</tr>");
 			sb.append("</table>");

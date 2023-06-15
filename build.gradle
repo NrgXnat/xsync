@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.8.3-SNAPSHOT'
+        vXnat = '1.8.9-SNAPSHOT'
     }
     repositories {
         mavenLocal()
@@ -40,7 +40,7 @@ apply plugin: 'io.franzbecker.gradle-lombok'
 apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
-version '1.6.0-SNAPSHOT'
+version '1.6.0'
 description "XNAT XSync Plugin"
 
 
@@ -122,21 +122,13 @@ dependencies {
     implementation "org.apache.commons:commons-math"
     implementation "org.apache.commons:commons-text"
 
+    implementation "org.apache.httpcomponents:httpclient"
+    implementation 'org.apache.httpcomponents:httpmime'
+
+
     implementation "org.hibernate:hibernate-core"
 
-    implementation "org.springframework:spring-aop"
-    implementation "org.springframework:spring-context-support"
-    implementation "org.springframework:spring-jms"
-    implementation "org.springframework:spring-messaging"
-    implementation "org.springframework:spring-orm"
-    implementation "org.springframework:spring-oxm"
-    implementation "org.springframework:spring-tx"
     implementation "org.springframework:spring-webmvc"
-    implementation "org.springframework.security:spring-security-acl"
-    implementation "org.springframework.security:spring-security-aspects"
-    implementation "org.springframework.security:spring-security-config"
-    implementation "org.springframework.security:spring-security-taglibs"
-    implementation "org.springframework.ldap:spring-ldap-core"
 
     implementation "com.fasterxml.jackson.core:jackson-annotations"
     implementation "com.fasterxml.jackson.core:jackson-core"

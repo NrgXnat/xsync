@@ -54,6 +54,25 @@ siteSettings:
                             kind: panel.input.text
                             label: Max Retries
                             description: Number of times sync is retried before going to a failed state.
+        maxUncompressedZipFileSize:
+            kind: tab
+            label: Max. Total Uncompressed File Size
+            group: xsyncConfig
+            active: false
+            contents:
+                maxUncompressedZipFileSizePanel:
+                    kind: panel.form
+                    name: maxUncompressedZipFileSizePanel
+                    label: Max. Total Uncompressed File Size  Settings
+                    method: POST
+                    url: /xapi/xsyncSitePreferences
+                    contentType: text/json
+                    contents:
+                        syncMaxUncompressedZipFileSize:
+                            kind: panel.input.text
+                            label: Max. Total Uncompressed File Size
+                            description: >
+                                Maximum total size of files in a zip before compression.
         asperaDefaults:
             kind: tab
             label: Aspera Server Defaults

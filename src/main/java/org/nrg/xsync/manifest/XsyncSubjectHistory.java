@@ -22,7 +22,6 @@ public class XsyncSubjectHistory extends AbstractHibernateEntity {
     private String syncStatus;
     private String syncMessage;
 
-
     public String getLocalLabel() {
         return localLabel;
     }

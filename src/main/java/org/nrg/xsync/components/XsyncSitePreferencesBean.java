@@ -7,6 +7,7 @@ import org.nrg.prefs.beans.AbstractPreferenceBean;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
 import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xft.exception.InvalidValueException;
+import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,8 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	private static final String DEFAULT_SYNC_RETRY_INTERVAL = "2 hours";
 
 	private static final String DEFAULT_SYNC_RETRY_COUNT = "2";
+
+	private static final String DEFAULT_SYNC_MAX_UNCOMPRESSED_FILESIZE = "-1" ; //All files no limits
 	
 
 	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService) {
@@ -64,8 +67,31 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	public String getSyncRetryCount() {
 		return getValue("syncRetryCount");
 	}
- 
-    /**
+
+	@NrgPreference(defaultValue = DEFAULT_SYNC_MAX_UNCOMPRESSED_FILESIZE)
+	public String getSyncMaxUncompressedZipFileSize() {
+		return getValue("syncMaxUncompressedZipFileSize");
+	}
+
+	/**
+	 * Sets the Max. Total Uncompressed File Size
+	 *
+	 * @param syncMaxUncompressedZipFileSize the max total file size before compression
+	 * @throws InvalidValueException the invalid value exception
+	 */
+	public void setSyncMaxUncompressedZipFileSize(final String syncMaxUncompressedZipFileSize) throws InvalidValueException {
+		try {
+			set(syncMaxUncompressedZipFileSize,"syncMaxUncompressedZipFileSize");
+		} catch (InvalidPreferenceName invalidPreferenceName) {
+			_log.error("Invalid preference name");
+		}
+	}
+
+	public long getSyncMaxUncompressedZipFileSizeAsLong() {
+		return Long.parseLong(getSyncMaxUncompressedZipFileSize());
+	}
+
+	/**
      * Sets the token refresh interval.
      *
      * @param tokenRefreshInterval the new token refresh interval
@@ -191,5 +217,30 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 			}else
 				throw new InvalidValueException("XSync - Invalid interval specified - " + intervalStr);
 	}
+
+	public void update(final XsyncSitePreferencesPojo xsyncSitePreferencesPojo) throws InvalidValueException {
+		if (null != xsyncSitePreferencesPojo.getSyncRetryCount()) {
+			this.setSyncRetryCount(xsyncSitePreferencesPojo.getSyncRetryCount());
+		}
+		if (null != xsyncSitePreferencesPojo.getSyncRetryInterval()) {
+			this.setSyncRetryInterval(xsyncSitePreferencesPojo.getSyncRetryInterval());
+		}
+		if (null != xsyncSitePreferencesPojo.getTokenRefreshInterval()) {
+			this.setTokenRefreshInterval(xsyncSitePreferencesPojo.getTokenRefreshInterval());
+		}
+		if (null != xsyncSitePreferencesPojo.getSyncMaxUncompressedZipFileSize()) {
+			this.setSyncMaxUncompressedZipFileSize(xsyncSitePreferencesPojo.getSyncMaxUncompressedZipFileSize());
+		}
+	}
+
+	public XsyncSitePreferencesPojo toPojo() {
+		return new XsyncSitePreferencesPojo(
+				getTokenRefreshInterval(),
+				getSyncRetryInterval(),
+				getSyncRetryCount(),
+				getSyncMaxUncompressedZipFileSize()
+		);
+	}
+
 
 }

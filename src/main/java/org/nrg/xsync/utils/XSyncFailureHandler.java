@@ -55,16 +55,15 @@ public class XSyncFailureHandler {
 		final String subject= siteId + " XSYNC: Project " + project +" failed ";
 		info.put("SUBJECT", subject);
 		StringBuilder sb = new StringBuilder();
-		sb.append("<html>");
-        sb.append("<body>");
+		sb.append("<html>").append("<body>");
 		sb.append("<p>XSync Failed for project ").append(project).append(". </p>");
 		sb.append("<p>").append(message).append("</p>");
+		sb.append("<p>").append("To mitigate this problem, try to reset remote credentials. Details of the error are below.").append("</p>");
 		sb.append("Encountered error ").append(e.getLocalizedMessage());
 		StringWriter errors = new StringWriter();
 		e.printStackTrace(new PrintWriter(errors));
 		sb.append(errors.toString());
-		sb.append("</body>");
-        sb.append("</html>");
+		sb.append("</body>").append("</html>");
 		info.put("BODY", sb.toString());
 		SynchronizationManager.END_ERROR_FAILURE_SYNC(project);
 		try {
