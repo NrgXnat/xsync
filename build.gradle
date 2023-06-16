@@ -40,7 +40,7 @@ apply plugin: 'io.franzbecker.gradle-lombok'
 apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
-version '1.6.0'
+version '1.6.0-SNAPSHOT'
 description "XNAT XSync Plugin"
 
 
