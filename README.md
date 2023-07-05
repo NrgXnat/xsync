@@ -288,6 +288,14 @@ private final String myXsiType = "icr:roiCollectionData";
 The package need not be as shown in the above code, as long as the package in which you write the class is in the component scan things will be ok. 
 The only requirements are - add @Component and set the annotation @DatatypeTransformerAnnotation
 
+# Handling large resource transfers #
+
+As of Xsync 1.6.0 and XNAT 1.8.8.2, a configurable parameter, Max. Total Uncompressed File Size, has been added to the Xsync Plugin settings. This parameter represents in bytes the max compressed file size. This value defaults to -1. 
+
+When a resource, at any level. Project/Subject/Experiment, after compression is large, syncing to destination XNAT may not be successful. 
+The parameter, Max. Total Uncompressed File Size, can be used in such situations. When configured to a value other than -1, for a large resource, Xsync will generate multiple zip files, each file not exceeding the max size. If the value is set to -1, splitting into multiple files would not happen.
+
+Setting the max total uncompressed file size to, say, 2147483648 (2GB) implies, whenever a resource is larger than 2GB, Xsync will create multiple zip files where each file size would be at max 2GB. 
 
 # Other Tips #
 
