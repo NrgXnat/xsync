@@ -290,12 +290,13 @@ The only requirements are - add @Component and set the annotation @DatatypeTrans
 
 # Handling large resource transfers #
 
-As of Xsync 1.6.0 and XNAT 1.8.8.2, a configurable parameter, Max. Total Uncompressed File Size, has been added to the Xsync Plugin settings. This parameter represents in bytes the max compressed file size. This value defaults to -1. 
+As of Xsync 1.6.0 and XNAT 1.8.8.2, a configurable parameter, `Max. Total Uncompressed File Size`, named `syncMaxUncompressedZipFileSize`,  has been added to the Xsync Plugin settings. This parameter represents in bytes the max compressed file size. This value defaults to -1. 
 
-When a resource, at any level. Project/Subject/Experiment, after compression is large, syncing to destination XNAT may not be successful. 
-The parameter, Max. Total Uncompressed File Size, can be used in such situations. When configured to a value other than -1, for a large resource, Xsync will generate multiple zip files, each file not exceeding the max size. If the value is set to -1, splitting into multiple files would not happen.
+Xsync compresses resources before sync. When a resource at any level—Project, Subject, or Experiment—remains large after compression, syncing to a destination XNAT may fail.
+When the parameter `Max. Total Uncompressed File Size` is configured to a value other than -1, then for a large resource Xsync will generate multiple zip files each not exceeding the configured max size.
+The default value -1 disables this behavior, meaning a single zip file will be synced.
 
-Setting the max total uncompressed file size to, say, 2147483648 (2GB) implies, whenever a resource is larger than 2GB, Xsync will create multiple zip files where each file size would be at max 2GB. 
+For example, setting `Max. Total Uncompressed File Size` to 2147483648 (2GB) means whenever an uncompressed resource is larger than 2GB, Xsync will compress it into multiple zip files, each zip file not exceeding 2GB.
 
 # Other Tips #
 
