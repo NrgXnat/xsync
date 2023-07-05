@@ -56,23 +56,34 @@ siteSettings:
                             description: Number of times sync is retried before going to a failed state.
         maxUncompressedZipFileSize:
             kind: tab
-            label: Max. Total Uncompressed File Size
+            label: Maximum Total Uncompressed File Size
             group: xsyncConfig
             active: false
             contents:
                 maxUncompressedZipFileSizePanel:
                     kind: panel.form
                     name: maxUncompressedZipFileSizePanel
-                    label: Max. Total Uncompressed File Size  Settings
+                    label: Max. Total Uncompressed File Size Settings
                     method: POST
                     url: /xapi/xsyncSitePreferences
                     contentType: text/json
                     contents:
+                        fileSizeHelptext:
+                            tag: div.message
+                            content: >
+                                Xsync compresses resources before sync. When a resource at any level -- Project, Subject, or Experiment -- remains large after compression, 
+                                syncing to a destination XNAT may fail. When this parameter is set to a value other than -1, then for a large resource, Xsync will 
+                                generate multiple zip files, each not exceeding the configured max size. The default value -1 disables this behavior, 
+                                meaning a single zip file will be synced.
+                            after: >
+                                <br/>
                         syncMaxUncompressedZipFileSize:
                             kind: panel.input.text
                             label: Max. Total Uncompressed File Size
+                            validation: required integer
                             description: >
-                                Maximum total size of files in a zip before compression.
+                                Maximum total size of files in a zip (before compression) in bytes, -1 means no limit. 
+                                If a resource to be synced is larger than this value, multiple zips will be sent (none to exceed this size).
         asperaDefaults:
             kind: tab
             label: Aspera Server Defaults
