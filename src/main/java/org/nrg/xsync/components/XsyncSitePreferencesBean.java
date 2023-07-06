@@ -80,10 +80,24 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	 * @throws InvalidValueException the invalid value exception
 	 */
 	public void setSyncMaxUncompressedZipFileSize(final String syncMaxUncompressedZipFileSize) throws InvalidValueException {
+		throwForInvalidMaxSizePreference(syncMaxUncompressedZipFileSize);
 		try {
 			set(syncMaxUncompressedZipFileSize,"syncMaxUncompressedZipFileSize");
 		} catch (InvalidPreferenceName invalidPreferenceName) {
 			_log.error("Invalid preference name");
+		}
+	}
+
+	private void throwForInvalidMaxSizePreference(String syncMaxUncompressedZipFileSize) throws InvalidValueException {
+		final String validationMessage = "syncMaxUncompressedZipFileSize must be -1 or a positive integer";
+		final long size;
+		try {
+			size = Long.parseLong(syncMaxUncompressedZipFileSize);
+		} catch (NumberFormatException e) {
+			throw new InvalidValueException(validationMessage);
+		}
+		if (size < -1 || size == 0) {
+			throw new InvalidValueException(validationMessage);
 		}
 	}
 

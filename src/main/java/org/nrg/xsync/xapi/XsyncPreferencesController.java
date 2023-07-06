@@ -23,12 +23,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RequestMethod;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -48,34 +47,25 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	@Autowired
 	public XsyncPreferencesController(final XsyncSitePreferencesBean prefs, final AsperaSitePrefs asperaSitePrefs,
 			final AsperaProjectPrefs asperaProjectPrefs, final UserManagementServiceI userManagementService,
-			final RoleHolder roleHolder, final ObjectMapper objectMapper) {
+			final RoleHolder roleHolder) {
 		super(userManagementService, roleHolder);
 		this.prefs = prefs;
 		this.asperaSitePrefs = asperaSitePrefs;
 		this.asperaProjectPrefs = asperaProjectPrefs;
-		this.objectMapper = objectMapper;
 	}
 
 	/**
 	 * Sets the preferences.
 	 *
-	 * @param jsonbody
-	 *            the jsonbody
-	 * @return the response entity
+	 * @param xsyncSitePreferencesPojo the preferences
 	 */
-	@SuppressWarnings("deprecation")
-	@XapiRequestMapping(value = "xsyncSitePreferences", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE, restrictTo = AccessLevel.Admin)
+	@XapiRequestMapping(value = "xsyncSitePreferences", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Admin)
 	@ApiOperation(value = "Sets the XSync site preferences")
 	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site preferences set."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
-	public ResponseEntity<String> setPreferences(@RequestBody String jsonbody) {
-		try {
-			final XsyncSitePreferencesPojo xsyncSitePreferencesPojo = objectMapper.readValue(jsonbody, XsyncSitePreferencesPojo.class);
-			prefs.update(xsyncSitePreferencesPojo);
-		} catch (Exception exception) {
-			return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-		return new ResponseEntity<>("XSync preferences set", HttpStatus.OK);
+	public void setPreferences(@RequestBody XsyncSitePreferencesPojo xsyncSitePreferencesPojo)
+			throws InvalidValueException {
+		prefs.update(xsyncSitePreferencesPojo);
 	}
 
 	/**
@@ -196,8 +186,11 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	private final XsyncSitePreferencesBean prefs;
 	private final AsperaSitePrefs asperaSitePrefs;
 	private final AsperaProjectPrefs asperaProjectPrefs;
-	private final ObjectMapper   objectMapper;
 	private static Logger _logger = LoggerFactory.getLogger(XsyncPreferencesController.class);
-	
 
+	@ResponseStatus(value = HttpStatus.BAD_REQUEST)
+	@ExceptionHandler(value = {InvalidValueException.class})
+	public String handleBadRequest(final Exception e) {
+		return "Cannot set Xsync preference: " + e.getMessage();
+	}
 }
