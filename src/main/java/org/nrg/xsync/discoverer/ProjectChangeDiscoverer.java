@@ -7,9 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatProjectdata;
@@ -19,6 +21,7 @@ import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
 import org.nrg.xnat.xsync.report.XsyncProjectReportGenerator;
 import org.nrg.xsync.components.SyncStatusHolder.SyncType;
+import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -127,7 +130,6 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             final Boolean isSyncBlocked = _syncStatusService.isCurrentlySyncing(_projectId);
             if (isSyncBlocked != null && isSyncBlocked) {
                 try {
-                    System.out.println("Sync is blocked ");
                     _mailService.sendHtmlMessage(_xnatInfo.getAdminEmail(), _user.getEmail(), "Project " + _projectId + " sync skipped ",
                             "<html><body>"
                                     + "<p>Sync was skipped.  See information below:</p>"
@@ -352,14 +354,30 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             File resourcePath = new File(archiveDirectory);
             if (resourcePath.exists() && resourcePath.isFile()) {
                 resourcePath = resourcePath.getParentFile();
-                File zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
-                RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
-                RemoteConnection connection = remoteConnectionHandler.getConnection(_projectId, _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-                RemoteConnectionResponse response = _manager.importProjectResource(connection, remoteProjectId, resourceLabel, zipFile);
-                if (response.wasSuccessful()) {
-                    if (zipFile.exists()) {
-                        zipFile.delete();
+                final XsyncSitePreferencesBean syncPrefsBean = XDAT.getContextService().getBeanSafely(XsyncSitePreferencesBean.class);
+
+                List<File> zipFiles = new XsyncFileUtils().buildMultipleZips(remoteProjectId, resourcePath, syncPrefsBean.getSyncMaxUncompressedZipFileSizeAsLong());
+                boolean allResponsesWereSuccessful = true;
+                StringBuilder responses = new StringBuilder();
+                int counter = 0;
+                for (File zipFile : zipFiles) {
+                    try {
+                        ++counter;
+                        RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
+                        RemoteConnection connection = remoteConnectionHandler.getConnection(_projectId, _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
+                        RemoteConnectionResponse response = _manager.importProjectResource(connection, remoteProjectId, resourceLabel, zipFile,  (counter == zipFiles.size()));
+                        allResponsesWereSuccessful = allResponsesWereSuccessful && response.wasSuccessful();
+                        responses.append(response.getResponseBody());
+                    } finally {
+                        if (zipFile.exists()) {
+                            zipFile.delete();
+                        }
                     }
+                }
+                if (allResponsesWereSuccessful) {
+                    try{
+                        Thread.sleep(XsyncUtils.THREAD_SLEEP_TIME); //Sleep so that the server side catalog refresh is done
+                    } catch (InterruptedException ignore){}
                     projectResourcesToVerify.add(resource);
                 } else {
                     ResourceSyncItem resourceSyncItem = new ResourceSyncItem(_projectId, rLabel);
@@ -369,7 +387,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                     if (resource.getFileSize() != null)
                         resourceSyncItem.setFileSize(resource.getFileSize());
                     resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-                    resourceSyncItem.setMessage("Project resource " + rLabel + " could not be updated. Cause: " + response.getResponseBody());
+                    resourceSyncItem.setMessage("Project resource " + rLabel + " could not be updated. Cause: " + responses.toString());
                     resourceSyncItem.stateChanged();
                     SynchronizationManager.UPDATE_MANIFEST(_projectId, resourceSyncItem);
                 }
@@ -543,7 +561,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     /**
      * Generate mapping report.
      *
-     * @param requestedReportType the requested report type
+     * @param reportFormat the requested report type
      * @return the string
      * @throws Exception the exception
      */

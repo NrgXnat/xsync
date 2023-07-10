@@ -145,8 +145,11 @@ public class ExperimentFilter {
 		if (experimentsConfiguredToBeSynced.size() > 0) {
 			if (experimentDetails.size()>0) {
 				final List<String> detailIds = getExperimentIdsFromExperimentDetails(experimentDetails);
-				parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, detailIds);
-				final List<String> failedExperimentIds = getFailedExperimentIds(parameters,projectSyncConfiguration.getSynchronizationConfiguration().getNo_of_retry_days());
+				List<String> failedExperimentIds = new ArrayList<>();
+				if (!detailIds.isEmpty()) {
+					parameters.addValue(QueryResultUtil.EXPERIMENT_IDS, detailIds);
+					failedExperimentIds = getFailedExperimentIds(parameters,projectSyncConfiguration.getSynchronizationConfiguration().getNo_of_retry_days());
+				}
 				for (final Map<String,Object> row:experimentDetails) {
 					if (row.get("status").equals(QueryResultUtil.ACTIVE_STATUS)) {
 						final String currentExpId = (String)row.get("id");

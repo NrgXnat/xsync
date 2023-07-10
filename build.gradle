@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.8.3'
+        vXnat = '1.8.8.2'
     }
     repositories {
         mavenLocal()
@@ -23,7 +23,8 @@ buildscript {
         classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.5"
         classpath "io.franzbecker:gradle-lombok:4.0.0"
         classpath "io.spring.gradle:dependency-management-plugin:1.0.11.RELEASE"
-        classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
+        classpath "org.nrg.xnat.build:xnat-data-builder:1.8.8"
+        classpath "net.linguica.gradle:maven-settings-plugin:0.5"         
     }
 }
 
@@ -36,9 +37,10 @@ apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: "org.nrg.xnat.build.xnat-data-builder"
 apply plugin: 'io.franzbecker.gradle-lombok'
+apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
-version '1.5.0'
+version '1.6.0'
 description "XNAT XSync Plugin"
 
 
@@ -120,21 +122,13 @@ dependencies {
     implementation "org.apache.commons:commons-math"
     implementation "org.apache.commons:commons-text"
 
+    implementation "org.apache.httpcomponents:httpclient"
+    implementation 'org.apache.httpcomponents:httpmime'
+
+
     implementation "org.hibernate:hibernate-core"
 
-    implementation "org.springframework:spring-aop"
-    implementation "org.springframework:spring-context-support"
-    implementation "org.springframework:spring-jms"
-    implementation "org.springframework:spring-messaging"
-    implementation "org.springframework:spring-orm"
-    implementation "org.springframework:spring-oxm"
-    implementation "org.springframework:spring-tx"
     implementation "org.springframework:spring-webmvc"
-    implementation "org.springframework.security:spring-security-acl"
-    implementation "org.springframework.security:spring-security-aspects"
-    implementation "org.springframework.security:spring-security-config"
-    implementation "org.springframework.security:spring-security-taglibs"
-    implementation "org.springframework.ldap:spring-ldap-core"
 
     implementation "com.fasterxml.jackson.core:jackson-annotations"
     implementation "com.fasterxml.jackson.core:jackson-core"
@@ -183,4 +177,19 @@ task fatJar(type: Jar) {
         exclude "META-INF/*.RSA"
     }
     with jar
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact fatJar
+        }
+    }
+    repositories{ 
+        maven {
+            url "https://nrgxnat.jfrog.io/nrgxnat/libs-${project.version.endsWith("-SNAPSHOT") ? "snapshot" : "release"}"
+            // The value for name must match <id> in ~/.m2/settings.xml
+            name = "XNAT_Artifactory"        
+        }
+    }
 }

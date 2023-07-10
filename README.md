@@ -11,6 +11,12 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 # ChangeLog #
 
+## Version 1.6.0 As of June 15, 2022 ##
+
+* Fixed handling of resource files which when zipped generate a large size file. 
+* Max. Total Uncompressed File Size Setting decides size of a single zip file and generates smaller chunks.
+* Fixed history table and email text wrt display of completion date.
+
 ## Version 1.5.0  As of October 11, 2022 ##
 
 * Added a synchronization tab on the subject report page. The subject meta-data and the resources at the subject level can be synced on demand. Experiments will not sync. Only Site Admins/Project Owners and Members can start the re-sync
@@ -282,6 +288,15 @@ private final String myXsiType = "icr:roiCollectionData";
 The package need not be as shown in the above code, as long as the package in which you write the class is in the component scan things will be ok. 
 The only requirements are - add @Component and set the annotation @DatatypeTransformerAnnotation
 
+# Handling large resource transfers #
+
+As of Xsync 1.6.0 and XNAT 1.8.8.2, a configurable parameter, `Max. Total Uncompressed File Size`, named `syncMaxUncompressedZipFileSize`,  has been added to the Xsync Plugin settings. This parameter represents in bytes the max compressed file size. This value defaults to -1. 
+
+Xsync compresses resources before sync. When a resource at any level—Project, Subject, or Experiment—remains large after compression, syncing to a destination XNAT may fail.
+When the parameter `Max. Total Uncompressed File Size` is configured to a value other than -1, then for a large resource Xsync will generate multiple zip files each not exceeding the configured max size.
+The default value -1 disables this behavior, meaning a single zip file will be synced.
+
+For example, setting `Max. Total Uncompressed File Size` to 2147483648 (2GB) means whenever an uncompressed resource is larger than 2GB, Xsync will compress it into multiple zip files, each zip file not exceeding 2GB.
 
 # Other Tips #
 

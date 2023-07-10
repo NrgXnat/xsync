@@ -2,6 +2,7 @@ package org.nrg.xsync.local;
 
 import lombok.extern.slf4j.Slf4j;
 import org.nrg.framework.services.SerializerService;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatSubjectdataI;
 import org.nrg.xdat.om.XnatAbstractresource;
@@ -9,6 +10,7 @@ import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
+import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -26,6 +28,8 @@ import org.nrg.xsync.utils.XsyncUtils;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.io.File;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -114,14 +118,14 @@ public class ResourceSyncManager {
         //Store the updated or the new resources
         if (syncAllStates){
             for (XnatAbstractresourceI resource:updatedResources) {
-                pushResource(remoteSubject,resource);
+                pushResourceInParts(remoteSubject,resource);
             }
             for (XnatAbstractresourceI resource:newResources) {
-                pushResource(remoteSubject,resource);
+                pushResourceInParts(remoteSubject,resource);
             }
         }else { //Only New
             for (XnatAbstractresourceI resource:newResources) {
-                pushResource(remoteSubject,resource);
+                pushResourceInParts(remoteSubject,resource);
             }
         }
     }
@@ -174,56 +178,80 @@ public class ResourceSyncManager {
         }
     }
 
-    private RemoteConnectionResponse updateSubjectResource(XnatSubjectdataI remoteSubject, String resourceLabel, File zipFile) throws Exception {
+    private RemoteConnectionResponse updateSubjectResource(XnatSubjectdataI remoteSubject, String resourceLabel, File zipFile, final boolean updateStats) throws Exception {
         try {
             RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(jdbcTemplate, queryResultUtil);
             RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
-
-            return manager.importSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel, zipFile);
+            return manager.importSubjectResource(connection, (XnatSubjectdata)remoteSubject, resourceLabel, zipFile, updateStats);
         }catch(Exception e) {
             log.error("Error updating remote subject {} resource {}", remoteSubject.getLabel(), resourceLabel, e);
             throw e;
         }
     }
 
-    private void pushResource(XnatSubjectdataI remoteSubject,XnatAbstractresourceI resource) {
+    private void pushResourceInParts(XnatSubjectdataI remoteSubject, XnatAbstractresourceI resource) {
+        Instant start = Instant.now();
+        log.info("Preparing to send : " + resource.getLabel());
         String localProjectArchivePath = localProject.getArchiveRootPath();
         String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
         String rLabel = resource.getLabel() == null ? XsyncUtils.RESOURCE_NO_LABEL:resource.getLabel();
+        final XsyncSitePreferencesBean syncPrefsBean = XDAT.getContextService().getBeanSafely(XsyncSitePreferencesBean.class);
+        String archiveDirectory = ((XnatAbstractresource)resource).getFullPath(localProjectArchivePath);
+        File resourcePath = new File(archiveDirectory);
+        if (resourcePath.exists() && resourcePath.isFile()) {
+            resourcePath = resourcePath.getParentFile();
+        }
+
         try {
-            String archiveDirectory = ((XnatAbstractresource)resource).getFullPath(localProjectArchivePath);
-            File resourcePath = new File(archiveDirectory);
-            if (resourcePath.exists() && resourcePath.isFile()) {
-                resourcePath = resourcePath.getParentFile();
-            }
-            File zipFile = null;
-            try {
-                zipFile = new XsyncFileUtils().buildZip(remoteProjectId, resourcePath);
-                RemoteConnectionResponse updateResponse = this.updateSubjectResource(remoteSubject,resource.getLabel(), zipFile);
-                if (updateResponse.wasSuccessful()) {
-                    subjectResourcesToBeVerified.add((XnatAbstractresource)resource);
-                }else {
-                    ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(), rLabel);
-                    if (resource.getFileCount() != null) {
-                        resourceSyncItem.setFileCount(resource.getFileCount());
-                    } else {
-                        resourceSyncItem.setFileCount(0);
-                    }
-                    if (resource.getFileSize() != null) {
-                        resourceSyncItem.setFileSize(resource.getFileSize());
-                    } else {
-                        resourceSyncItem.setFileSize(new Long(0));
-                    }
-                    resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
-                    resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + updateResponse.getResponseBody() );
-                    subjectSyncInfo.addResources(resourceSyncItem);
+            List<File> zipFiles = new XsyncFileUtils().buildMultipleZips(remoteProjectId, resourcePath, syncPrefsBean.getSyncMaxUncompressedZipFileSizeAsLong());
+            Instant zipBuildTime = Instant.now();
+            Duration timeElapsed = Duration.between(start, zipBuildTime);
+            log.info("Time taken to build {} zips: {}  milliseconds", zipFiles.size(), timeElapsed.toMillis());
+
+            boolean allPartsSentSuccessfully = true;
+            StringBuilder responses = new StringBuilder();
+            log.info("Total parts for {} to be synced  is {}", resourcePath, zipFiles.size());
+            int counter = 0;
+            for (File zipFile : zipFiles) {
+                try {
+                    ++counter;
+                    Instant zipSendBeginTime = Instant.now();
+                    RemoteConnectionResponse updateResponse = this.updateSubjectResource(remoteSubject,resource.getLabel(), zipFile, (counter == zipFiles.size()));
+                    Instant zipSendEndTime = Instant.now();
+                    timeElapsed = Duration.between(zipSendBeginTime, zipSendEndTime);
+                    log.info("Time taken to send {} : {} milliseconds", zipFile.getName(), timeElapsed.toMillis());
+                    allPartsSentSuccessfully = allPartsSentSuccessfully && updateResponse.wasSuccessful();
+                    responses.append(updateResponse.getResponseBody()).append(XSyncTools.NEWLINE);
+                } catch (Exception e) {
+                    log.error("Push resource encountered {} while pushing part {} for resource  {} ", e.getMessage(), zipFile.getName(), resource.getLabel());
+                    throw(e);
+                } finally {
+                    if (zipFile != null) zipFile.delete();
                 }
-            }catch(Exception e) {
-                throw(e);
-            }finally {
-                if (zipFile != null) zipFile.delete();
             }
-        }catch(Exception e) {
+
+            if (allPartsSentSuccessfully) {
+                try{
+                    Thread.sleep(XsyncUtils.THREAD_SLEEP_TIME); //2min Sleep so that the server side catalog refresh is done
+                } catch (InterruptedException ignore) {}
+                subjectResourcesToBeVerified.add((XnatAbstractresource)resource);
+            }else {
+                ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(), rLabel);
+                if (resource.getFileCount() != null) {
+                    resourceSyncItem.setFileCount(resource.getFileCount());
+                } else {
+                    resourceSyncItem.setFileCount(0);
+                }
+                if (resource.getFileSize() != null) {
+                    resourceSyncItem.setFileSize(resource.getFileSize());
+                } else {
+                    resourceSyncItem.setFileSize(new Long(0));
+                }
+                resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
+                resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + responses.toString() );
+                subjectSyncInfo.addResources(resourceSyncItem);
+            }
+        } catch (Exception e) {
             log.error("Could not update resource {} for subject {}", resource.getLabel(), remoteSubject.getId(), e);
             ResourceSyncItem resourceSyncItem = new ResourceSyncItem(localSubject.getLabel(),rLabel);
             if (resource.getFileCount() != null) {
@@ -241,7 +269,6 @@ public class ResourceSyncManager {
             subjectSyncInfo.addResources(resourceSyncItem);
         }
     }
-
 
 
 }

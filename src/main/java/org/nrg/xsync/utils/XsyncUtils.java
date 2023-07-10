@@ -93,6 +93,8 @@ public class XsyncUtils {
 	public static final String REPORT_FORMAT_CSV = "CSV";
 	public static final String OBJECT_TYPE = "objectType";
 	public static final String REPORT_FORMAT = "reportFormat";
+
+	public static final long THREAD_SLEEP_TIME = 120000;
 	
 	public enum FilterType 
 	{

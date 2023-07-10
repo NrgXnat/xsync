@@ -3,6 +3,7 @@ package org.nrg.xsync.utils;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 //import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.*;
@@ -31,7 +32,8 @@ import org.slf4j.LoggerFactory;
 public class XsyncFileUtils {
 	private static final Logger _log = LoggerFactory.getLogger(XsyncFileUtils.class);
 	public static final String SYNCHRONIZATION_LABEL = "synchronization";
-	
+
+	//Deprecated in favour of buildMultipleZips
 	public File buildZip(String remoteProjectId,File pathToFiles) throws Exception {
 		File zipFile = null;
 		try {
@@ -51,15 +53,17 @@ public class XsyncFileUtils {
 				rep.write(new FileOutputStream(zipFile));
 			}
 		} catch (Exception e) {
-			_log.debug(e.toString() + "  " + e.getMessage());
-			//e.printStackTrace();
-			throw new Exception("Unable to create/save zip file "+e.getMessage());
+			_log.error("Could not build zip {} cause: {}", e.toString(), e.getMessage());
+			throw new Exception("Unable to create/save zip file " + e.getMessage());
 		}
 		return zipFile;
-
 	}
 
-	
+	public List<File> buildMultipleZips(final String remoteProjectId, final File fileDirectory, final long maxUncompressedFileSize) throws Exception {
+		return new DefaultZipFileGenerator(maxUncompressedFileSize).zip(remoteProjectId, fileDirectory);
+	}
+
+
 	public static  String GetSyncFilPath(XnatExperimentdata exp) {
 		String path = null;
 		path = exp.getCachePath() ;
