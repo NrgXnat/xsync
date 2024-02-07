@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.dcm4che2.io.DicomInputStream;
@@ -85,8 +86,19 @@ public class XsyncAnonymizer implements AnonymizerI {
 	@Override
 	public void anonymize(final XnatImagesessiondata session, final String destProject, final String cacheSessionPath) throws Exception {
 		try {
-			ExportAnonymizer anonymizer = new ExportAnonymizer(_xsyncXnatInfo, session, destProject, cacheSessionPath);
-			this.applyAnonymizationToFiles(session, cacheSessionPath, anonymizer);
+			for(XnatImagescandataI scan: session.getScans_scan()){
+				final ExportAnonymizer anonymizer = new ExportAnonymizer(_xsyncXnatInfo, session, destProject, cacheSessionPath, scan);
+				boolean rejected = this.applyAnonymizationToFiles(session, cacheSessionPath, anonymizer);
+
+				if (rejected) {
+					for(int i = 0; i < session.getScans_scan().size(); i++) {
+						if(StringUtils.equals(session.getScans_scan().get(i).getId(),scan.getId())){
+							session.getScans_scan().remove(i);
+							break;
+						}
+					}
+				}
+			}
 		} catch (TransactionException e) {
 			logger.error("applyAnonymizationToFiles", e);
 			throw new Exception(e);
@@ -128,14 +140,15 @@ public class XsyncAnonymizer implements AnonymizerI {
 	 * @param anonymizer the anonymizer
 	 * @throws TransactionException the transaction exception
 	 */
-	public void applyAnonymizationToFiles(final XnatImagesessiondata session,String sessionPath, final ExportAnonymizer anonymizer) throws TransactionException{
+	public boolean applyAnonymizationToFiles(final XnatImagesessiondata session,String sessionPath, final ExportAnonymizer anonymizer) throws TransactionException{
+		final boolean[] rejected = new boolean[1];
 		if(session instanceof XnatImagesessiondata){
 			File tmpDir = new File(System.getProperty("java.io.tmpdir"), "anon_backup");
 			try {
 				new CopyOp(new OperationI<Map<String,File>>() {
 					@Override
 					public void run(Map<String, File> a) throws Throwable {
-						anonymizer.call();
+						rejected[0] = anonymizer.call();
 					}
 				}, tmpDir,new File(sessionPath)).run();
 			}catch(Exception e){
@@ -143,6 +156,7 @@ public class XsyncAnonymizer implements AnonymizerI {
 				logger.error("Exception while applying Anonymization To Files",e);
 			}
 		}
+		return rejected[0];
 	}
 	
 	/**

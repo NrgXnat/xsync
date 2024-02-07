@@ -22,7 +22,7 @@ import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExportAnonymizer extends AbstractExportAnonymizer implements Callable<Void>{
+public class ExportAnonymizer extends AbstractExportAnonymizer implements Callable<Boolean>{
 	
 	private final static Logger logger = LoggerFactory.getLogger(ExportAnonymizer.class);
 
@@ -34,6 +34,9 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 	final XnatImagesessiondataI s;
 	final String path;
 	final String subjectLabel;
+
+	final XnatImagescandataI scan;
+
 	String scriptContent="";
 	private final XsyncXnatInfo _xsyncXnatInfo;
 	
@@ -43,7 +46,7 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 	 * @param projectId The project Id, eg. xnat_E*
 	 * @param sessionPath The root path of this project's session directory
 	 */
-	public ExportAnonymizer(final XsyncXnatInfo xsyncXnatInfo, XnatImagesessiondataI s, String projectId, String sessionPath){
+	public ExportAnonymizer(final XsyncXnatInfo xsyncXnatInfo, XnatImagesessiondataI s, String projectId, String sessionPath, final XnatImagescandataI scan){
 		_xsyncXnatInfo = xsyncXnatInfo;
 		this.s = s;
 		this.projectId= projectId;
@@ -51,9 +54,10 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 		this.label = s.getLabel();
 		this.path = DicomEdit.buildScriptPath(DicomEdit.ResourceScope.PROJECT, projectId);
 		this.subjectLabel = null;
+		this.scan = scan;
 	}
 	
-	public ExportAnonymizer(final XsyncXnatInfo xsyncXnatInfo, String label, XnatImagesessiondataI s, String projectId, String sessionPath) {
+	public ExportAnonymizer(final XsyncXnatInfo xsyncXnatInfo, String label, XnatImagesessiondataI s, String projectId, String sessionPath, final XnatImagescandataI scan) {
 		_xsyncXnatInfo = xsyncXnatInfo;
 		this.s = s;
 		this.projectId = projectId;
@@ -61,9 +65,10 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 		this.label = label;
 		this.path = DicomEdit.buildScriptPath(DicomEdit.ResourceScope.PROJECT, projectId);
 		this.subjectLabel = null;
+		this.scan = scan;
 	} 
 	
-	public ExportAnonymizer(final XsyncXnatInfo xsyncXnatInfo, XnatImagesessiondataI s, String subjectLabel, String projectId, String sessionPath){
+	public ExportAnonymizer(final XsyncXnatInfo xsyncXnatInfo, XnatImagesessiondataI s, String subjectLabel, String projectId, String sessionPath, final XnatImagescandataI scan){
 		_xsyncXnatInfo = xsyncXnatInfo;
 		this.s = s;
 		this.projectId= projectId;
@@ -71,6 +76,7 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 		this.label = s.getLabel();
 		this.path = DicomEdit.buildScriptPath(DicomEdit.ResourceScope.PROJECT, projectId);
 		this.subjectLabel = subjectLabel;
+		this.scan = scan;
 	}
 	
 	/**
@@ -116,7 +122,6 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 	public List<File> getFilesToAnonymize() {
 		List<File> ret = new ArrayList<>();
 		// anonymize everything in srcRootPath
-		for(final XnatImagescandataI scan: s.getScans_scan()) {
 			for (final XnatAbstractresourceI res:scan.getFile()) {
 				if (res instanceof XnatResource) {
 					final XnatResource abs=(XnatResource)res;
@@ -127,7 +132,6 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 					}
 				}
 			}
-		}
 		return ret;
 	}
 	
@@ -153,10 +157,4 @@ public class ExportAnonymizer extends AbstractExportAnonymizer implements Callab
 	boolean isEnabled() {
 		return true;
 	}
-	
-	public java.lang.Void call() throws Exception {
-		super.call();
-		return null;
-	}
-	
 }
