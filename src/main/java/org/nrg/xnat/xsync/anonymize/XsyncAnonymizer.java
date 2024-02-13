@@ -86,17 +86,14 @@ public class XsyncAnonymizer implements AnonymizerI {
 	@Override
 	public void anonymize(final XnatImagesessiondata session, final String destProject, final String cacheSessionPath) throws Exception {
 		try {
-			for(XnatImagescandataI scan: session.getScans_scan()){
+			for(int j = (session.getScans_scan().size() - 1) ; j >= 0; j--) {
+				XnatImagescandataI scan = session.getScans_scan().get(j);
+
 				final ExportAnonymizer anonymizer = new ExportAnonymizer(_xsyncXnatInfo, session, destProject, cacheSessionPath, scan);
 				boolean rejected = this.applyAnonymizationToFiles(session, cacheSessionPath, anonymizer);
 
 				if (rejected) {
-					for(int i = 0; i < session.getScans_scan().size(); i++) {
-						if(StringUtils.equals(session.getScans_scan().get(i).getId(),scan.getId())){
-							session.getScans_scan().remove(i);
-							break;
-						}
-					}
+						session.getScans_scan().remove(j);
 				}
 			}
 		} catch (TransactionException e) {
