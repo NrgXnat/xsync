@@ -571,7 +571,7 @@ public class XsyncExperimentTransfer {
             if (!didXsyncSync) {
                 XsyncProjectVerifier projectVerifier = new XsyncProjectVerifier(_manager, _queryResultUtil, _jdbcTemplate, projectSyncConfiguration, _serializer);
                 //TODO - include DICOM UID here
-                final String uri = remoteUrl + "/data/archive/experiments?xnat:imagesessiondata/project=" + remoteProjectId + "&xnat:mrsessiondata/label=" + expSyncItem.getRemoteLabel() + "&format=json";
+                final String uri = remoteUrl + "/data/archive/experiments?xnat:imagesessiondata/project=" + remoteProjectId + "&xnat:mrsessiondata/label=" + expSyncItem.getRemoteLabel() + "&format=json&offset=*";
                 RemoteConnectionResponse response = projectVerifier.get(uri);
                 if (response.wasSuccessful()) {
                     try {
