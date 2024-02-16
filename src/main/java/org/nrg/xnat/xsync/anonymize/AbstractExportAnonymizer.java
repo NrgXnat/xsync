@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import org.nrg.xnat.archive.ArchivingException;
+import org.nrg.xnat.helpers.merge.MergeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
@@ -40,6 +42,13 @@ public abstract class AbstractExportAnonymizer implements Callable<Boolean> {
 		if (StringUtils.isNotEmpty(scriptContent)) {
 			final MizerService service = XDAT.getContextService().getBeanSafely(MizerService.class);
 			final List<AnonymizationResult> anonResult = service.anonymize(files, this.getProjectName(), this.getSubject(), this.getLabel(), new Long(0), scriptContent, true, false);
+
+			try {
+				MergeUtils.deleteRejectedFiles(logger, anonResult, getProjectName());
+			} catch (ArchivingException e) {
+				throw new MizerException(e);
+			}
+
 			if (this.next != null) {
 				final List<AnonymizationResult> joiner = new ArrayList<>();
 				joiner.addAll(anonResult);

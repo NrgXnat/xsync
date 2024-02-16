@@ -19,10 +19,13 @@ import org.nrg.transaction.operations.CopyOp;
 import org.nrg.transaction.OperationI;
 import org.nrg.transaction.TransactionException;
 import org.nrg.xdat.model.CatEntryI;
+import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatResourcecatalogI;
+import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
+import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xnat.utils.CatalogUtils;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.slf4j.Logger;
@@ -94,6 +97,12 @@ public class XsyncAnonymizer implements AnonymizerI {
 
 				if (rejected) {
 						session.getScans_scan().remove(j);
+				}else{
+					for(XnatAbstractresourceI res: scan.getFile()){
+						XnatAbstractresource abstRes = (XnatAbstractresource)res;
+						res.setFileCount(abstRes.getCount(cacheSessionPath));
+						res.setFileSize(abstRes.getSize(cacheSessionPath));
+					}
 				}
 			}
 		} catch (TransactionException e) {

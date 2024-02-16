@@ -107,7 +107,7 @@ public class XsyncProjectReportGenerator {
 		final String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo()
 				.getRemoteProjectId();
 		final String uri = remoteUrl + "/data/experiments?format=csv&project=" + remoteProjectId
-				+ "&columns=ID,label,URI,subject_ID,subject_label";
+				+ "&columns=ID,label,URI,subject_ID,subject_label&offset=*";
 		final RemoteConnectionResponse response = getResult(uri);
 		if (!response.wasSuccessful()) {
 			throw new XsyncRemoteConnectionException("ERROR:  Could not check remote site for data.");
