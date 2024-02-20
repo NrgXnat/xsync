@@ -15,6 +15,7 @@ import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatImageassessordata;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xnat.utils.CatalogUtils;
+import org.nrg.xnat.xsync.anonymize.AnonScanResult;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 
@@ -79,7 +80,7 @@ public class ResourceUtils {
           }
 	  }
 	  
-	  public Map<String, String> verify(String localCatalogFilePath, JsonNode remoteFiles) throws NotFoundException {
+	  public Map<String, String> verify(String localCatalogFilePath, JsonNode remoteFiles, AnonScanResult anonScanResults) throws NotFoundException {
 		  Map<String, String> filesNotFound = new HashMap<String, String>();
 		  JsonNode resultNode = getResultNode(remoteFiles);
 		  File catalogFile = new File(localCatalogFilePath);
@@ -96,7 +97,9 @@ public class ResourceUtils {
 			  }
 			  boolean fileExists = fileExists(entryName, entryUri, resultNode);
 			  if (!fileExists) {
-				  filesNotFound.put(entryName + " not found " , entryUri);
+					if(anonScanResults == null || !anonScanResults.containsResult(entryName)) {
+						filesNotFound.put(entryName + " not found ", entryUri);
+					}
 			  }
 		  }
 		  return filesNotFound;

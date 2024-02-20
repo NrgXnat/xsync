@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
  * @author Mohana Ramaratnam
  */
 import org.apache.commons.lang3.StringUtils;
+import org.nrg.dicom.mizer.objects.AnonymizationResult;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.model.XnatImagesessiondataI;
@@ -22,7 +23,7 @@ import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExportAnonymizer extends AbstractExportAnonymizer implements Callable<Boolean>{
+public class ExportAnonymizer extends AbstractExportAnonymizer implements Callable<List<AnonymizationResult>>{
 	
 	private final static Logger logger = LoggerFactory.getLogger(ExportAnonymizer.class);
 

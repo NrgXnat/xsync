@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xnat.xsync.anonymize.AnonScanResult;
 import org.nrg.xsync.utils.XsyncUtils;
 
 
@@ -15,9 +16,22 @@ public class ScanSyncItem extends SyncedItem{
 	
 	ArrayList<ResourceSyncItem> resources;
 
+	AnonScanResult anonScanResults;
+
 	public ScanSyncItem(String localId, String localLabel) {
 		super(localId, localLabel);
 		resources = new ArrayList<ResourceSyncItem>();
+		this.anonScanResults = null;
+	}
+
+	public ScanSyncItem(String localId, String localLabel, AnonScanResult anonScanResults) {
+		super(localId, localLabel);
+		resources = new ArrayList<ResourceSyncItem>();
+		this.anonScanResults = anonScanResults;
+	}
+
+	public AnonScanResult getAnonScanResults() {
+		return anonScanResults;
 	}
 
 	/**

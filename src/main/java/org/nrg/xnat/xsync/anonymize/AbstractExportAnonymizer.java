@@ -7,6 +7,7 @@ package org.nrg.xnat.xsync.anonymize;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -18,12 +19,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.nrg.dicom.mizer.exceptions.MizerException;
 import org.nrg.dicom.mizer.exceptions.ScriptEvaluationException;
 import org.nrg.dicom.mizer.objects.AnonymizationResult;
-import org.nrg.dicom.mizer.objects.AnonymizationResultReject;
 import org.nrg.dicom.mizer.service.MizerService;
 import org.nrg.xdat.XDAT;
 
 
-public abstract class AbstractExportAnonymizer implements Callable<Boolean> {
+public abstract class AbstractExportAnonymizer implements Callable<List<AnonymizationResult>> {
 	public static final Logger logger = LoggerFactory.getLogger(AbstractExportAnonymizer.class);
 
 	AbstractExportAnonymizer next = null;
@@ -97,14 +97,14 @@ public abstract class AbstractExportAnonymizer implements Callable<Boolean> {
 	 */
 	abstract List<File> getFilesToAnonymize() throws IOException;
 
-	public Boolean call() throws Exception {
+	public List<AnonymizationResult> call() throws Exception {
 		if (this.getScript() != null && this.isEnabled()) {
 			final List<File> fs = this.getFilesToAnonymize();
-			return this.anonymize(fs).stream().allMatch(AnonymizationResultReject.class::isInstance);
+			return this.anonymize(fs);
 		} else {
 			// there is no anon script
 		}
-		return false;
+		return Collections.emptyList();
 	}
 
 	

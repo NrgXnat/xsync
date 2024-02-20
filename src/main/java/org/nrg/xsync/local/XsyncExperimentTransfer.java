@@ -120,18 +120,18 @@ public class XsyncExperimentTransfer {
                 if (imagingSessionNeedsOkToSync(orig.getXSIType())) {
                     boolean updateOkToSyncAssessorStatus = true;
                     if (hasBeenMarkedOkToSyncAndNotSyncedYet(orig.getId())) {
-                        XnatImagesessiondata cleaned_assessor = null;
+                        SessionToSync cleaned_assessor = null;
                         try {
                             cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata) remoteSubject, orig);
-                            cleaned_assessor.setProject(remoteSubject.getProject());
+                            cleaned_assessor.session.setProject(remoteSubject.getProject());
                         } catch (Exception e) {
                             cleaned_assessor = null;
                             throw e;
                         }
                         if (cleaned_assessor != null) {
-                            boolean stored = storeXar((XnatImagesessiondata) orig, remoteSubject.getProject(), (XnatSubjectdata) remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
+                            boolean stored = storeXar((XnatImagesessiondata) orig, remoteSubject.getProject(), (XnatSubjectdata) remoteSubject, cleaned_assessor.session, updateOkToSyncAssessorStatus, cleaned_assessor);
                             if (!stored)
-                                throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel());
+                                throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.session.getLabel());
                         }
                     } else { //Needs OKToSync which has not been marked yet. So Skip
                         ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(), orig.getLabel());
@@ -143,14 +143,14 @@ public class XsyncExperimentTransfer {
                     }
                 } else { //Does not need an OK to Sync - so Push it.
                     boolean updateOkToSyncAssessorStatus = false; //No SyncAssessor exists in this case
-                    XnatImagesessiondata cleaned_assessor = null;
+                    SessionToSync cleaned_assessor = null;
                     try {
                         cleaned_assessor = experimentFilter.prepareImagingSessionToSync((XnatSubjectdata) remoteSubject, orig);
                         if (cleaned_assessor != null) {
-                            cleaned_assessor.setProject(remoteSubject.getProject());
-                            boolean stored = storeXar((XnatImagesessiondata) orig, remoteSubject.getProject(), (XnatSubjectdata) remoteSubject, cleaned_assessor, updateOkToSyncAssessorStatus);
+                            cleaned_assessor.session.setProject(remoteSubject.getProject());
+                            boolean stored = storeXar((XnatImagesessiondata) orig, remoteSubject.getProject(), (XnatSubjectdata) remoteSubject, cleaned_assessor.session, updateOkToSyncAssessorStatus, cleaned_assessor);
                             if (!stored) {
-                                throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.getLabel());
+                                throw new XsyncStoreException("Unable to store for subject " + remoteSubject.getLabel() + " experiment " + cleaned_assessor.session.getLabel());
                             }
                         } else {
                             recordExcludedAssessor(remoteSubject, orig, XsyncUtils.SYNC_STATUS_SKIPPED_BY_FILTER, "Experiment " + orig.getLabel() + " skipped due to filter.");
@@ -309,7 +309,7 @@ public class XsyncExperimentTransfer {
         return stored;
     }
 
-    private boolean storeXar(XnatImagesessiondata orig, String targetproject, XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor) throws XsyncRemoteConnectionException {
+    private boolean storeXar(XnatImagesessiondata orig, String targetproject, XnatSubjectdata targetsubject, XnatImagesessiondata target, boolean updateSyncAssessor, SessionToSync sessionToSync) throws XsyncRemoteConnectionException {
         log.debug("Starting storeXar process");
         boolean stored;
         _syncStatusService.registerCurrentExperiment(_localProject.getId(), orig.getLabel(), orig.getXSIType());
@@ -390,7 +390,7 @@ public class XsyncExperimentTransfer {
                     final XnatImagescandata scan = (XnatImagescandata) scans.get(i);
                     scan.setImageSessionId(remote_id);
                     scan.setProject(target.getProject());
-                    final ScanSyncItem scanSyncItem = new ScanSyncItem(scan.getId(), scan.getType());
+                    final ScanSyncItem scanSyncItem = new ScanSyncItem(scan.getId(), scan.getType(), sessionToSync.getByScanId(scan.getId()));
                     scanSyncItem.setXsiType(scan.getXSIType());
                     scanSyncItem.extractDetails(scan);
 
@@ -764,7 +764,7 @@ public class XsyncExperimentTransfer {
                         final String uri = remoteUrl + "/data/archive/projects/" + remoteProjectId + "/subjects/" + remoteSubject.getLabel() + "/experiments/" + expSyncItem.getRemoteId() + "/scans/" + scan.getId() + "/resources/" + rscAbsRsc.getLabel() + "/files?format=JSON";
                         Map<String, String> fileComparison;
                         try {
-                            fileComparison = projectResourceVerifier.verify(archiveDirectory, remoteProjectId, rscAbsRsc.getLabel(), uri);
+                            fileComparison = projectResourceVerifier.verify(archiveDirectory, remoteProjectId, rscAbsRsc.getLabel(), uri, scanItem.getAnonScanResults());
                         } catch (Exception e) {
                             fileComparison = new HashMap<String, String>();
                             fileComparison.put(XsyncUtils.XSYNC_VERIFICATION_STATUS, XsyncUtils.XSYNC_VERIFICATION_STATUS_FAILED_TO_CONNECT);

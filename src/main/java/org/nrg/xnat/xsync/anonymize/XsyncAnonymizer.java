@@ -10,11 +10,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.lang.StringUtils;
+import java.util.stream.Collectors;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.dcm4che2.io.DicomInputStream;
 import org.nrg.action.ServerException;
+import org.nrg.dicom.mizer.objects.AnonymizationResult;
+import org.nrg.dicom.mizer.objects.AnonymizationResultReject;
 import org.nrg.transaction.operations.CopyOp;
 import org.nrg.transaction.OperationI;
 import org.nrg.transaction.TransactionException;
@@ -25,7 +27,6 @@ import org.nrg.xdat.model.XnatResourcecatalogI;
 import org.nrg.xdat.om.XnatAbstractresource;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
-import org.nrg.xnat.services.archive.CatalogService;
 import org.nrg.xnat.utils.CatalogUtils;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.slf4j.Logger;
@@ -87,23 +88,31 @@ public class XsyncAnonymizer implements AnonymizerI {
 	 */
 	// have to rename files.
 	@Override
-	public void anonymize(final XnatImagesessiondata session, final String destProject, final String cacheSessionPath) throws Exception {
+	public List<AnonScanResult> anonymize(final XnatImagesessiondata session, final String destProject, final String cacheSessionPath) throws Exception {
+		final List<AnonScanResult> anonScanResults = new ArrayList<>();
 		try {
 			for(int j = (session.getScans_scan().size() - 1) ; j >= 0; j--) {
 				XnatImagescandataI scan = session.getScans_scan().get(j);
 
 				final ExportAnonymizer anonymizer = new ExportAnonymizer(_xsyncXnatInfo, session, destProject, cacheSessionPath, scan);
-				boolean rejected = this.applyAnonymizationToFiles(session, cacheSessionPath, anonymizer);
+				final List<AnonymizationResult> anonResults = this.applyAnonymizationToFiles(session, cacheSessionPath, anonymizer);
 
-				if (rejected) {
+				AnonScanResult anonScanResult = new AnonScanResult(scan.getId());
+
+				if (anonResults.stream().allMatch(AnonymizationResultReject.class::isInstance)) {
 						session.getScans_scan().remove(j);
+					anonScanResult.setRemoved(true);
 				}else{
 					for(XnatAbstractresourceI res: scan.getFile()){
 						XnatAbstractresource abstRes = (XnatAbstractresource)res;
 						res.setFileCount(abstRes.getCount(cacheSessionPath));
 						res.setFileSize(abstRes.getSize(cacheSessionPath));
 					}
+
+					anonScanResult.setResults(anonResults.stream().filter(AnonymizationResultReject.class::isInstance).collect(Collectors.toList()));
 				}
+
+				anonScanResults.add(anonScanResult);
 			}
 		} catch (TransactionException e) {
 			logger.error("applyAnonymizationToFiles", e);
@@ -114,10 +123,11 @@ public class XsyncAnonymizer implements AnonymizerI {
 		} catch (Exception e) {
 			throw new Exception("Failed to anonymize xml:" + session.getLabel());
 		}
+		return anonScanResults;
 	}
 
-	
-/*	private void copyScanFiles(final XnatImagesessiondata session, File cachePath) throws IOException {
+
+	/*	private void copyScanFiles(final XnatImagesessiondata session, File cachePath) throws IOException {
 		for(final XnatImagescandataI scan: session.getScans_scan()) {
 			for (final XnatAbstractresourceI res:scan.getFile()) {
 				if (res instanceof XnatResource) {
@@ -142,19 +152,19 @@ public class XsyncAnonymizer implements AnonymizerI {
 	/**
 	 * Apply anonymization script.
 	 *
-	 * @param session the session
+	 * @param session    the session
 	 * @param anonymizer the anonymizer
 	 * @throws TransactionException the transaction exception
 	 */
-	public boolean applyAnonymizationToFiles(final XnatImagesessiondata session,String sessionPath, final ExportAnonymizer anonymizer) throws TransactionException{
-		final boolean[] rejected = new boolean[1];
+	public List<AnonymizationResult> applyAnonymizationToFiles(final XnatImagesessiondata session,String sessionPath, final ExportAnonymizer anonymizer) throws TransactionException{
+		final List<AnonymizationResult> anonResults = new ArrayList<>();
 		if(session instanceof XnatImagesessiondata){
 			File tmpDir = new File(System.getProperty("java.io.tmpdir"), "anon_backup");
 			try {
 				new CopyOp(new OperationI<Map<String,File>>() {
 					@Override
 					public void run(Map<String, File> a) throws Throwable {
-						rejected[0] = anonymizer.call();
+						anonResults.addAll(anonymizer.call());
 					}
 				}, tmpDir,new File(sessionPath)).run();
 			}catch(Exception e){
@@ -162,7 +172,7 @@ public class XsyncAnonymizer implements AnonymizerI {
 				logger.error("Exception while applying Anonymization To Files",e);
 			}
 		}
-		return rejected[0];
+		return anonResults;
 	}
 	
 	/**
