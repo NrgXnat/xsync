@@ -11,6 +11,13 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 # ChangeLog #
 
+## Version 1.7.0 As of March 1, 2023 ##
+
+* [PLUGINS-130](https://radiologics.atlassian.net/browse/PLUGINS-130) Support instance rejection in xsync anonymization
+
+**Requires XNAT 1.8.10 or newer**
+
+
 ## Version 1.6.0 As of June 15, 2022 ##
 
 * Fixed handling of resource files which when zipped generate a large size file. 

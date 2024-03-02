@@ -202,7 +202,7 @@ public class BatchExperimentSync {
     private boolean experimentExistsAtRemoteSiteWhenPushingNew(XnatExperimentdataI experiment) throws Exception {
         final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
         final String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
-        final String uri = remoteUrl + "/data/archive/experiments?xnat:imagesessiondata/project=" + remoteProjectId + "&xnat:mrsessiondata/label=" + experiment.getLabel() + "&format=json";
+        final String uri = remoteUrl + "/data/archive/experiments?xnat:imagesessiondata/project=" + remoteProjectId + "&xnat:mrsessiondata/label=" + experiment.getLabel() + "&format=json&offset=*";
         final XsyncProjectVerifier projectVerifier = new XsyncProjectVerifier(manager, queryResultUtil, jdbcTemplate, projectSyncConfiguration, serializer);
         final RemoteConnectionResponse response = projectVerifier.get(uri);
         if (!response.wasSuccessful()) {

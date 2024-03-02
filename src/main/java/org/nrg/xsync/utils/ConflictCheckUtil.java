@@ -27,7 +27,7 @@ public class ConflictCheckUtil {
 			) throws Exception {
         final String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
         final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
-		final String uri = remoteUrl +"/data/subjects?format=json&ID="+ remoteId + "&columns=ID,project,label,URI";
+		final String uri = remoteUrl +"/data/subjects?format=json&ID="+ remoteId + "&columns=ID,project,label,URI&offset=*";
 		final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(jdbcTemplate, queryResultUtil);
 		final RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(), projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 		final RemoteConnectionResponse connectionResponse = manager.getResult(connection,uri);
@@ -57,7 +57,7 @@ public class ConflictCheckUtil {
 			) throws Exception {
         final String remoteProjectId = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
         final String remoteUrl = projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl();
-		final String uri = remoteUrl +"/data/experiments?format=json&ID="+ remoteId + "&columns=ID,project,label,URI";
+		final String uri = remoteUrl +"/data/experiments?format=json&ID="+ remoteId + "&columns=ID,project,label,URI&offset=*";
 		final RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(jdbcTemplate, queryResultUtil);
 		final RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(), projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 		final RemoteConnectionResponse connectionResponse = manager.getResult(connection,uri);

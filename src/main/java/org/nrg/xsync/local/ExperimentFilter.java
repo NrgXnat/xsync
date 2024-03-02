@@ -18,6 +18,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnat.exceptions.InvalidArchiveStructure;
 import org.nrg.xnat.xsync.anonymize.AnonymizerI;
 import org.nrg.xnat.xsync.anonymize.XsyncAnonymizer;
+import org.nrg.xnat.xsync.anonymize.AnonScanResult;
 import org.nrg.xnat.xsync.transformer.TransformerHelper;
 import org.nrg.xnat.xsync.transformer.XsyncDataTypeSpecificTransformer;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
@@ -606,8 +607,9 @@ public class ExperimentFilter {
 	 * @throws Exception
 	 *             the exception
 	 */
-	public XnatImagesessiondata  prepareImagingSessionToSync(XnatSubjectdata newSubject, XnatImagesessiondata orig) throws Exception {
+	public SessionToSync  prepareImagingSessionToSync(XnatSubjectdata newSubject, XnatImagesessiondata orig) throws Exception {
 		XnatImagesessiondata exp = null;
+		List<AnonScanResult> anonResults = null;
 		try {
 			if(filterImagingAssessor(orig)!=null)
 			{
@@ -667,7 +669,7 @@ public class ExperimentFilter {
 				log.debug("Exp {} needs to be anonymized {}", exp.getLabel(), isExptToBeAnonymized);
 				if (isExptToBeAnonymized) {
 					log.debug("About to anonymize {}", exp.getLabel());
-					 anonymize(exp, newSubject.getProject(), cacheSessionPath);
+					anonResults = anonymize(exp, newSubject.getProject(), cacheSessionPath);
 					log.debug("DONE - anonymize {}", exp.getLabel());
 				}
 			}
@@ -675,24 +677,25 @@ public class ExperimentFilter {
 			log.error("{} {}", ex, ex.getLocalizedMessage());
 			throw ex;
 		}
-		return exp;
+		return new SessionToSync(exp,anonResults);
 	}
 	
 	
-	private void anonymize(XnatImagesessiondata exp, String destProject, String cacheSessionPath) throws Exception {
+	private List<AnonScanResult> anonymize(XnatImagesessiondata exp, String destProject, String cacheSessionPath) throws Exception {
 		if (exp.getScans_scan() != null && exp.getScans_scan().size() > 0) {
 			//Check to see if there are any files which have been copied. If there are any, anonymization needs to be performed
 			boolean hasDataToBeAnonymized = checkIfHasDataToBeAnonymized(exp);
 			if (hasDataToBeAnonymized) {
 				try {
 					AnonymizerI simpleExportAnonymizer = new XsyncAnonymizer(_xsyncXnatInfo);
-					simpleExportAnonymizer.anonymize(exp, destProject, cacheSessionPath);
+					return simpleExportAnonymizer.anonymize(exp, destProject, cacheSessionPath);
 				} catch(Exception e) {
 					log.error(e.getMessage());
 					throw e;
 				}
 			}
 		}
+		return Collections.emptyList();
 	}
 	
 	

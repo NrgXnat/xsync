@@ -6,19 +6,24 @@ package org.nrg.xnat.xsync.anonymize;
  */
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import org.nrg.xnat.archive.ArchivingException;
+import org.nrg.xnat.helpers.merge.MergeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.dicom.mizer.exceptions.MizerException;
 import org.nrg.dicom.mizer.exceptions.ScriptEvaluationException;
+import org.nrg.dicom.mizer.objects.AnonymizationResult;
 import org.nrg.dicom.mizer.service.MizerService;
 import org.nrg.xdat.XDAT;
 
 
-public abstract class AbstractExportAnonymizer implements Callable<java.lang.Void> {
+public abstract class AbstractExportAnonymizer implements Callable<List<AnonymizationResult>> {
 	public static final Logger logger = LoggerFactory.getLogger(AbstractExportAnonymizer.class);
 
 	AbstractExportAnonymizer next = null;
@@ -31,16 +36,26 @@ public abstract class AbstractExportAnonymizer implements Callable<java.lang.Voi
 		this.next = a;
 	}
 
-	public void anonymize(File f) throws MizerException {
+	public List<AnonymizationResult> anonymize(List<File> files) throws MizerException {
 		
 		String scriptContent = this.getScript();
-		logger.debug(f.getAbsolutePath());
 		if (StringUtils.isNotEmpty(scriptContent)) {
 			final MizerService service = XDAT.getContextService().getBeanSafely(MizerService.class);
-			service.anonymize(f, this.getProjectName(), this.getSubject(), this.getLabel(), true, new Long(0),scriptContent);
-			if (this.next != null) {
-				this.next.anonymize(f);
+			final List<AnonymizationResult> anonResult = service.anonymize(files, this.getProjectName(), this.getSubject(), this.getLabel(), new Long(0), scriptContent, true, false);
+
+			try {
+				MergeUtils.deleteRejectedFiles(logger, anonResult, getProjectName());
+			} catch (ArchivingException e) {
+				throw new MizerException(e);
 			}
+
+			if (this.next != null) {
+				final List<AnonymizationResult> joiner = new ArrayList<>();
+				joiner.addAll(anonResult);
+				joiner.addAll(this.next.anonymize(files));
+				return joiner;
+			}
+			return anonResult;
 		} else {
 			throw new ScriptEvaluationException("No anonymization script found");
 			//TODO
@@ -82,16 +97,14 @@ public abstract class AbstractExportAnonymizer implements Callable<java.lang.Voi
 	 */
 	abstract List<File> getFilesToAnonymize() throws IOException;
 
-	public java.lang.Void call() throws Exception {
+	public List<AnonymizationResult> call() throws Exception {
 		if (this.getScript() != null && this.isEnabled()) {
-			List<File> fs = this.getFilesToAnonymize();
-			for (File f : fs) {
-				this.anonymize(f);
-			}
+			final List<File> fs = this.getFilesToAnonymize();
+			return this.anonymize(fs);
 		} else {
 			// there is no anon script
 		}
-		return null;
+		return Collections.emptyList();
 	}
 
 	

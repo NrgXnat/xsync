@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.nrg.framework.services.SerializerService;
+import org.nrg.xnat.xsync.anonymize.AnonScanResult;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionHandler;
@@ -13,7 +14,6 @@ import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.utils.JSONUtils;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.nrg.xsync.utils.ResourceUtils;
-import org.nrg.xsync.utils.WorkFlowUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,13 +46,16 @@ public class XsyncProjectVerifier  {
 		_serializer = serializer;
     }
 
-    
-    public Map<String,String> verify(String local_catalog_file_path,String remote_project_id, String remote_resource_label, String uri) throws Exception{
+		public Map<String,String> verify(String local_catalog_file_path,String remote_project_id, String remote_resource_label, String uri) throws Exception {
+			return verify(local_catalog_file_path, remote_project_id, remote_resource_label, uri, null);
+		}
+
+		public Map<String,String> verify(String local_catalog_file_path,String remote_project_id, String remote_resource_label, String uri, AnonScanResult anonScanResults) throws Exception{
 		int count = 0;
 		int maxTries = XsyncUtils.GLOBAL_RETRY_COUNTS;
 		while(true) {
 		    try {
-		         return verifyWithoutRetry( local_catalog_file_path, remote_project_id,  remote_resource_label,  uri) ;
+		         return verifyWithoutRetry( local_catalog_file_path, remote_project_id,  remote_resource_label,  uri, anonScanResults) ;
 		    } catch (RuntimeException e) {
 		    	try {
 		    		e.printStackTrace();
@@ -113,7 +116,7 @@ public class XsyncProjectVerifier  {
     	}
     }
     
-    private Map<String,String> verifyWithoutRetry(String local_catalog_file_path,String remote_project_id, String remote_resource_label, String uri) throws Exception {
+    private Map<String,String> verifyWithoutRetry(String local_catalog_file_path,String remote_project_id, String remote_resource_label, String uri, AnonScanResult anonScanResults) throws Exception {
     	//Get all the resources on the remote side for this project
     	Map<String,String> filesNotFound = null;
  		try {
@@ -125,8 +128,10 @@ public class XsyncProjectVerifier  {
 				JSONUtils jsonUtils = new JSONUtils(_serializer);
 				JsonNode jsonNode = jsonUtils.toJSONNode(response.getResponseBody());
 				//Read the local Catalog and check if the file exists on the remote. 
-				filesNotFound =  resourceUtils.verify(local_catalog_file_path, jsonNode);
+				filesNotFound =  resourceUtils.verify(local_catalog_file_path, jsonNode, anonScanResults);
+
 				if (filesNotFound.size() > 0) {
+					//TODO: If files are missing - check for anon rejections
 					filesNotFound.put(XsyncUtils.XSYNC_VERIFICATION_STATUS, XsyncUtils.XSYNC_VERIFICATION_STATUS_MISSING_FILES);
 				}else {
 					filesNotFound.put(XsyncUtils.XSYNC_VERIFICATION_STATUS, XsyncUtils.XSYNC_VERIFICATION_STATUS_VERIFIED_AND_COMPLETE);
