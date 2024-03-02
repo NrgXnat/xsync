@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.8.10-SNAPSHOT'
+        vXnat = '1.8.10'
     }
     repositories {
         mavenLocal()
@@ -40,7 +40,7 @@ apply plugin: 'io.franzbecker.gradle-lombok'
 apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
-version '1.7.0-RC-SNAPSHOT'
+version '1.7.0'
 description "XNAT XSync Plugin"
 
 
