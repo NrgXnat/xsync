@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.8.10-SNAPSHOT'
+        vXnat = '1.8.11-SNAPSHOT'
     }
     repositories {
         mavenLocal()
@@ -143,7 +143,6 @@ dependencies {
     implementation "ecs:ecs"
 
     implementation "com.google.code.findbugs:jsr305"
-    implementation "org.jetbrains:annotations"
     implementation "org.kohsuke.metainf-services:metainf-services"
 }
 
