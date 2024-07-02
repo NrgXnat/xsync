@@ -100,7 +100,6 @@ dependencies {
     }
 
     implementation("org.restlet:org.restlet") { transitive = false }
-    implementation("org.apache.axis:axis") { transitive = false }
     implementation("dcm4che:dcm4che-core") { transitive = false }
     implementation("javax.mail:javax.mail-api") { transitive = false }
     implementation("com.google.code.gson:gson") { transitive = false }
