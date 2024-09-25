@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.8.10'
+        vXnat = '1.9.0-RC-SNAPSHOT'
     }
     repositories {
         mavenLocal()
@@ -40,7 +40,7 @@ apply plugin: 'io.franzbecker.gradle-lombok'
 apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
-version '1.7.0'
+version '1.8.0-RC-SNAPSHOT'
 description "XNAT XSync Plugin"
 
 
@@ -70,7 +70,6 @@ dependencies {
     implementation("org.nrg.xnat:xnat-data-models") {
         transitive = false
     }
-    implementation "org.nrg.xnat:tasks"
 
     implementation("org.nrg.xdat:core") {
         transitive = false
@@ -100,7 +99,6 @@ dependencies {
     }
 
     implementation("org.restlet:org.restlet") { transitive = false }
-    implementation("org.apache.axis:axis") { transitive = false }
     implementation("dcm4che:dcm4che-core") { transitive = false }
     implementation("javax.mail:javax.mail-api") { transitive = false }
     implementation("com.google.code.gson:gson") { transitive = false }
@@ -143,7 +141,6 @@ dependencies {
     implementation "ecs:ecs"
 
     implementation "com.google.code.findbugs:jsr305"
-    implementation "org.jetbrains:annotations"
     implementation "org.kohsuke.metainf-services:metainf-services"
 }
 
