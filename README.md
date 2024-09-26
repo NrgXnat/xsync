@@ -1,8 +1,6 @@
 # XSYNC plugin #
 
-XSYNC implemented as an XNAT 1.8.0 plugin.
-
-Xsync plugin enables automatic synchronization of data from a project in one XNAT system to a project in a second system. Xsync is configurable to ensure that only the desired data is delivered, and if required, data is properly de-identified, and that it is delivered on a pre-set schedule. 
+XSYNC is an XNAT plugin that enables automatic synchronization of data from a project in one XNAT system to a project in a second system. Xsync is configurable to ensure that only the desired data is delivered, and if required, data is properly de-identified, and that it is delivered on a pre-set schedule. 
 
 # Download #
 
@@ -11,7 +9,16 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 
 # ChangeLog #
 
-## Version 1.7.0 As of March 1, 2023 ##
+## Version 1.8.0 as of September 25, 2024
+
+* [XNAT-7990](https://radiologics.atlassian.net/browse/XNAT-7990), [XNAT-8037](https://radiologics.atlassian.net/browse/XNAT-8037), [PLUGINS-195](https://radiologics.atlassian.net/browse/PLUGINS-195): Support dependency updates for XNAT 1.9.0 compatibility
+* [PLUGINS-76](https://radiologics.atlassian.net/browse/PLUGINS-76): Properly handle paginated API calls in building data manifests for sync
+* [PLUGINS-136](https://radiologics.atlassian.net/browse/PLUGINS-136): Fix reporting on sync results to account for instance file rejection during anonymization
+
+**Requires XNAT 1.9.0 or newer**
+
+
+## Version 1.7.0 As of March 1, 2023 
 
 * [PLUGINS-130](https://radiologics.atlassian.net/browse/PLUGINS-130) Support instance rejection in xsync anonymization
 
