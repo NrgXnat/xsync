@@ -11,3 +11,4 @@ dependencies.txt
 src/beans/
 src/generated/
 .DS_Store
+gradle.properties

@@ -31,9 +31,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.google.gson.Gson;
 
-import au.com.bytecode.opencsv.CSVParser;
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
+import com.opencsv.CSVParser;
+import com.opencsv.CSVReader;
+import com.opencsv.CSVWriter;
 
 /**
  * The Class XsyncProjectReportGenerator.
@@ -112,8 +112,7 @@ public class XsyncProjectReportGenerator {
 		if (!response.wasSuccessful()) {
 			throw new XsyncRemoteConnectionException("ERROR:  Could not check remote site for data.");
 		} else {
-			CSVReader reader = new CSVReader(new StringReader(response.getResponseBody()), CSVParser.DEFAULT_SEPARATOR,
-					CSVParser.DEFAULT_QUOTE_CHARACTER, 1);
+			CSVReader reader = new CSVReader(new StringReader(response.getResponseBody()));
 			String[] data;
 			Map<String, String> experimentDataMap = new TreeMap<String, String>();
 			Map<String, String> subjectMap = new TreeMap<String, String>();
@@ -151,7 +150,7 @@ public class XsyncProjectReportGenerator {
 	public static String getReportCSV(Map<String, String> experimentDataMap, Map<String, String> subjectMap,
 			List<Map<String, Object>> resultList, String objectType) throws IOException {
 		final StringWriter sw = new StringWriter();
-		final CSVWriter csvWriter = new CSVWriter(sw, ',');
+		final CSVWriter csvWriter = new CSVWriter(sw);
 		csvWriter.writeAll(processRemoteData(experimentDataMap, subjectMap, resultList,objectType));
 		csvWriter.close();
 		sw.close();
