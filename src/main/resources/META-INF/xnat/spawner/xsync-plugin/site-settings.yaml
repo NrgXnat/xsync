@@ -20,7 +20,7 @@ siteSettings:
                     label: Remote Token Refresh
                     method: POST
                     url: /xapi/xsyncSitePreferences # url to save data
-                    contentType: text/json # submits json as text
+                    contentType: application/json # submits json as text
                     contents:
                         tokenRefreshInterval:
                             kind: panel.input.text
@@ -41,7 +41,7 @@ siteSettings:
                     label: Sync Retry Settings
                     method: POST
                     url: /xapi/xsyncSitePreferences
-                    contentType: text/json
+                    contentType: application/json
                     contents:
                         syncRetryInterval:
                             kind: panel.input.text
@@ -66,7 +66,7 @@ siteSettings:
                     label: Max. Total Uncompressed File Size Settings
                     method: POST
                     url: /xapi/xsyncSitePreferences
-                    contentType: json
+                    contentType: application/json
                     contents:
                         fileSizeHelptext:
                             tag: div.message

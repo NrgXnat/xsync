@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.9.1-SNAPSHOT'
+        vXnat = '1.9.0'
     }
     repositories {
         mavenLocal()
@@ -39,7 +39,7 @@ apply plugin: 'io.franzbecker.gradle-lombok'
 apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
-version '1.8.2-SNAPSHOT'
+version '1.8.1-SNAPSHOT'
 description "XNAT XSync Plugin"
 
 
@@ -135,7 +135,7 @@ dependencies {
     implementation "io.springfox:springfox-swagger-ui"
 
     implementation "org.slf4j:slf4j-api"
-    implementation "org.slf4j:slf4j-log4j12"
+    implementation "org.slf4j:log4j-over-slf4j"
 
     implementation "ecs:ecs"
 

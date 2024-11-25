@@ -10,10 +10,11 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 # ChangeLog #
 
 
-## Version 1.8.1 as of October 25, 2024
+## Version 1.8.1 as of November 23, 2024
 
 * Updated OpenCSV version to 5.9
 * Updated Gradle version 
+* [PLUGINS-199](https://radiologics.atlassian.net/browse/PLUGINS-199): Xsync Plugin Settings page is not saving
 
 ## Version 1.8.0 as of September 25, 2024
 

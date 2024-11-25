@@ -20,7 +20,7 @@ projectSettings:
                     label: XSync Aspera Settings
                     method: POST
                     url: /xapi/xsyncProjectPreferences/project/{{XNAT.data.projectID}}/aspera 
-                    contentType: json 
+                    contentType: application/json
                     contents:
                         asperaEnabled:
                             kind: panel.input.switchbox
