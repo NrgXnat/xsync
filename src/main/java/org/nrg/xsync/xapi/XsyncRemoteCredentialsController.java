@@ -242,30 +242,34 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	        if (status != null) {
 	            return new ResponseEntity<>(status);
 	        }
+			RemoteAliasEntity remoteAliasEntity = _remoteAliasService.getRemoteAliasEntity(localProject, host);
 
-	        
-	        RemoteAliasEntity remoteAliasEntity = _remoteAliasService.getRemoteAliasEntity(localProject, host);
-			
-	        try {
-	        	final URL url = new URL (host + "/data/JSESSIONID");
-	        	final byte[] encoding = Base64.encodeBase64((remoteAliasEntity.getRemote_alias_token() + ":" + remoteAliasEntity.getRemote_alias_password()).getBytes());
-	        	final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-				connection.setRequestMethod("GET");
-	        	connection.setDoOutput(true);
-	        	connection.setRequestProperty  ("Authorization", "Basic " + new String(encoding, "UTF-8"));
-	        	try (final InputStream content = connection.getInputStream()) {
-					final String results = IOUtils.toString(content, "UTF-8");
-					return new ResponseEntity<>(results, HttpStatus.OK);
+			if (isHostConnectionAllowed(remoteAliasEntity)) {
+				try {
+					final URL url = new URL (host + "/data/JSESSIONID");
+					final byte[] encoding = Base64.encodeBase64((remoteAliasEntity.getRemote_alias_token() + ":" + remoteAliasEntity.getRemote_alias_password()).getBytes());
+					final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					connection.setRequestMethod("GET");
+					connection.setDoOutput(true);
+					connection.setRequestProperty  ("Authorization", "Basic " + new String(encoding, "UTF-8"));
+					try (final InputStream content = connection.getInputStream()) {
+						final String results = IOUtils.toString(content, "UTF-8");
+						return new ResponseEntity<>(results, HttpStatus.OK);
+					}
+				} catch (Exception e) {
+					return new ResponseEntity<>("Could not connect", HttpStatus.BAD_REQUEST);
 				}
-	        } catch (Exception e) {
-	        	return new ResponseEntity<>("Could not connect", HttpStatus.BAD_REQUEST);
-	        }
-	        
+			} else {
+				return new ResponseEntity<>("Check project configuration", HttpStatus.FORBIDDEN);
+			}
 		}catch (Exception exception) {
         	return new ResponseEntity<>("Could not connect", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
 	}
 
+	private boolean isHostConnectionAllowed(final RemoteAliasEntity remoteAliasEntity) {
+		return (null != remoteAliasEntity) ? true : false;
+	}
 	
 	
 }

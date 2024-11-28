@@ -30,7 +30,6 @@ buildscript {
 
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'groovy'
-apply plugin: 'maven'
 apply plugin: 'java'
 apply plugin: 'maven-publish'
 apply plugin: 'idea'
@@ -40,7 +39,7 @@ apply plugin: 'io.franzbecker.gradle-lombok'
 apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
-version '1.8.0'
+version '1.8.1-RC-SNAPSHOT'
 description "XNAT XSync Plugin"
 
 
@@ -53,7 +52,7 @@ repositories {
 
 // Use this configuration to put dependencies into the fat jar
 configurations {
-    compile.extendsFrom(compileAndInclude)
+    implementation.extendsFrom(implementAndInclude)
 }
 
 sourceCompatibility = 1.8
@@ -105,7 +104,7 @@ dependencies {
 
     implementation("eu.bitwalker:UserAgentUtils") { transitive = false }
 
-    compileAndInclude group: 'net.sf.opencsv', name: 'opencsv', version: '2.3'
+    implementAndInclude('com.opencsv:opencsv:5.9')
 
     implementation "commons-beanutils:commons-beanutils"
     implementation "commons-codec:commons-codec"
@@ -136,7 +135,7 @@ dependencies {
     implementation "io.springfox:springfox-swagger-ui"
 
     implementation "org.slf4j:slf4j-api"
-    implementation "org.slf4j:slf4j-log4j12"
+    implementation "org.slf4j:log4j-over-slf4j"
 
     implementation "ecs:ecs"
 
@@ -165,9 +164,10 @@ sourceSets {
 
 task fatJar(type: Jar) {
     zip64 true
-    baseName = project.name + '-all'
+    archiveBaseName = project.name + '-all'
+    setDuplicatesStrategy(org.gradle.api.file.DuplicatesStrategy.EXCLUDE)
     from {
-        configurations.compileAndInclude.collect { it.isDirectory() ? it : zipTree(it) }
+        configurations.implementAndInclude.collect { it.isDirectory() ? it : zipTree(it) }
     } {
         exclude "META-INF/*.SF"
         exclude "META-INF/*.DSA"
@@ -180,6 +180,14 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             artifact fatJar
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
         }
     }
     repositories{ 
