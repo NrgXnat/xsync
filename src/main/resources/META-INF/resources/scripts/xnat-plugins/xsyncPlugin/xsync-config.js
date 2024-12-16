@@ -496,8 +496,8 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 						if(validateEmailAddresses() && validateNoOfRetryDays())
 						{
 							// Only include visible fields and checkboxes, which are of type 'hidden'
-							var json = form2js($('#root.xnat-form-panel').find(':input').filter(':visible, [type="hidden"]').toArray());
-
+							const stringValues = ["remote_project_id"];
+                            var json = form2js($('#root.xnat-form-panel').find(':input').filter(':visible, [type="hidden"]').toArray(), undefined, undefined, undefined, undefined, undefined, stringValues);
 							// Source project not on the form
 							json.source_project_id = XNAT.data.context.project;
 
@@ -507,9 +507,9 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 							// Delete stuff we don't want serialized
 							delete json.subjectDetailsCheckbox;
 							delete json.advancedSyncCheckbox;
-
 							// don't trample on advanced settings that aren't defined in the UI
 							json = XSYNC.xsyncconfig.mergeConfig(json);
+
 
 							XSYNC.xsyncconfig.newRemoteUrl = json.remote_url;
                             XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
