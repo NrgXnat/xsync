@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.9.0'
+        vXnat = '1.10.0-SNAPSHOT'
     }
     repositories {
         mavenLocal()
@@ -39,7 +39,7 @@ apply plugin: 'io.franzbecker.gradle-lombok'
 apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
-version '1.8.2-SNAPSHOT'
+version '1.10.0-SNAPSHOT'
 description "XNAT XSync Plugin"
 
 
@@ -55,8 +55,8 @@ configurations {
     implementation.extendsFrom(implementAndInclude)
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 21
+targetCompatibility = 21
 
 dependencyManagement.imports {
     mavenBom "org.nrg:parent:${vXnat}"
@@ -141,6 +141,11 @@ dependencies {
 
     implementation "com.google.code.findbugs:jsr305"
     implementation "org.kohsuke.metainf-services:metainf-services"
+}
+
+lombok {
+    version = dependencyManagement.importedProperties["lombok.version"] as String
+    sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
 }
 
 configurations {
