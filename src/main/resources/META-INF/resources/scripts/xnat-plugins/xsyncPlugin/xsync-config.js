@@ -1,85 +1,82 @@
 if (typeof XSYNC === 'undefined') {
     XSYNC = {};
 }
-if (typeof XSYNC.xsyncconfig === 'undefined') {
-    XSYNC.xsyncconfig = {};
-    XSYNC.xsyncconfig.firsttime = false;
+if (typeof XSYNC.xsyncConfig === 'undefined') {
+    XSYNC.xsyncConfig = {};
+    XSYNC.xsyncConfig.firstTime = false;
 }
-if (typeof XSYNC.credentialsconfig === 'undefined') {
-    XSYNC.credentialsconfig = {};
+if (typeof XSYNC.credentialsConfig === 'undefined') {
+    XSYNC.credentialsConfig = {};
 }
 
 (function(){
 
-// Merge any existing settings and change any modified values
-// without destroying saved 'advanced' settings.
-    XSYNC.xsyncconfig.mergeConfig = function(data){
-        return XSYNC.xsyncconfig.configuration = extend(true, XSYNC.xsyncconfig.configuration || {}, data);
+    // Merge any existing settings and change any modified values
+    // without destroying saved 'advanced' settings.
+    XSYNC.xsyncConfig.mergeConfig = function(data){
+        return XSYNC.xsyncConfig.configuration = extend(true, XSYNC.xsyncConfig.configuration || {}, data);
     };
-
 
     /*
      Initialization
-     */
-
-    XSYNC.xsyncconfig.init = function(){
+    */
+    XSYNC.xsyncConfig.init = function(){
         XNAT.xhr.getJSON({
             url: XNAT.url.restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
             success: function(data){
-                XSYNC.xsyncconfig.mergeConfig(data);
-                // XSYNC.xsyncconfig.configuration = data;
-                XSYNC.xsyncconfig.showConfigPanel()
+                XSYNC.xsyncConfig.mergeConfig(data);
+                XSYNC.xsyncConfig.showConfigPanel()
             },
             error: function(){
-                XSYNC.xsyncconfig.initialConfig()
+                XSYNC.xsyncConfig.initialConfig()
             }
         })
     };
 
-    XSYNC.xsyncconfig.useDefaultConfig = function(){
+    XSYNC.xsyncConfig.useDefaultConfig = function(){
         // Use the defaults to populate config dialog
-        XSYNC.xsyncconfig.firsttime = true;
-        XSYNC.xsyncconfig.mergeConfig({});
-        // XSYNC.xsyncconfig.configuration = {};
-        XSYNC.xsyncconfig.configuration.project_resources = {};
-        XSYNC.xsyncconfig.configuration.subject_resources = {};
-        XSYNC.xsyncconfig.configuration.subject_assessors = {};
-        XSYNC.xsyncconfig.configuration.imaging_sessions = {};
+        XSYNC.xsyncConfig.firstTime = true;
+        XSYNC.xsyncConfig.mergeConfig({});
+        // XSYNC.xsyncConfig.configuration = {};
+        XSYNC.xsyncConfig.configuration.project_resources = {};
+        XSYNC.xsyncConfig.configuration.subject_resources = {};
+        XSYNC.xsyncConfig.configuration.subject_assessors = {};
+        XSYNC.xsyncConfig.configuration.imaging_sessions = {};
 
-        XSYNC.xsyncconfig.configuration.enabled = true;
-        XSYNC.xsyncconfig.configuration.source_project_id = XNAT.data.context.project;
-        XSYNC.xsyncconfig.configuration.sync_frequency = 'weekly';
-        XSYNC.xsyncconfig.configuration.sync_new_only = true;
-        XSYNC.xsyncconfig.configuration.identifiers = 'use_local';
-        XSYNC.xsyncconfig.configuration.remote_url = 'https://';
-        XSYNC.xsyncconfig.configuration.remote_project_id = '';
-        XSYNC.xsyncconfig.configuration.notification_emails = '';
-        XSYNC.xsyncconfig.configuration.customIdentifiers = 'dateTimeLabelGenerator';
-        XSYNC.xsyncconfig.configuration.anonymize = false;
-		XSYNC.xsyncconfig.configuration.no_of_retry_days = 3;
-        // XSYNC.xsyncconfig.configuration.ok_to_sync = false;
+        XSYNC.xsyncConfig.configuration.enabled = true;
+        XSYNC.xsyncConfig.configuration.source_project_id = XNAT.data.context.project;
+        XSYNC.xsyncConfig.configuration.sync_frequency = 'weekly';
+        XSYNC.xsyncConfig.configuration.sync_new_only = true;
+        XSYNC.xsyncConfig.configuration.identifiers = 'use_local';
+        XSYNC.xsyncConfig.configuration.remote_url = 'https://';
+        XSYNC.xsyncConfig.configuration.remote_project_id = '';
+        XSYNC.xsyncConfig.configuration.notification_emails = '';
+        XSYNC.xsyncConfig.configuration.customIdentifiers = 'dateTimeLabelGenerator';
+        XSYNC.xsyncConfig.configuration.anonymize = false;
+		XSYNC.xsyncConfig.configuration.no_of_retry_days = 3;
+        // XSYNC.xsyncConfig.configuration.ok_to_sync = false;
 
-        // XSYNC.xsyncconfig.configuration.subject_assessors.xsi_types = {};
-        // XSYNC.xsyncconfig.configuration.imaging_sessions.xsi_types = {};
-        XSYNC.xsyncconfig.configuration.project_resources.sync_type = 'none';
-        XSYNC.xsyncconfig.configuration.subject_resources.sync_type = 'none';
-        XSYNC.xsyncconfig.configuration.subject_assessors.sync_type = 'none';
-        XSYNC.xsyncconfig.configuration.imaging_sessions.sync_type = 'all';
-        // XSYNC.xsyncconfig.configuration.imaging_sessions.xsi_types.types_list = ['xnat:mrSessionData'];
+        // XSYNC.xsyncConfig.configuration.subject_assessors.xsi_types = {};
+        // XSYNC.xsyncConfig.configuration.imaging_sessions.xsi_types = {};
+        XSYNC.xsyncConfig.configuration.project_resources.sync_type = 'none';
+        XSYNC.xsyncConfig.configuration.subject_resources.sync_type = 'none';
+        XSYNC.xsyncConfig.configuration.subject_assessors.sync_type = 'none';
+        XSYNC.xsyncConfig.configuration.imaging_sessions.sync_type = 'all';
+        // XSYNC.xsyncConfig.configuration.imaging_sessions.xsi_types.types_list = ['xnat:mrSessionData'];
     };
 
-    XSYNC.xsyncconfig.initialConfig = function(){
+    XSYNC.xsyncConfig.initialConfig = function(){
         $("#xsync-config").spawn('button#xsync-begin-config.btn1', {
             type: 'button',
             html: 'Begin Configuration',
             onclick: function(){
-                    XSYNC.xsyncconfig.useDefaultConfig();
-                    XSYNC.xsyncconfig.editConfig();
+                XSYNC.xsyncConfig.useDefaultConfig();
+                XSYNC.xsyncConfig.editConfig();
             }
         });
     };
 
-    XSYNC.xsyncconfig.showConfigPanel = function(){
+    XSYNC.xsyncConfig.showConfigPanel = function(){
 
         $('#xsync-config').empty().append([
             '<button class="btn1 xsync-submit-button" id="xsync-edit-config" type="button">Edit Configuration</button>' +
@@ -89,67 +86,56 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             '<div id="xsync-history-table" style="max-height:300px;overflow-y:auto"></div>'
         ]);
 
-        $("#xsync-edit-config").on('click', function(){
-            XSYNC.xsyncconfig.editConfig();
+        $("#xsync-edit-config").on('click', function() {
+            XSYNC.xsyncConfig.editConfig();
         });
 
-        $("#xsync-credentials").on('click', function(){
-            XSYNC.credentialsconfig.enterCredentials();
+        $("#xsync-credentials").on('click', function() {
+            XSYNC.credentialsConfig.enterCredentials();
         });
 
-        $("#xsync-upload-anonymization")
-                .prop('disabled', XSYNC.xsyncconfig.configuration.anonymize === false)
-                .on('click', function(){
-                    XSYNC.xsyncconfig.submitDICOMAnonymization();
-                });
+        $("#xsync-upload-anonymization").prop('disabled', XSYNC.xsyncConfig.configuration.anonymize === false)
+            .on('click', function(){
+                XSYNC.xsyncConfig.submitDICOMAnonymization();
+        });
 
         XSYNC.reporting.showHistoryTable();
-
     };
 
-
-    /*
-     Remote Authentication
-     */
-
+    /////////////////////////
+    //Remote Authentication//
+    /////////////////////////
 
     /*
      * Get user credentials
      * @param {String} optional configuration JSON to submit if initial setup
      */
-
     function enterCredentials(configJson){
 
-        var remoteProjectId =
-                    XSYNC.xsyncconfig.configuration.remote_project_id ||
-                    $("#xsync-config-remote-project").val() ||
-                    "ERROR";
+        var remoteProjectId = XSYNC.xsyncConfig.configuration.remote_project_id ||
+            $("#xsync-config-remote-project").val() || "ERROR";
 
-        var newOnly =
-                    $("#xsync-config-newonly").val() ||
-                    XSYNC.xsyncconfig.configuration.sync_new_only ||
-                    true;
+        var newOnly = $("#xsync-config-new-only").val() ||
+            XSYNC.xsyncConfig.configuration.sync_new_only || true;
 
-        var credHost =
-                    XSYNC.xsyncconfig.configuration.remote_url != "https://" ?
-                            XSYNC.xsyncconfig.configuration.remote_url :
-                            $("#xsync-config-remote-url").val();
+        var credHost = XSYNC.xsyncConfig.configuration.remote_url != "https://" ?
+            XSYNC.xsyncConfig.configuration.remote_url : $("#xsync-config-remote-url").val();
 
         var modalContent = '' +
-                '<form id="xsync-remote-credentials">' +
-                '<h3 class="credentials-header">Enter credentials for: <span class="remote-site">' + credHost + '</span></h3>' +
-                '<input type="hidden" name="host" value="' + credHost + '">' +
-                '<input type="hidden" name="method" value="GET">' +
-                '<label class="credentials-input">' +
-                '<b>Username: </b>' +
-                '<input type="text" name="username" size="24">' +
-                '</label>' +
-                '<label class="credentials-input">' +
-                '<b>Password: </b>' +
-                '<input type="password" name="password" size="24">' +
-                '</label>' +
-                '</form>' +
-                '';
+            '<form id="xsync-remote-credentials">' +
+            '<h3 class="credentials-header">Enter credentials for: <span class="remote-site">' + credHost + '</span></h3>' +
+            '<input type="hidden" name="host" value="' + credHost + '">' +
+            '<input type="hidden" name="method" value="GET">' +
+            '<label class="credentials-input">' +
+            '<b>Username: </b>' +
+            '<input type="text" name="username" size="24">' +
+            '</label>' +
+            '<label class="credentials-input">' +
+            '<b>Password: </b>' +
+            '<input type="password" name="password" size="24">' +
+            '</label>' +
+            '</form>' +
+            '';
 
         var pModalOpts = {
             width: 480,
@@ -157,13 +143,12 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             id: 'xmodal-enter-credentials',
             title: "Enter remote server credentials",
             content: modalContent,
-            afterShow: function(){
+            afterShow: function() {
                 this.$modal.find('#xsync-credentials-username').focus();
             },
             ok: 'show',
             okLabel: 'Continue',
-            okAction: function(modl){
-
+            okAction: function(modl) {
                 var $form = modl.$modal.find('#xsync-remote-credentials');
 
                 var credHost = $form.find('[name="host"]').val();
@@ -208,10 +193,8 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     "timestamp": 1477006068199
                 };
 
-                credentialsAjax.done(function(data){
-
+                credentialsAjax.done(function(data) {
                     if (typeof data !== 'undefined' && typeof data.secret !== 'undefined') {
-
                         var formData = {
                             host: credHost,
                             localProject: XNAT.data.context.project,
@@ -221,10 +204,10 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                             secret: data.secret,
                             username: credUser
                         };
-                        try {
+
+                        if (Object.hasOwn(data, 'estimatedExpirationTime')) {
                             formData['estimatedExpirationTime'] = data.estimatedExpirationTime
                         }
-                        catch (err) {}
 
                         var saveCredentials = $.ajax({
                             type: 'POST',
@@ -238,16 +221,15 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                         saveCredentials.done(function(data, textStatus, jqXHR){
                             if (jqXHR.status == 202) {
                                 xmodal.message(
-                                        'Credentials saved', ' WARNING: ' + jqXHR.responseText + '\n' +
-                                        'Successfully saved credentials for remote server ' +
-                                        credHost
+                                    'Credentials saved', ' WARNING: ' + jqXHR.responseText + '\n' +
+                                    'Successfully saved credentials for remote server ' + credHost
                                 );
                             }
                             else {
-                                if (XSYNC.xsyncconfig.firsttime === false) {
+                                if (XSYNC.xsyncConfig.firstTime === false) {
                                     xmodal.message(
-                                            'Credentials saved', 'Successfully saved credentials for remote server ' +
-                                            credHost
+                                        'Credentials saved', 'Successfully saved credentials for remote server ' +
+                                        credHost
                                     );
                                 }
                             }
@@ -255,32 +237,29 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 
                             // submit the config json again if this was called from submitConfig
                             if (configJson !== undefined) {
-                                XSYNC.xsyncconfig.firsttime = false;
-				                XSYNC.xsyncconfig.newRemoteUrl = $('#xsync-config-remote-url').val()
-                                XSYNC.xsyncconfig.submitConfig(configJson)
+                                XSYNC.xsyncConfig.firstTime = false;
+				                XSYNC.xsyncConfig.newRemoteUrl = trimUrl($('#xsync-config-remote-url').val());
+                                XSYNC.xsyncConfig.submitConfig(configJson);
                             }
                         });
 
-                        saveCredentials.fail(function(data, textStatus, jqXHR){
+                        saveCredentials.fail(function(data, textStatus, jqXHR) {
                             xmodal.message(
-                                    'Error', 'Could not save credentials for remote server ' +
-                                    credHost + ' Cause: ' + data.statusText + " Details: " + data.responseText
+                                'Error', 'Could not save credentials for remote server ' +
+                                credHost + ' Cause: ' + data.statusText + " Details: " + data.responseText
                             );
                             modl.close();
                         });
-
                     }
                     else {
                         console.log(XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project));
                         xmodal.message('Error', 'ERROR:  Could not get alias token.  Please check username and password and try again.');
                     }
-
                 });
-                credentialsAjax.fail(function(data, textStatus, error){
+                credentialsAjax.fail(function(data, textStatus, error) {
                     console.log(XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project));
                     xmodal.message('Error', 'ERROR:  Could not get alias token.  Please check username and password and try again.');
                 });
-
             },
             okClose: false,
             cancel: 'Cancel',
@@ -292,18 +271,15 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         };
 
         xmodal.open(pModalOpts);
-
     }
 
-    XSYNC.credentialsconfig.enterCredentials = XSYNC.xsyncconfig.enterCredentials = enterCredentials;
+    XSYNC.credentialsConfig.enterCredentials = XSYNC.xsyncConfig.enterCredentials = enterCredentials;
 
-
-    function checkCredentials(callback, failure){
-
+    function checkCredentials(successCallback, failureCallback) {
         this.checkCredentialsResult = false;
 
         var formData = {
-            host: $('#xsync-config-remote-url').val(),
+            host: trimUrl($('#xsync-config-remote-url').val()),
             localProject: XNAT.data.context.project
         };
 
@@ -331,129 +307,116 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         });
 
         saveCredentials.done(function(data, textStatus, jqXHR){
-            XSYNC.xsyncconfig.checkCredentialsResult = true;
-            if (typeof callback === 'function') {
-                callback();
+            XSYNC.xsyncConfig.checkCredentialsResult = true;
+            if (typeof successCallback === 'function') {
+                successCallback();
             }
         });
 
         saveCredentials.fail(function(data, textStatus){
             console.log(textStatus + " - Failed to save credentials");
-            if (typeof failure === 'function') {
-                failure();
+            if (typeof failureCallback === 'function') {
+                failureCallback();
             }
         });
 
         return saveCredentials;
-
     }
 
-    XSYNC.xsyncconfig.checkCredentials = checkCredentials;
+    XSYNC.xsyncConfig.checkCredentials = checkCredentials;
 	
 	function isValidEmailAddress(emailAddress) {
-			var pattern = /^([a-z\d!#$%&'*+\-\/=?^_`{|}~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+(\.[a-z\d!#$%&'*+\-\/=?^_`{|}~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+)*|"((([ \t]*\r\n)?[ \t]+)?([\x01-\x08\x0b\x0c\x0e-\x1f\x7f\x21\x23-\x5b\x5d-\x7e\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|\\[\x01-\x09\x0b\x0c\x0d-\x7f\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))*(([ \t]*\r\n)?[ \t]+)?")@(([a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|[a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF][a-z\d\-._~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]*[a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])\.)+([a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|[a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF][a-z\d\-._~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]*[a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])\.?$/i;
-			return pattern.test(emailAddress);
-		};
+        var pattern = /^([a-z\d!#$%&'*+\-\/=?^_`{|}~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+(\.[a-z\d!#$%&'*+\-\/=?^_`{|}~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+)*|"((([ \t]*\r\n)?[ \t]+)?([\x01-\x08\x0b\x0c\x0e-\x1f\x7f\x21\x23-\x5b\x5d-\x7e\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|\\[\x01-\x09\x0b\x0c\x0d-\x7f\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))*(([ \t]*\r\n)?[ \t]+)?")@(([a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|[a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF][a-z\d\-._~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]*[a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])\.)+([a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|[a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF][a-z\d\-._~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]*[a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])\.?$/i;
+        return pattern.test(emailAddress);
+    };
 	
-	function validateEmailAddresses()
-		{
-			var allAddressesValid=true;
-			var emails=$('#xsync-config-notification_emails').val();
-			
-			if(emails != null && emails.length > 0)
-			{
-				var emailArr=emails.split(',');
-				for(i=0; i<emailArr.length;i++)
-				{
-					if(!isValidEmailAddress(emailArr[i].trim()))
-					{
-						errorWindow('<b>'+emailArr[i] +'</b> is an invalid email address. Kindly provide valid email address.');
-						allAddressesValid=false;
-						break;
-					}
-				}
-			}
-			return allAddressesValid;
-		}
+	function validateEmailAddresses() {
+        var allAddressesValid=true;
+        var emails=$('#xsync-config-notification_emails').val();
+
+        if (emails != null && emails.length > 0) {
+            var emailArr=emails.split(',');
+            for (i=0; i<emailArr.length; i++) {
+                if (!isValidEmailAddress(emailArr[i].trim())) {
+                    errorWindow('<b>'+emailArr[i] +'</b> is not a valid email address. Please check the email to make sure it is correct.');
+                    allAddressesValid=false;
+                    break;
+                }
+            }
+        }
+        return allAddressesValid;
+	}
 		
-		function validateNoOfRetryDays()
-		{
-			var valid=true;
-			var retryVal=$('#xsync-config-no_of_retry_days').val();
-			
-			if(isNaN(retryVal) || retryVal.includes('.') || retryVal >999)
-			{
-				errorWindow('<b>'+retryVal +'</b> is not a valid value. Kindly provide valid value for retries.');
-				valid=false;
-			}
-			return valid;
-		}
+    function validateNoOfRetryDays() {
+        var valid=true;
+        var retryVal = $('#xsync-config-no_of_retry_days').val();
 
-		function errorWindow(message)
-		{
-			errorModal=xmodal.open({
-				title: "Error",
-				content:'<div>'+message+'</div>',
-				height: '20%',
-				width: '25%',
-				ok: 'hide',
-				cancel: 'show',
-				cancelLabel: 'Close',
-				closeBtn: 'hide'
-			});
-			xModalOpenNew(errorModal);
-		}
-
-    /*
-     Configuration Settings
-     */
-
-    XSYNC.xsyncconfig.destinationChanged = false;
-    XSYNC.xsyncconfig.oldRemoteUrl = "";
-
-    XSYNC.xsyncconfig.displayNewDataWarning = function(){
-            xmodal.message({
-                title: 'Warning',
-                content: '<p><b>WARNING:</b>  Configuring XSync with <em>New Data Only</em> unchecked, can lead to some undesirable results, including data loss, on the destination side and should only be used under certain circumstances.</p><p>When <em>New Data Only</em> is unchecked, XSync will check for source-side changes prior to a project sync.  When there are changes to a session at the source-side, it will resend that session, <b><em>completely replacing the session at the destination</em></b>.</p><p>This option should not be used if project workflows require editing the destination session, as those edits will be lost.  It should only be used when all session changes are made on the source-side and the destination session is expected always reflect what is at the source.</p>',
-                width: '600px',
-                height: '350px'
-            });
+        if (isNaN(retryVal) || retryVal.includes('.') || retryVal > 999 || retryVal < 0) {
+            errorWindow('<b>'+retryVal +'</b> is not a valid value for number of retries. The number of retries must be a positive integer.');
+            valid=false;
+        }
+        return valid;
     }
 
-    XSYNC.xsyncconfig.editConfig = function(){
-        var $form;
-        XSYNC.xsyncconfig.modal = xmodal.open({
+    function errorWindow(message) {
+        errorModal=xmodal.open({
+            title: "Error",
+            content:'<div>'+message+'</div>',
+            height: '20%',
+            width: '25%',
+            ok: 'hide',
+            cancel: 'show',
+            cancelLabel: 'Close',
+            closeBtn: 'hide'
+        });
+        xModalOpenNew(errorModal);
+    }
+
+    //////////////////////////
+    //Configuration Settings//
+    //////////////////////////
+
+    XSYNC.xsyncConfig.destinationChanged = false;
+    XSYNC.xsyncConfig.oldRemoteUrl = "";
+
+    XSYNC.xsyncConfig.displayNewDataWarning = function() {
+        xmodal.message({
+            title: 'Warning',
+            content: '<p><b>WARNING:</b>  Configuring XSync with <em>New Data Only</em> unchecked, can lead to some undesirable results, including data loss, on the destination side and should only be used under certain circumstances.</p><p>When <em>New Data Only</em> is unchecked, XSync will check for source-side changes prior to a project sync.  When there are changes to a session at the source-side, it will resend that session, <b><em>completely replacing the session at the destination</em></b>.</p><p>This option should not be used if project workflows require editing the destination session, as those edits will be lost.  It should only be used when all session changes are made on the source-side and the destination session is expected always reflect what is at the source.</p>',
+            width: '600px',
+            height: '350px'
+        });
+    }
+
+    XSYNC.xsyncConfig.editConfig = function() {
+        XSYNC.xsyncConfig.modal = xmodal.open({
             title: "Project Sync Settings for " + XNAT.data.context.project,
             content: '<div id="xsync-config-dialog"></div>',
             height: '90%',
-            beforeShow: function(obj){
+            beforeShow: function(obj) {
                 // Spawn everything
                 var spawnerConfig = spawnConfig();
                 setTimeout(function() {
-                    var newonlyVal = $("#xsync-config-newonly").val();
-                        XSYNC.xsyncconfig.oldRemoteUrl = $('#xsync-config-remote-url').val();
-                        if (newonlyVal == "false") {
-                            XSYNC.xsyncconfig.displayNewDataWarning();
+                    var newOnlyVal = $("#xsync-config-new-only").val();
+                    XSYNC.xsyncConfig.oldRemoteUrl = $('#xsync-config-remote-url').val();
+                    if (newOnlyVal == "false") {
+                        XSYNC.xsyncConfig.displayNewDataWarning();
+                    }
+                    XSYNC.xsyncConfig.oldValue = $('#xsync-config-remote-url').val();
+                        $('#xsync-config-new-only').change(function() {
+                        var newOnlyVal = $("#xsync-config-new-only").val();
+                        if (newOnlyVal == "false") {
+                            XSYNC.xsyncConfig.displayNewDataWarning();
                         }
-                        XSYNC.xsyncconfig.oldValue = $('#xsync-config-remote-url').val();
-                            $('#xsync-config-newonly').change(
-                        function() {
-                            var newonlyVal = $("#xsync-config-newonly").val();
-                            if (newonlyVal == "false") {
-                                XSYNC.xsyncconfig.displayNewDataWarning();
-                            }
-                        }
-                    )
-                    $('#xsync-config-remote-url').change(
-                        function() {
-                            XSYNC.xsyncconfig.destinationChanged = true;
-                        }
-                    )
+                    });
+                    $('#xsync-config-remote-url').change(function() {
+                            XSYNC.xsyncConfig.destinationChanged = true;
+                    });
                 }, 500);
                 var $wrapper = obj.$modal.find('#xsync-config-dialog');
                 XNAT.spawner.spawn(spawnerConfig).render($wrapper);
                 getCustomIdentifiers(function() {
-                    var xConfig = XSYNC.xsyncconfig.configuration;
+                    var xConfig = XSYNC.xsyncConfig.configuration;
                     for (var key in xConfig) {
                         if (xConfig.hasOwnProperty(key)) {
                             var configObj = xConfig[key];
@@ -476,44 +439,37 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     }
 
                     $('#xsync-advanced-settings').show();
-
-                    // save <form> reference
-                    $form = obj.$modal.find('form');
+                    var $form = obj.$modal.find('form');
 
                     // Trigger changes
                     $form.find('select').trigger('change');
                     $form.find('checkbox').trigger('change');
-
-                    XSYNC.xsyncconfig.$form = $form;
+                    XSYNC.xsyncConfig.$form = $form;
                 });
             },
             buttons: {
                 submit: {
                     label: "Submit",
                     isDefault: true,
-                    action: function(obj){
-						
-						if(validateEmailAddresses() && validateNoOfRetryDays())
-						{
+                    action: function(obj) {
+						if (validateEmailAddresses() && validateNoOfRetryDays()) {
 							// Only include visible fields and checkboxes, which are of type 'hidden'
 							const stringValues = ["remote_project_id"];
                             var json = form2js($('#root.xnat-form-panel').find(':input').filter(':visible, [type="hidden"]').toArray(), undefined, undefined, undefined, undefined, undefined, stringValues);
+
 							// Source project not on the form
 							json.source_project_id = XNAT.data.context.project;
-
 							// Strip trailing slashes
-                            json.remote_url = json.remote_url.replace(/\/$/,'');
+                            json.remote_url = trimUrl(json.remote_url);
 
 							// Delete stuff we don't want serialized
 							delete json.subjectDetailsCheckbox;
 							delete json.advancedSyncCheckbox;
+
 							// don't trample on advanced settings that aren't defined in the UI
-							json = XSYNC.xsyncconfig.mergeConfig(json);
-
-
-							XSYNC.xsyncconfig.newRemoteUrl = json.remote_url;
-                            XSYNC.xsyncconfig.submitConfig(JSON.stringify(json));
-							// $form.triggerHandler('reload-data');
+							json = XSYNC.xsyncConfig.mergeConfig(json);
+							XSYNC.xsyncConfig.newRemoteUrl = json.remote_url;
+                            XSYNC.xsyncConfig.submitConfig(JSON.stringify(json));
 						}
                     }
                 },
@@ -535,7 +491,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 url: XNAT.url.csrfUrl('/xapi/xsync/getXsyncCustomIdGenerators')
             });
 
-            getCustomIdGeneratorsAjax.done(function(data, textStatus, jqXHR){
+            getCustomIdGeneratorsAjax.done(function(data, textStatus, jqXHR) {
                 if (data.length === 0) {
                     removeCustomOption();
                 } else if (data.length === 1) {
@@ -553,7 +509,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 callback();
             });
 
-            getCustomIdGeneratorsAjax.fail(function(data, textStatus, error){
+            getCustomIdGeneratorsAjax.fail(function(data, textStatus, error) {
                 xmodal.message('Error', 'Failed to fetch custom identifiers, see console for details');
                 console.error(error);
                 removeCustomOption();
@@ -562,17 +518,17 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         }
     }
 
-    function spawnConfig(){
+    function spawnConfig() {
 
         ////////////////////
         // Parent element //
         ////////////////////
 
-        function configPanel(){
+        function configPanel() {
             return {
                 kind: 'panel.form',
                 title: 'XSync Configuration',
-                load: XSYNC.xsyncconfig.configuration,
+                load: XSYNC.xsyncConfig.configuration,
                 refresh: "/xapi/xsync/setup/projects/" + XNAT.data.context.project,
                 action: "#!",
                 contents: {
@@ -585,8 +541,8 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     identifiers: identifiers(),
 					customIdentifiers: customIdentifiers(),
                     anonymize: anonymize(),
-					no_of_retry_days:no_of_retry_days(),
-                    notification_emails:notification_emails(),
+					no_of_retry_days:numberRetryDays(),
+                    notification_emails:notificationEmails(),
                     // okToSync: okToSync(),
 
                     advancedSyncCheckbox: {
@@ -717,14 +673,14 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         // Basic config elements //
         ///////////////////////////
 
-        function aspera(){
+        function aspera() {
             return {
-		tag:  "div.message.bold",
+		        tag:  "div.message.bold",
                	content: "NOTICE: Aspera transfers are now supported, if your destination site supports them.  Please see project settings, in the actions menu, to configure Aspera settings."
             }
         }
 
-        function enabled(){
+        function enabled() {
             return {
                 id: 'enabled',
                 kind: 'panel.input.checkbox',
@@ -733,7 +689,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-        function frequency(){
+        function frequency() {
             return {
                 kind: 'panel.select.menu',
                 id: 'sync_frequency',
@@ -749,16 +705,16 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-        function syncNewOnly(){
+        function syncNewOnly() {
             return {
-                id: 'xsync-config-newonly',
+                id: 'xsync-config-new-only',
                 kind: 'panel.input.checkbox',
                 name: 'sync_new_only',
                 label: 'New Data Only'
             }
         }
 
-        function remoteUrl(){
+        function remoteUrl() {
             return {
                 kind: 'panel.input.text',
                 id: 'xsync-config-remote-url',
@@ -767,7 +723,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-        function remoteProject(){
+        function remoteProject() {
             return {
                 kind: 'panel.input.text',
                 id: 'xsync-config-remote-project',
@@ -776,7 +732,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-        function identifiers(){
+        function identifiers() {
             return {
                 kind: 'panel.select.menu',
                 id: 'xsync-config-identifiers',
@@ -788,14 +744,14 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     use_custom: 'Custom'
                 },
 				element: {
-                    onchange: function(){
-						XSYNC.xsyncconfig.showHideCustomIdentifiers($(this).val());
+                    onchange: function() {
+						XSYNC.xsyncConfig.showHideCustomIdentifiers($(this).val());
 					}
 				}
 			}
         }
 		
-		XSYNC.xsyncconfig.showHideCustomIdentifiers = function(identifiers){
+		XSYNC.xsyncConfig.showHideCustomIdentifiers = function(identifiers) {
             const target = $('.panel-element[data-name="customIdentifiers"]');
 			if (identifiers === 'use_custom') {
                 target.show();
@@ -804,7 +760,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
 			}
 		};
 		
-		function customIdentifiers(){
+		function customIdentifiers() {
             return {
                 kind: 'panel.select.menu',
                 id: 'xsync-config-custom-identifiers',
@@ -814,7 +770,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-        function anonymize(){
+        function anonymize() {
             return {
                 id: 'xsync-config-anonymize',
                 kind: 'panel.input.checkbox',
@@ -823,7 +779,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-        function okToSync(_name){
+        function okToSync(_name) {
             return {
                 kind: 'panel.input.checkbox',
                 name: _name,
@@ -831,7 +787,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
         
-        function notification_emails(){
+        function notificationEmails() {
             return {
                 id: 'xsync-config-notification_emails',
                 kind: 'panel.input.textarea',
@@ -842,7 +798,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-        function no_of_retry_days(){
+        function numberRetryDays() {
             return {
                 id: 'xsync-config-no_of_retry_days',
                 kind: 'panel.input.text',
@@ -859,14 +815,13 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         // Function level map to keep track of which text inputs should be visible
         var showTextInput = {};
 
-        function syncTypeSelector(name, label){
+        function syncTypeSelector(name, label) {
             // imaging_sessions.advanced_options.resources.sync_type
             return {
                 kind: 'panel.select.menu',
                 name: name,
                 id: name.replace(/\./g, '_') + '_select_menu_id',
                 label: label,
-                // value: 'all', // don't we want 'all' to be selected by default?
                 options: {
                     all: 'All',
                     none: 'None'//,
@@ -874,7 +829,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     // exclude: 'Exclude'
                 },
                 element: {
-                    onchange: function(){
+                    onchange: function() {
                         // TODO - Get rid of nasty hack
                         var inputName;
                         if (name.indexOf('resource') > -1) {
@@ -889,13 +844,11 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-        function resourceInput(name, label){
+        function resourceInput(name, label) {
             var inputId = name.replace(/\./g, '_') + '_input_text_id';
-            // Initialize show input to false
             showTextInput[name] = false;
 
             return {
-                // kind: 'panel.input.textarea',
                 kind: 'panel.textarea.arrayList',
                 id: inputId,
                 name: name,
@@ -905,9 +858,8 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-        function xsiInput(name){
+        function xsiInput(name) {
             var inputId = name.replace(/\./g, '_') + '_input_text_id';
-            // Initialize show input to false
             showTextInput[name] = false;
 
             return {
@@ -923,22 +875,18 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 element: {
                     onblur: function(){
                         var xsiTypes = $(this).val().split(',');
-                        //console.log(xsiTypes);
-                        // split the list on comma
-                        // append advanced section for each xsiType
-                        // showHideAdvanced(this)
                     }
                 }
             }
         }
 
-        function detailsToggle(divId){
+        function detailsToggle(divId) {
             return {
                 kind: 'panel.input.checkbox',
                 name: '',
                 label: 'More details',
                 element: {
-                    onchange: function(){
+                    onchange: function() {
                         if ($(this).is(':checked')) {
                             $('#' + divId).slideDown(400)
                         }
@@ -950,13 +898,11 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-
-
         ///////////////////////
         // Config UI Helpers //
         ///////////////////////
 
-        function showHideInput(selector, name){
+        function showHideInput(selector, name) {
             // jquery doesn't like to select ids with periods
             var inputId = name.replace(/\./g, '_') + '_input_text_id';
             var $textInput = $('#' + inputId);
@@ -974,30 +920,26 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
             }
         }
 
-        function showHideAdvanced(selector, name){}
-
         return {
             root: configPanel()
         };
     }
 
-    XSYNC.xsyncconfig.submitConfig = function(jsonString){
+    XSYNC.xsyncConfig.submitConfig = function(jsonString) {
 
-        function doSave(){
-            XSYNC.xsyncconfig.checkCredentialsResult = true;
-            saveConfig(jsonString);
+        function doSave() {
+            XSYNC.xsyncConfig.checkCredentialsResult = true;
+            XSYNC.xsyncConfig.saveConfig(jsonString);
         }
 
-        function tryAgain(){
+        function tryAgain() {
             enterCredentials(jsonString);
         }
 
-        XSYNC.xsyncconfig.checkCredentials(doSave, tryAgain);
-
+        XSYNC.xsyncConfig.checkCredentials(doSave, tryAgain);
     };
 
-    function saveConfig(newJson){
-
+    XSYNC.xsyncConfig.saveConfig = function(newJson) {
         var saveWait = xmodal.loading.open();
 
         var xsyncConfigAjax = $.ajax({
@@ -1008,10 +950,7 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         });
 
         xsyncConfigAjax.done(function(data, textStatus, jqXHR){
-
             $("#xsync-annon_add-config").attr("disabled", false);
-
-            //saveWait.close();
 
             xmodal.message({
                 title: 'Saved',
@@ -1019,69 +958,66 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                 // action: function(){
                 //     window.location.reload();
                 // },
-                onClose: function(){
+                onClose: function() {
                     xmodal.loading.closeAll();
 
-			if (XSYNC.xsyncconfig.destinationChanged == true && XSYNC.xsyncconfig.oldRemoteUrl != "" &&
-				XSYNC.xsyncconfig.oldRemoteUrl != "https://" &&
-				XSYNC.xsyncconfig.oldRemoteUrl != XSYNC.xsyncconfig.newRemoteUrl) {
+                    if (XSYNC.xsyncConfig.destinationChanged == true && XSYNC.xsyncConfig.oldRemoteUrl != "" &&
+                        XSYNC.xsyncConfig.oldRemoteUrl != "https://" &&
+                        XSYNC.xsyncConfig.oldRemoteUrl != XSYNC.xsyncConfig.newRemoteUrl) {
 
-			        var pModalOpts = {
-			            width: 720,
-			            height: 380,
-			            id: 'xmodal-remote-url',
-			            title: "Remote URL Modified",
-			            content: "<p><b>IMPORTANT:</b>  You have modified the <em>Destination XNAT</em> URL.  It is important to indicate whether or not this URL points to the same host/XNAT server as the previous configuration.</p><p>If the modified URL points to the same host/XNAT, the sync history should be updated to reflect this new URL.  Otherwise, the sync process will see this as a new host, which could result in XSync sending old data that should not be sent.</p><p>While normally XSync will skip sessions/subjects that already exist at the destination, if a subject/session has been renamed at the destination, then source/subjects with the old label may be resent.</p><p><b>Please indicate how to treat this new <em>Destination XNAT</em> URL:</b></p><p><b>OLD XNAT URL: &nbsp;" + XSYNC.xsyncconfig.oldRemoteUrl + "</b></p><p><b>NEW XNAT URL: &nbsp;" + XSYNC.xsyncconfig.newRemoteUrl + "</b></p>",
-			            ok: 'show',
-			            okLabel: 'Same Host - Update URL History',
-			            okAction: function(modl){
-			            	XNAT.xhr.post({
-				                url: XNAT.url.restUrl('/xapi/xsync/projects/' + XNAT.data.context.project + "/updateRemoteHostUrl"),
-				                success: function(data){
-				                    xmodal.message("Success","Remote Host URL information has been updated.");
-				                },
-				                error: function(){
-				                    xmodal.message("Error","There was an error.  The remote host url could not be updated.");
-				                }
-				            })
-			            },
-			            okClose: true,
-			            cancel: 'Cancel',
-			            cancelLabel: "Different Host - Don't modify history.",
-			            cancelAction: function(){
-			                xmodal.closeAll();
-			            },
-			            closeBtn: 'hide'
-			        };
-			
-			        xmodal.open(pModalOpts);
-								
-			}
+                        var pModalOpts = {
+                            width: 720,
+                            height: 380,
+                            id: 'xmodal-remote-url',
+                            title: "Remote URL Modified",
+                            content: "<p><b>IMPORTANT:</b>  You have modified the <em>Destination XNAT</em> URL.  It is important to indicate whether or not this URL points to the same host/XNAT server as the previous configuration.</p><p>If the modified URL points to the same host/XNAT, the sync history should be updated to reflect this new URL.  Otherwise, the sync process will see this as a new host, which could result in XSync sending old data that should not be sent.</p><p>While normally XSync will skip sessions/subjects that already exist at the destination, if a subject/session has been renamed at the destination, then source/subjects with the old label may be resent.</p><p><b>Please indicate how to treat this new <em>Destination XNAT</em> URL:</b></p><p><b>OLD XNAT URL: &nbsp;" + XSYNC.xsyncConfig.oldRemoteUrl + "</b></p><p><b>NEW XNAT URL: &nbsp;" + XSYNC.xsyncConfig.newRemoteUrl + "</b></p>",
+                            ok: 'show',
+                            okLabel: 'Same Host - Update URL History',
+                            okAction: function(modl){
+                                XNAT.xhr.post({
+                                    url: XNAT.url.restUrl('/xapi/xsync/projects/' + XNAT.data.context.project + "/updateRemoteHostUrl"),
+                                    success: function(data){
+                                        xmodal.message("Success","Remote Host URL information has been updated.");
+                                    },
+                                    error: function(){
+                                        xmodal.message("Error","There was an error.  The remote host url could not be updated.");
+                                    }
+                                })
+                            },
+                            okClose: true,
+                            cancel: 'Cancel',
+                            cancelLabel: "Different Host - Don't modify history.",
+                            cancelAction: function(){
+                                xmodal.closeAll();
+                            },
+                            closeBtn: 'hide'
+                        };
 
+                        xmodal.open(pModalOpts);
+                    }
                 }
             });
 
             // // Reload the data on successful save
             XNAT.xhr.getJSON({
                 url: XNAT.url.restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
-                success: function(data){
-                    XSYNC.xsyncconfig.modal.close();
-                    XSYNC.xsyncconfig.configuration = data;
+                success: function(data) {
+                    XSYNC.xsyncConfig.modal.close();
+                    XSYNC.xsyncConfig.configuration = data;
                     // $('#root-panel').setValues(data);
                     // refresh the config panel - show the buttons
-                    XSYNC.xsyncconfig.showConfigPanel();
+                    XSYNC.xsyncConfig.showConfigPanel();
                     $('#showSyncData').show();
                     // or just reload the whole page
                     // window.location.reload();
                 },
-                error: function(){
+                error: function() {
                     console.log("Failed to reload XSync config data after submission.")
                 }
             })
-
         });
 
-        xsyncConfigAjax.fail(function(data, textStatus, error){
+        xsyncConfigAjax.fail(function(data, textStatus, error) {
             console.log("XSync config submission failed");
             console.log(newJson);
             saveWait.close();
@@ -1089,24 +1025,19 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
         });
 
         return xsyncConfigAjax;
-
     }
-
-    XSYNC.xsyncconfig.saveConfig = saveConfig;
 
     /*
      DICOM Anonymization
      */
-
-    XSYNC.xsyncconfig.submitDICOMAnonymization = function(){
+    XSYNC.xsyncConfig.submitDICOMAnonymization = function() {
 
         var getAnonymizationScript = $.get({
             url: XNAT.url.restUrl('/xapi/xsync/setup/presyncanonymization/projects/' + XNAT.data.context.project),
             dataType: 'text'
         });
 
-        getAnonymizationScript.done(function(data){
-
+        getAnonymizationScript.done(function(data) {
             var tempDiv = spawn('div', data);
 
             var editorConfig = {
@@ -1128,11 +1059,10 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                     save: {
                         label: 'Submit',
                         isDefault: true,
-                        action: function(modal){
+                        action: function(modal) {
                             var code = editor.getValue().code;
-                            var upload = XSYNC.xsyncconfig.uploadDicomAnonymization(code);
-                            upload.done(function(){
-                                // XNAT.ui.banner.top(2000, 'Anonymization script saved.');
+                            var upload = XSYNC.xsyncConfig.uploadDicomAnonymization(code);
+                            upload.done(function() {
                                 modal.close();
                             });
                         }
@@ -1144,37 +1074,38 @@ if (typeof XSYNC.credentialsconfig === 'undefined') {
                         }
                     }
                 }
-                // other xmodal properties
             });
         });
 
         getAnonymizationScript.fail(function(data, textStatus, error){
             xmodal.message('Error', textStatus + ': Could not retrieve pre-sync DICOM anonymization script (' + error + ')');
         });
-
     };
 
-    XSYNC.xsyncconfig.uploadDicomAnonymization = function(editorContents){
+    XSYNC.xsyncConfig.uploadDicomAnonymization = function(editorContents){
 
-        var uploadDICOMscriptAjax = $.ajax({
+        var uploadDicomScriptAjax = $.ajax({
             type: "PUT",
             url: XNAT.url.csrfUrl('/xapi/xsync/setup/presyncanonymization/projects/' + XNAT.data.context.project),
             data: editorContents
         });
 
-        uploadDICOMscriptAjax.done(function(data, textStatus, jqXHR){
+        uploadDicomScriptAjax.done(function(data, textStatus, jqXHR) {
             xmodal.message('Saved', 'The Pre-Sync DICOM Anonymization has been saved');
-            // XNAT.ui.banner.top(2000, 'Anonymization script saved.');
-            XSYNC.xsyncconfig.anonymizationuploadBtnText = 'Update Pre Sync DICOM Anonymization Script';
-            $("#xsync-annon_add-config").attr('value', XSYNC.xsyncconfig.anonymizationuploadBtnText);
+            XSYNC.xsyncConfig.anonymizationUploadBtnText = 'Update Pre Sync DICOM Anonymization Script';
+            $("#xsync-annon_add-config").attr('value', XSYNC.xsyncConfig.anonymizationUploadBtnText);
         });
 
-        uploadDICOMscriptAjax.fail(function(data, textStatus, error){
+        uploadDicomScriptAjax.fail(function(data, textStatus, error) {
             xmodal.message('Error', textStatus + ': Pre-Sync DICOM Anonymization was not successfully saved (' + error + ')');
         });
 
-        return uploadDICOMscriptAjax;
-
+        return uploadDicomScriptAjax;
     };
 
 })();
+
+//strip urls of whitespace and trailing slashes
+function trimUrl(x) {
+  return x.replace(/\/$/,'');
+}
