@@ -110,7 +110,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
      * Get user credentials
      * @param {String} optional configuration JSON to submit if initial setup
      */
-    function enterCredentials(configJson){
+    XSYNC.credentialsConfig.enterCredentials = function(configJson){
 
         var remoteProjectId = XSYNC.xsyncConfig.configuration.remote_project_id ||
             $("#xsync-config-remote-project").val() || "ERROR";
@@ -154,6 +154,8 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
                 var credHost = $form.find('[name="host"]').val();
                 var credUser = $form.find('[name="username"]').val();
                 var credPassword = $form.find('[name="password"]').val();
+
+                xmodal.loading.open({ title: 'Checking xsync credentials...'});
 
                 var tokenData = {
                     url: credHost + '/data/services/tokens/issue',
@@ -219,6 +221,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
                         });
 
                         saveCredentials.done(function(data, textStatus, jqXHR){
+                            xmodal.loading.close();
                             if (jqXHR.status == 202) {
                                 xmodal.message(
                                     'Credentials saved', ' WARNING: ' + jqXHR.responseText + '\n' +
@@ -248,16 +251,19 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
                                 'Error', 'Could not save credentials for remote server ' +
                                 credHost + ' Cause: ' + data.statusText + " Details: " + data.responseText
                             );
+                            xmodal.loading.close();
                             modl.close();
                         });
                     }
                     else {
                         console.log(XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project));
+                        xmodal.loading.close();
                         xmodal.message('Error', 'ERROR:  Could not get alias token.  Please check username and password and try again.');
                     }
                 });
                 credentialsAjax.fail(function(data, textStatus, error) {
                     console.log(XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project));
+                    xmodal.loading.close();
                     xmodal.message('Error', 'ERROR:  Could not get alias token.  Please check username and password and try again.');
                 });
             },
@@ -273,9 +279,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         xmodal.open(pModalOpts);
     }
 
-    XSYNC.credentialsConfig.enterCredentials = XSYNC.xsyncConfig.enterCredentials = enterCredentials;
-
-    function checkCredentials(successCallback, failureCallback) {
+    XSYNC.xsyncConfig.checkCredentials = function (successCallback, failureCallback) {
         this.checkCredentialsResult = false;
 
         var formData = {
@@ -295,7 +299,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
             "estimatedExpirationTime": 1477178868198
         };
 
-        var saveCredentials = $.ajax({
+        var checkCredentialsAjax = $.ajax({
             type: "POST",
             url: XNAT.url.csrfUrl('/xapi/xsync/credentials/check/projects/' + XNAT.data.context.project),
             cache: false,
@@ -306,25 +310,23 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
             contentType: "text/plain"
         });
 
-        saveCredentials.done(function(data, textStatus, jqXHR){
+        checkCredentialsAjax.done(function(data, textStatus, jqXHR){
             XSYNC.xsyncConfig.checkCredentialsResult = true;
             if (typeof successCallback === 'function') {
                 successCallback();
             }
         });
 
-        saveCredentials.fail(function(data, textStatus){
+        checkCredentialsAjax.fail(function(data, textStatus){
             console.log(textStatus + " - Failed to save credentials");
             if (typeof failureCallback === 'function') {
                 failureCallback();
             }
         });
 
-        return saveCredentials;
+        return checkCredentialsAjax;
     }
 
-    XSYNC.xsyncConfig.checkCredentials = checkCredentials;
-	
 	function isValidEmailAddress(emailAddress) {
         var pattern = /^([a-z\d!#$%&'*+\-\/=?^_`{|}~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+(\.[a-z\d!#$%&'*+\-\/=?^_`{|}~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+)*|"((([ \t]*\r\n)?[ \t]+)?([\x01-\x08\x0b\x0c\x0e-\x1f\x7f\x21\x23-\x5b\x5d-\x7e\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|\\[\x01-\x09\x0b\x0c\x0d-\x7f\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))*(([ \t]*\r\n)?[ \t]+)?")@(([a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|[a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF][a-z\d\-._~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]*[a-z\d\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])\.)+([a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]|[a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF][a-z\d\-._~\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]*[a-z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])\.?$/i;
         return pattern.test(emailAddress);
@@ -933,15 +935,13 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         }
 
         function tryAgain() {
-            enterCredentials(jsonString);
+            XSYNC.credentialsConfig.enterCredentials(jsonString);
         }
 
         XSYNC.xsyncConfig.checkCredentials(doSave, tryAgain);
     };
 
     XSYNC.xsyncConfig.saveConfig = function(newJson) {
-        var saveWait = xmodal.loading.open();
-
         var xsyncConfigAjax = $.ajax({
             type: "POST",
             url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
@@ -952,6 +952,10 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         xsyncConfigAjax.done(function(data, textStatus, jqXHR){
             $("#xsync-annon_add-config").attr("disabled", false);
 
+            //In certain cases, system does not recognize that configuration saved message will show and shows
+            //credentials saved on first. This will make sure that is removed so we don't make the user close both.
+            xmodal.closeAll();
+
             xmodal.message({
                 title: 'Saved',
                 content: 'The XSync configuration has been saved',
@@ -959,8 +963,6 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
                 //     window.location.reload();
                 // },
                 onClose: function() {
-                    xmodal.loading.closeAll();
-
                     if (XSYNC.xsyncConfig.destinationChanged == true && XSYNC.xsyncConfig.oldRemoteUrl != "" &&
                         XSYNC.xsyncConfig.oldRemoteUrl != "https://" &&
                         XSYNC.xsyncConfig.oldRemoteUrl != XSYNC.xsyncConfig.newRemoteUrl) {
@@ -1020,7 +1022,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         xsyncConfigAjax.fail(function(data, textStatus, error) {
             console.log("XSync config submission failed");
             console.log(newJson);
-            saveWait.close();
+            xmodal.loading.close();
             xmodal.message('Error', 'Configuration was not successfully saved (' + error + ')');
         });
 
