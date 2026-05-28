@@ -75,7 +75,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
-@Api(description = "XNAT XSync Operations API")
+@Api("XNAT XSync Operations API")
 @XapiRestController
 @RequestMapping(value = "/xsync")
 @Slf4j
@@ -102,7 +102,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                                      final QueryResultUtil queryResultUtil, final JdbcTemplate jdbcTemplate,
                                      final Map<String, HttpMessageConverter<?>> converters,
                                      @Qualifier("xsyncThreadPoolExecutorFactoryBean")
-                                        final ThreadPoolExecutorFactoryBean xsyncThreadPoolExecutorFactoryBean,
+                                     final ThreadPoolExecutorFactoryBean xsyncThreadPoolExecutorFactoryBean,
                                      final SyncStatusService syncStatusService,
                                      final SyncManifestService syncManifestService,
                                      final Map<String, XsyncLabelGeneratorI> idGenerators) {
@@ -221,9 +221,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
            		}
             }
 			return new ResponseEntity<>("Unable to update remote URL information.", HttpStatus.INTERNAL_SERVER_ERROR);
-			
     }
-    
     
     @ApiOperation(value = "Exports the indicated experiment.", notes = "Starts the Experiment export operation as indicated by the ID. WARNING: Will overwrite remote data", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The experiment export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
@@ -257,7 +255,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     	
         final List<XsyncXsyncassessordata> okToSyncDatas = XsyncXsyncassessordata.getXsyncXsyncassessordatasByField("xsync:xsyncAssessorData/synced_experiment_id", experimentId, user, true);
         final XsyncXsyncassessordata okToSyncData;
-    	if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
+    	if (okToSyncDatas != null && !okToSyncDatas.isEmpty()) {
             okToSyncData = okToSyncDatas.get(0);
             if (!okToSyncData.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC)) {
             	okToSyncData.setSyncStatus(XsyncUtils.SYNC_STATUS_WAITING_TO_SYNC);
@@ -324,7 +322,6 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         return new ResponseEntity<>(subjectId + " synchronization started", HttpStatus.OK);
     }
 
-
     @ApiOperation(value = "Sets OK to Sync Status for the experiment.", notes = "Sets OK to Sync Status for the experiment.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The project export operation was successfully started."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "User not authorized to export the indicated project."), @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/experiments/{experimentId}", consumes = MediaType.ALL_VALUE, produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
@@ -354,7 +351,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
         	boolean alreadySynced=false;
         	boolean wasSkipped=false;
-        	if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
+        	if (okToSyncDatas != null && !okToSyncDatas.isEmpty()) {
                 okToSyncData = okToSyncDatas.get(0);
                 final String previousSyncStatus = okToSyncData.getSyncStatus();
                 if (previousSyncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED) || 
@@ -406,7 +403,6 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             return new ResponseEntity<>(message + ": " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    
 
     /**
      * Gets the sync info.
@@ -433,7 +429,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         XsyncXsyncassessordata okToSyncData = null;
         String resp="";
         try {
-        	if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
+        	if (okToSyncDatas != null && !okToSyncDatas.isEmpty()) {
                 okToSyncData = okToSyncDatas.get(0);
             }
             if (okToSyncData != null) {
@@ -451,11 +447,10 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
     }
     
-    
     /**
      * Gets Xsync custom id generator classes.
      *
-     * @return the cutom generators
+     * @return the custom generators
      */
     @ApiOperation(value = "Xsync custom Id generators.", notes = "Xsync custom Id generators.")
     @XapiRequestMapping(value = "/getXsyncCustomIdGenerators", method = RequestMethod.GET)
@@ -479,7 +474,6 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     @XapiRequestMapping(value = "/getSubjectMappingFile/{projectId}", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<StringStreamingResponseBody> getSubjectMappingFile(@PathVariable("projectId") final String projectId,@RequestParam Map<String,String> params) throws Exception{
-
     		
     		final ProjectChangeDiscoverer projectChangeDiscoverer = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, getSessionUser());
     		final String reportFormat = params.get(XsyncUtils.REPORT_FORMAT);
@@ -513,7 +507,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             if (status != null) {
                 return new ResponseEntity<>(status);
             }
-        }catch(Exception e) {
+        } catch(Exception e) {
             if (log.isInfoEnabled()) {
                 log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Experiment " + experimentId );
             }
@@ -526,7 +520,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         try {
             final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
         	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
-        	if (syncAssessors != null && syncAssessors.size() > 0) {
+        	if (syncAssessors != null && !syncAssessors.isEmpty()) {
                 syncAssessor = syncAssessors.get(0);
                 syncAssessor.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNC_REQUESTED);
                 syncAssessor.setRemoteUrl(syncProjectConfiguration.getSyncinfo().getRemoteUrl());
