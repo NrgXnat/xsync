@@ -14,15 +14,18 @@ public class XsyncSitePreferencesPojo {
    public XsyncSitePreferencesPojo(final String tokenRefreshInterval,
                                    final String syncRetryInterval,
                                    final String syncRetryCount,
-                                   final String syncMaxUncompressedZipFileSize) {
+                                   final String syncMaxUncompressedZipFileSize,
+                                   final Boolean xsyncWhitelistEnabled) {
          this.tokenRefreshInterval = tokenRefreshInterval;
          this.syncRetryInterval = syncRetryInterval;
          this.syncRetryCount = syncRetryCount;
          this.syncMaxUncompressedZipFileSize = syncMaxUncompressedZipFileSize;
+         this.xsyncWhitelistEnabled = xsyncWhitelistEnabled;
    }
 
    private String  tokenRefreshInterval;
    private String  syncRetryInterval;
    private String  syncRetryCount;
    private String  syncMaxUncompressedZipFileSize;
+   private Boolean  xsyncWhitelistEnabled;
 }
