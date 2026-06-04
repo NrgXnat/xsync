@@ -1,5 +1,8 @@
 package org.nrg.xsync.components;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.nrg.framework.configuration.ConfigPaths;
 import org.nrg.prefs.annotations.NrgPreference;
 import org.nrg.prefs.annotations.NrgPreferenceBean;
@@ -7,11 +10,17 @@ import org.nrg.prefs.beans.AbstractPreferenceBean;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
 import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xft.exception.InvalidValueException;
+import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
+import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.util.List;
 
 /**
  * The Class XsyncSitePreferencesBean.
@@ -21,13 +30,30 @@ import org.springframework.stereotype.Component;
 @NrgPreferenceBean(toolId = XsyncSitePreferencesBean.XSYNC_TOOL_ID, toolName = "XSync Site Preferences")
 public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	@Autowired
-	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, final ConfigPaths configFolderPaths) {
+	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, final ConfigPaths configFolderPaths, WhitelistXsyncSiteService whitelistXsyncSitesService) {
 		super(preferenceService, configFolderPaths);
+        this.whitelistXsyncSitesService = whitelistXsyncSitesService;
+
+        try {
+			ClassPathResource resource = new ClassPathResource("META-INF/xnat/xsyncSiteWhitelist.json");
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode rootNode = mapper.readTree(resource.getInputStream());
+
+			if (rootNode.has("allowedSites")) {
+				List<WhitelistSitePojo> whitelistedSites = mapper.convertValue(rootNode.get("allowedSites"),
+																			   new TypeReference<>() {});
+				whitelistXsyncSitesService.addWhiteListSitesFromJson(whitelistedSites);
+			} else {
+				_log.info("Whitelist json does not have proper formatting.");
+			}
+		} catch (IOException e) {
+			_log.info("No xsync whitelist json provided at startup.");
+		}
 	}
 
 	/** The Constant _log. */
     private static final Logger _log = LoggerFactory.getLogger(XsyncSitePreferencesBean.class);
-    
+
     /** The Constant XSYNC_TOOL_ID. */
     static final String XSYNC_TOOL_ID = "xsync";
 	
@@ -42,11 +68,13 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	private static final String DEFAULT_SYNC_RETRY_COUNT = "2";
 
 	private static final String DEFAULT_SYNC_MAX_UNCOMPRESSED_FILESIZE = "-1" ; //All files no limits
-	
 
-	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService) {
+	final WhitelistXsyncSiteService whitelistXsyncSitesService;
+
+	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, WhitelistXsyncSiteService whitelistXsyncSitesService) {
 		super(preferenceService);
-	}
+        this.whitelistXsyncSitesService = whitelistXsyncSitesService;
+    }
     
     /**
      * Gets the token refresh interval.
@@ -73,6 +101,20 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		return getValue("syncMaxUncompressedZipFileSize");
 	}
 
+	@NrgPreference(defaultValue = "false")
+	public boolean getXsyncWhitelistEnabled() {
+		return getBooleanValue("xsyncWhitelistEnabled");
+	}
+
+	public void setXsyncWhitelistEnabled(boolean xsyncWhitelistEnabled) {
+		try {
+			set(String.valueOf(xsyncWhitelistEnabled), "xsyncWhitelistEnabled");
+		} catch (InvalidPreferenceName invalidPreferenceName) {
+			_log.error("Invalid preference name: xsyncWhitelistEnabled");
+		}
+	}
+
+
 	/**
 	 * Sets the Max. Total Uncompressed File Size
 	 *
@@ -84,7 +126,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		try {
 			set(syncMaxUncompressedZipFileSize,"syncMaxUncompressedZipFileSize");
 		} catch (InvalidPreferenceName invalidPreferenceName) {
-			_log.error("Invalid preference name");
+			_log.error("Invalid preference name: syncMaxUncompressedZipFileSize");
 		}
 	}
 
@@ -117,7 +159,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
        		calculateIntervalInMillis(tokenRefreshInterval);
        		set(tokenRefreshInterval,"tokenRefreshInterval");
         } catch (InvalidPreferenceName invalidPreferenceName) {
-            _log.error("Invalid preference name");
+            _log.error("Invalid preference name: tokenRefreshInterval");
         }
     }
 
@@ -150,7 +192,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 			calculateIntervalInMillis(syncRetryInterval);
 			set(syncRetryInterval,"syncRetryInterval");
 		} catch (InvalidPreferenceName invalidPreferenceName) {
-			_log.error("Invalid preference name");
+			_log.error("Invalid preference name: syncRetryInterval");
 		}
 	}
 
@@ -182,7 +224,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		try {
 			set(syncRetryCount, "syncRetryCount");
 		} catch (InvalidPreferenceName invalidPreferenceName) {
-			_log.error("Invalid preference name");
+			_log.error("Invalid preference name: syncRetryCount");
 		}
 	}
 
@@ -212,24 +254,24 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	 * @throws InvalidValueException the invalid value exception
 	 */
 	private static long calculateIntervalInMillis(final String intervalStr) throws InvalidValueException {
-			final String[] intervalArr = intervalStr.split("[\\s]+");
-			final long minIntervalMilis = 300000;
+		final String[] intervalArr = intervalStr.split("[\\s]+");
+		final long minIntervalMilis = 300000;
 
-			if (intervalArr.length==2) {
-				final long intervalNum = Long.valueOf(intervalArr[0]);
-				Long interval = null;
-				if (intervalArr[1].toLowerCase().contains("hour")) {
-					interval = intervalNum*1000*60*60;
-				} else if (intervalArr[1].toLowerCase().contains("minute")) {
-					interval = intervalNum*1000*60;
-				}
-				if (interval != null && interval>=minIntervalMilis) {
-					return interval;
-				} else {
-					throw new InvalidValueException("XSync - Interval too short - Specify minimum of " + minIntervalMilis*1000*60 + " minutes.");
-				}
-			}else
-				throw new InvalidValueException("XSync - Invalid interval specified - " + intervalStr);
+		if (intervalArr.length==2) {
+			final long intervalNum = Long.valueOf(intervalArr[0]);
+			Long interval = null;
+			if (intervalArr[1].toLowerCase().contains("hour")) {
+				interval = intervalNum*1000*60*60;
+			} else if (intervalArr[1].toLowerCase().contains("minute")) {
+				interval = intervalNum*1000*60;
+			}
+			if (interval != null && interval>=minIntervalMilis) {
+				return interval;
+			} else {
+				throw new InvalidValueException("XSync - Interval too short - Specify minimum of " + minIntervalMilis*1000*60 + " minutes.");
+			}
+		}else
+			throw new InvalidValueException("XSync - Invalid interval specified - " + intervalStr);
 	}
 
 	public void update(final XsyncSitePreferencesPojo xsyncSitePreferencesPojo) throws InvalidValueException {
@@ -245,6 +287,9 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		if (null != xsyncSitePreferencesPojo.getSyncMaxUncompressedZipFileSize()) {
 			this.setSyncMaxUncompressedZipFileSize(xsyncSitePreferencesPojo.getSyncMaxUncompressedZipFileSize());
 		}
+		if (null != xsyncSitePreferencesPojo.getXsyncWhitelistEnabled()) {
+			this.setXsyncWhitelistEnabled(xsyncSitePreferencesPojo.getXsyncWhitelistEnabled());
+		}
 	}
 
 	public XsyncSitePreferencesPojo toPojo() {
@@ -252,7 +297,8 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 				getTokenRefreshInterval(),
 				getSyncRetryInterval(),
 				getSyncRetryCount(),
-				getSyncMaxUncompressedZipFileSize()
+				getSyncMaxUncompressedZipFileSize(),
+				getXsyncWhitelistEnabled()
 		);
 	}
 

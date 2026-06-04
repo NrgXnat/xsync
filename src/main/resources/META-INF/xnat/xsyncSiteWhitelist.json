@@ -1,0 +1,22 @@
+{
+  "allowedSites": [
+    {
+      "siteId": "rxnat1",
+      "siteName": "Research XNAT",
+      "siteUrl": "https://ian-xsync-receive.dev.xnatworks.io",
+      "classification": "research"
+    },
+    {
+      "siteId": "pxnat1",
+      "siteName": "Public XNAT Data Store",
+      "siteUrl": "https://datastore.institution.edu/",
+      "classification": "public"
+    },
+    {
+      "siteId": "cxnat1",
+      "siteName": "Clinical XNAT",
+      "siteUrl": "https://xnat.cancercenter.org",
+      "classification": "clinical"
+    }
+  ]
+}

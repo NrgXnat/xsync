@@ -1,0 +1,32 @@
+input:read-only {
+  border: 0;
+  box-shadow: none;
+  background-color: #ddd;
+}
+label.xsync_whitelist{
+    width:160px;
+    display:inline-block;
+}
+button.xsync_whitelist{
+    float:right;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+#whitelist-site-details-body .required {
+    border-color:grey;
+}
+#whitelist-site-details-body .float{
+    width:60px;
+}
+.classification-element-wrapper {
+    display: flex;
+    width: 250px;
+}
+.classification-element-wrapper .panel-element {
+    display: flex;
+    align-items: center;
+}
+.classification-element-wrapper .panel-element label {
+    width:160px;
+    display:inline-block;
+}

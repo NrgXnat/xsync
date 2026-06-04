@@ -1,10 +1,15 @@
 package org.nrg.xsync.xapi;
 
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.nrg.xapi.exceptions.DataFormatException;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xft.exception.InvalidValueException;
+import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
+import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.nrg.framework.annotations.XapiRestController;
@@ -46,12 +51,13 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 
 	@Autowired
 	public XsyncPreferencesController(final XsyncSitePreferencesBean prefs, final AsperaSitePrefs asperaSitePrefs,
-			final AsperaProjectPrefs asperaProjectPrefs, final UserManagementServiceI userManagementService,
-			final RoleHolder roleHolder) {
+									  final AsperaProjectPrefs asperaProjectPrefs, final UserManagementServiceI userManagementService,
+									  final RoleHolder roleHolder, final WhitelistXsyncSiteService whitelistXsyncSiteService) {
 		super(userManagementService, roleHolder);
 		this.prefs = prefs;
 		this.asperaSitePrefs = asperaSitePrefs;
 		this.asperaProjectPrefs = asperaProjectPrefs;
+		this.whitelistXsyncSiteService = whitelistXsyncSiteService;
 	}
 
 	/**
@@ -183,14 +189,54 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(prefsInfo, HttpStatus.OK);
 	}
 
+	@XapiRequestMapping(value = "xsyncSitePreferences/whitelistSites", method = RequestMethod.GET, produces = {
+			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Admin)
+	@ApiOperation(value = "Get the whitelist of sites allowed for syncing")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Xsync whitelist sites retrieved."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<List<WhitelistSitePojo>> getAllWhitelistSites () {
+		return new ResponseEntity<>(whitelistXsyncSiteService.getAllWhitelistedSites(), HttpStatus.OK);
+	}
+
+	@XapiRequestMapping(value = "xsyncSitePreferences/whitelistSites/add", method = RequestMethod.POST, produces = {
+			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Admin)
+	@ApiOperation(value = "Add an XNAT site to the xsync whitelist or update if a site with that id exists.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Whitelist site added or updated."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<List<WhitelistSitePojo>> addNewWhitelistSiteOrUpdate (@RequestBody WhitelistSitePojo whitelistSitePojo) throws DataFormatException {
+		return new ResponseEntity<>(whitelistXsyncSiteService.addOrUpdateWhitelistSiteFromSiteAdmin(whitelistSitePojo), HttpStatus.OK);
+	}
+
+	@XapiRequestMapping(value = "xsyncSitePreferences/whitelistSites/delete", method = RequestMethod.DELETE, produces = {
+			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Admin)
+	@ApiOperation(value = "Delete a site from the xsync whitelist.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Whitelist site deleted."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<List<WhitelistSitePojo>> deleteWhitelistSite (@RequestBody WhitelistSitePojo whitelistSitePojo) throws DataFormatException, NotFoundException {
+		return new ResponseEntity<>(whitelistXsyncSiteService.deleteWhitelistSiteFromSiteAdmin(whitelistSitePojo), HttpStatus.OK);
+	}
+
 	private final XsyncSitePreferencesBean prefs;
 	private final AsperaSitePrefs asperaSitePrefs;
 	private final AsperaProjectPrefs asperaProjectPrefs;
-	private static Logger _logger = LoggerFactory.getLogger(XsyncPreferencesController.class);
+	private final WhitelistXsyncSiteService whitelistXsyncSiteService;
+	private static final Logger _logger = LoggerFactory.getLogger(XsyncPreferencesController.class);
 
 	@ResponseStatus(value = HttpStatus.BAD_REQUEST)
 	@ExceptionHandler(value = {InvalidValueException.class})
 	public String handleBadRequest(final Exception e) {
 		return "Cannot set Xsync preference: " + e.getMessage();
+	}
+
+	@ResponseStatus(value = HttpStatus.BAD_REQUEST)
+	@ExceptionHandler(value = {NotFoundException.class})
+	public String handleDataNotFound(final Exception e) {
+		return "Data not found: " + e.getMessage();
+	}
+
+	@ResponseStatus(value = HttpStatus.BAD_REQUEST)
+	@ExceptionHandler(value = {DataFormatException.class})
+	public String handleDataFormat(final Exception e) {
+		return "Incorrect data format: " + e.getMessage();
 	}
 }
