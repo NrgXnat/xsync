@@ -11,6 +11,8 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
 
 (function(){
 
+    var restUrl = XNAT.url.restUrl;
+
     // Merge any existing settings and change any modified values
     // without destroying saved 'advanced' settings.
     XSYNC.xsyncConfig.mergeConfig = function(data){
@@ -22,7 +24,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
     */
     XSYNC.xsyncConfig.init = function(){
         XNAT.xhr.getJSON({
-            url: XNAT.url.restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
+            url: restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
             success: function(data){
                 XSYNC.xsyncConfig.mergeConfig(data);
                 XSYNC.xsyncConfig.showConfigPanel()
@@ -527,6 +529,35 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         ////////////////////
 
         function configPanel() {
+            XNAT.xhr.get({
+                url: restUrl('/xapi/xsyncSitePreferences/'),
+                async: false,
+                success: function (data) {
+                    let enabled = data['xsyncWhitelistEnabled'];
+                    XSYNC.xsyncConfig.isWhitelistEnabledBackend = enabled;
+                    if (enabled == true) {
+                        XNAT.xhr.get({
+                            url: restUrl('/xapi/xsyncSitePreferences/whitelistSites/'),
+                            async: false,
+                            success: function (data) {
+                                XSYNC.xsyncConfig.whitelistSites = {}
+                                data.forEach(function (item) {
+                                    XSYNC.xsyncConfig.whitelistSites[item['siteUrl']]  = {
+                                        label: item['siteUrl'],
+                                        value: item['siteUrl']
+                                    };
+                                });
+                            },
+                            fail: function (e) {
+                                XNAT.ui.banner.top(2000, 'There was an error obtaining xsync preferences: ' + e.responseText, 'error');
+                            }
+                        });
+                    }
+                },
+                fail: function (e) {
+                    XNAT.ui.banner.top(2000, 'There was an error obtaining xsync preferences: ' + e.responseText, 'error');
+                }
+            });
             return {
                 kind: 'panel.form',
                 title: 'XSync Configuration',
@@ -717,11 +748,29 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         }
 
         function remoteUrl() {
+            if (XSYNC.xsyncConfig.isWhitelistEnabledBackend === true) {
+                return remoteUrlWhitelist();
+            } else {
+                return remoteUrlNoWhitelist();
+            }
+        }
+
+        function remoteUrlNoWhitelist() {
             return {
                 kind: 'panel.input.text',
                 id: 'xsync-config-remote-url',
                 name: 'remote_url',
                 label: 'Destination XNAT'
+            }
+        }
+
+        function remoteUrlWhitelist() {
+            return {
+                kind: 'panel.select.menu',
+                id: 'site_select_menu',
+                name: 'site_select_menu',
+                label: 'Destination XNAT',
+                options: XSYNC.xsyncConfig.whitelistSites
             }
         }
 
@@ -977,7 +1026,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
                             okLabel: 'Same Host - Update URL History',
                             okAction: function(modl){
                                 XNAT.xhr.post({
-                                    url: XNAT.url.restUrl('/xapi/xsync/projects/' + XNAT.data.context.project + "/updateRemoteHostUrl"),
+                                    url: restUrl('/xapi/xsync/projects/' + XNAT.data.context.project + "/updateRemoteHostUrl"),
                                     success: function(data){
                                         xmodal.message("Success","Remote Host URL information has been updated.");
                                     },
@@ -1002,7 +1051,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
 
             // // Reload the data on successful save
             XNAT.xhr.getJSON({
-                url: XNAT.url.restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
+                url: restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
                 success: function(data) {
                     XSYNC.xsyncConfig.modal.close();
                     XSYNC.xsyncConfig.configuration = data;
@@ -1035,7 +1084,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
     XSYNC.xsyncConfig.submitDICOMAnonymization = function() {
 
         var getAnonymizationScript = $.get({
-            url: XNAT.url.restUrl('/xapi/xsync/setup/presyncanonymization/projects/' + XNAT.data.context.project),
+            url: restUrl('/xapi/xsync/setup/presyncanonymization/projects/' + XNAT.data.context.project),
             dataType: 'text'
         });
 
