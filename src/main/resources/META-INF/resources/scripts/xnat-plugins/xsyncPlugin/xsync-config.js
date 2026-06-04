@@ -243,7 +243,11 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
                             // submit the config json again if this was called from submitConfig
                             if (configJson !== undefined) {
                                 XSYNC.xsyncConfig.firstTime = false;
-				                XSYNC.xsyncConfig.newRemoteUrl = trimUrl($('#xsync-config-remote-url').val());
+				                if(XSYNC.xsyncConfig.isWhitelistEnabledBackend === true) {
+                                    XSYNC.xsyncConfig.newRemoteUrl = $('#site_select_menu').val();
+                                } else{
+                                    XSYNC.xsyncConfig.newRemoteUrl = trimUrl($('#xsync-config-remote-url').val());
+                                }
                                 XSYNC.xsyncConfig.submitConfig(configJson);
                             }
                         });
@@ -284,8 +288,12 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
     XSYNC.xsyncConfig.checkCredentials = function (successCallback, failureCallback) {
         this.checkCredentialsResult = false;
 
+        let host_url = $('#xsync-config-remote-url').val();
+        if(XSYNC.xsyncConfig.isWhitelistEnabledBackend === true) {
+            host_url = $('#site_select_menu').val();
+        }
         var formData = {
-            host: trimUrl($('#xsync-config-remote-url').val()),
+            host: trimUrl(host_url),
             localProject: XNAT.data.context.project
         };
 
@@ -463,8 +471,13 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
 
 							// Source project not on the form
 							json.source_project_id = XNAT.data.context.project;
-							// Strip trailing slashes
-                            json.remote_url = trimUrl(json.remote_url);
+
+							if (XSYNC.xsyncConfig.isWhitelistEnabledBackend === true) {
+                                json.remote_url = trimUrl(json.site_select_menu);
+							} else {
+							    // Strip trailing slashes
+                                json.remote_url = trimUrl(json.remote_url);
+							}
 
 							// Delete stuff we don't want serialized
 							delete json.subjectDetailsCheckbox;

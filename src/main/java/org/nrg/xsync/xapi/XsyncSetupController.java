@@ -13,6 +13,11 @@ import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
+import org.nrg.xsync.components.XsyncSitePreferencesBean;
+import org.nrg.xsync.pojo.WhitelistSitePojo;
+import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
+import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
+import org.nrg.xsync.services.local.impl.WhitelistXsyncSiteServiceImpl;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +40,10 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * @author Mohana Ramaratnam
  *
@@ -45,10 +54,12 @@ import io.swagger.annotations.ApiResponses;
 @Api(description = "XSync Management API")
 public class XsyncSetupController extends AbstractXapiProjectRestController {
 	@Autowired
-	public XsyncSetupController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ConfigService configService, final SerializerService serializer, final JdbcTemplate jdbcTemplate) {
+	public XsyncSetupController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ConfigService configService, XsyncSitePreferencesBean prefs, WhitelistXsyncSiteService whitelistXsyncSiteService, final SerializerService serializer, final JdbcTemplate jdbcTemplate) {
 		super(userManagementService, roleHolder);
 		_configService = configService;
-		_serializer = serializer;
+        _prefs = prefs;
+        this.whitelistXsyncSiteService = whitelistXsyncSiteService;
+        _serializer = serializer;
 		_jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 	}
 
@@ -74,7 +85,23 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 				XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
 				if (project == null) {
 					return new ResponseEntity<>(" Project  " + projectId + " not found. ",HttpStatus.BAD_REQUEST);
-				}else {
+				} else {
+					XsyncSitePreferencesPojo sitePreferencesPojo = _prefs.toPojo();
+					if (sitePreferencesPojo.getXsyncWhitelistEnabled()) {
+						boolean siteUrlPresentInWhitelist = false;
+						List<WhitelistSitePojo> whitelistSitePojoList = whitelistXsyncSiteService.getAllWhitelistedSites();
+						String inputUrl = (String) new ObjectMapper().readValue(jsonbody, HashMap.class).get("remote_url");
+						for (WhitelistSitePojo whitelistSite : whitelistSitePojoList) {
+							if (whitelistSite.getSiteUrl().equalsIgnoreCase(inputUrl)) {
+								siteUrlPresentInWhitelist = true;
+								break;
+							}
+						}
+						if (!siteUrlPresentInWhitelist) {
+							return new ResponseEntity<>(" Site URL " + inputUrl + " is not an allowed option to receive data. ",HttpStatus.BAD_REQUEST);
+						}
+					}
+					
 					//TODO validate the JSON
 					XsyncUtils xsyncUtils = new XsyncUtils(_serializer, _jdbcTemplate, user);
 					xsyncUtils.loadConfigurationToDB(synchronizationJson);
@@ -83,7 +110,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 				}
 			}
 		}catch (Exception  exception) {
-			_logger.error("ERROR:  Xsync Setup Threw an Exception:  " + ExceptionUtils.getFullStackTrace(exception));
+            _logger.error("ERROR:  Xsync Setup Threw an Exception:  {}", ExceptionUtils.getFullStackTrace(exception));
 			return new ResponseEntity<>(projectId + " Xsync Setup failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
 	}
@@ -166,6 +193,8 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 
 
 	private final ConfigService              _configService;
+	private final XsyncSitePreferencesBean   _prefs;
+	private final WhitelistXsyncSiteService whitelistXsyncSiteService;
 	private final SerializerService          _serializer;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
 	public static Logger _logger = LoggerFactory.getLogger(XsyncSetupController.class);
