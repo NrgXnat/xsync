@@ -33,22 +33,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, final ConfigPaths configFolderPaths, WhitelistXsyncSiteService whitelistXsyncSitesService) {
 		super(preferenceService, configFolderPaths);
         this.whitelistXsyncSitesService = whitelistXsyncSitesService;
-
-        try {
-			ClassPathResource resource = new ClassPathResource("META-INF/xnat/xsyncSiteWhitelist.json");
-			ObjectMapper mapper = new ObjectMapper();
-			JsonNode rootNode = mapper.readTree(resource.getInputStream());
-
-			if (rootNode.has("allowedSites")) {
-				List<WhitelistSitePojo> whitelistedSites = mapper.convertValue(rootNode.get("allowedSites"),
-																			   new TypeReference<>() {});
-				whitelistXsyncSitesService.addWhiteListSitesFromJson(whitelistedSites);
-			} else {
-				_log.info("Whitelist json does not have proper formatting.");
-			}
-		} catch (IOException e) {
-			_log.info("No xsync whitelist json provided at startup.");
-		}
+		addInitialWhitelistSitesToPreferences();
 	}
 
 	/** The Constant _log. */
@@ -74,6 +59,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, WhitelistXsyncSiteService whitelistXsyncSitesService) {
 		super(preferenceService);
         this.whitelistXsyncSitesService = whitelistXsyncSitesService;
+		addInitialWhitelistSitesToPreferences();
     }
     
     /**
@@ -272,6 +258,24 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 			}
 		}else
 			throw new InvalidValueException("XSync - Invalid interval specified - " + intervalStr);
+	}
+	
+	private void addInitialWhitelistSitesToPreferences() {
+		try {
+			ClassPathResource resource = new ClassPathResource("META-INF/xnat/xsyncSiteWhitelist.json");
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode rootNode = mapper.readTree(resource.getInputStream());
+
+			if (rootNode.has("allowedSites")) {
+				List<WhitelistSitePojo> whitelistedSites = mapper.convertValue(rootNode.get("allowedSites"),
+																			   new TypeReference<>() {});
+				whitelistXsyncSitesService.addWhiteListSitesFromJson(whitelistedSites);
+			} else {
+				_log.info("Whitelist json does not have proper formatting.");
+			}
+		} catch (IOException e) {
+			_log.info("No xsync whitelist json provided at startup.");
+		}
 	}
 
 	public void update(final XsyncSitePreferencesPojo xsyncSitePreferencesPojo) throws InvalidValueException {
