@@ -127,7 +127,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(new AsperaSitePrefsInfo(asperaSitePrefs), HttpStatus.OK);
 	}
 
-	@XapiRequestMapping(value = "xsyncProjectPreferences/httpsEnabled", method =
+	@XapiRequestMapping(value = "xsyncSitePreferences/httpsEnabled", method =
 			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE)
 	@ApiOperation(value = "Checks whether Https connection is enabled on the site level.")
 	@ApiResponses({ @ApiResponse(code = 200, message = "Https enabled returned."),
@@ -136,7 +136,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(prefs.getHttpsEnabled(), HttpStatus.OK);
 	}
 
-	@XapiRequestMapping(value = "xsyncProjectPreferences/asperaEnabled", method =
+	@XapiRequestMapping(value = "xsyncSitePreferences/asperaEnabled", method =
 			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE)
 	@ApiOperation(value = "Checks whether Aspera is enabled on the site level.")
 	@ApiResponses({ @ApiResponse(code = 200, message = "Aspera enabled returned."),
