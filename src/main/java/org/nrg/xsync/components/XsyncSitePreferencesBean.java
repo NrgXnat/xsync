@@ -100,6 +100,31 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		}
 	}
 
+	@NrgPreference(defaultValue = "true")
+	public boolean getHttpsEnabled() {
+		return getBooleanValue("httpsEnabled");
+	}
+
+	public void setHttpsEnabled(boolean httpsEnabled) {
+		try {
+			set(String.valueOf(httpsEnabled), "httpsEnabled");
+		} catch (InvalidPreferenceName invalidPreferenceName) {
+			_log.error("Invalid preference name: httpsEnabled");
+		}
+	}
+
+	@NrgPreference(defaultValue = "false")
+	public boolean getAsperaEnabled() {
+		return getBooleanValue("asperaEnabled");
+	}
+
+	public void setAsperaEnabled(boolean asperaEnabled) {
+		try {
+			set(String.valueOf(asperaEnabled), "asperaEnabled");
+		} catch (InvalidPreferenceName invalidPreferenceName) {
+			_log.error("Invalid preference name: asperaEnabled");
+		}
+	}
 
 	/**
 	 * Sets the Max. Total Uncompressed File Size
@@ -294,6 +319,12 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		if (null != xsyncSitePreferencesPojo.getXsyncWhitelistEnabled()) {
 			this.setXsyncWhitelistEnabled(xsyncSitePreferencesPojo.getXsyncWhitelistEnabled());
 		}
+		if (null != xsyncSitePreferencesPojo.getHttpsEnabled()) {
+			this.setHttpsEnabled(xsyncSitePreferencesPojo.getHttpsEnabled());
+		}
+		if (null != xsyncSitePreferencesPojo.getAsperaEnabled()) {
+			this.setAsperaEnabled(xsyncSitePreferencesPojo.getAsperaEnabled());
+		}
 	}
 
 	public XsyncSitePreferencesPojo toPojo() {
@@ -302,7 +333,9 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 				getSyncRetryInterval(),
 				getSyncRetryCount(),
 				getSyncMaxUncompressedZipFileSize(),
-				getXsyncWhitelistEnabled()
+				getXsyncWhitelistEnabled(),
+				getHttpsEnabled(),
+				getAsperaEnabled()
 		);
 	}
 

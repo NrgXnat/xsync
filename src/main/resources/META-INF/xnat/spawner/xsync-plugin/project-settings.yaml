@@ -18,14 +18,13 @@ projectSettings:
                     kind: panel.form
                     name: asperaPanel
                     label: XSync Aspera Settings
-                    method: POST
-                    url: /xapi/xsyncProjectPreferences/project/{{XNAT.data.projectID}}/aspera 
-                    contentType: application/json
+#                    method: POST
+#                    url: /xapi/xsyncProjectPreferences/project/{{XNAT.data.projectID}}/aspera
+#                    contentType: application/json
                     contents:
                         asperaEnabled:
                             kind: panel.input.switchbox
                             name: asperaEnabled
-                            value: true
                             label: Enable Aspera Transfers?
                             onText: Enabled
                             offText: Disabled
@@ -78,3 +77,5 @@ projectSettings:
                             placeholder: 33001
                             description: >
                                 The remote server's UDP port
+                asperaSettingsScript:
+                    tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/xsync-setupProjectPreference.js"

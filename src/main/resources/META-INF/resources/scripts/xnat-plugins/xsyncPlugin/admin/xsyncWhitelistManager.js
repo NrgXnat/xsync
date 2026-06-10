@@ -37,7 +37,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     xsyncWhitelistManager.toggleWhitelistSwitch = function(enabled) {
         let $whitelistTableDiv = $('div#xsync-whitelist-table');
-        let inputPrefs = {}
+        let inputPrefs = {};
         if (enabled === "true") {
             inputPrefs['xsyncWhitelistEnabled'] = true;
             $whitelistTableDiv.empty().append(xsyncWhitelistManager.table());
