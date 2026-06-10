@@ -81,6 +81,21 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     xsyncProjectPreferenceManager.init = function() {
         XNAT.xhr.get({
+            url: restUrl('/xapi/xsyncSitePreferences/asperaEnabled/'),
+            async: false,
+            success: function (data) {
+                xsyncProjectPreferenceManager.siteWideAsperaEnabled = data;
+                if (xsyncProjectPreferenceManager.siteWideAsperaEnabled == true) {
+                    $("#xsync-config").removeClass('hidden');
+                } else {
+                    $("#xsync-config").addClass('hidden');
+                }
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not retrieve aspera information: ' + e.responseText, 'error');
+            }
+        });
+        XNAT.xhr.get({
             url: restUrl('/xapi/xsyncProjectPreferences/project/' + XNAT.data.context.project + '/asperaEnabled/'),
             async: false,
             success: function (data) {
