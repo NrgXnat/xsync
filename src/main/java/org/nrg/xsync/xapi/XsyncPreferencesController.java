@@ -216,6 +216,15 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(prefsInfo, HttpStatus.OK);
 	}
 
+	@XapiRequestMapping(value = "xsyncProjectPreferences/whitelistEnabled", method =
+			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "Checks whether site whitelist is enabled on the site level.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Site whitelist enabled returned."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<Boolean> getWhitelistEnabled() {
+		return new ResponseEntity<>(prefs.getXsyncWhitelistEnabled(), HttpStatus.OK);
+	}
+
 	@XapiRequestMapping(value = "xsyncSitePreferences/whitelistSites", method = RequestMethod.GET, produces = {
 			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Read)
 	@ApiOperation(value = "Get the whitelist of sites allowed for syncing")
