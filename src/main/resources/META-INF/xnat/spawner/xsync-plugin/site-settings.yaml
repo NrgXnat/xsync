@@ -8,11 +8,42 @@ siteSettings:
         tabGroups:
             xsyncConfig: XSync Site Level Configuration
     contents:
+        connectionManagement:
+            kind: tab
+            label: Connection Management
+            group: xsyncConfig
+            active: true
+            contents:
+                connectionManagementPanel:
+                    kind: panel.form
+                    name: connectionManagementPanel
+                    label: Connection Management
+                    footer: false
+                    contents:
+                        httpsEnabled:
+                            kind: panel.input.switchbox
+                            name: httpsEnabled
+                            label: Enable HTTPS Transfers?
+                            onText: Enabled
+                            offText: Disabled
+                            description: >
+                                Use HTTPS for transfers? This is the default configuration. To turn off this setting, another method of transfers must be turned on.
+                        asperaEnabled:
+                            kind: panel.input.switchbox
+                            name: asperaEnabled
+                            label: Enable Aspera Transfers?
+                            onText: Enabled
+                            offText: Disabled
+                            description: >
+                                Use Aspera for transfers?  This requires a valid Aspera server to receive files.
+                        xsyncConnectionManagerScript:
+                            tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncConnectionManager.js"
+
         remoteTokenRefresh:
             kind: tab
             label: Remote Token
             group: xsyncConfig
-            active: true
+            active: false
             contents:
                 remoteTokenRefreshPanel:
                     kind: panel.form
@@ -133,7 +164,7 @@ siteSettings:
                                 settings may be useful if one of your destination sites supports Aspera-based
                                 XSync sends and multiple projects will connect to the same Aspera server, as these
                                 will become the default settings for project connections.  <b>Please note, however, that
-                                XSync Aspera settings must be configured and enabled for each project.</b> 
+                                XSync Aspera settings must be configured and enabled for each project.</b>
                         asperaNodeUrl:
                             kind: panel.input.text
                             name: asperaNodeUrl
