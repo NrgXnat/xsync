@@ -555,12 +555,11 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
                 }
             });
             XNAT.xhr.get({
-                url: restUrl('/xapi/xsyncSitePreferences/'),
+                url: restUrl('/xapi/xsyncProjectPreferences/whitelistEnabled/'),
                 async: false,
                 success: function (data) {
-                    let enabled = data['xsyncWhitelistEnabled'];
-                    XSYNC.xsyncConfig.isWhitelistEnabledBackend = enabled;
-                    if (enabled == true) {
+                    XSYNC.xsyncConfig.isWhitelistEnabledBackend = data;
+                    if (XSYNC.xsyncConfig.isWhitelistEnabledBackend == true) {
                         XNAT.xhr.get({
                             url: restUrl('/xapi/xsyncSitePreferences/whitelistSites/'),
                             async: false,
