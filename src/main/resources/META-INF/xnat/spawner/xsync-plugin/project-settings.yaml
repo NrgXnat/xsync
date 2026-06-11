@@ -18,9 +18,9 @@ projectSettings:
                     kind: panel.form
                     name: asperaPanel
                     label: XSync Aspera Settings
-#                    method: POST
-#                    url: /xapi/xsyncProjectPreferences/project/{{XNAT.data.projectID}}/aspera
-#                    contentType: application/json
+                    method: POST
+                    url: /xapi/xsyncProjectPreferences/project/{{XNAT.data.projectID}}/aspera
+                    contentType: application/json
                     contents:
                         asperaEnabled:
                             kind: panel.input.switchbox
