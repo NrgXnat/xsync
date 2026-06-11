@@ -24,10 +24,6 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         xsyncProjectPreferenceManager.toggleEnabledElements($(this).val());
     });
 
-    $('#aspera-panel').find('.btn.save').click(function(){
-        xsyncProjectPreferenceManager.submitSettings();
-    });
-
     xsyncProjectPreferenceManager.toggleEnabledElements = function(enabled) {
         var $active_pane = $('#aspera-panel');
 
@@ -36,47 +32,6 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         } else {
             $active_pane.find("input[type='text']").parent().parent().addClass('hidden')
         }
-    }
-
-//    xsyncProjectPreferenceManager.validateSingleField = function(inputField, required, integer) {
-//        let elementValue = element.val();
-//
-//        let valid = true
-//        if (required) {
-//            if (elementValue.trim()===''){
-//                XNAT.app.context.validation+=name + " is a required field.</br>";
-//                valid = false;
-//            }
-//        }
-//
-//        if (integer) {
-//            var temp = elementValue.trim().replace(/\s+/g, "");
-//            if (temp !== "" && !Number.isInteger(Number(temp))) {
-//                XNAT.app.context.validation += name + " must be a valid integer.</br>";
-//                valid = false;
-//            }
-//        }
-//
-//        if (elementType === "input") {
-//            if (valid){
-//                element.css("border-color", "");
-//            } else{
-//                element.css("border-color", "red");
-//            }
-//        }
-//
-//        return elementValue;
-//    }
-
-//    xsyncProjectPreferenceManager.validateNecessaryFields = function() {
-//        node_url = xsyncProjectPreferenceManager.validateSingleField($('#aspera-node-url'), true, false);
-//        node_url = xsyncProjectPreferenceManager.validateSingleField($('#aspera-node-user'), true, false);
-//        node_url = xsyncProjectPreferenceManager.validateSingleField($('#aspera-node-url'), true, false);
-//        node_url = xsyncProjectPreferenceManager.validateSingleField($('#aspera-node-url'), true, false);
-//    }
-
-    xsyncProjectPreferenceManager.submitSettings = function() {
-//        let isValidPreferences = xsyncProjectPreferenceManager.validateNecessaryFields();
     }
 
     xsyncProjectPreferenceManager.init = function() {
