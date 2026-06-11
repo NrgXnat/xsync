@@ -80,10 +80,11 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             contentType: 'application/json',
             data: JSON.stringify(inputPrefs),
             success: function () {
-                console.log('Updated aspera ' + inputPrefs + ' preference.');
+                console.log('Updated ' + preferenceName + ' preference.');
+                XNAT.ui.banner.top(2000, 'Updated ' + preferenceName + ' enabled preference.', 'success');
             },
             fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not update ' + inputPrefs + ' enabled preference: ' +  e.responseText, 'error');
+                XNAT.ui.banner.top(2000, 'Could not update ' + preferenceName + ' enabled preference: ' +  e.responseText, 'error');
             }
         });
     }
