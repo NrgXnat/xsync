@@ -104,6 +104,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 } else {
                     $("#https-enabled").parent().parent().parent().parent().addClass('disabled');
                     $("#https-enabled").prop('disabled', true);
+                    $("a[title='Aspera Server Defaults']").parent().addClass('hidden');
                 }
             },
             fail: function (e) {
