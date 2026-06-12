@@ -51,14 +51,14 @@ import java.util.Map;
 
 @XapiRestController
 @RequestMapping(value = "/xsync/setup")
-@Api(description = "XSync Management API")
+@Api("XSync Management API")
 public class XsyncSetupController extends AbstractXapiProjectRestController {
 	@Autowired
 	public XsyncSetupController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ConfigService configService, XsyncSitePreferencesBean prefs, WhitelistXsyncSiteService whitelistXsyncSiteService, final SerializerService serializer, final JdbcTemplate jdbcTemplate) {
 		super(userManagementService, roleHolder);
 		_configService = configService;
         _prefs = prefs;
-        this.whitelistXsyncSiteService = whitelistXsyncSiteService;
+        _whitelistXsyncSiteService = whitelistXsyncSiteService;
         _serializer = serializer;
 		_jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 	}
@@ -89,7 +89,8 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 					XsyncSitePreferencesPojo sitePreferencesPojo = _prefs.toPojo();
 					if (sitePreferencesPojo.getXsyncWhitelistEnabled()) {
 						boolean siteUrlPresentInWhitelist = false;
-						List<WhitelistSitePojo> whitelistSitePojoList = whitelistXsyncSiteService.getAllWhitelistedSites();
+						List<WhitelistSitePojo> whitelistSitePojoList =
+								_whitelistXsyncSiteService.getAllWhitelistedSites();
 						String inputUrl = (String) new ObjectMapper().readValue(jsonbody, HashMap.class).get("remote_url");
 						for (WhitelistSitePojo whitelistSite : whitelistSitePojoList) {
 							if (whitelistSite.getSiteUrl().equalsIgnoreCase(inputUrl)) {
@@ -98,7 +99,8 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 							}
 						}
 						if (!siteUrlPresentInWhitelist) {
-							return new ResponseEntity<>(" Site URL " + inputUrl + " is not an allowed option to receive data. ",HttpStatus.BAD_REQUEST);
+							return new ResponseEntity<>(" Site URL " + inputUrl + " is not an allowed option to " +
+																"receive data. ",HttpStatus.BAD_REQUEST);
 						}
 					}
 					
@@ -166,7 +168,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
             }
 			saveDicomAnonymizationToConfig(project,anonymizationScript);
 		}catch(Exception e) {
-			_logger.error("ERROR:  Error saving pre-sync DICOM anonymization script:  " + ExceptionUtils.getFullStackTrace(e));
+            _logger.error("ERROR:  Error saving pre-sync DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
         	return new ResponseEntity<>(projectId + " Pre-Sync DICOM Anonymization script could not be saved. ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
     	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved",  HttpStatus.OK);
@@ -186,7 +188,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			Configuration config = _configService.getConfig("xsync", "presyncanonymization", Scope.Project, projectId);
 			return new ResponseEntity<>(config == null ? "" : config.getContents(), HttpStatus.OK);
 		} catch(Exception e) {
-			_logger.error("ERROR:  Error returning DICOM anonymization script:  " + ExceptionUtils.getFullStackTrace(e));
+            _logger.error("ERROR:  Error returning DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
 			return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
 		}
 	}
@@ -194,7 +196,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 
 	private final ConfigService              _configService;
 	private final XsyncSitePreferencesBean   _prefs;
-	private final WhitelistXsyncSiteService whitelistXsyncSiteService;
+	private final WhitelistXsyncSiteService _whitelistXsyncSiteService;
 	private final SerializerService          _serializer;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
 	public static Logger _logger = LoggerFactory.getLogger(XsyncSetupController.class);
