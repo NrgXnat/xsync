@@ -77,30 +77,6 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     }
 
     /**
-     * Gets all sync history elements filtered by the remote url they are sending data to..
-     *
-     * @return the sync history
-     */
-    @ApiOperation(value="History of xsync transactions filtered by remote url.", response=String.class)
-    @ApiResponses({
-            @ApiResponse(code=200, message="Obtained the history elements."),
-            @ApiResponse(code=401, message="History data not found"),
-            @ApiResponse(code=500, message="Unexpected error")
-    })
-    @XapiRequestMapping(method=RequestMethod.GET,  value="/remoteUrls", produces = {MediaType.APPLICATION_JSON_VALUE},
-            restrictTo = AccessLevel.Admin)
-    public ResponseEntity<List<XsyncRemoteUrlDetailsPojo>> getAllHistoryByRemoteUrl() {
-        if (xsyncSitePreferencesBean.getXsyncWhitelistEnabled()) {
-            return new ResponseEntity<>(syncManifestService.findRemoteUrlDetails(true,
-                                         whitelistXsyncSiteService.getAllWhitelistedSites()), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(syncManifestService.findRemoteUrlDetails(false,
-                                         Collections.emptyList()), HttpStatus.OK);
-        }
-
-    }
-
-    /**
      * Gets the sync history by id.
      *
      * @param projectId the project id

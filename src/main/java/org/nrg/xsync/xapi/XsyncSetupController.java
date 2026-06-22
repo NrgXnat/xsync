@@ -15,9 +15,12 @@ import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
+import org.nrg.xsync.manifest.XsyncProjectHistory;
+import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
 import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
+import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
@@ -42,6 +45,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -55,40 +59,39 @@ import java.util.List;
 public class XsyncSetupController extends AbstractXapiProjectRestController {
 	@Autowired
 	public XsyncSetupController(final UserManagementServiceI userManagementService,
-								final RoleHolder roleHolder,
-								final ConfigService configService,
-								final XsyncSitePreferencesBean prefs,
-								final WhitelistXsyncSiteService whitelistXsyncSiteService,
-								final JdbcTemplate jdbcTemplate) {
+                                final RoleHolder roleHolder,
+                                final ConfigService configService,
+                                final XsyncSitePreferencesBean prefs,
+                                final WhitelistXsyncSiteService whitelistXsyncSiteService,
+                                final JdbcTemplate jdbcTemplate, SyncManifestService syncManifestService) {
 		super(userManagementService, roleHolder);
 		_configService = configService;
         _prefs = prefs;
         _whitelistXsyncSiteService = whitelistXsyncSiteService;
 		_jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-	}
+        _syncManifestService = syncManifestService;
+    }
 
-	@ApiOperation(value = "Get all xsync configs" )
-	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
-	@XapiRequestMapping(method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE},
-			restrictTo = AccessLevel.Admin)
-	public ResponseEntity<List<JsonNode>> getAllXsyncConfigs() {
-		List<Configuration> configurations =
-				_configService.getAll().stream().filter(c -> c.getTool().equalsIgnoreCase("xsync")).filter(AbstractHibernateEntity::isEnabled).toList();
-		try {
-			ObjectMapper objectMapper = new ObjectMapper();
-			List<JsonNode> configurationNodes = new ArrayList<>();
-			for (Configuration configuration : configurations) {
-				final String configurationString = configuration != null ? configuration.getContents() : null;
-				JsonNode configurationNode = objectMapper.readTree(configurationString);
-				configurationNodes.add(configurationNode);
-			}
-
-			return new ResponseEntity<>(configurationNodes,  HttpStatus.OK);
-			} catch(Exception e) {
-				_logger.error("ERROR:  Error retrieving system xsync configurations:  {}",
-							  ExceptionUtils.getFullStackTrace(e));
-				return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-			}
+	@ApiOperation(value = "Get a report of all currently configured remote Xnat instances." )
+	@ApiResponses({
+			@ApiResponse(code=200, message="Obtained configuration data of remote Xnat instances.."),
+			@ApiResponse(code=401, message="Configuration data not found/"),
+			@ApiResponse(code=404, message="User unauthorized to obtain configuration information."),
+			@ApiResponse(code=500, message="Unexpected error")
+	})
+	@XapiRequestMapping(value="/remoteInstances", method = RequestMethod.GET,
+			produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Admin)
+	public ResponseEntity<List<XsyncRemoteUrlDetailsPojo>> getAllXsyncConfigInformation() {
+		final UserI user = getSessionUser();
+		XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, user);
+		List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
+		if (_prefs.getXsyncWhitelistEnabled()) {
+			return new ResponseEntity<>(xsyncUtils.createListOfRemoteDestinations(allHistoryItems, true,
+									   _whitelistXsyncSiteService.getAllWhitelistedSites()), HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>(xsyncUtils.createListOfRemoteDestinations(allHistoryItems, false,
+									  Collections.emptyList()), HttpStatus.OK);
+		}
 	}
 
 	@ApiOperation(value = "Get all xsync configs" )
@@ -230,7 +233,8 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 
 	private final ConfigService              _configService;
 	private final XsyncSitePreferencesBean   _prefs;
-	private final WhitelistXsyncSiteService _whitelistXsyncSiteService;
+	private final WhitelistXsyncSiteService  _whitelistXsyncSiteService;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
+	private final SyncManifestService        _syncManifestService;
 	public static Logger _logger = LoggerFactory.getLogger(XsyncSetupController.class);
 }
