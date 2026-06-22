@@ -14,5 +14,5 @@ import java.util.List;
 public class SyncConfigurationResourcePojo {
 
     private String sync_type;
-//    private List<String> items;
+    private List<String> items;
 }
