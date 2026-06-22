@@ -3,6 +3,8 @@ package org.nrg.xsync.configuration.json;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.nrg.xsync.utils.XsyncUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -11,26 +13,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * @author Mohana Ramaratnam
  *
  */
+@Setter
+@Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
 
 public class SyncConfigurationSubjectAssessor extends BaseSyncConfiguration {
-	List<SyncConfigurationXsiType> xsi_types = new ArrayList<SyncConfigurationXsiType>();
-	
-	/**
-	 * @return the xsi_types
-	 */
-	public List<SyncConfigurationXsiType> getXsi_types() {
-		return xsi_types;
-	}
-	/**
-	 * @param xsi_types the xsi_types to set
-	 */
-	public void setXsi_types(List<SyncConfigurationXsiType> xsi_types) {
-		this.xsi_types = xsi_types;
-	}
+    List<SyncConfigurationXsiType> xsi_types = new ArrayList<SyncConfigurationXsiType>();
 
-	
-	public boolean isAllowedToSync(String xsiType) {
+    public boolean isAllowedToSync(String xsiType) {
 		boolean isAllowed = false;
 		if (sync_type.equals(XsyncUtils.SYNC_TYPE_ALL)) {
 			isAllowed = true;

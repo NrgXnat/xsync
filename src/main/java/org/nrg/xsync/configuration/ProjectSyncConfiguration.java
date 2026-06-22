@@ -113,11 +113,7 @@ public class ProjectSyncConfiguration {
     }
 
     public boolean isOnlyASubjectAssessor(XnatSubjectassessordataI experiment) {
-        boolean isOnlyASubjectAssessor = true;
-        if (experiment instanceof XnatImagesessiondataI) {
-            isOnlyASubjectAssessor = false;
-        }
-        return isOnlyASubjectAssessor;
+        return !(experiment instanceof XnatImagesessiondataI);
     }
 
     public boolean isImagingSessionToBeSynced(String imagingSessionXsiType) {
@@ -180,11 +176,11 @@ public class ProjectSyncConfiguration {
     }
 
     private XsyncXsyncprojectdata setProjectSyncConfiguration() throws XsyncNotConfiguredException {
-        final XsyncUtils xsyncUtils = new XsyncUtils(_serializer, _jdbcTemplate, _user);
+        final XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, _user);
         final XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(_project.getId());
 
         if (syncProjectConfiguration == null) {
-            _log.error("Could not find sync data for _project " + _project.getId());
+            _log.error("Could not find sync data for _project {}", _project.getId());
             throw new XsyncNotConfiguredException("Could not find sync data for _project " + _project.getId());
         }
         boolean save = false;

@@ -1034,7 +1034,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
             type: "POST",
             url: XNAT.url.csrfUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
             data: newJson,
-            contentType: "text/plain"
+            contentType: "application/json"
         });
 
         xsyncConfigAjax.done(function(data, textStatus, jqXHR){

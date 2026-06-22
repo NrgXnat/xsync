@@ -6,18 +6,19 @@ import org.nrg.config.entities.Configuration;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.constants.Scope;
-import org.nrg.framework.services.SerializerService;
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatProjectdata;
+import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
+import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
-import org.nrg.xsync.services.local.impl.WhitelistXsyncSiteServiceImpl;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,9 +41,8 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Mohana Ramaratnam
@@ -54,19 +54,69 @@ import java.util.Map;
 @Api("XSync Management API")
 public class XsyncSetupController extends AbstractXapiProjectRestController {
 	@Autowired
-	public XsyncSetupController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ConfigService configService, XsyncSitePreferencesBean prefs, WhitelistXsyncSiteService whitelistXsyncSiteService, final SerializerService serializer, final JdbcTemplate jdbcTemplate) {
+	public XsyncSetupController(final UserManagementServiceI userManagementService,
+								final RoleHolder roleHolder,
+								final ConfigService configService,
+								final XsyncSitePreferencesBean prefs,
+								final WhitelistXsyncSiteService whitelistXsyncSiteService,
+								final JdbcTemplate jdbcTemplate) {
 		super(userManagementService, roleHolder);
 		_configService = configService;
         _prefs = prefs;
         _whitelistXsyncSiteService = whitelistXsyncSiteService;
-        _serializer = serializer;
 		_jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+	}
+
+	@ApiOperation(value = "Get all xsync configs" )
+	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
+	@XapiRequestMapping(method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE},
+			restrictTo = AccessLevel.Admin)
+	public ResponseEntity<List<JsonNode>> getAllXsyncConfigs() {
+		List<Configuration> configurations =
+				_configService.getAll().stream().filter(c -> c.getTool().equalsIgnoreCase("xsync")).filter(AbstractHibernateEntity::isEnabled).toList();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			List<JsonNode> configurationNodes = new ArrayList<>();
+			for (Configuration configuration : configurations) {
+				final String configurationString = configuration != null ? configuration.getContents() : null;
+				JsonNode configurationNode = objectMapper.readTree(configurationString);
+				configurationNodes.add(configurationNode);
+			}
+
+			return new ResponseEntity<>(configurationNodes,  HttpStatus.OK);
+			} catch(Exception e) {
+				_logger.error("ERROR:  Error retrieving system xsync configurations:  {}",
+							  ExceptionUtils.getFullStackTrace(e));
+				return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+	}
+
+	@ApiOperation(value = "Get all xsync configs" )
+	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
+	@XapiRequestMapping(value = "/number", method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE},
+			restrictTo = AccessLevel.Admin)
+	public ResponseEntity<Integer> getNumberXsyncConfigs() {
+		List<Configuration> configurations =
+				_configService.getAll().stream().filter(c -> c.getTool().equalsIgnoreCase("xsync")).filter(AbstractHibernateEntity::isEnabled).toList();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			List<JsonNode> configurationNodes = new ArrayList<>();
+			for (Configuration configuration : configurations) {
+				final String configurationString = configuration != null ? configuration.getContents() : null;
+				JsonNode configurationNode = objectMapper.readTree(configurationString);
+				configurationNodes.add(configurationNode);
+			}
+
+			return new ResponseEntity<>(configurationNodes.size(),  HttpStatus.OK);
+		} catch(Exception e) {
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	@ApiOperation(value = "Sets up the Xsync project configuration",  response = String.class)
 	@ApiResponses({@ApiResponse(code = 200, message = "XSync configuration successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
-    @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
-	public ResponseEntity<String> setup(@PathVariable("projectId") String projectId, @RequestBody String jsonbody) {
+    @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<String> setup(@PathVariable("projectId") String projectId, @RequestBody SyncConfigurationPojo configurationPojo) {
 		//curl -H "Content-Type: application/json" -X POST -d '{  "project":"TEST1ID",  "sync_frequency":"daily",  "auto_sync":"false",  "identifiers":"use_local",  "remote_url":"http://localhost:8080/xnat",  "remote_project_id":"SyncProjectId"}' -u admin  "http://localhost:8080/xnat/xapi/xsync/setup?project=TEST1ID"
 		try {
 			final UserI user = getSessionUser();
@@ -76,38 +126,29 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	        }
 			
 			//Store the JSON to the Synchronization table
-			final JsonNode synchronizationJson = _serializer.deserializeJson(jsonbody, JsonNode.class);
-			projectId = synchronizationJson.get(XsyncUtils.PROJECT_ELEMENT_JSON_NAME).asText();
-			if (projectId == null) {
-				//this.getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to identify project");
+			if (configurationPojo.getSource_project_id().isBlank()) {
 				return new ResponseEntity<>(" Project ID not provided ",HttpStatus.BAD_REQUEST);
-			}else {
+			}  else if (!configurationPojo.getSource_project_id().equals(projectId)) {
+				return new ResponseEntity<>(" Project ID values are inconsistent ",HttpStatus.BAD_REQUEST);
+			} else {
 				XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
 				if (project == null) {
 					return new ResponseEntity<>(" Project  " + projectId + " not found. ",HttpStatus.BAD_REQUEST);
 				} else {
 					XsyncSitePreferencesPojo sitePreferencesPojo = _prefs.toPojo();
 					if (sitePreferencesPojo.getXsyncWhitelistEnabled()) {
-						boolean siteUrlPresentInWhitelist = false;
 						List<WhitelistSitePojo> whitelistSitePojoList =
 								_whitelistXsyncSiteService.getAllWhitelistedSites();
-						String inputUrl = (String) new ObjectMapper().readValue(jsonbody, HashMap.class).get("remote_url");
-						for (WhitelistSitePojo whitelistSite : whitelistSitePojoList) {
-							if (whitelistSite.getSiteUrl().equalsIgnoreCase(inputUrl)) {
-								siteUrlPresentInWhitelist = true;
-								break;
-							}
-						}
-						if (!siteUrlPresentInWhitelist) {
-							return new ResponseEntity<>(" Site URL " + inputUrl + " is not an allowed option to " +
+						if (whitelistSitePojoList.stream().filter(wl -> wl.getSiteUrl().equalsIgnoreCase(configurationPojo.getRemote_url())).toList().isEmpty()) {
+							return new ResponseEntity<>(" Site URL " + configurationPojo.getRemote_url() + " is not an allowed option to " +
 																"receive data. ",HttpStatus.BAD_REQUEST);
 						}
 					}
 					
 					//TODO validate the JSON
-					XsyncUtils xsyncUtils = new XsyncUtils(_serializer, _jdbcTemplate, user);
-					xsyncUtils.loadConfigurationToDB(synchronizationJson);
-					saveConfig(project, jsonbody, projectId);
+					XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, user);
+					xsyncUtils.loadConfigurationToDB(configurationPojo);
+					saveConfig(configurationPojo, projectId);
 					return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
 				}
 			}
@@ -121,7 +162,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	@ApiOperation(value = "Gets the Xsync project configuration" )
 	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
-	public ResponseEntity<JsonNode> setup(@PathVariable("projectId") final String projectId) throws Exception{
+	public ResponseEntity<JsonNode> getXsyncProjectConfiguration(@PathVariable("projectId") final String projectId) throws Exception{
     	final HttpStatus status = canReadProject(projectId);
         if (status != null) {
             return new ResponseEntity<>(status);
@@ -134,18 +175,19 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			try {
 				JsonNode node = objectMapper.readTree(config);
 				return new ResponseEntity<>(node,  HttpStatus.OK);
-			}catch(Exception e) {
-				_logger.error("ERROR:  Error retrieving project setup:  " + ExceptionUtils.getFullStackTrace(e));
-				return new ResponseEntity<JsonNode>(HttpStatus.INTERNAL_SERVER_ERROR);
+			} catch(Exception e) {
+                _logger.error("ERROR:  Error retrieving project setup:  {}", ExceptionUtils.getFullStackTrace(e));
+				return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 			}
-		}else {
-			return new ResponseEntity<JsonNode>(HttpStatus.NOT_FOUND);
+		} else {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 	}
 
-	private void saveConfig(XnatProjectdata project, String xsyncConfigJson, String projectId) throws Exception {
-//		Configuration config = _configService.getConfig("xsync", project.getId());
-		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "json", xsyncConfigJson, Scope.Project, projectId);
+	private void saveConfig(SyncConfigurationPojo configurationPojo, String projectId) throws Exception {
+		ObjectMapper mapper = new ObjectMapper();
+		String serializedConfig = mapper.writeValueAsString(configurationPojo);
+		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "json", serializedConfig, Scope.Project, projectId);
 	}
 
 	private void saveDicomAnonymizationToConfig(XnatProjectdata project, String anonymizationScript) throws Exception {
@@ -197,7 +239,6 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	private final ConfigService              _configService;
 	private final XsyncSitePreferencesBean   _prefs;
 	private final WhitelistXsyncSiteService _whitelistXsyncSiteService;
-	private final SerializerService          _serializer;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
 	public static Logger _logger = LoggerFactory.getLogger(XsyncSetupController.class);
 }
