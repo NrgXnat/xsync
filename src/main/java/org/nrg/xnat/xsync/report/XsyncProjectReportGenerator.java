@@ -122,7 +122,7 @@ public class XsyncProjectReportGenerator {
 			}
 			reader.close();
 
-			List<Map<String, Object>> resultList = new XsyncUtils(_serializer, _jdbcTemplate, _user)
+			List<Map<String, Object>> resultList = new XsyncUtils(_jdbcTemplate, _user)
 					.getIdAndLabelMapForSyncedData(sourceProjectId, objectType);
 			if (reportFormat == null || reportFormat.equals(XsyncUtils.REPORT_FORMAT_CSV)) {
 				return getReportCSV(experimentDataMap, subjectMap, resultList,objectType);

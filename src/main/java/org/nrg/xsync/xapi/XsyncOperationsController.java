@@ -170,7 +170,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 	                log.info("Unable to fetch user permissions for user " + user.getLogin()  + " Project " + projectId );
 	            }
 	        }
-        	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(projectId);
+        	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_jdbcTemplate, user)).getSyncDetailsForProject(projectId);
             final String remoteUrl = syncProjectConfiguration.getSyncinfo().getRemoteUrl();
             final String remoteProjectId = syncProjectConfiguration.getSyncinfo().getRemoteProjectId();
             if (remoteUrl != null) {
@@ -348,7 +348,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 
         try {
             final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
-        	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
+        	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
         	boolean alreadySynced=false;
         	boolean wasSkipped=false;
         	if (okToSyncDatas != null && !okToSyncDatas.isEmpty()) {
@@ -519,7 +519,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 
         try {
             final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
-        	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
+        	final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
         	if (syncAssessors != null && !syncAssessors.isEmpty()) {
                 syncAssessor = syncAssessors.get(0);
                 syncAssessor.setSyncStatus(XsyncUtils.SYNC_STATUS_SYNC_REQUESTED);
@@ -622,7 +622,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     private XsyncXsyncassessordata createNewXsyncassessor(final String experimentId, final boolean okToSync, final UserI user) throws Exception {
         final XsyncXsyncassessordata okToSyncData;
         final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
-        final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_serializer, _jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
+        final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());
 
         //Create a new one
         okToSyncData = new XsyncXsyncassessordata();

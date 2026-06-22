@@ -72,13 +72,13 @@ public class SynchronizationManager {
 	    }		
 	}
 
-	public static void END_SYNC(final SerializerService serializer, String projectId, final NamedParameterJdbcTemplate jdbcTemplate, boolean save, boolean notify) {
+	public static void END_SYNC(String projectId, final NamedParameterJdbcTemplate jdbcTemplate, boolean save, boolean notify) {
 		Date now = new Date();
 //		projectSyncEndTime.put(projectId,now);
 		SyncManifest manifest = syncManifests.get(projectId);
 		if (manifest != null) {
 			manifest.setSync_end_time(now);
-			XsyncUtils xsyncUtils = new XsyncUtils(serializer, jdbcTemplate, manifest.getSync_user());
+			XsyncUtils xsyncUtils = new XsyncUtils(jdbcTemplate, manifest.getSync_user());
 			XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
 			syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
 			if (manifest.wasSyncSuccessfull()) {
@@ -110,8 +110,8 @@ public class SynchronizationManager {
 		}
 	}
 
-	public static void END_SYNC(final SerializerService serializer, String projectId, final NamedParameterJdbcTemplate jdbcTemplate, boolean save) {
-		END_SYNC(serializer,projectId,jdbcTemplate,save, false);
+	public static void END_SYNC(String projectId, final NamedParameterJdbcTemplate jdbcTemplate, boolean save) {
+		END_SYNC(projectId,jdbcTemplate,save, false);
 	}
 	
 	public static SyncManifest getProjectManifest(String projectId) {

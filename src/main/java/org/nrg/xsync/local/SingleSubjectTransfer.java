@@ -133,7 +133,7 @@ public class SingleSubjectTransfer implements Callable<Void> {
             //Only Subject Meta Data and the Subject Resources are to be synced. None of the experiments are synced
             subjectDataSync.sync(false);
 
-            SynchronizationManager.END_SYNC(serializer, project.getId(), jdbcTemplate, false);
+            SynchronizationManager.END_SYNC(project.getId(), jdbcTemplate, false);
             syncStatusService.registerSyncEnd(projectId,SynchronizationManager.getProjectManifest(project.getId()));
         } catch (Exception e) {
             log.error(e.getMessage(),e);

@@ -128,7 +128,7 @@ public class SingleExperimentTransfer implements Callable<Void> {
             syncExperiment();
             
             //syncStatusUpdater.saveSyncBlockStatus(Boolean.FALSE);
-            SynchronizationManager.END_SYNC(_serializer, project.getId(), _jdbcTemplate, false);
+            SynchronizationManager.END_SYNC(project.getId(), _jdbcTemplate, false);
             _syncStatusService.registerSyncEnd(_projectId,SynchronizationManager.getProjectManifest(project.getId()));
         } catch (Exception e) {
         	_log.error(e.getMessage(),e);

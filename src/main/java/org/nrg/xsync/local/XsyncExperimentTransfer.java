@@ -317,7 +317,7 @@ public class XsyncExperimentTransfer {
         final RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(), projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
         final ExperimentSyncItem expSyncItem = new ExperimentSyncItem(orig.getId(), orig.getLabel());
         expSyncItem.setRemoteLabel(target.getLabel());
-        expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_BEGINING);
+        expSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_BEGINNING);
         expSyncItem.stateChanged();
 
         final List<XnatImageassessordataI> assessors = target.getAssessors_assessor();

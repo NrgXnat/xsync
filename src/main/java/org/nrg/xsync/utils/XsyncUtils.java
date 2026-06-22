@@ -1,13 +1,11 @@
 package org.nrg.xsync.utils;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.nrg.framework.services.SerializerService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xdat.om.XsyncXsyncremotemapdata;
@@ -22,12 +20,13 @@ import org.nrg.xft.utils.SaveItemHelper;
 import org.nrg.xft.utils.ValidationUtils.ValidationResults;
 import org.nrg.xnat.utils.WorkflowUtils;
 import org.nrg.xsync.local.IdMapper;
+import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.util.CollectionUtils;
 
 /**
  * @author Mohana Ramaratnam
@@ -58,7 +57,7 @@ public class XsyncUtils {
 	public static final String SYNC_STATUS_WAITING_TO_SYNC="Waiting to Sync";
 	public static final String SYNC_STATUS_SYNC_REQUESTED="Sync Requested";
 
-	public static final String SYNC_STATUS_BEGINING="PREPARING TO SYNC";
+	public static final String SYNC_STATUS_BEGINNING ="PREPARING TO SYNC";
 	public static final String SYNC_STATUS_IN_PROGRESS="SYNC IN PROGRESS";
 
 	public static final String SYNC_TYPE_ALL = "all";
@@ -66,18 +65,13 @@ public class XsyncUtils {
 	public static final String SYNC_TYPE_INCLUDE = "include";
 	public static final String SYNC_TYPE_EXCLUDE = "exclude";
 
-	public static final String PROJECT_ELEMENT_JSON_NAME = "source_project_id";
-
-	public static final String REMOTE_HOST_URL = "remote_url";
-	
 	public static final String USER_ACCESS_OWNER = "owner";
 	public static final String USER_ACCESS_MEMBER = "member";
 	public static final String USER_ACCESS_COLLABORATOR= "collaborator";
 	public static final String USER_API_GROUP_ID= "GROUP_ID";
 	public static final String USER_API_LOGIN= "login";
 	public static final String PROJECT_SYNC_LOG_RESOURCE_LABEL="SYNCHRONIZATION_LOGS";
-	
-	
+
 	public static final String RESOURCE_NO_LABEL = "NO LABEL";
 	
 	public static final String XSYNC_VERIFICATION_STATUS = "XSYNC_VERIFICATION_STATUS";
@@ -104,77 +98,69 @@ public class XsyncUtils {
 	
 	private static final Logger _log = LoggerFactory.getLogger(XsyncUtils.class);
 
-	private final SerializerService          _serializer;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
 	private final UserI                      _user;
 
-	public XsyncUtils(final SerializerService serializer, final NamedParameterJdbcTemplate jdbcTemplate, final UserI user) {
-		_serializer = serializer;
+	public XsyncUtils(final NamedParameterJdbcTemplate jdbcTemplate, final UserI user) {
 		_jdbcTemplate = jdbcTemplate;
 		_user = user;
 	}
 	
 	public synchronized void loadConfigurationToDB(final File jsonFile) throws Exception{
-		try (final InputStream input = new FileInputStream(jsonFile)) {
-			JsonNode synchronizationJson = _serializer.deserializeJson(input);
-			loadConfigurationToDB(synchronizationJson);
-		}
+		ObjectMapper objectMapper = new ObjectMapper();
+		SyncConfigurationPojo configurationPojo = objectMapper.readValue(jsonFile, SyncConfigurationPojo.class);
+		loadConfigurationToDB(configurationPojo);
 	}
 
-	
-	public synchronized  void loadConfigurationToDB(JsonNode synchronizationJson) throws Exception{
-        String sourceProjectId = synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText();
+	public synchronized void loadConfigurationToDB(SyncConfigurationPojo configurationPojo) throws Exception{
+        String sourceProjectId = configurationPojo.getSource_project_id();
 		XFTItem item = XFTItem.NewItem(XsyncXsyncprojectdata.SCHEMA_ELEMENT_NAME, _user);
         XsyncXsyncprojectdata syncProject = new XsyncXsyncprojectdata(item);
         XsyncXsyncprojectdata existing = null;
         ArrayList<XsyncXsyncprojectdata> list = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField(XsyncXsyncprojectdata.SCHEMA_ELEMENT_NAME+"/source_project_id", sourceProjectId, _user, true);
         boolean hasExisting = false;
         XsyncXsyncinfodata existingSyncInfo = null;
-        if (list != null && list.size() > 0) {
-        	existing = list.get(0);
+        if (!CollectionUtils.isEmpty(list)) {
+        	existing = list.getFirst();
         	syncProject.setItem(existing.getItem());
         	hasExisting = true;
         	existingSyncInfo = syncProject.getSyncinfo();
         }
         
-		syncProject.setSourceProjectId(synchronizationJson.get(PROJECT_ELEMENT_JSON_NAME).asText());
-		if (synchronizationJson.get("notification_emails") != null) {
-			syncProject.setNotificationEmails(synchronizationJson.get("notification_emails").asText());
-		} else {
-			syncProject.setNotificationEmails("");
-		}
-		syncProject.setSyncEnabled(synchronizationJson.get("enabled").asBoolean());
+		syncProject.setSourceProjectId(configurationPojo.getSource_project_id());
+		syncProject.setNotificationEmails(configurationPojo.getNotification_emails());
+		syncProject.setSyncEnabled(configurationPojo.getEnabled());
 		item = XFTItem.NewItem(XsyncXsyncinfodata.SCHEMA_ELEMENT_NAME, _user);
-		XsyncXsyncinfodata syncinfo = new XsyncXsyncinfodata(item);
-        syncinfo.setSyncFrequency(synchronizationJson.get("sync_frequency").asText());
-		syncinfo.setSyncNewOnly(synchronizationJson.get("sync_new_only").asBoolean());
-		syncinfo.setIdentifiers(synchronizationJson.get("identifiers").asText());
-		if (syncinfo.getIdentifiers().equals(IdMapper.USE_CUSTOM)) {
-			syncinfo.setCustomIdentifierClass(synchronizationJson.get("customIdentifiers").asText());
+		XsyncXsyncinfodata syncInfo = new XsyncXsyncinfodata(item);
+        syncInfo.setSyncFrequency(configurationPojo.getSync_frequency());
+		syncInfo.setSyncNewOnly(configurationPojo.getSync_new_only());
+		syncInfo.setIdentifiers(configurationPojo.getIdentifiers());
+		if (syncInfo.getIdentifiers().equals(IdMapper.USE_CUSTOM)) {
+			syncInfo.setCustomIdentifierClass(configurationPojo.getCustomIdentifiers());
 		}
-		syncinfo.setRemoteUrl(synchronizationJson.get("remote_url").asText());
-		syncinfo.setRemoteProjectId(synchronizationJson.get("remote_project_id").asText());
+		syncInfo.setRemoteUrl(configurationPojo.getRemote_url());
+		syncInfo.setRemoteProjectId(configurationPojo.getRemote_project_id());
 		boolean destinationChange = false;
 		if (hasExisting && existingSyncInfo != null) {
-			if (!syncinfo.getRemoteUrl().equals(existingSyncInfo.getRemoteUrl())) 
+			if (!syncInfo.getRemoteUrl().equals(existingSyncInfo.getRemoteUrl()))
 				destinationChange = true;
-			if (!syncinfo.getRemoteProjectId().equals(existingSyncInfo.getRemoteProjectId())) 
+			if (!syncInfo.getRemoteProjectId().equals(existingSyncInfo.getRemoteProjectId()))
 				destinationChange = true;
 		}
 		//Did the configuration change to a different Remote Project and a different Remote URL?
 		if (destinationChange) {
-			syncinfo.setSyncStartTime(null);
-			syncinfo.setSyncEndTime(null);
+			syncInfo.setSyncStartTime(null);
+			syncInfo.setSyncEndTime(null);
 		}else {
 			if (existingSyncInfo != null) {
-				syncinfo.setSyncStartTime(existingSyncInfo.getSyncStartTime());
-				syncinfo.setSyncEndTime(existingSyncInfo.getSyncEndTime());
+				syncInfo.setSyncStartTime(existingSyncInfo.getSyncStartTime());
+				syncInfo.setSyncEndTime(existingSyncInfo.getSyncEndTime());
 			}else {
-				syncinfo.setSyncStartTime(null);
-				syncinfo.setSyncEndTime(null);
+				syncInfo.setSyncStartTime(null);
+				syncInfo.setSyncEndTime(null);
 			}
 		}
-		syncProject.setSyncinfo(syncinfo.getItem());
+		syncProject.setSyncinfo(syncInfo.getItem());
 		syncProject.setSyncScheduledBy(_user.getLogin());
         final ValidationResults vr = syncProject.validate();
         if (vr != null && !vr.isValid()) {
@@ -192,15 +178,12 @@ public class XsyncUtils {
 	
 	public List<XsyncXsyncprojectdata> getAllProjectsSetToBeSynced() {
 		return XsyncXsyncprojectdata.getAllXsyncXsyncprojectdatas(_user, true);
-	}	
-	
-	
-	
+	}
 	
 	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedDaily() {
 		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
 		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
-		if (xsyncProjects != null && xsyncProjects.size() > 0) {
+		if (xsyncProjects != null && !xsyncProjects.isEmpty()) {
 			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
 				XsyncXsyncinfodata xsyncInfo = projectXsync.getSyncinfo();
 				if (SYNC_FREQUENCY_DAILY.equals(xsyncInfo.getSyncFrequency())) {
@@ -214,7 +197,7 @@ public class XsyncUtils {
 	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedWeekly() {
 		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
 		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
-		if (xsyncProjects != null && xsyncProjects.size() > 0) {
+		if (xsyncProjects != null && !xsyncProjects.isEmpty()) {
 			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
 				XsyncXsyncinfodata xsyncInfo = projectXsync.getSyncinfo();
 				if (SYNC_FREQUENCY_WEEKLY.equals(xsyncInfo.getSyncFrequency())) {
@@ -228,7 +211,7 @@ public class XsyncUtils {
 	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedMonthly() {
 		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
 		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
-		if (xsyncProjects != null && xsyncProjects.size() > 0) {
+		if (xsyncProjects != null && !xsyncProjects.isEmpty()) {
 			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
 				XsyncXsyncinfodata xsyncInfo = projectXsync.getSyncinfo();
 				if (SYNC_FREQUENCY_MONTHLY.equals(xsyncInfo.getSyncFrequency())) {
@@ -242,7 +225,7 @@ public class XsyncUtils {
 	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedOnDemand() {
 		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
 		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
-		if (xsyncProjects != null && xsyncProjects.size() > 0) {
+		if (xsyncProjects != null && !xsyncProjects.isEmpty()) {
 			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
 				XsyncXsyncinfodata xsyncInfo = projectXsync.getSyncinfo();
 				if (SYNC_FREQUENCY_ON_DEMAND.equals(xsyncInfo.getSyncFrequency())) {
@@ -267,12 +250,11 @@ public class XsyncUtils {
 		XsyncXsyncprojectdata syncData = null; 
 		ArrayList<XsyncXsyncprojectdata> results = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/source_project_id",projectId,_user,false);
 		if (results != null && results.size() == 1) {
-			syncData = results.get(0);
+			syncData = results.getFirst();
 		}else {
-			_log.error("Unexpected number of results "  + projectId);
+            _log.error("Unexpected number of results {}", projectId);
 		}
 		return syncData;
-
 	}
 
 	public ArrayList<XsyncXsyncremotemapdata> getAllRemoteMapDetails() {
@@ -287,7 +269,7 @@ public class XsyncUtils {
 		parameters.addValue("localXnatId", localXnatId);
 		 List<String> results = _jdbcTemplate.queryForList(query, parameters,String.class);
 		 if (results !=null && results.size()>1) {
-			 remoteId = results.get(0);
+			 remoteId = results.getFirst();
 		 }
 		return remoteId;
 	}
@@ -303,9 +285,6 @@ public class XsyncUtils {
 		
 		final MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("localProjectId", localProjectId);
-		List<Map<String,Object>> results = _jdbcTemplate.queryForList(query, parameters);
-		return results;
+        return _jdbcTemplate.queryForList(query, parameters);
 	}
-
-
 }
