@@ -22,6 +22,4 @@ public interface SyncManifestService extends BaseHibernateService<XsyncProjectHi
     XsyncProjectHistory getRecentProjectSync(String localProjectId, String remoteProjectId);
 
     XsyncProjectHistory findMostRecentBySubject(final String projectId, final String subjectLabel);
-
-    List<XsyncRemoteUrlDetailsPojo> findRemoteUrlDetails(boolean whitelistEnabled, List<WhitelistSitePojo> whitelist);
 }

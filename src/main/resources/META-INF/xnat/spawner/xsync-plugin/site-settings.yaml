@@ -38,7 +38,22 @@ siteSettings:
                                 Use Aspera for transfers?  This requires a valid Aspera server to receive files.
                         xsyncConnectionManagerScript:
                             tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncConnectionManager.js"
-
+        configurationDashboard:
+            kind: tab
+            label: Configuration Dashboard
+            group: xsyncConfig
+            active: true
+            contents:
+                configurationDashboardPanel:
+                    kind: panel.form
+                    name: configurationDashboardPanel
+                    label: Configuration Dashboard
+                    footer: false
+                    contents:
+                        xsyncConfigurationDashboardTable:
+                            tag: "div#xsync-configuration-dashboard-panel"
+                        xsyncConnectionManagerScript:
+                            tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncConfigurationDashboard.js"
         remoteTokenRefresh:
             kind: tab
             label: Remote Token

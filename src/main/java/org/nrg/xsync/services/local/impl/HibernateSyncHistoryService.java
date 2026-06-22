@@ -91,51 +91,6 @@ public class HibernateSyncHistoryService
         return getDao().findMostRecentBySubject(projectId,subjectLabel);
     }
 
-    @Transactional
-    @Override
-    public List<XsyncRemoteUrlDetailsPojo> findRemoteUrlDetails(boolean whitelistEnabled, List<WhitelistSitePojo> whitelist) {
-        List<XsyncProjectHistory> allHistory = getAll();
-        Map<String, List<XsyncProjectHistory>> allHistoryMap =
-                allHistory.stream().collect(Collectors.groupingBy(XsyncProjectHistory::getLocalProject));
-        List<XsyncProjectHistory> mostRecentHistoryElementForProjects = new ArrayList<>();
-        for (List<XsyncProjectHistory> singleProjectHistoryElements : allHistoryMap.values()) {
-            XsyncProjectHistory latestHistoryEntry = singleProjectHistoryElements.stream()
-                    .reduce((a,b) -> a.getTimestamp().after(b.getTimestamp()) ? a:b).get();
-            mostRecentHistoryElementForProjects.add(latestHistoryEntry);
-        }
-
-        Map<String, XsyncRemoteUrlDetailsPojo> historyMap = new HashMap<>();
-        List<XsyncRemoteUrlDetailsPojo> historyPojoList = new ArrayList<>();
-        for (XsyncProjectHistory historyElement : mostRecentHistoryElementForProjects) {
-            String remoteUrl = historyElement.getRemoteHost();
-            if (historyMap.containsKey(remoteUrl)) {
-                XsyncRemoteUrlDetailsPojo currentHistoryPojo = historyMap.get(remoteUrl);
-                currentHistoryPojo.setNumberProjects(currentHistoryPojo.getNumberProjects() + 1);
-                if (historyElement.getSyncStatus().toLowerCase().contains("fail")) {
-                    currentHistoryPojo.setNumberErrors(currentHistoryPojo.getNumberErrors() + 1);
-                }
-                if (whitelistEnabled) {
-                    addWhitelistDetail(currentHistoryPojo, whitelist, remoteUrl);
-                }
-            } else {
-                XsyncRemoteUrlDetailsPojo newHistoryPojo = new XsyncRemoteUrlDetailsPojo();
-                newHistoryPojo.setRemoteUrl(remoteUrl);
-                newHistoryPojo.setNumberProjects(1);
-                if (historyElement.getSyncStatus().toLowerCase().contains("fail")) {
-                    newHistoryPojo.setNumberErrors(1);
-                } else {
-                    newHistoryPojo.setNumberErrors(0);
-                }
-                if (whitelistEnabled) {
-                    addWhitelistDetail(newHistoryPojo, whitelist, remoteUrl);
-                }
-                historyMap.put(remoteUrl, newHistoryPojo);
-                historyPojoList.add(newHistoryPojo);
-            }
-        }
-        return historyPojoList;
-    }
-
     private void addWhitelistDetail(XsyncRemoteUrlDetailsPojo inputPojo, List<WhitelistSitePojo> whitelist,
                                     String remoteUrl) {
             WhitelistSitePojo whitelistElement = whitelist.stream()
