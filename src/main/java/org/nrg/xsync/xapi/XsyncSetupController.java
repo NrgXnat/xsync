@@ -114,26 +114,24 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	}
 
 	@ApiOperation(value = "Sets up the Xsync project configuration",  response = String.class)
-	@ApiResponses({@ApiResponse(code = 200, message = "XSync configuration successfully configured."),  @ApiResponse(code = 500, message = "Unexpected error")})
-    @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> setup(@PathVariable("projectId") String projectId, @RequestBody SyncConfigurationPojo configurationPojo) {
-		//curl -H "Content-Type: application/json" -X POST -d '{  "project":"TEST1ID",  "sync_frequency":"daily",  "auto_sync":"false",  "identifiers":"use_local",  "remote_url":"http://localhost:8080/xnat",  "remote_project_id":"SyncProjectId"}' -u admin  "http://localhost:8080/xnat/xapi/xsync/setup?project=TEST1ID"
+	@ApiResponses({@ApiResponse(code = 200, message = "XSync configuration successfully configured."),
+			@ApiResponse(code = 401, message = "User does not have required credentials to set project configuration."),
+			@ApiResponse(code = 500, message = "Unexpected error")})
+    @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.POST, consumes =
+			MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Delete)
+	public ResponseEntity<String> setup(@PathVariable("projectId") String projectId,
+										@RequestBody SyncConfigurationPojo configurationPojo) {
 		try {
 			final UserI user = getSessionUser();
-	    	final HttpStatus status = canDeleteProject(projectId);
-	        if (status != null) {
-	            return new ResponseEntity<>(status);
-	        }
-			
-			//Store the JSON to the Synchronization table
+
 			if (configurationPojo.getSource_project_id().isBlank()) {
-				return new ResponseEntity<>(" Project ID not provided ",HttpStatus.BAD_REQUEST);
+				return new ResponseEntity<>(" Project ID not provided ", HttpStatus.BAD_REQUEST);
 			}  else if (!configurationPojo.getSource_project_id().equals(projectId)) {
-				return new ResponseEntity<>(" Project ID values are inconsistent ",HttpStatus.BAD_REQUEST);
+				return new ResponseEntity<>(" Project ID values are inconsistent ", HttpStatus.BAD_REQUEST);
 			} else {
 				XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
 				if (project == null) {
-					return new ResponseEntity<>(" Project  " + projectId + " not found. ",HttpStatus.BAD_REQUEST);
+					return new ResponseEntity<>(" Project " + projectId + " not found. ", HttpStatus.BAD_REQUEST);
 				} else {
 					XsyncSitePreferencesPojo sitePreferencesPojo = _prefs.toPojo();
 					if (sitePreferencesPojo.getXsyncWhitelistEnabled()) {
@@ -145,14 +143,13 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 						}
 					}
 					
-					//TODO validate the JSON
 					XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, user);
 					xsyncUtils.loadConfigurationToDB(configurationPojo);
 					saveConfig(configurationPojo, projectId);
 					return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
 				}
 			}
-		}catch (Exception  exception) {
+		} catch (Exception  exception) {
             _logger.error("ERROR:  Xsync Setup Threw an Exception:  {}", ExceptionUtils.getFullStackTrace(exception));
 			return new ResponseEntity<>(projectId + " Xsync Setup failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
@@ -160,25 +157,18 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 
 	
 	@ApiOperation(value = "Gets the Xsync project configuration" )
-	@ApiResponses({@ApiResponse(code = 500, message = "Unexpected error")})
-    @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET, produces = {MediaType.APPLICATION_JSON_VALUE})
-	public ResponseEntity<JsonNode> getXsyncProjectConfiguration(@PathVariable("projectId") final String projectId) throws Exception{
-    	final HttpStatus status = canReadProject(projectId);
-        if (status != null) {
-            return new ResponseEntity<>(status);
-        }		
+	@ApiResponses({@ApiResponse(code = 200, message = "XSync configuration returned."),
+			@ApiResponse(code = 401, message = "User does not have required credentials to get project configuration."),
+			@ApiResponse(code = 500, message = "Unexpected error")})
+    @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET, produces =
+			{MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Read)
+	public ResponseEntity<SyncConfigurationPojo> getXsyncProjectConfiguration(@PathVariable("projectId") final String projectId) throws Exception{
 		final Configuration conf = _configService.getConfig("xsync", "json", Scope.Project, projectId);
 		final String config = conf != null ? conf.getContents() : null;
-		//HACK - to avoid escaped String being sent as response
 		ObjectMapper objectMapper = new ObjectMapper();
 		if (StringUtils.isNotBlank(config)) {
-			try {
-				JsonNode node = objectMapper.readTree(config);
-				return new ResponseEntity<>(node,  HttpStatus.OK);
-			} catch(Exception e) {
-                _logger.error("ERROR:  Error retrieving project setup:  {}", ExceptionUtils.getFullStackTrace(e));
-				return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-			}
+			SyncConfigurationPojo responsePojo = objectMapper.readValue(config, SyncConfigurationPojo.class);
+			return new ResponseEntity<>(responsePojo,  HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -187,11 +177,13 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	private void saveConfig(SyncConfigurationPojo configurationPojo, String projectId) throws Exception {
 		ObjectMapper mapper = new ObjectMapper();
 		String serializedConfig = mapper.writeValueAsString(configurationPojo);
-		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "json", serializedConfig, Scope.Project, projectId);
+		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "json", serializedConfig,
+									 Scope.Project, projectId);
 	}
 
 	private void saveDicomAnonymizationToConfig(XnatProjectdata project, String anonymizationScript) throws Exception {
-		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "presyncanonymization", anonymizationScript, Scope.Project, project.getId());
+		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "presyncanonymization",
+									 anonymizationScript, Scope.Project, project.getId());
 	}
 
     @XapiRequestMapping(path="/presyncanonymization/projects/{projectId}", method = RequestMethod.PUT)

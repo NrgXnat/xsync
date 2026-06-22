@@ -13,5 +13,5 @@ import java.util.List;
 @Setter
 public class SyncConfigurationAssessorPojo {
     private String sync_type;
-//    private List<String> xsi_types;
+    private List<String> xsi_types;
 }
