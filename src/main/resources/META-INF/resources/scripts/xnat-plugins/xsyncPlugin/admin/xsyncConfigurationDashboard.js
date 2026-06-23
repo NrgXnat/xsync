@@ -55,7 +55,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             }
         });
         XNAT.xhr.get({
-            url: restUrl('/xapi/xsync/setup/remoteInstances/'),
+            url: restUrl('/xapi/xsync/dashboard/'),
             async: false,
             success: function (data) {
                 xsyncConfigurationDashboard.ConfigurationData = []
