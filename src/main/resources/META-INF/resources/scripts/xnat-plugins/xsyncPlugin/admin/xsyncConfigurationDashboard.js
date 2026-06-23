@@ -33,6 +33,17 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     var xsyncConfigurationDashboard;
     XNAT.plugin.xsync.xsyncConfigurationDashboard = xsyncConfigurationDashboard = getObject(XNAT.plugin.xsync.xsyncConfigurationDashboard || {});
 
+    xsyncConfigurationDashboard.getNumberProjectsLink = function(text, remoteUrl) {
+        return spawn('!', [
+            spawn('a.link|href=#!', {
+                onclick: function(e){
+                    e.preventDefault();
+                    xsyncConfigurationDashboard.getRemoteUrlListingModal(remoteUrl);
+                }
+            }, [['b', text]]),
+        ]);
+    }
+
     xsyncConfigurationDashboard.getAddNewButton = function() {
         return spawn('button.btn.btn-sm.edit', {
             onclick: function (e) {
@@ -40,6 +51,43 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             },
             title: "Add new connection to this site"
         }, 'Add New');
+    }
+
+    xsyncConfigurationDashboard.getRemoteUrlListingModal = function(remoteUrl) {
+        XNAT.xhr.get({
+            url: restUrl('/xapi/xsync/dashboard/remoteUrl?remoteUrl=' + remoteUrl),
+            async: false,
+            success: function (data) {
+                xsyncConfigurationDashboard.currentRemoteUrlData = []
+                data.forEach(function (item) {
+                    xsyncConfigurationDashboard.currentRemoteUrlData.push(item);
+                });
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not retrieve configuration information for url: ' + remoteUrl + '\nError message: s' + e.responseText, 'error');
+            }
+        });
+
+        let tmpl =  spawn('div#modal_table_wrapper');
+
+        this.dialog = XNAT.ui.dialog.open({
+            title: 'Details for ' + remoteUrl,
+            width: 900,
+            content:tmpl,
+            isDraggable: true,
+            mask: false,
+            esc: true,
+            buttons: [
+                {
+                    label: 'Close',
+                    isDefault: true,
+                    close: true
+                }
+            ],
+            afterShow: function () {
+                xsyncConfigurationDashboard.refreshModalTable();
+            }
+        });
     }
 
     xsyncConfigurationDashboard.getConfigurationData = function() {
@@ -58,9 +106,9 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             url: restUrl('/xapi/xsync/dashboard/'),
             async: false,
             success: function (data) {
-                xsyncConfigurationDashboard.ConfigurationData = []
+                xsyncConfigurationDashboard.configurationData = []
                 data.forEach(function (item) {
-                    xsyncConfigurationDashboard.ConfigurationData.push(item);
+                    xsyncConfigurationDashboard.configurationData.push(item);
                 });
             },
             fail: function (e) {
@@ -68,6 +116,14 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             }
         });
     }
+
+    xsyncConfigurationDashboard.refreshModalTable = function() {
+            if (typeof xsyncConfigurationDashboard.$modalTable != 'undefined') {
+                xsyncConfigurationDashboard.$modalTable.remove();
+            }
+            let $modalTableDiv = $('div#modal_table_wrapper');
+            $modalTableDiv.prepend(xsyncConfigurationDashboard.modalTable());
+        };
 
     xsyncConfigurationDashboard.refreshTable = function() {
         if (typeof xsyncConfigurationDashboard.$table != 'undefined') {
@@ -77,10 +133,138 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         $configurationDashboardTableDiv.prepend(xsyncConfigurationDashboard.table());
     };
 
+    xsyncConfigurationDashboard.modalTable = function() {
+        let tableData = [];
+        let remoteUrlDetails = xsyncConfigurationDashboard.currentRemoteUrlData;
+        DATA_FIELDS = "localProject, remoteProject, status, frequency, lastSyncStatus"
+
+        for (let k = 0; k < remoteUrlDetails.length; k++) {
+            let detail = remoteUrlDetails[k];
+            let tableDataRow = {};
+            tableDataRow['localProject'] = detail['localProject'];
+            tableDataRow['remoteProject'] = detail['remoteProject'];
+            tableDataRow['status'] = detail['status'];
+            tableDataRow['frequency'] = detail['frequency'];
+            tableDataRow['lastSyncStatus'] = detail['lastSyncStatus'];
+            tableDataRow['actions'] = detail;
+            tableData.push(tableDataRow);
+        }
+
+        let columnsInTable = {};
+
+        columnsInTable['localProject'] = {
+            label: 'Local Project',
+            sortable: true,
+            td: {
+                style: {
+                    verticalAlign: 'middle'
+                }
+            },
+            apply: function (localProject) {
+                return spawn('span', {
+                    title: localProject,
+                    html: localProject
+                });
+            }
+        }
+        columnsInTable['remoteProject'] = {
+            label: 'Remote Project',
+            sortable: true,
+            td: {
+                style: {
+                    verticalAlign: 'middle'
+                }
+            },
+            apply: function (remoteProject) {
+                return spawn('span', {
+                    title: remoteProject,
+                    html: remoteProject
+                });
+            }
+        }
+        columnsInTable['status'] = {
+            label: 'Status',
+            sortable: true,
+            td: {
+                style: {
+                    verticalAlign: 'middle'
+                }
+            },
+            apply: function (status) {
+                return spawn('span', {
+                    title: status,
+                    html: status
+                });
+            }
+        }
+        columnsInTable['frequency'] = {
+            label: 'Frequency',
+            sortable: true,
+            td: {
+                style: {
+                    verticalAlign: 'middle'
+                }
+            },
+            apply: function (frequency) {
+                return spawn('span', {
+                    title: frequency,
+                    html: frequency
+                });
+            }
+        }
+        columnsInTable['lastSyncStatus'] =  {
+            label: 'Last Sync Status',
+            sortable: true,
+            td: {
+                style: {
+                    verticalAlign: 'middle'
+                }
+            },
+            apply: function (lastSyncStatus) {
+                return spawn('span', {
+                    title: lastSyncStatus,
+                    html: lastSyncStatus
+                });
+            }
+        }
+        columnsInTable['actions'] = {
+            label: 'Actions',
+            td: {
+                style: {
+                    verticalAlign: 'middle',
+                    width: '90px'
+                }
+            },
+            apply: function (actions) {
+                return [xsyncConfigurationDashboard.getAddNewButton()]
+            }
+        }
+
+        let modalTable = XNAT.table.dataTable(tableData, {
+            header: true,
+            sortable: DATA_FIELDS,
+            filter: DATA_FIELDS,
+            height: 'auto',
+            table: {
+                className: 'xsync-configuration-table xnat-table selectable',
+                style: {
+                    width: '100%',
+                    marginTop: '15px',
+                    marginBottom: '15px',
+                    border: '1px solid #aaa'
+                }
+            },
+            columns: columnsInTable
+        });
+
+        xsyncConfigurationDashboard.$modalTable = $(modalTable.table);
+        return modalTable.table;
+    }
+
     xsyncConfigurationDashboard.table = function() {
         xsyncConfigurationDashboard.getConfigurationData();
         let tableData = [];
-        let configurations = xsyncConfigurationDashboard.ConfigurationData;
+        let configurations = xsyncConfigurationDashboard.configurationData;
         DATA_FIELDS = "remoteSite, remoteUrl, securityTier, numberProjects, numberErrors"
 
         for (let k = 0; k < configurations.length; k++) {
@@ -155,10 +339,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 }
             },
             apply: function (numberProjects) {
-                return spawn('span', {
-                    title: numberProjects.toString(),
-                    html: numberProjects.toString()
-                });
+                return xsyncConfigurationDashboard.getNumberProjectsLink(numberProjects, this.remoteUrl);
             }
         }
         columnsInTable['numberErrors'] =  {

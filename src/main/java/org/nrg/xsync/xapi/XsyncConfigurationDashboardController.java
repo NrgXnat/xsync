@@ -83,7 +83,7 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
             @ApiResponse(code=403, message="User unauthorized to obtain configuration information."),
             @ApiResponse(code=500, message="Unexpected error")
     })
-    @XapiRequestMapping(value = "remoteUrl", method = RequestMethod.GET,
+    @XapiRequestMapping(value = "/remoteUrl", method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Admin)
     public ResponseEntity<List<XsyncDashboardProjectConfigurationPojo>> getSyncDetailsForRemoteUrl(
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) {

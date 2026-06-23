@@ -92,7 +92,7 @@ public class ConfigurationDashboardServiceImpl implements ConfigurationDashboard
             if (optionalHistory.isPresent()) {
                 pojo.setLastSyncStatus(optionalHistory.get().getSyncStatus());
             } else {
-                pojo.setLastSyncStatus("NEVER SYNCED");
+                pojo.setLastSyncStatus("Never Synced");
             }
             configurationPojos.add(pojo);
         }
