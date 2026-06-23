@@ -2,12 +2,8 @@ package org.nrg.xsync.utils;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
@@ -24,9 +20,6 @@ import org.nrg.xft.utils.SaveItemHelper;
 import org.nrg.xft.utils.ValidationUtils.ValidationResults;
 import org.nrg.xnat.utils.WorkflowUtils;
 import org.nrg.xsync.local.IdMapper;
-import org.nrg.xsync.manifest.XsyncProjectHistory;
-import org.nrg.xsync.pojo.WhitelistSitePojo;
-import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
 import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,7 +89,7 @@ public class XsyncUtils {
 	public static final String REPORT_FORMAT = "reportFormat";
 
 	public static final long THREAD_SLEEP_TIME = 120000;
-	
+
 	public enum FilterType 
 	{
 		CONTAINS,
@@ -187,50 +180,6 @@ public class XsyncUtils {
         }
 	}
 
-	public List<XsyncRemoteUrlDetailsPojo> createListOfRemoteDestinations(List<XsyncProjectHistory> allHistoryItems,
-																		  boolean whitelistEnabled,
-																		  List<WhitelistSitePojo> whitelist) {
-		List<XsyncXsyncprojectdata> xsyncProjectDataList = getAllProjectsSetToBeSynced();
-		Map<String, List<XsyncProjectHistory>> allHistoryMap =
-				allHistoryItems.stream().collect(Collectors.groupingBy(XsyncProjectHistory::getLocalProject));
-
-		Map<String, XsyncRemoteUrlDetailsPojo> configurationsMap = new HashMap<>();
-		for (XsyncXsyncprojectdata configuration : xsyncProjectDataList) {
-			String remoteUrl = configuration.getSyncinfo().getRemoteUrl();
-			XsyncRemoteUrlDetailsPojo currentPojo;
-			if (configurationsMap.containsKey(remoteUrl)) {
-				currentPojo = configurationsMap.get(remoteUrl);
-				currentPojo.setNumberProjects(currentPojo.getNumberProjects()+1);
-			} else {
-				currentPojo = new XsyncRemoteUrlDetailsPojo();
-				currentPojo.setRemoteUrl(remoteUrl);
-				currentPojo.setNumberProjects(1);
-				currentPojo.setNumberErrors(0);
-				if (whitelistEnabled) {
-					WhitelistSitePojo whitelistElement = whitelist.stream()
-							.filter(wl -> wl.getSiteUrl().equals(remoteUrl)).toList().getFirst();
-					currentPojo.setSiteName(whitelistElement.getSiteName());
-					currentPojo.setClassification(whitelistElement.getClassification());
-				}
-			}
-			String sourceProjectId = configuration.getSourceProjectId();
-			if (allHistoryMap.containsKey(sourceProjectId)) {
-				List<XsyncProjectHistory> singleProjectHistoryElements = allHistoryMap.get(sourceProjectId);
-				Optional<XsyncProjectHistory> optionalProjHistory = singleProjectHistoryElements.stream()
-						.reduce((a,b) -> a.getTimestamp().after(b.getTimestamp()) ? a:b);
-				if (optionalProjHistory.isPresent()) {
-					XsyncProjectHistory latestHistoryEntryForProject = optionalProjHistory.get();
-					if (latestHistoryEntryForProject.getSyncStatus().toLowerCase().contains("fail")) {
-						currentPojo.setNumberErrors(currentPojo.getNumberErrors()+1);
-					}
-				}
-			}
-
-			configurationsMap.put(remoteUrl, currentPojo);
-		}
-		return configurationsMap.values().stream().toList();
-	}
-
 	public List<XsyncXsyncprojectdata> getAllProjectsSetToBeSynced() {
 		return XsyncXsyncprojectdata.getAllXsyncXsyncprojectdatas(_user, true);
 	}
@@ -301,7 +250,7 @@ public class XsyncUtils {
 		return isToBeSyncedOnDemand;
 	}
 
-	public 	XsyncXsyncprojectdata getSyncDetailsForProject(String projectId){
+	public XsyncXsyncprojectdata getSyncDetailsForProject(String projectId){
 		XsyncXsyncprojectdata syncData = null; 
 		ArrayList<XsyncXsyncprojectdata> results = XsyncXsyncprojectdata.getXsyncXsyncprojectdatasByField("xsync:xsyncProjectData/source_project_id",projectId,_user,false);
 		if (results != null && results.size() == 1) {

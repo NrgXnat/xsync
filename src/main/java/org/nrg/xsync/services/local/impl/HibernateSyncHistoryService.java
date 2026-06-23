@@ -1,12 +1,9 @@
 package org.nrg.xsync.services.local.impl;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.hibernate.HibernateException;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
