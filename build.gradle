@@ -24,10 +24,6 @@ buildscript {
         classpath "io.franzbecker:gradle-lombok:5.0.0"
         classpath "io.spring.gradle:dependency-management-plugin:1.1.7"
         classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
-        // xnat-data-builder needs core XNAT schemas (xnat.xsd) on its classpath to
-        // resolve file-xsync.xsd's <xs:include>. xnat-web bundles the core schemas
-        // in monorepo 1.10+ (xnat-data-models is unmaintained on JFrog).
-        classpath("org.nrg.xnat:web:${vXnat}") { transitive = false }
         classpath "net.linguica.gradle:maven-settings-plugin:0.5"
     }
 }
