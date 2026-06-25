@@ -5,10 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.nrg.xsync.manifest.XsyncAssessorHistory;
-import org.nrg.xsync.manifest.XsyncExperimentHistory;
-import org.nrg.xsync.manifest.XsyncResourceHistory;
-import org.nrg.xsync.manifest.XsyncSubjectHistory;
 
 import java.util.Date;
 import java.util.List;

@@ -1,4 +1,4 @@
-package org.nrg.xsync.manifest;
+package org.nrg.xsync.manifest.history;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

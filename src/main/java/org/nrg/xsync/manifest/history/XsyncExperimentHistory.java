@@ -1,4 +1,4 @@
-package org.nrg.xsync.manifest;
+package org.nrg.xsync.manifest.history;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -16,20 +16,14 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 @Setter
 @Entity
 @Table(uniqueConstraints = {})
-public class XsyncResourceHistory extends AbstractHibernateEntity {
+public class XsyncExperimentHistory extends AbstractHibernateEntity {
 
-    public XsyncResourceHistory() {}
+    public XsyncExperimentHistory() {}
 
     @Getter
     private String localLabel;
     @Getter
     private String subjectLabel;
-    @Getter
-    private String experimentLabel;
-    @Getter
-    private int fileCount;
-    @Getter
-    private Long fileSize;
     @Getter
     private String syncStatus;
     private String syncMessage;

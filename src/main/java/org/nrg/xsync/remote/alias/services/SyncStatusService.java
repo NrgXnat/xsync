@@ -7,7 +7,7 @@ import org.nrg.xsync.components.SyncStatusHolder;
 import org.nrg.xsync.components.SyncStatusHolder.SyncType;
 import org.nrg.xsync.components.elements.ProjectSyncStatus;
 import org.nrg.xsync.manifest.SyncManifest;
-import org.nrg.xsync.manifest.XsyncProjectHistory;
+import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

@@ -1,17 +1,15 @@
 package org.nrg.xsync.manifest;
 
-import org.hibernate.Criteria;
 import org.hibernate.SQLQuery;
-import org.hibernate.criterion.Example;
-import org.hibernate.criterion.Order;
-import org.hibernate.criterion.Restrictions;
-import org.hibernate.transform.Transformers;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
-import org.nrg.xdat.entities.UserRole;
+import org.nrg.xsync.manifest.history.XsyncAssessorHistory;
+import org.nrg.xsync.manifest.history.XsyncExperimentHistory;
+import org.nrg.xsync.manifest.history.XsyncProjectHistory;
+import org.nrg.xsync.manifest.history.XsyncResourceHistory;
+import org.nrg.xsync.manifest.history.XsyncSubjectHistory;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Nullable;
-import javax.management.AttributeList;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
