@@ -33,6 +33,11 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     var xsyncConfigurationDashboard;
     XNAT.plugin.xsync.xsyncConfigurationDashboard = xsyncConfigurationDashboard = getObject(XNAT.plugin.xsync.xsyncConfigurationDashboard || {});
 
+    xsyncConfigurationDashboard.getLocalProjectLink = function(localProject) {
+        let localProjectUrl = XNAT.url.fullUrl().replace(/\/$/,'') + XNAT.url.dataUrl() + '/projects/' + localProject;
+        return spawn('!', [ spawn('a.link|href='+ localProjectUrl, [['b', localProject]]),]);
+    }
+
     xsyncConfigurationDashboard.getNumberProjectsLink = function(text, remoteUrl) {
         return spawn('!', [
             spawn('a.link|href=#!', {
@@ -161,10 +166,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 }
             },
             apply: function (localProject) {
-                return spawn('span', {
-                    title: localProject,
-                    html: localProject
-                });
+                return xsyncConfigurationDashboard.getLocalProjectLink(localProject);
             }
         }
         columnsInTable['remoteProject'] = {
@@ -183,7 +185,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             }
         }
         columnsInTable['status'] = {
-            label: 'Status',
+            label: 'Enabled',
             sortable: true,
             td: {
                 style: {
@@ -362,7 +364,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             td: {
                 style: {
                     verticalAlign: 'middle',
-                    width: '135px'
+                    width: '90px'
                 }
             },
             apply: function (actions) {
