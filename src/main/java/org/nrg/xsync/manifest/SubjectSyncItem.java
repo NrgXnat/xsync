@@ -2,6 +2,8 @@ package org.nrg.xsync.manifest;
 
 import java.util.ArrayList;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.utils.XsyncUtils;
 
@@ -9,10 +11,12 @@ import org.nrg.xsync.utils.XsyncUtils;
  * @author Mohana Ramaratnam
  *
  */
+@Setter
+@Getter
 public class SubjectSyncItem extends SyncedItem {
-	
-	ArrayList<ExperimentSyncItem> experiments;
-	ArrayList<ResourceSyncItem> resources;
+
+    ArrayList<ExperimentSyncItem> experiments;
+    ArrayList<ResourceSyncItem> resources;
 
 
 	public SubjectSyncItem(String localId, String localLabel) {
@@ -20,49 +24,21 @@ public class SubjectSyncItem extends SyncedItem {
 		resources = new ArrayList<ResourceSyncItem>();
 		experiments = new ArrayList<ExperimentSyncItem>();
 	}
-		
-	
-	/**
-	 * @return the resources
-	 */
-	public ArrayList<ResourceSyncItem> getResources() {
-		return resources;
-	}
 
-	public void addResources(ResourceSyncItem resource) {
+
+    public void addResources(ResourceSyncItem resource) {
 		resources.add(resource);
 		//stateChanged();
 	}
 
-	/**
-	 * @param resources the resources to set
-	 */
-	public void setResources(ArrayList<ResourceSyncItem> resources) {
-		this.resources = resources;
-	}
 
-	
-	/**
-	 * @return the experiments
-	 */
-	public ArrayList<ExperimentSyncItem> getExperiments() {
-		return experiments;
-	}
-
-	public void addExperiment(ExperimentSyncItem experiment) {
+    public void addExperiment(ExperimentSyncItem experiment) {
 		experiments.add(experiment);
 		//stateChanged();
 	}
 
-	
-	/**
-	 * @param experiments the experiments to set
-	 */
-	public void setExperiments(ArrayList<ExperimentSyncItem> experiments) {
-		this.experiments = experiments;
-	}
-	
-	public void updateSyncStatus(String status, String msg) {
+
+    public void updateSyncStatus(String status, String msg) {
 		boolean someSyncFailed = false;
 		String childStatus = null;
 		String message = msg;

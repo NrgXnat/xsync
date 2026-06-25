@@ -1,7 +1,7 @@
 package org.nrg.xsync.services.local;
 
 import org.nrg.xft.security.UserI;
-import org.nrg.xsync.manifest.XsyncProjectHistory;
+import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncDashboardProjectConfigurationPojo;
 import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;

@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
@@ -34,15 +36,27 @@ public class SyncManifest{
 	private final static Logger logger = LoggerFactory.getLogger(SyncManifest.class);
 
 	private final MailService _mailService;
-	String localProjectId;
-	String remoteProjectId;
-	String syncHost;
-	Date sync_start_time;
-	Date sync_end_time;
-	UserI sync_user;
-
-	ArrayList<ResourceSyncItem> resources;
-	ArrayList<SubjectSyncItem> subjects;
+    @Getter
+    String localProjectId;
+	@Getter
+    String remoteProjectId;
+	@Getter
+    String syncHost;
+    @Setter
+    @Getter
+    Date sync_start_time;
+    @Setter
+    @Getter
+    Date sync_end_time;
+    @Setter
+    @Getter
+    UserI sync_user;
+    @Setter
+    @Getter
+    ArrayList<ResourceSyncItem> resources;
+    @Setter
+    @Getter
+    ArrayList<SubjectSyncItem> subjects;
 	private final SyncManifestService _syncManifestService;
 	private final XsyncXnatInfo _xnatInfo;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;;
@@ -59,97 +73,17 @@ public class SyncManifest{
 		this._jdbcTemplate=_jdbcTemplate;
 	}
 
-
-	/**
-	 * @return the resources
-	 */
-	public ArrayList<ResourceSyncItem> getResources() {
-		return resources;
-	}
-
-	public void addResource(ResourceSyncItem resource) {
+    public void addResource(ResourceSyncItem resource) {
 		resources.add(resource);
 	}
 
-	/**
-	 * @param resources the resources to set
-	 */
-	public void setResources(ArrayList<ResourceSyncItem> resources) {
-		this.resources = resources;
-	}
-
-	/**
-	 * @return the subjects
-	 */
-	public ArrayList<SubjectSyncItem> getSubjects() {
-		return subjects;
-	}
-
-	/**
-	 * @param subjects the subjects to set
-	 */
-	public void setSubjects(ArrayList<SubjectSyncItem> subjects) {
-		this.subjects = subjects;
-	}
-
-	public void addSubject(SubjectSyncItem subject) {
+    public void addSubject(SubjectSyncItem subject) {
 		subjects.add(subject);
 	}
 
-
-	/**
-	 * @return the sync_start_time
-	 */
-	public Date getSync_start_time() {
-		return sync_start_time;
-	}
-
-	/**
-	 * @param sync_start_time the sync_start_time to set
-	 */
-	public void setSync_start_time(Date sync_start_time) {
-		this.sync_start_time = sync_start_time;
-	}
-
-	/**
-	 * @return the sync_end_time
-	 */
-	public Date getSync_end_time() {
-		return sync_end_time;
-	}
-
-	/**
-	 * @param sync_end_time the sync_end_time to set
-	 */
-	public void setSync_end_time(Date sync_end_time) {
-		this.sync_end_time = sync_end_time;
-	}
-
-	/**
-	 * @return the sync_user
-	 */
-	public UserI getSync_user() {
-		return sync_user;
-	}
-
-	/**
-	 * @param sync_user the sync_user to set
-	 */
-	public void setSync_user(UserI sync_user) {
-		this.sync_user = sync_user;
-	}
-
-
-	/**
-	 * @return the localProjectId
-	 */
-	public String getLocalProjectId() {
-		return localProjectId;
-	}
-
-	public boolean wasSyncSuccessfull() {
+    public boolean wasSyncSuccessfull() {
 		boolean wasSuccessful = true;
-		if (resources.size() > 0) {
+		if (!resources.isEmpty()) {
 			for (SyncedItem sync:resources) {
 				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED) &&  !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_DELETED) ) {
 					wasSuccessful = false;
@@ -157,7 +91,7 @@ public class SyncManifest{
 				}
 			}
 		}
-		if (subjects.size()>0 && wasSuccessful) {
+		if (!subjects.isEmpty() && wasSuccessful) {
 			for (SyncedItem sync:subjects) {
 				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED) &&  !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SKIPPED) && !sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_DELETED) ) {
 					wasSuccessful = false;
@@ -170,7 +104,7 @@ public class SyncManifest{
 	
 	public String getOverAllSyncStatusWhenSucessfull() {
 		String overAllStatus = XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED;
-		if (resources.size() > 0) {
+		if (!resources.isEmpty()) {
 			for (SyncedItem sync:resources) {
 				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED))  {
 					overAllStatus = sync.getSyncStatus();
@@ -178,7 +112,7 @@ public class SyncManifest{
 				}
 			}
 		}
-		if (subjects.size()>0 && overAllStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+		if (!subjects.isEmpty() && overAllStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
 			for (SyncedItem sync:subjects) {
 				if (!sync.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED) ) {
 					overAllStatus = sync.getSyncStatus();
@@ -188,30 +122,21 @@ public class SyncManifest{
 		}
 		return overAllStatus;
 	}
-	
 
-	public String getSyncHost() {
-		return syncHost;
-	}
-
-	public String getRemoteProjectId() {
-		return remoteProjectId;
-	}
-
-	public boolean shouldNotify() {
+    public boolean shouldNotify() {
 		boolean shouldNotify = false;
-		if (resources != null && resources.size() > 0 ) {
+		if (resources != null && !resources.isEmpty()) {
 			shouldNotify = true;
 		}
-		if (subjects != null && subjects.size() > 0) {
+		if (subjects != null && !subjects.isEmpty()) {
 			for (SubjectSyncItem sub : subjects) {
 				ArrayList<ExperimentSyncItem> exps = sub.getExperiments();
-				if (exps != null && exps.size() > 0) {
+				if (exps != null && !exps.isEmpty()) {
 					shouldNotify = true;
 					break;
 				}
 				ArrayList<ResourceSyncItem> subResources = sub.getResources();
-				if (subResources != null && subResources.size() > 0) {
+				if (subResources != null && !subResources.isEmpty()) {
 					shouldNotify = true;
 					break;
 				}
@@ -255,152 +180,153 @@ public class SyncManifest{
 			subject="Data Sync Failed/Incomplete for "+this.localProjectId +" from "+ _xnatInfo.getSiteId()+" to " + this.syncHost;
 		}
 		info.put("SUBJECT", subject);
-			StringBuilder sb = new StringBuilder();
-			sb.append("<html>");
-	        sb.append("<body>");
-			sb.append("<p>The following data  was synced from project ").append(localProjectId).append(" on ").append(TurbineUtils.GetFullServerPath()).append(" to ").append(syncHost).append("/data/projects/").append(this.remoteProjectId).append(" requested by ").append(sync_user.getUsername()).append(". </p>");
+		StringBuilder sb = new StringBuilder();
+		sb.append("<html>");
+		sb.append("<body>");
+		sb.append("<p>The following data  was synced from project ").append(localProjectId).append(" on ").append(TurbineUtils.GetFullServerPath()).append(" to ").append(syncHost).append("/data/projects/").append(this.remoteProjectId).append(" requested by ").append(sync_user.getUsername()).append(". </p>");
 
+
+		sb.append("<table>");
+		sb.append("<tr>");
+		sb.append("<th> Source Project </th>");
+		sb.append("<th> Target Project </th>");
+		sb.append("<th> Sync Start Time </th>");
+		sb.append("<th> Sync End Time </th>");
+		sb.append("<th> Status </th>");
+		sb.append("</tr>");
+
+		sb.append("<tr>");
+		sb.append("<td>").append(this.localProjectId).append("</td>");
+		sb.append("<td>").append(this.remoteProjectId).append("</td>");
+		sb.append("<td>").append(this.getSync_start_time()).append("</td>");
+		sb.append("<td>").append(this.getSync_end_time() != null ? this.getSync_end_time() : "--").append("</td>");
+		sb.append("<td>").append(this.wasSyncSuccessfull() ? "Synced" : "Sync Failed/Incomplete").append("</td>");
+		sb.append("</tr>");
+		sb.append("</table>");
+		if (!resources.isEmpty()) {
+			sb.append("<p> Project Resources synced</p>");
 
 			sb.append("<table>");
 			sb.append("<tr>");
-			sb.append("<th> Source Project </th>");
-			sb.append("<th> Target Project </th>");
-			sb.append("<th> Sync Start Time </th>");
-			sb.append("<th> Sync End Time </th>");
+			sb.append("<th> Resource Label </th>");
+			sb.append("<th> File Count </th>");
+			sb.append("<th> File Size </th>");
 			sb.append("<th> Status </th>");
+			sb.append("<th> Message </th>");
 			sb.append("</tr>");
 
-			sb.append("<tr>");
-			sb.append("<td>").append(this.localProjectId).append("</td>");
-			sb.append("<td>").append(this.remoteProjectId).append("</td>");
-			sb.append("<td>").append(this.getSync_start_time()).append("</td>");
-			sb.append("<td>").append(this.getSync_end_time() != null ? this.getSync_end_time() : "--").append("</td>");
-			sb.append("<td>").append(this.wasSyncSuccessfull() ? "Synced" : "Sync Failed/Incomplete").append("</td>");
-			sb.append("</tr>");
+			for (ResourceSyncItem res : resources) {
+				 sb.append("<tr>");
+				 sb.append("<td> ").append(res.localLabel).append(" </td>");
+				 sb.append("<td> ").append(res.getFileCount() == null ? "NA" : res.getFileCount()).append(" </td>");
+				 sb.append("<td> ").append(res.getFileSize() == null ? "NA" : XsyncFileUtils.getHumanReadableFileSize((Long)res.getFileSize())).append(" </td>");
+				 sb.append("<td> ").append(res.getSyncStatus()).append(" </td>");
+				 sb.append("<td> ").append(res.getMessage()).append(" </td>");
+				 sb.append("</tr>");
+			}
 			sb.append("</table>");
-			if (resources.size() > 0) {
-				sb.append("<p> Project Resources synced</p>");
+		}
+		if (!subjects.isEmpty()) {
+			sb.append("<p>  Subjects synced</p>");
 
-				sb.append("<table>");
-				sb.append("<tr>");
-				sb.append("<th> Resource Label </th>");
-				sb.append("<th> File Count </th>");
-				sb.append("<th> File Size </th>");
-				sb.append("<th> Status </th>");
-				sb.append("<th> Message </th>");
-				sb.append("</tr>");
+			sb.append("<table>");
+			sb.append("<tr>");
+			sb.append("<th> Subject Label </th>");
+			sb.append("<th> Remote ID </th>");
+			sb.append("<th> Status </th>");
+			sb.append("<th> Message </th>");
+			sb.append("</tr>");
 
-				for (ResourceSyncItem res : resources) {
+			for (SubjectSyncItem sub : subjects) {
+				 sb.append("<tr>");
+				 sb.append("<td> ").append(sub.localLabel).append(" </td>");
+				 sb.append("<td> ").append(sub.getRemoteId() == null ? "" : sub.getRemoteId()).append(" </td>");
+				 sb.append("<td> ").append(sub.getSyncStatus()).append(" </td>");
+				 sb.append("<td> ").append(sub.getMessage() == null ? "" : sub.getMessage()).append(" </td>");
+				 sb.append("</tr>");
+			}
+			sb.append("</table>");
+			sb.append("<p>  Experiments synced</p>");
+
+			sb.append("<table>");
+			sb.append("<tr>");
+			sb.append("<th> Experiment Label </th>");
+			sb.append("<th> Experiment Remote ID </th>");
+			sb.append("<th> Experiment Type </th>");
+			sb.append("<th> Status </th>");
+			sb.append("<th> Message </th>");
+			sb.append("<td>  Total Files  </td>");
+			sb.append("<td>  Total File Size </td>");
+			sb.append("</tr>");
+
+			for (SubjectSyncItem sub : subjects) {
+				ArrayList<ExperimentSyncItem> exps = sub.getExperiments();
+				for (ExperimentSyncItem exp: exps) {
 					 sb.append("<tr>");
-					 sb.append("<td> ").append(res.localLabel).append(" </td>");
-					 sb.append("<td> ").append(res.getFileCount() == null ? "NA" : res.getFileCount()).append(" </td>");
-					 sb.append("<td> ").append(res.getFileSize() == null ? "NA" : XsyncFileUtils.getHumanReadableFileSize((Long)res.getFileSize())).append(" </td>");
-					 sb.append("<td> ").append(res.getSyncStatus()).append(" </td>");
-					 sb.append("<td> ").append(res.getMessage()).append(" </td>");
+					 sb.append("<td> ").append(exp.getLocalLabel()).append(" </td>");
+					 sb.append("<td> ").append(exp.getRemoteId() == null ? "" : exp.getRemoteId()).append(" </td>");
+					 sb.append("<td> ").append(exp.getXsiType()).append(" </td>");
+					 sb.append("<td> ").append(exp.getSyncStatus()).append(" </td>");
+					 sb.append("<td> ").append(exp.getMessage() == null ? "" : exp.getMessage()).append(" </td>");
+					 Integer fileCnt = exp.getTotalSyncedFileCount();
+					 String fileCntStr = (fileCnt == 0?"NA":fileCnt.toString());
+					 sb.append("<td> ").append(fileCntStr).append(" </td>");
+					 Long fileSize = exp.getTotalSyncedFileSize();
+					 String fileSizeStr = (fileSize == 0?"NA":XsyncFileUtils.getHumanReadableFileSize(fileSize));
+					 sb.append("<td> ").append(fileSizeStr).append(" </td>");
 					 sb.append("</tr>");
 				}
-				sb.append("</table>");
 			}
-			if (subjects.size()>0) {
-				sb.append("<p>  Subjects synced</p>");
+			sb.append("</table>");
 
-				sb.append("<table>");
-				sb.append("<tr>");
-				sb.append("<th> Subject Label </th>");
-				sb.append("<th> Remote ID </th>");
-				sb.append("<th> Status </th>");
-				sb.append("<th> Message </th>");
-				sb.append("</tr>");
-
-				for (SubjectSyncItem sub : subjects) {
-					 sb.append("<tr>");
-					 sb.append("<td> ").append(sub.localLabel).append(" </td>");
-					 sb.append("<td> ").append(sub.getRemoteId() == null ? "" : sub.getRemoteId()).append(" </td>");
-					 sb.append("<td> ").append(sub.getSyncStatus()).append(" </td>");
-					 sb.append("<td> ").append(sub.getMessage() == null ? "" : sub.getMessage()).append(" </td>");
-					 sb.append("</tr>");
-				}
-				sb.append("</table>");
-				sb.append("<p>  Experiments synced</p>");
-
-				sb.append("<table>");
-				sb.append("<tr>");
-				sb.append("<th> Experiment Label </th>");
-				sb.append("<th> Experiment Remote ID </th>");
-				sb.append("<th> Experiment Type </th>");
-				sb.append("<th> Status </th>");
-				sb.append("<th> Message </th>");
-				sb.append("<td>  Total Files  </td>");
-				sb.append("<td>  Total File Size </td>");
-				sb.append("</tr>");
-
-				for (SubjectSyncItem sub : subjects) {
-					ArrayList<ExperimentSyncItem> exps = sub.getExperiments();
-					for (ExperimentSyncItem exp: exps) {
-						 sb.append("<tr>");
-						 sb.append("<td> ").append(exp.getLocalLabel()).append(" </td>");
-						 sb.append("<td> ").append(exp.getRemoteId() == null ? "" : exp.getRemoteId()).append(" </td>");
-						 sb.append("<td> ").append(exp.getXsiType()).append(" </td>");
-						 sb.append("<td> ").append(exp.getSyncStatus()).append(" </td>");
-						 sb.append("<td> ").append(exp.getMessage() == null ? "" : exp.getMessage()).append(" </td>");
-						 Integer fileCnt = exp.getTotalSyncedFileCount();
-						 String fileCntStr = (fileCnt == 0?"NA":fileCnt.toString());
-						 sb.append("<td> ").append(fileCntStr).append(" </td>");
-						 Long fileSize = exp.getTotalSyncedFileSize();
-						 String fileSizeStr = (fileSize == 0?"NA":XsyncFileUtils.getHumanReadableFileSize(fileSize));
-						 sb.append("<td> ").append(fileSizeStr).append(" </td>");
-						 sb.append("</tr>");
-					}
-				}
-				sb.append("</table>");
-
-			}
-
-
-			sb.append("</body>");
-            sb.append("</html>");
-			logger.debug(sb.toString());
-			info.put("BODY", sb.toString());
-			return info;
-		}
-		/**
-		 * Format sync information to requesting user.
-		 *
-		 */
-		public void syncInfoToFile(File file) {
-			final Hashtable<String, String> info = syncInfoAsHTML();
-
-			file.getParentFile().mkdirs();
-			try (final BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-		        writer.write(info.get("BODY"));
-		    } catch (IOException e) {
-				logger.error("An error occurred writing the sync file", e);
-			}
 		}
 
-		public synchronized void syncInfoToDatabase() {
-			_syncManifestService.persistHistory(this);
+
+		sb.append("</body>");
+		sb.append("</html>");
+		logger.debug(sb.toString());
+		info.put("BODY", sb.toString());
+		return info;
+	}
+	/**
+	 * Format sync information to requesting user.
+	 *
+	 */
+	public void syncInfoToFile(File file) {
+		final Hashtable<String, String> info = syncInfoAsHTML();
+
+		file.getParentFile().mkdirs();
+		try (final BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+			writer.write(info.get("BODY"));
+		} catch (IOException e) {
+			logger.error("An error occurred writing the sync file", e);
 		}
-		
-		/**
-		 * Gets the xsync notification emails by project id.
-		 *
-		 * @param projectId the project id
-		 * @return the xsync notification emails by project id
-		 */
-		private String[] getXsyncNotificationEmailsByProjectId(String projectId) {
-			String emails[] = {};
-			String query = "select notification_emails from xsync_xsyncprojectdata";
-			query += " where source_project_id=:projectId";
-			MapSqlParameterSource parameters = new MapSqlParameterSource();
-			parameters = new MapSqlParameterSource();
-			parameters.addValue("projectId", projectId);
-			 List<String> results = _jdbcTemplate.queryForList(query, parameters,String.class);
-			 if (results !=null && results.size()>0) {
-				 String value = results.get(0);
-				 if(value!=null && !StringUtils.isEmpty(value))
-				 emails=value.split(",");
+	}
+
+	public synchronized void syncInfoToDatabase() {
+		_syncManifestService.persistHistory(this);
+	}
+
+	/**
+	 * Gets the xsync notification emails by project id.
+	 *
+	 * @param projectId the project id
+	 * @return the xsync notification emails by project id
+	 */
+	private String[] getXsyncNotificationEmailsByProjectId(String projectId) {
+		String[] emails = {};
+		String query = "select notification_emails from xsync_xsyncprojectdata";
+		query += " where source_project_id=:projectId";
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters = new MapSqlParameterSource();
+		parameters.addValue("projectId", projectId);
+		 List<String> results = _jdbcTemplate.queryForList(query, parameters,String.class);
+		 if (results !=null && !results.isEmpty()) {
+			 String value = results.getFirst();
+			 if(value!=null && !StringUtils.isEmpty(value)) {
+				 emails = value.split(",");
 			 }
-			return emails;
-		}
+		 }
+		return emails;
+	}
 }

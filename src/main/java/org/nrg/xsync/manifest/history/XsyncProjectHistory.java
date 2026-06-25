@@ -1,4 +1,4 @@
-package org.nrg.xsync.manifest;
+package org.nrg.xsync.manifest.history;
 
 import java.util.Date;
 import java.util.List;

@@ -13,7 +13,7 @@ import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
-import org.nrg.xsync.manifest.XsyncProjectHistory;
+import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.history.XsyncProjectHistoryPojo;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -2,6 +2,8 @@ package org.nrg.xsync.manifest;
 
 import java.util.ArrayList;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xnat.xsync.anonymize.AnonScanResult;
@@ -12,48 +14,31 @@ import org.nrg.xsync.utils.XsyncUtils;
  * @author Mohana Ramaratnam
  *
  */
+@Getter
 public class ScanSyncItem extends SyncedItem{
-	
-	ArrayList<ResourceSyncItem> resources;
 
+    @Setter
+    ArrayList<ResourceSyncItem> resources;
 	AnonScanResult anonScanResults;
 
 	public ScanSyncItem(String localId, String localLabel) {
 		super(localId, localLabel);
-		resources = new ArrayList<ResourceSyncItem>();
+		resources = new ArrayList<>();
 		this.anonScanResults = null;
 	}
 
 	public ScanSyncItem(String localId, String localLabel, AnonScanResult anonScanResults) {
 		super(localId, localLabel);
-		resources = new ArrayList<ResourceSyncItem>();
+		resources = new ArrayList<>();
 		this.anonScanResults = anonScanResults;
 	}
 
-	public AnonScanResult getAnonScanResults() {
-		return anonScanResults;
-	}
-
-	/**
-	 * @return the resources
-	 */
-	public ArrayList<ResourceSyncItem> getResources() {
-		return resources;
-	}
-
-	public void addResources(ResourceSyncItem resource) {
+    public void addResources(ResourceSyncItem resource) {
 		resources.add(resource);
 	}
 
-	/**
-	 * @param resources the resources to set
-	 */
-	public void setResources(ArrayList<ResourceSyncItem> resources) {
-		this.resources = resources;
-	}
-
-	public void extractDetails(XnatImagescandata scan) {
-		if (scan.getFile() != null && scan.getFile().size() > 0) {
+    public void extractDetails(XnatImagescandata scan) {
+		if (scan.getFile() != null && !scan.getFile().isEmpty()) {
 			for (XnatAbstractresourceI r: scan.getFile()) {
 				ResourceSyncItem rSync = getResourceSyncItem(r);
 				addResources(rSync);
@@ -63,7 +48,7 @@ public class ScanSyncItem extends SyncedItem{
 	}
 	
 	public  void updateResourceStatus(String status) {
-		if (resources != null && resources.size() > 0) {
+		if (resources != null && !resources.isEmpty()) {
 			for (ResourceSyncItem r: resources) {
 				if (r.getSyncStatus() == null) {
 					r.setSyncStatus(status);
@@ -76,7 +61,7 @@ public class ScanSyncItem extends SyncedItem{
 		boolean someSyncFailed = false;
 		String childStatus = null;
 		String message = this.getMessage();
-		if (resources != null && resources.size() > 0) {
+		if (resources != null && !resources.isEmpty()) {
 			for (ResourceSyncItem r: resources) {
 				if (r.getSyncStatus()!=null) {
 					if (r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
@@ -101,8 +86,5 @@ public class ScanSyncItem extends SyncedItem{
 				setMessage(message);
 			}
 		}
-		return;
-
-	}
-
+    }
 }
