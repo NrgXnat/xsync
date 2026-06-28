@@ -24,7 +24,6 @@ buildscript {
         classpath "io.franzbecker:gradle-lombok:5.0.0"
         classpath "io.spring.gradle:dependency-management-plugin:1.1.7"
         classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
-        classpath "net.linguica.gradle:maven-settings-plugin:0.5"
     }
 }
 
@@ -36,7 +35,6 @@ apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: "org.nrg.xnat.build.xnat-data-builder"
 apply plugin: 'io.franzbecker.gradle-lombok'
-apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
 version "1.8.2-SNAPSHOT"
