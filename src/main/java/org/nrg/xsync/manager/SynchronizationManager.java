@@ -1,6 +1,5 @@
 package org.nrg.xsync.manager;
 
-import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatSubjectdata;
@@ -81,8 +80,8 @@ public class SynchronizationManager {
 			XsyncUtils xsyncUtils = new XsyncUtils(jdbcTemplate, manifest.getSync_user());
 			XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(projectId);
 			syncProjectConfiguration.getSyncinfo().setSyncStartTime(projectSyncStartTime.get(projectId));
-			if (manifest.wasSyncSuccessfull()) {
-				syncProjectConfiguration.getSyncinfo().setSyncStatus(manifest.getOverAllSyncStatusWhenSucessfull());
+			if (manifest.wasSyncSuccessful()) {
+				syncProjectConfiguration.getSyncinfo().setSyncStatus(manifest.getOverAllSyncStatusWhenSuccessful());
 				syncProjectConfiguration.getSyncinfo().setSyncEndTime(now);
 			} else {
 				syncProjectConfiguration.getSyncinfo().setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
@@ -106,7 +105,7 @@ public class SynchronizationManager {
 			manifest.syncInfoToFile(syncInfoFilePath);
 			manifest.syncInfoToDatabase();
 			//Clean up the cache path contents
-			if (manifest.wasSyncSuccessfull()) cleanUp(projectId);
+			if (manifest.wasSyncSuccessful()) cleanUp(projectId);
 		}
 	}
 
