@@ -6,6 +6,7 @@ import java.util.List;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.ApiParam;
 import org.nrg.framework.annotations.XapiRestController;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatSubjectdata;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -30,6 +32,8 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 
 /**
@@ -129,6 +133,27 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         return new ResponseEntity<>( HttpStatus.BAD_REQUEST);
     }
 
+    @ApiOperation(value = "Get the stack trace for a failed sync." )
+    @ApiResponses({
+            @ApiResponse(code=200, message="Obtained stack trace."),
+            @ApiResponse(code=403, message="User unauthorized to obtain failure information."),
+            @ApiResponse(code=404, message="Configuration data not found."),
+            @ApiResponse(code=500, message="Unexpected error")
+    })
+    @XapiRequestMapping(value = "{projectId}/failure", method = RequestMethod.GET,
+            produces = {MediaType.TEXT_PLAIN_VALUE}, restrictTo = AccessLevel.Read)
+    public ResponseEntity<String> getFailureStackTrace(
+            @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") final String projectId,
+            @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) throws NotFoundException {
+        return new ResponseEntity<>(syncManifestService.getStacktraceForFailedSync(remoteUrl, projectId), HttpStatus.OK);
+    }
+
     private final SyncManifestService syncManifestService;
     private final ObjectMapper mapper = new ObjectMapper();
+
+    @ResponseStatus(value = HttpStatus.NOT_FOUND)
+    @ExceptionHandler(value = {NotFoundException.class})
+    public String handleElementNotFound(final Exception e) {
+        return "Element not found: " + e.getMessage();
+    }
 }

@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 import org.hibernate.HibernateException;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.ScanSyncItem;
@@ -18,8 +20,6 @@ import org.nrg.xsync.manifest.history.XsyncExperimentHistory;
 import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.manifest.history.XsyncResourceHistory;
 import org.nrg.xsync.manifest.history.XsyncSubjectHistory;
-import org.nrg.xsync.pojo.WhitelistSitePojo;
-import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -72,29 +72,41 @@ public class HibernateSyncHistoryService
     }
 
     @Transactional
-    @Override
-    public List<XsyncProjectHistory> findBySyncStatus(final String status) {
-        return new ArrayList<>();
-    }
-
-    @Transactional
-    @Override
-    public List<XsyncProjectHistory> findBySubject(final String subjectLabel) {
-        return new ArrayList<>();
-    }
-
-    @Transactional
     public XsyncProjectHistory findMostRecentBySubject(final String projectId, final String subjectLabel) {
         return getDao().findMostRecentBySubject(projectId,subjectLabel);
     }
 
-    private void addWhitelistDetail(XsyncRemoteUrlDetailsPojo inputPojo, List<WhitelistSitePojo> whitelist,
-                                    String remoteUrl) {
-            WhitelistSitePojo whitelistElement = whitelist.stream()
-                    .filter(wl -> wl.getSiteUrl().equals(remoteUrl)).toList().getFirst();
-
-            inputPojo.setSiteName(whitelistElement.getSiteName());
-            inputPojo.setClassification(whitelistElement.getClassification());
+    @Transactional
+    @Override
+    public String getStacktraceForFailedSync(String inputUrl, String projectId) throws NotFoundException {
+        Optional<XsyncProjectHistory> optionalHistory = getAll().stream()
+                .filter(h -> h.getRemoteHost().equals(inputUrl))
+                .filter(h -> h.getLocalProject().equals(projectId))
+                .reduce((a,b) -> a.getTimestamp().after(b.getTimestamp()) ? a:b);
+        if (optionalHistory.isPresent()) {
+            XsyncProjectHistory historyElement = optionalHistory.get();
+            StringBuilder sb = new StringBuilder();
+            sb.append("XSync Failed for local project ").append(historyElement.getLocalProject()).append(".");
+            for (XsyncSubjectHistory subject : historyElement.getSubjectHistories()) {
+                sb.append("\nSubject: ").append(subject.getId()).append("\nStatus: ").append(subject.getSyncStatus())
+                        .append("\nSync Message: ").append(subject.getSyncMessage());
+            }
+            for (XsyncExperimentHistory experiment : historyElement.getExperimentHistories()) {
+                sb.append("\nExperiment: ").append(experiment.getId()).append("\nStatus: ").append(experiment.getSyncStatus())
+                        .append("\nSync Message: ").append(experiment.getSyncMessage());
+            }
+            for (XsyncAssessorHistory assessor : historyElement.getAssessorHistories()) {
+                sb.append("\nAssessor: ").append(assessor.getId()).append("\nStatus: ").append(assessor.getSyncStatus())
+                        .append("\nSync Message: ").append(assessor.getSyncMessage());
+            }
+            for (XsyncResourceHistory resource : historyElement.getResourceHistories()) {
+                sb.append("\nResource: ").append(resource.getId()).append("\nStatus: ").append(resource.getSyncStatus())
+                        .append("\nSync Message: ").append(resource.getSyncMessage());
+            }
+            return sb.toString();
+        } else {
+            throw new NotFoundException("No project history elements found for URL" + inputUrl + "and project id " + projectId);
+        }
     }
 
     @Transactional
@@ -102,25 +114,25 @@ public class HibernateSyncHistoryService
         this.manifest = manifest;
         this.setProjectHistory();
         this.setSubjectHistory();
-        this.setExperiemntHistory();
+        this.setExperimentHistory();
         this.setAssessorHistory();
         this.setResourceHistory();
         try {
             this.create(syncHistory);
         } catch (HibernateException e) {
-            logger.error("Unable to create XSync history entry from manifest - " + syncHistory.toString(), e);
+            logger.error("Unable to create XSync history entry from manifest - {}", syncHistory.toString(), e);
         }
     }
 
     private void setProjectHistory() {
         String syncStatus = "Complete";
-        if (!manifest.wasSyncSuccessfull()) {
+        if (!manifest.wasSyncSuccessful()) {
             syncStatus = "Fail";
         } 
-        String overAllSyncStatus = manifest.getOverAllSyncStatusWhenSucessfull();
+        String overAllSyncStatus = manifest.getOverAllSyncStatusWhenSuccessful();
         if (overAllSyncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
         	syncStatus += " [Verified]";
-        }else if (overAllSyncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED)) {
+        } else if (overAllSyncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_NOT_VERIFIED)) {
         	syncStatus += " [NOT Verified]";
         }
         syncHistory.setSyncStatus(syncStatus);
@@ -156,7 +168,7 @@ public class HibernateSyncHistoryService
         syncHistory.setSubjectHistories(histories);
     }
 
-    private void setExperiemntHistory() {
+    private void setExperimentHistory() {
         List <XsyncExperimentHistory> histories = new ArrayList<>();
 
         for (SubjectSyncItem sub : manifest.getSubjects()) {
@@ -281,7 +293,7 @@ public class HibernateSyncHistoryService
     private String calculateTotalData() {
         Long totalBytes = 0L;
         //Project Resources
-        for (ResourceSyncItem r:manifest.getResources()) {
+        for (ResourceSyncItem r : manifest.getResources()) {
         	 totalBytes += (Long)r.getFileSize();
         }
         for (SubjectSyncItem sub : manifest.getSubjects()) {

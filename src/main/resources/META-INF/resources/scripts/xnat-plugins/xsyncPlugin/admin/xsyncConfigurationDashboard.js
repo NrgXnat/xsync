@@ -33,9 +33,21 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     var xsyncConfigurationDashboard;
     XNAT.plugin.xsync.xsyncConfigurationDashboard = xsyncConfigurationDashboard = getObject(XNAT.plugin.xsync.xsyncConfigurationDashboard || {});
 
+    xsyncConfigurationDashboard.currentRemoteUrl = '';
     xsyncConfigurationDashboard.getLocalProjectLink = function(localProject) {
         let localProjectUrl = XNAT.url.fullUrl().replace(/\/$/,'') + XNAT.url.dataUrl() + '/projects/' + localProject;
         return spawn('!', [ spawn('a.link|href='+ localProjectUrl, [['b', localProject]]),]);
+    }
+
+    xsyncConfigurationDashboard.getFailedSyncStackTrace = function(text, projectId) {
+        return spawn('!', [
+            spawn('a.link|href=#!', {
+                onclick: function(e){
+                    e.preventDefault();
+                    xsyncConfigurationDashboard.getFailedStackTraceModal(projectId);
+                }
+            }, [['b', text]]),
+        ]);
     }
 
     xsyncConfigurationDashboard.getNumberProjectsLink = function(text, remoteUrl) {
@@ -49,16 +61,67 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         ]);
     }
 
+    xsyncConfigurationDashboard.getShowHistoryButton = function() {
+            return spawn('button.btn.btn-sm.edit', {
+                onclick: function (e) {
+                    e.preventDefault();
+                },
+                title: "Show the complete history of this connection."
+            }, 'History');
+        }
+
     xsyncConfigurationDashboard.getAddNewButton = function() {
         return spawn('button.btn.btn-sm.edit', {
             onclick: function (e) {
                 e.preventDefault();
             },
-            title: "Add new connection to this site"
+            title: "Add new connection to this site."
         }, 'Add New');
     }
 
+    xsyncConfigurationDashboard.getFailedStackTraceModal= function(projectId) {
+        let remoteUrl = xsyncConfigurationDashboard.currentRemoteUrl;
+        var stackTrace = '';
+        XNAT.xhr.get({
+            url: restUrl('xapi/xsync/history/' + projectId +'/failure?remoteUrl=' + remoteUrl),
+            async: false,
+            success: function (data) {
+                stackTrace = data;
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not retrieve failure information for project: ' + projectId + '\nError message: s' + e.responseText, 'error');
+            }
+        });
+        var stacktraceDiv = spawn('div.stacktrace', {
+            style: {
+                whiteSpace: 'pre-wrap',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                padding: '10px',
+                background: '#f8f8f8',
+                border: '1px solid #ccc',
+                overflowX: 'auto'
+            }
+        }, stackTrace);
+        this.dialog = XNAT.ui.dialog.open({
+            title: 'Failure Stack Trace For ' + projectId,
+            width: 900,
+            content:stacktraceDiv,
+            isDraggable: true,
+            mask: false,
+            esc: true,
+            buttons: [
+                {
+                    label: 'Close',
+                    isDefault: true,
+                    close: true
+                }
+            ]
+        });
+    }
+
     xsyncConfigurationDashboard.getRemoteUrlListingModal = function(remoteUrl) {
+        xsyncConfigurationDashboard.currentRemoteUrl = remoteUrl;
         XNAT.xhr.get({
             url: restUrl('/xapi/xsync/dashboard/remoteUrl?remoteUrl=' + remoteUrl),
             async: false,
@@ -73,7 +136,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             }
         });
 
-        let tmpl =  spawn('div#modal_table_wrapper');
+        let tmpl = spawn('div#modal_table_wrapper');
 
         this.dialog = XNAT.ui.dialog.open({
             title: 'Details for ' + remoteUrl,
@@ -223,10 +286,14 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 }
             },
             apply: function (lastSyncStatus) {
-                return spawn('span', {
-                    title: lastSyncStatus,
-                    html: lastSyncStatus
-                });
+                if (lastSyncStatus.toLowerCase().includes('fail')) {
+                    return xsyncConfigurationDashboard.getFailedSyncStackTrace(lastSyncStatus, this.localProject);
+                } else {
+                    return spawn('span', {
+                        title: lastSyncStatus,
+                        html: lastSyncStatus
+                    });
+                }
             }
         }
         columnsInTable['actions'] = {
@@ -238,7 +305,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 }
             },
             apply: function (actions) {
-                return [xsyncConfigurationDashboard.getAddNewButton()]
+                return [xsyncConfigurationDashboard.getShowHistoryButton()]
             }
         }
 
