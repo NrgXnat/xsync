@@ -6,6 +6,8 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.nrg.framework.annotations.XapiRestController;
+import org.nrg.xapi.exceptions.DataFormatException;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.helpers.AccessLevel;
@@ -22,9 +24,12 @@ import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.Collections;
 import java.util.List;
@@ -55,8 +60,8 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
     @ApiOperation(value = "Get a report of all currently configured remote XNAT instances." )
     @ApiResponses({
             @ApiResponse(code=200, message="Obtained configuration data of remote XNAT instances."),
-            @ApiResponse(code=401, message="Configuration data not found."),
             @ApiResponse(code=403, message="User unauthorized to obtain configuration information."),
+            @ApiResponse(code=404, message="Configuration data not found."),
             @ApiResponse(code=500, message="Unexpected error")
     })
     @XapiRequestMapping(method = RequestMethod.GET,
@@ -73,11 +78,31 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
         }
     }
 
+    @ApiOperation(value = "Get a report of all xsync configurations that do not conform to whitelist." )
+    @ApiResponses({
+            @ApiResponse(code=200, message="Obtained configuration data of remote XNAT instances."),
+            @ApiResponse(code=401, message="Whitelist not enabled."),
+            @ApiResponse(code=403, message="User unauthorized to obtain configuration information."),
+            @ApiResponse(code=404, message="Configuration data not found."),
+            @ApiResponse(code=500, message="Unexpected error")
+    })
+    @XapiRequestMapping(value = "/whitelist", method = RequestMethod.GET,
+            produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Admin)
+    public ResponseEntity<List<XsyncRemoteUrlDetailsPojo>> getAllNonConformingRemoteUrls() {
+        if (!_sitePreferences.getXsyncWhitelistEnabled()) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        final UserI user = getSessionUser();
+        List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
+        return new ResponseEntity<>(_configurationDashboardService.getAllNonWhitelistRemoteUrls(user,
+            _whitelistXsyncSiteService.getAllWhitelistedSites(), allHistoryItems), HttpStatus.OK);
+    }
+
     @ApiOperation(value = "Get a report of local projects connected to input remote url." )
     @ApiResponses({
             @ApiResponse(code=200, message="Obtained configuration data for input remote url."),
-            @ApiResponse(code=401, message="Configuration data not found."),
             @ApiResponse(code=403, message="User unauthorized to obtain configuration information."),
+            @ApiResponse(code=404, message="Configuration data not found."),
             @ApiResponse(code=500, message="Unexpected error")
     })
     @XapiRequestMapping(value = "/remoteUrl", method = RequestMethod.GET,
@@ -88,6 +113,11 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
         return new ResponseEntity<>(_configurationDashboardService.getAllProjectConnectionsForUrl(
                 user, allHistoryItems, remoteUrl), HttpStatus.OK);
+    }
 
+    @ResponseStatus(value = HttpStatus.NOT_FOUND)
+    @ExceptionHandler(value = {NotFoundException.class})
+    public String handleElementNotFound(final Exception e) {
+        return "Element not found: " + e.getMessage();
     }
 }

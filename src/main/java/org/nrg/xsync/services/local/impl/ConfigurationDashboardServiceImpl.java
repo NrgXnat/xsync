@@ -27,44 +27,7 @@ public class ConfigurationDashboardServiceImpl implements ConfigurationDashboard
               List<XsyncProjectHistory> allHistoryItems, boolean whitelistEnabled, List<WhitelistSitePojo> whitelist) {
         List<XsyncXsyncprojectdata> xsyncProjectDataList =
                 XsyncXsyncprojectdata.getAllXsyncXsyncprojectdatas(user, true);
-        Map<String, List<XsyncProjectHistory>> allHistoryMap =
-                allHistoryItems.stream().collect(Collectors.groupingBy(XsyncProjectHistory::getLocalProject));
-
-        Map<String, XsyncRemoteUrlDetailsPojo> configurationsMap = new HashMap<>();
-        for (XsyncXsyncprojectdata configuration : xsyncProjectDataList) {
-            String remoteUrl = configuration.getSyncinfo().getRemoteUrl();
-            XsyncRemoteUrlDetailsPojo currentPojo;
-            if (configurationsMap.containsKey(remoteUrl)) {
-                currentPojo = configurationsMap.get(remoteUrl);
-                currentPojo.setNumberProjects(currentPojo.getNumberProjects()+1);
-            } else {
-                currentPojo = new XsyncRemoteUrlDetailsPojo();
-                currentPojo.setRemoteUrl(remoteUrl);
-                currentPojo.setNumberProjects(1);
-                currentPojo.setNumberErrors(0);
-                if (whitelistEnabled) {
-                    WhitelistSitePojo whitelistElement = whitelist.stream()
-                            .filter(wl -> wl.getSiteUrl().equals(remoteUrl)).toList().getFirst();
-                    currentPojo.setSiteName(whitelistElement.getSiteName());
-                    currentPojo.setClassification(whitelistElement.getClassification());
-                }
-            }
-            String sourceProjectId = configuration.getSourceProjectId();
-            if (allHistoryMap.containsKey(sourceProjectId)) {
-                List<XsyncProjectHistory> singleProjectHistoryElements = allHistoryMap.get(sourceProjectId);
-                Optional<XsyncProjectHistory> optionalProjHistory = singleProjectHistoryElements.stream()
-                        .reduce((a,b) -> a.getTimestamp().after(b.getTimestamp()) ? a:b);
-                if (optionalProjHistory.isPresent()) {
-                    XsyncProjectHistory latestHistoryEntryForProject = optionalProjHistory.get();
-                    if (latestHistoryEntryForProject.getSyncStatus().toLowerCase().contains("fail")) {
-                        currentPojo.setNumberErrors(currentPojo.getNumberErrors()+1);
-                    }
-                }
-            }
-
-            configurationsMap.put(remoteUrl, currentPojo);
-        }
-        return configurationsMap.values().stream().toList();
+        return createRemoteUrlList(xsyncProjectDataList, allHistoryItems, whitelistEnabled, whitelist);
     }
 
     @Override
@@ -97,5 +60,58 @@ public class ConfigurationDashboardServiceImpl implements ConfigurationDashboard
             configurationPojos.add(pojo);
         }
         return configurationPojos;
+    }
+
+    @Override
+    public List<XsyncRemoteUrlDetailsPojo> getAllNonWhitelistRemoteUrls(UserI user, List<WhitelistSitePojo> whitelist,
+                        List<XsyncProjectHistory> allHistoryItems) {
+        List<String> allValidSiteUrls = whitelist.stream().map(WhitelistSitePojo::getSiteUrl).toList();
+        List<XsyncXsyncprojectdata> nonConformingConfigs =
+                XsyncXsyncprojectdata.getAllXsyncXsyncprojectdatas(user, true).stream()
+                .filter(x -> !allValidSiteUrls.contains(x.getSyncinfo().getRemoteUrl())).toList();
+        return createRemoteUrlList(nonConformingConfigs, allHistoryItems, true, whitelist);
+    }
+
+    private List<XsyncRemoteUrlDetailsPojo> createRemoteUrlList(List<XsyncXsyncprojectdata> xsyncProjectDataList,
+            List<XsyncProjectHistory> allHistoryItems, boolean whitelistEnabled, List<WhitelistSitePojo> whitelist) {
+        Map<String, List<XsyncProjectHistory>> allHistoryMap =
+                allHistoryItems.stream().collect(Collectors.groupingBy(XsyncProjectHistory::getLocalProject));
+
+        Map<String, XsyncRemoteUrlDetailsPojo> configurationsMap = new HashMap<>();
+        for (XsyncXsyncprojectdata configuration : xsyncProjectDataList) {
+            String remoteUrl = configuration.getSyncinfo().getRemoteUrl();
+            XsyncRemoteUrlDetailsPojo currentPojo;
+            if (configurationsMap.containsKey(remoteUrl)) {
+                currentPojo = configurationsMap.get(remoteUrl);
+                currentPojo.setNumberProjects(currentPojo.getNumberProjects()+1);
+            } else {
+                currentPojo = new XsyncRemoteUrlDetailsPojo();
+                currentPojo.setRemoteUrl(remoteUrl);
+                currentPojo.setNumberProjects(1);
+                currentPojo.setNumberErrors(0);
+                if (whitelistEnabled && whitelist.stream().map(WhitelistSitePojo::getSiteUrl).toList().contains(remoteUrl)) {
+                    WhitelistSitePojo whitelistElement = whitelist.stream()
+                            .filter(wl -> wl.getSiteUrl().equals(remoteUrl)).toList().getFirst();
+                    currentPojo.setSiteName(whitelistElement.getSiteName());
+                    currentPojo.setClassification(whitelistElement.getClassification());
+                } else {
+                    currentPojo.setSiteName("NOT ON WHITELIST");
+                }
+            }
+            String sourceProjectId = configuration.getSourceProjectId();
+            if (allHistoryMap.containsKey(sourceProjectId)) {
+                List<XsyncProjectHistory> singleProjectHistoryElements = allHistoryMap.get(sourceProjectId);
+                Optional<XsyncProjectHistory> optionalProjHistory = singleProjectHistoryElements.stream()
+                        .reduce((a,b) -> a.getTimestamp().after(b.getTimestamp()) ? a:b);
+                if (optionalProjHistory.isPresent()) {
+                    XsyncProjectHistory latestHistoryEntryForProject = optionalProjHistory.get();
+                    if (latestHistoryEntryForProject.getSyncStatus().toLowerCase().contains("fail")) {
+                        currentPojo.setNumberErrors(currentPojo.getNumberErrors()+1);
+                    }
+                }
+            }
+            configurationsMap.put(remoteUrl, currentPojo);
+        }
+        return configurationsMap.values().stream().toList();
     }
 }
