@@ -48,7 +48,7 @@ public class SyncStatusService {
 		final ProjectSyncStatus projectSyncStatus = _statusHolder.getProjectSyncStatus(projectId);
 		projectSyncStatus.setSyncing(false);
 		if (syncManifest!=null) {
-			projectSyncStatus.setWasSyncSuccessful(syncManifest.wasSyncSuccessfull());
+			projectSyncStatus.setWasSyncSuccessful(syncManifest.wasSyncSuccessful());
 			projectSyncStatus.setSyncEndTime(syncManifest.getSync_end_time());
 		} else {
 			projectSyncStatus.setSyncEndTime(new Date());

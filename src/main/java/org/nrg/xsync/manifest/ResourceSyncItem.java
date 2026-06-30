@@ -19,10 +19,9 @@ public class ResourceSyncItem extends SyncedItem {
 	public ResourceSyncItem(String localId, String localLabel) {
 		super(localId, localLabel);
 		this.remoteLabel = localLabel;
-		this.fileCount  = new Integer(0);
-		this.fileSize = new Long(0);
+		this.fileCount  = 0;
+		this.fileSize = 0L;
 	}
-
 
     @Override
 	public String toString() {

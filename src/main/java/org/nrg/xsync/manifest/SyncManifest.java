@@ -81,7 +81,7 @@ public class SyncManifest{
 		subjects.add(subject);
 	}
 
-    public boolean wasSyncSuccessfull() {
+    public boolean wasSyncSuccessful() {
 		boolean wasSuccessful = true;
 		if (!resources.isEmpty()) {
 			for (SyncedItem sync:resources) {
@@ -102,7 +102,7 @@ public class SyncManifest{
 		return wasSuccessful;
 	}
 	
-	public String getOverAllSyncStatusWhenSucessfull() {
+	public String getOverAllSyncStatusWhenSuccessful() {
 		String overAllStatus = XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED;
 		if (!resources.isEmpty()) {
 			for (SyncedItem sync:resources) {
@@ -175,7 +175,7 @@ public class SyncManifest{
 	public Hashtable<String, String> syncInfoAsHTML() {
 		final Hashtable<String,String> info = new Hashtable<>();
 		String subject="Project " + this.localProjectId +" data synced from "+ _xnatInfo.getSiteId()+" to " + this.syncHost;
-		if(!this.wasSyncSuccessfull())
+		if(!this.wasSyncSuccessful())
 		{
 			subject="Data Sync Failed/Incomplete for "+this.localProjectId +" from "+ _xnatInfo.getSiteId()+" to " + this.syncHost;
 		}
@@ -200,7 +200,7 @@ public class SyncManifest{
 		sb.append("<td>").append(this.remoteProjectId).append("</td>");
 		sb.append("<td>").append(this.getSync_start_time()).append("</td>");
 		sb.append("<td>").append(this.getSync_end_time() != null ? this.getSync_end_time() : "--").append("</td>");
-		sb.append("<td>").append(this.wasSyncSuccessfull() ? "Synced" : "Sync Failed/Incomplete").append("</td>");
+		sb.append("<td>").append(this.wasSyncSuccessful() ? "Synced" : "Sync Failed/Incomplete").append("</td>");
 		sb.append("</tr>");
 		sb.append("</table>");
 		if (!resources.isEmpty()) {

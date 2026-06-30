@@ -65,7 +65,7 @@ public class ExperimentSyncItem extends SyncedItem {
 				if (r.getSyncStatus() != null && r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
 					someSyncFailed = true;
 					message += " Assessor " + r.getLocalId() + " failed to sync. ";
-				}else if (!r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+				} else if (!r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
 					childStatus = r.getSyncStatus();
 					message += "Assessor " + r.getLocalId() + " sync needs to be verified. ";
 				}
@@ -89,18 +89,18 @@ public class ExperimentSyncItem extends SyncedItem {
 		int count = 0;
 		try {
 			for (ResourceSyncItem r: resources) {
-				count += r.getFileCount().intValue();
+				count += r.getFileCount();
 			}
 			for (ScanSyncItem s:scans) {
 				for (ResourceSyncItem r: s.getResources()) {
-					count += r.getFileCount().intValue();
+					count += r.getFileCount();
 				}
 			}
 			for (ExperimentSyncItem s:assessors) {
 					count += s.getTotalSyncedFileCount();
 			}
 		} catch(NullPointerException ignored) {}
-		return new Integer(count);
+		return count;
 	}
 
 	public Long getTotalSyncedFileSize() {
@@ -119,7 +119,7 @@ public class ExperimentSyncItem extends SyncedItem {
 			}
 		} catch(NullPointerException ignored) {
 		}
-		return new Long(size);
+		return size;
 	}
 
 	public String getFormattedTotalSyncedFileSize() {

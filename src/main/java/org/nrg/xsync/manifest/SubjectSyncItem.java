@@ -18,31 +18,27 @@ public class SubjectSyncItem extends SyncedItem {
     ArrayList<ExperimentSyncItem> experiments;
     ArrayList<ResourceSyncItem> resources;
 
-
 	public SubjectSyncItem(String localId, String localLabel) {
 		super(localId, localLabel);
-		resources = new ArrayList<ResourceSyncItem>();
-		experiments = new ArrayList<ExperimentSyncItem>();
+		resources = new ArrayList<>();
+		experiments = new ArrayList<>();
 	}
-
 
     public void addResources(ResourceSyncItem resource) {
 		resources.add(resource);
 		//stateChanged();
 	}
 
-
     public void addExperiment(ExperimentSyncItem experiment) {
 		experiments.add(experiment);
 		//stateChanged();
 	}
 
-
     public void updateSyncStatus(String status, String msg) {
 		boolean someSyncFailed = false;
 		String childStatus = null;
 		String message = msg;
-		if (resources != null && resources.size() > 0) {
+		if (resources != null && !resources.isEmpty()) {
 			for (ResourceSyncItem r: resources) {
 				if (r.getSyncStatus()!=null) {
 					if (r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
@@ -55,7 +51,7 @@ public class SubjectSyncItem extends SyncedItem {
 				}
 			}
 		}
-		if (experiments != null && experiments.size() > 0) {
+		if (experiments != null && !experiments.isEmpty()) {
 			for (ExperimentSyncItem e: experiments) {
 				if (e.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
 					someSyncFailed = true;
@@ -78,8 +74,7 @@ public class SubjectSyncItem extends SyncedItem {
 				setMessage(message);
 			}
 		}
-		return;
-	}	
+	}
 	
 	public String toString() {
 		String str = super.toString();
@@ -94,6 +89,4 @@ public class SubjectSyncItem extends SyncedItem {
 		}
 		return str;
 	}
-	
-
 }

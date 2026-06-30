@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import lombok.Setter;
 import org.nrg.xnat.archive.ArchivingException;
 import org.nrg.xnat.helpers.merge.MergeUtils;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ import org.nrg.dicom.mizer.service.MizerService;
 import org.nrg.xdat.XDAT;
 
 
+@Setter
 public abstract class AbstractExportAnonymizer implements Callable<List<AnonymizationResult>> {
 	public static final Logger logger = LoggerFactory.getLogger(AbstractExportAnonymizer.class);
 
@@ -32,16 +34,12 @@ public abstract class AbstractExportAnonymizer implements Callable<List<Anonymiz
 
 	abstract String getLabel();
 
-	public void setNext(AbstractExportAnonymizer a) {
-		this.next = a;
-	}
-
-	public List<AnonymizationResult> anonymize(List<File> files) throws MizerException {
+    public List<AnonymizationResult> anonymize(List<File> files) throws MizerException {
 		
 		String scriptContent = this.getScript();
 		if (StringUtils.isNotEmpty(scriptContent)) {
 			final MizerService service = XDAT.getContextService().getBeanSafely(MizerService.class);
-			final List<AnonymizationResult> anonResult = service.anonymize(files, this.getProjectName(), this.getSubject(), this.getLabel(), new Long(0), scriptContent, true, false);
+			final List<AnonymizationResult> anonResult = service.anonymize(files, this.getProjectName(), this.getSubject(), this.getLabel(), 0L, scriptContent, true, false);
 
 			try {
 				MergeUtils.deleteRejectedFiles(logger, anonResult, getProjectName());
@@ -62,38 +60,24 @@ public abstract class AbstractExportAnonymizer implements Callable<List<Anonymiz
 			// this project does not have an anon script
 			//Just copy the files
 		}
-		
 	}
-
 
 	/**
 	 * Get the appropriate edit script.
-	 * 
-	 * @return
 	 */
 	abstract String getScript();
 
-	/**
-	 * Check if editing is enabled.
-	 * 
-	 * @return
-	 */
 	abstract boolean isEnabled();
 
 	/**
 	 * Sometimes the session passed in isn't associated with a project, for
 	 * instance if the session is in the prearchive so subclasses must specify
 	 * how to get the project name.
-	 * 
-	 * @return
 	 */
 	abstract String getProjectName();
 
 	/**
 	 * Get the list of files that need to be anonymized.
-	 * 
-	 * @return
-	 * @throws IOException
 	 */
 	abstract List<File> getFilesToAnonymize() throws IOException;
 

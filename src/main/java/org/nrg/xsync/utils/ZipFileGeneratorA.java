@@ -20,7 +20,7 @@ public abstract class ZipFileGeneratorA {
 
     public List<File> zip(final String remoteProjectId,  final File pathToFiles) throws IOException {
         List<File> zipFiles = new ArrayList<>();
-        final String zipRoot = new Long(new Date().getTime()).toString();
+        final String zipRoot = Long.valueOf(new Date().getTime()).toString();
 
         String expCachePath = SynchronizationManager.GET_SYNC_FILE_PATH(remoteProjectId);
         new File(expCachePath).mkdirs();

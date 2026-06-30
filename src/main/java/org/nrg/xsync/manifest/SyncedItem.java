@@ -29,7 +29,6 @@ public abstract class SyncedItem  extends Observable{
     @Setter
     Date syncTime;
 	
-	
 	public SyncedItem(String localId, String localLabel) {
 		super();
 		this.localId = localId;
@@ -37,17 +36,12 @@ public abstract class SyncedItem  extends Observable{
 		message = "";
 	}
 
-
-    /**
-	 * @param syncStatus the syncStatus to set
-	 */
 	public void setSyncStatus(String syncStatus) {
 		this.syncStatus = syncStatus;
 		if (syncTime==null) {
 			syncTime = new Date();
 		}
 	}
-
 
     public String toString() {
 		String str = "";
@@ -73,15 +67,14 @@ public abstract class SyncedItem  extends Observable{
 		if (r.getFileCount() != null && r.getFileSize()!=null) {
 			boolean hasBeenSkipped = r.getFileCount()<0 && (Long)r.getFileSize()<0;	
 			rSync.setFileCount(r.getFileCount()>0?r.getFileCount():0);
-			rSync.setFileSize((Long)r.getFileSize()>0?r.getFileSize():new Long(0));
+			rSync.setFileSize((Long)r.getFileSize()>0?r.getFileSize(): 0L);
 			if (hasBeenSkipped) {
 				rSync.setSyncStatus(XsyncUtils.SYNC_STATUS_SKIPPED);
 			}
-		}else {
+		} else {
 			rSync.setFileCount(0);
-			rSync.setFileSize(new Long(0));
+			rSync.setFileSize(0L);
 		}
 		return rSync;
 	}
-	
 }
