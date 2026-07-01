@@ -1,13 +1,15 @@
 package org.nrg.xsync.services.local.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncDashboardProjectConfigurationPojo;
 import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
-import org.nrg.xsync.services.local.ConfigurationDashboardService;
+import org.nrg.xsync.services.local.XsyncConfigurationService;
+import org.nrg.xsync.utils.XsyncUtils;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
@@ -21,8 +23,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @Transactional
-public class ConfigurationDashboardServiceImpl implements ConfigurationDashboardService {
+public class XsyncConfigurationServiceImpl implements XsyncConfigurationService {
 
+    @Override
     public List<XsyncRemoteUrlDetailsPojo> createListOfRemoteDestinations(UserI user,
               List<XsyncProjectHistory> allHistoryItems, boolean whitelistEnabled, List<WhitelistSitePojo> whitelist) {
         List<XsyncXsyncprojectdata> xsyncProjectDataList =
@@ -33,11 +36,7 @@ public class ConfigurationDashboardServiceImpl implements ConfigurationDashboard
     @Override
     public List<XsyncDashboardProjectConfigurationPojo> getAllProjectConnectionsForUrl(UserI user,
                        List<XsyncProjectHistory> allHistoryItems, String inputUrl) {
-        List<XsyncXsyncprojectdata> xsyncProjectDataList =
-                XsyncXsyncprojectdata.getAllXsyncXsyncprojectdatas(user, true);
-        List<XsyncXsyncprojectdata> elementsWithCorrectUrl =
-                xsyncProjectDataList.stream().filter(x -> x.getSyncinfo().getRemoteUrl().equals(inputUrl)).toList();
-
+        List<XsyncXsyncprojectdata> elementsWithCorrectUrl = getAllProjectsForRemoteUrl(user, inputUrl);
         List<XsyncProjectHistory> historyItemsForRemoteHost =
                 allHistoryItems.stream().filter(h -> h.getRemoteHost().equals(inputUrl)).toList();
 
@@ -113,5 +112,41 @@ public class ConfigurationDashboardServiceImpl implements ConfigurationDashboard
             configurationsMap.put(remoteUrl, currentPojo);
         }
         return configurationsMap.values().stream().toList();
+    }
+
+    @Override
+    public List<XsyncXsyncprojectdata> getAllProjectsSetToBeSynced(UserI user) {
+        return XsyncXsyncprojectdata.getAllXsyncXsyncprojectdatas(user, true);
+    }
+
+    @Override
+    public List<XsyncXsyncprojectdata> getAllProjectsForRemoteUrl(UserI user, String inputUrl) {
+        return getAllProjectsSetToBeSynced(user).stream().filter(x -> x.getSyncinfo().getRemoteUrl()
+                .equals(inputUrl)).toList();
+    }
+
+    @Override
+    public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedDaily(UserI user) {
+        return getAllProjectsWithSpecificFrequency(user, XsyncUtils.SYNC_FREQUENCY_DAILY);
+    }
+
+    @Override
+    public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedWeekly(UserI user) {
+        return getAllProjectsWithSpecificFrequency(user, XsyncUtils.SYNC_FREQUENCY_WEEKLY);
+    }
+
+    @Override
+    public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedMonthly(UserI user) {
+        return getAllProjectsWithSpecificFrequency(user, XsyncUtils.SYNC_FREQUENCY_MONTHLY);
+    }
+
+    @Override
+    public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedOnDemand(UserI user) {
+        return getAllProjectsWithSpecificFrequency(user, XsyncUtils.SYNC_FREQUENCY_ON_DEMAND);
+    }
+
+    private List<XsyncXsyncprojectdata> getAllProjectsWithSpecificFrequency(UserI user, String syncFrequency) {
+        return getAllProjectsSetToBeSynced(user).stream().filter(x -> x.getSyncinfo().getSyncFrequency()
+                .equals(syncFrequency)).toList();
     }
 }
