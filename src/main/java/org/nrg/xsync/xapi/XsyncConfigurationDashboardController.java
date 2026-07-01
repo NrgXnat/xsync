@@ -6,7 +6,6 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.nrg.framework.annotations.XapiRestController;
-import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
@@ -25,7 +24,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,19 +40,19 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
     private final XsyncSitePreferencesBean _sitePreferences;
     private final SyncManifestService _syncManifestService;
     private final WhitelistXsyncSiteService _whitelistXsyncSiteService;
-    private final ConfigurationDashboardService _configurationDashboardService;
+    private final XsyncConfigurationService _xsyncConfigurationService;
 
     protected XsyncConfigurationDashboardController(final UserManagementServiceI userManagementService,
                                                     final RoleHolder roleHolder,
                                                     final XsyncSitePreferencesBean sitePreferences,
                                                     final SyncManifestService syncManifestService,
                                                     final WhitelistXsyncSiteService whitelistXsyncSiteService,
-                                                    final ConfigurationDashboardService configurationDashboardService) {
+                                                    final XsyncConfigurationService xsyncConfigurationService) {
         super(userManagementService, roleHolder);
         _sitePreferences = sitePreferences;
         _syncManifestService = syncManifestService;
         _whitelistXsyncSiteService = whitelistXsyncSiteService;
-        _configurationDashboardService = configurationDashboardService;
+        _xsyncConfigurationService = xsyncConfigurationService;
     }
 
     @ApiOperation(value = "Get a report of all currently configured remote XNAT instances." )

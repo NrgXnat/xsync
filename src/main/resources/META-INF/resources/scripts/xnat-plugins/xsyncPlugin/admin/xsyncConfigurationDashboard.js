@@ -44,6 +44,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             spawn('a.link|href=#!', {
                 onclick: function(e){
                     e.preventDefault();
+                    XNAT.dialog.close();
                     xsyncConfigurationDashboard.getFailedStackTraceModal(projectId);
                 }
             }, [['b', text]]),
@@ -55,7 +56,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             spawn('a.link|href=#!', {
                 onclick: function(e){
                     e.preventDefault();
-                    xsyncConfigurationDashboard.getRemoteUrlListingModal(remoteUrl);
+                    xsyncConfigurationDashboard.getRemoteUrlListingModal(remoteUrl, false);
                 }
             }, [['b', text]]),
         ]);
@@ -65,6 +66,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             return spawn('button.btn.btn-sm.edit', {
                 onclick: function (e) {
                     e.preventDefault();
+                    XNAT.dialog.close();
                     xsyncConfigurationDashboard.createFullHistoryModal(projectId);
                 },
                 title: "Show the complete history of this connection."
@@ -113,9 +115,12 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             esc: true,
             buttons: [
                 {
-                    label: 'Close',
+                    label: 'Back',
                     isDefault: true,
-                    close: true
+                    close: true,
+                    action: function(){
+                        xsyncConfigurationDashboard.getRemoteUrlListingModal(xsyncConfigurationDashboard.currentRemoteUrl, true);
+                    }
                 }
             ]
         });
@@ -150,9 +155,12 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             esc: true,
             buttons: [
                 {
-                    label: 'Close',
+                    label: 'Back',
                     isDefault: true,
-                    close: true
+                    close: true,
+                    action: function(){
+                        xsyncConfigurationDashboard.getRemoteUrlListingModal(xsyncConfigurationDashboard.currentRemoteUrl, true);
+                    }
                 }
             ],
             afterShow: function() {
@@ -161,22 +169,23 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         });
     }
 
-    xsyncConfigurationDashboard.getRemoteUrlListingModal = function(remoteUrl) {
-        xsyncConfigurationDashboard.currentRemoteUrl = remoteUrl;
-        XNAT.xhr.get({
-            url: restUrl('/xapi/xsync/dashboard/remoteUrl?remoteUrl=' + remoteUrl),
-            async: false,
-            success: function (data) {
-                xsyncConfigurationDashboard.currentRemoteUrlData = [];
-                data.forEach(function (item) {
-                    xsyncConfigurationDashboard.currentRemoteUrlData.push(item);
-                });
-            },
-            fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not retrieve configuration information for url: ' + remoteUrl + '\nError message: s' + e.responseText, 'error');
-            }
-        });
-
+    xsyncConfigurationDashboard.getRemoteUrlListingModal = function(remoteUrl, dataAlreadyRetrieved) {
+        if (!dataAlreadyRetrieved) {
+            xsyncConfigurationDashboard.currentRemoteUrl = remoteUrl;
+            XNAT.xhr.get({
+                url: restUrl('/xapi/xsync/dashboard/remoteUrl?remoteUrl=' + remoteUrl),
+                async: false,
+                success: function (data) {
+                    xsyncConfigurationDashboard.currentRemoteUrlData = [];
+                    data.forEach(function (item) {
+                        xsyncConfigurationDashboard.currentRemoteUrlData.push(item);
+                    });
+                },
+                fail: function (e) {
+                    XNAT.ui.banner.top(2000, 'Could not retrieve configuration information for url: ' + remoteUrl + '\nError message: s' + e.responseText, 'error');
+                }
+            });
+        }
         let tmpl = spawn('div#modal_table_wrapper');
 
         this.dialog = XNAT.ui.dialog.open({
@@ -514,14 +523,9 @@ function spawnDetailsForList(items) {
     return spawn('div.details-list', items.map(function(item, i){
         var summaryDate = new Date(item.startDate);
         var summaryText = summaryDate.toDateString() + ' ' + summaryDate.toLocaleTimeString();
-        if (typeof item === 'object') {
-            // generic fallback: pretty-print the JSON
-            bodyContent = ['pre.json-body', {
-                style: { whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '12px' }
-            }, JSON.stringify(item, null, 2)];
-        } else {
-            bodyContent = ['p', String(item)];
-        }
+        var bodyContent = ['pre.json-body', {
+            style: { whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '12px' }
+        }, JSON.stringify(item, null, 2)];
 
         return ['details.json-item', { style: { marginBottom: '8px' } }, [
             ['summary', { style: { cursor: 'pointer', fontWeight: 'bold' } }, summaryText],
