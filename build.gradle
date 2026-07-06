@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = '1.9.0'
+        vXnat = '1.10.1-SNAPSHOT'
     }
     repositories {
         mavenLocal()
@@ -19,12 +19,11 @@ buildscript {
         maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
     }
     dependencies {
-        classpath "com.palantir.gradle.gitversion:gradle-git-version:0.12.1"
+        classpath "com.palantir.gradle.gitversion:gradle-git-version:3.0.0"
         classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.5"
-        classpath "io.franzbecker:gradle-lombok:4.0.0"
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.11.RELEASE"
+        classpath "io.franzbecker:gradle-lombok:5.0.0"
+        classpath "io.spring.gradle:dependency-management-plugin:1.1.7"
         classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
-        classpath "net.linguica.gradle:maven-settings-plugin:0.5"         
     }
 }
 
@@ -36,10 +35,9 @@ apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: "org.nrg.xnat.build.xnat-data-builder"
 apply plugin: 'io.franzbecker.gradle-lombok'
-apply plugin: 'net.linguica.maven-settings'
 
 group 'org.nrg.xsync'
-version '1.8.2-SNAPSHOT'
+version "1.8.2-SNAPSHOT"
 description "XNAT XSync Plugin"
 
 
@@ -55,18 +53,22 @@ configurations {
     implementation.extendsFrom(implementAndInclude)
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
 
 dependencyManagement.imports {
     mavenBom "org.nrg:parent:${vXnat}"
 }
 
+lombok {
+    version = "1.18.34"
+    sha256 = "1ea5ad6c6afcff902d75072b2aaa6695585aebee9f12127e15c0036ba95d2918"
+}
+
 dependencies {
     implementation("org.nrg.xnat:web") {
-        transitive = false
-    }
-    implementation("org.nrg.xnat:xnat-data-models") {
         transitive = false
     }
 
@@ -141,6 +143,9 @@ dependencies {
 
     implementation "com.google.code.findbugs:jsr305"
     implementation "org.kohsuke.metainf-services:metainf-services"
+
+    // JDK 11+ removed javax.annotation (JSR-250) — plugin uses PostConstruct/Nonnull/Nullable
+    compileOnly "javax.annotation:javax.annotation-api:1.3.2"
 }
 
 configurations {
@@ -190,11 +195,19 @@ publishing {
             }
         }
     }
-    repositories{ 
+    repositories {
         maven {
-            url "https://nrgxnat.jfrog.io/nrgxnat/libs-${project.version.endsWith("-SNAPSHOT") ? "snapshot" : "release"}"
-            // The value for name must match <id> in ~/.m2/settings.xml
-            name = "XNAT_Artifactory"        
+            name = "XNAT_Artifactory"
+            url = project.version.toString().endsWith("-SNAPSHOT")
+                ? "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot-local"
+                : "https://nrgxnat.jfrog.io/nrgxnat/libs-release-local"
+            // CI injects ORG_GRADLE_PROJECT_artifactoryUser/Token env vars (Gradle maps
+            // these to project properties). Local devs can set artifactoryUser/Token in
+            // ~/.gradle/gradle.properties. Mirrors monorepo's buildSrc convention.
+            credentials {
+                username = (project.findProperty("artifactoryUser")  ?: System.getenv("ARTIFACTORY_USER"))  ?: ""
+                password = (project.findProperty("artifactoryToken") ?: System.getenv("ARTIFACTORY_TOKEN")) ?: ""
+            }
         }
     }
 }
