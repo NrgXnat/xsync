@@ -34,7 +34,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-
 /**
  * @author Mohana Ramaratnam
  *
@@ -179,5 +178,4 @@ public class SingleExperimentTransfer implements Callable<Void> {
             _syncStatusService.registerCompletedSubject(_projectId, localSubject.getLabel());
         }
     }
-    
 }

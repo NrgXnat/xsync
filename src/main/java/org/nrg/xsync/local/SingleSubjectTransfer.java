@@ -81,7 +81,6 @@ public class SingleSubjectTransfer implements Callable<Void> {
         this.subjectId = subjectId;
     }
 
-
     public Void call() throws Exception {
         sync();
         return null;
@@ -164,7 +163,5 @@ public class SingleSubjectTransfer implements Callable<Void> {
                 }catch(Exception e) {log.debug("Unable to refresh catalog");}
             }
         }
-
     }
-
 }

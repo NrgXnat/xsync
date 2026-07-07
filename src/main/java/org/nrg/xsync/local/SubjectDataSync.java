@@ -258,10 +258,6 @@ public class SubjectDataSync {
         xsyncTools.saveSyncDetails(projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSourceProjectId(), local_id, remote_id,syncStatus,xsiType,remoteProjectId, remoteUrl);
     }
 
-
-
-
-
     boolean syncAllStates;
     XnatSubjectdataI localSubject;
     ProjectSyncConfiguration projectSyncConfiguration;
@@ -275,6 +271,4 @@ public class SubjectDataSync {
     private XnatProjectdata localProject;
     private final SerializerService  serializer;
     private final SyncStatusService syncStatusService;
-
-
 }

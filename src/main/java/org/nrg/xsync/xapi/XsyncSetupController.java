@@ -2,9 +2,7 @@ package org.nrg.xsync.xapi;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.config.entities.Configuration;
-import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
-import org.nrg.framework.constants.Scope;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;

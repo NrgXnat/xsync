@@ -44,7 +44,6 @@ public class RemoteSubject {
 	private XnatProjectdata localProject;
     private final SerializerService serializer;
 	private final SyncStatusService syncStatusService;
-
 	
 	public RemoteSubject(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil,
 			final JdbcTemplate jdbcTemplate, XnatSubjectdataI localSubject, ProjectSyncConfiguration projectSyncConfiguration,
@@ -110,8 +109,6 @@ public class RemoteSubject {
 		log.debug("Syncing experiment END: {}", experiment.getLabel());
 	}
 
-
-
 	private void saveSyncDetails(String local_id, String remote_id, String remote_label, String syncStatus,String xsiType) {
 		subjectSyncInfo.setSyncStatus(syncStatus);
 		subjectSyncInfo.setRemoteId(remote_id);
@@ -130,10 +127,4 @@ public class RemoteSubject {
 				user, syncAllStates,  subjectSyncInfo, serializer, syncStatusService);
 		experimentSync.pushExperiment(assess, remoteSubject, syncIfNotSyncedInPast);
 	}
-
-
-
-
-
-
 }

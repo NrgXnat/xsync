@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
  *
  */
 @Repository
-
 public class RemoteAliasEntityRepository extends AbstractHibernateDAO<RemoteAliasEntity>{
 
 }
