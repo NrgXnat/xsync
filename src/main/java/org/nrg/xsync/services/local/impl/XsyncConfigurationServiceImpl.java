@@ -1,15 +1,15 @@
 package org.nrg.xsync.services.local.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.config.entities.Configuration;
+import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
-import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventMetaI;
@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,8 +45,9 @@ import java.util.stream.Collectors;
 public class XsyncConfigurationServiceImpl implements XsyncConfigurationService {
 
     @Autowired
-    public XsyncConfigurationServiceImpl(ConfigService configService) {
-        _configService = configService;
+    public XsyncConfigurationServiceImpl(ConfigService configService, SerializerService serializerService) {
+        this.configService = configService;
+        this.serializerService = serializerService;
     }
 
     @Override
@@ -111,7 +113,7 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
                 currentPojo.setRemoteUrl(remoteUrl);
                 currentPojo.setNumberProjects(1);
                 currentPojo.setNumberErrors(0);
-                if (whitelistEnabled && whitelist.stream().map(WhitelistSitePojo::getSiteUrl).toList().contains(remoteUrl)) {
+                if (checkForWhitelistConformation(whitelistEnabled, whitelist, remoteUrl)) {
                     WhitelistSitePojo whitelistElement = whitelist.stream()
                             .filter(wl -> wl.getSiteUrl().equals(remoteUrl)).toList().getFirst();
                     currentPojo.setSiteName(whitelistElement.getSiteName());
@@ -135,6 +137,11 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
             configurationsMap.put(remoteUrl, currentPojo);
         }
         return configurationsMap.values().stream().toList();
+    }
+
+    @Override
+    public boolean checkForWhitelistConformation(boolean whitelistEnabled, List<WhitelistSitePojo> whitelist, String url) {
+        return whitelistEnabled && whitelist.stream().map(WhitelistSitePojo::getSiteUrl).toList().contains(url);
     }
 
     @Override
@@ -169,30 +176,38 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
     }
 
     @Override
-    public SyncConfigurationPojo getSyncConfiguration(String projectId) throws JsonProcessingException, NotFoundException {
-        final Configuration conf = _configService.getConfig("xsync", "json", Scope.Project, projectId);
+    public Configuration getGenericXsyncConfiguration(String type, String projectId) {
+        return configService.getConfig("xsync", type, Scope.Project, projectId);
+    }
+
+    @Override
+    public SyncConfigurationPojo getSyncConfiguration(String projectId) throws IOException, NotFoundException {
+        final Configuration conf = getGenericXsyncConfiguration("json", projectId);
         final String config = conf != null ? conf.getContents() : null;
-        ObjectMapper objectMapper = new ObjectMapper();
         if (StringUtils.isNotBlank(config)) {
-            return objectMapper.readValue(config, SyncConfigurationPojo.class);
+            return serializerService.deserializeJson(config, SyncConfigurationPojo.class);
         } else {
             throw new NotFoundException("Could not find configuration for project: {}", projectId);
         }
     }
 
     @Override
+    public Configuration replaceConfiguration(String username, String type, String inputElement, String projectId) throws ConfigServiceException {
+        return configService.replaceConfig(username, "", "xsync", type, inputElement, Scope.Project, projectId);
+    }
+
+    @Override
     public void saveConfig(UserI user, SyncConfigurationPojo configurationPojo, String projectId) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         String serializedConfig = mapper.writeValueAsString(configurationPojo);
-        Configuration newConfiguration = _configService.replaceConfig(user.getUsername(), "", "xsync",
-                                                                      "json", serializedConfig, Scope.Project, projectId);
-        List<Configuration> allConfigurationsRemove =_configService.getAll().stream()
+        Configuration newConfiguration = replaceConfiguration(user.getUsername(), "json", serializedConfig, projectId);
+        List<Configuration> allConfigurationsRemove = configService.getAll().stream()
                 .filter(c -> c.getTool().equals("xsync"))
                 .filter(c-> c.getScope().equals(Scope.Project))
                 .filter(c -> c.getEntityId().equals(configurationPojo.getSource_project_id()))
                 .filter(c -> c.getId() != newConfiguration.getId()).toList();
         for (Configuration config : allConfigurationsRemove) {
-            _configService.delete(config);
+            configService.delete(config);
         }
     }
 
@@ -235,5 +250,6 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
                 .equals(syncFrequency)).toList();
     }
 
-    private final ConfigService _configService;
+    private final ConfigService configService;
+    private final SerializerService serializerService;
 }
