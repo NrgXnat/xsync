@@ -1,15 +1,33 @@
 package org.nrg.xsync.services.local.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.nrg.config.entities.Configuration;
+import org.nrg.config.services.ConfigService;
+import org.nrg.framework.constants.Scope;
+import org.nrg.xapi.exceptions.DataFormatException;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XsyncXsyncinfodata;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
+import org.nrg.xft.event.EventDetails;
+import org.nrg.xft.event.EventMetaI;
+import org.nrg.xft.event.EventUtils;
+import org.nrg.xft.event.persist.PersistentWorkflowI;
+import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xft.utils.SaveItemHelper;
+import org.nrg.xft.utils.ValidationUtils.ValidationResults;
+import org.nrg.xnat.utils.WorkflowUtils;
 import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncDashboardProjectConfigurationPojo;
 import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
+import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.nrg.xsync.utils.XsyncUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
@@ -24,6 +42,11 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class XsyncConfigurationServiceImpl implements XsyncConfigurationService {
+
+    @Autowired
+    public XsyncConfigurationServiceImpl(ConfigService configService) {
+        _configService = configService;
+    }
 
     @Override
     public List<XsyncRemoteUrlDetailsPojo> createListOfRemoteDestinations(UserI user,
@@ -145,8 +168,72 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
         return getAllProjectsWithSpecificFrequency(user, XsyncUtils.SYNC_FREQUENCY_ON_DEMAND);
     }
 
+    @Override
+    public SyncConfigurationPojo getSyncConfiguration(String projectId) throws JsonProcessingException, NotFoundException {
+        final Configuration conf = _configService.getConfig("xsync", "json", Scope.Project, projectId);
+        final String config = conf != null ? conf.getContents() : null;
+        ObjectMapper objectMapper = new ObjectMapper();
+        if (StringUtils.isNotBlank(config)) {
+            return objectMapper.readValue(config, SyncConfigurationPojo.class);
+        } else {
+            throw new NotFoundException("Could not find configuration for project: {}", projectId);
+        }
+    }
+
+    @Override
+    public void saveConfig(UserI user, SyncConfigurationPojo configurationPojo, String projectId) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        String serializedConfig = mapper.writeValueAsString(configurationPojo);
+        Configuration newConfiguration = _configService.replaceConfig(user.getUsername(), "", "xsync",
+                                                                      "json", serializedConfig, Scope.Project, projectId);
+        List<Configuration> allConfigurationsRemove =_configService.getAll().stream()
+                .filter(c -> c.getTool().equals("xsync"))
+                .filter(c-> c.getScope().equals(Scope.Project))
+                .filter(c -> c.getEntityId().equals(configurationPojo.getSource_project_id()))
+                .filter(c -> c.getId() != newConfiguration.getId()).toList();
+        for (Configuration config : allConfigurationsRemove) {
+            _configService.delete(config);
+        }
+    }
+
+    @Override
+    public void changeConnectionEnabled(UserI user, String inputUrl, String projectId, boolean enabled) throws Exception {
+        Optional<XsyncXsyncprojectdata> projectConfigurationElement =
+                getAllProjectsForRemoteUrl(user, inputUrl).stream()
+                .filter(x -> x.getSourceProjectId().equals(projectId)).findFirst();
+        if (projectConfigurationElement.isPresent()) {
+            XsyncXsyncprojectdata projectConfiguration = projectConfigurationElement.get();
+            projectConfiguration.setSyncEnabled(enabled);
+            projectConfiguration.setSyncScheduledBy(user.getLogin());
+            final ValidationResults vr = projectConfiguration.validate();
+            if (vr != null && !vr.isValid()) {
+                throw new DataFormatException(projectId + " Xsync Setup failed. Invalid JSON: " + vr.isValid());
+            }
+            String msg = "Updated Synchronization";
+            EventMetaI c = EventUtils.DEFAULT_EVENT(user, msg);
+
+            if (SaveItemHelper.authorizedSave(projectConfiguration, user, false, true, c)) {
+                EventDetails details = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,
+                                       EventUtils.getAddModifyAction(projectConfiguration.getXSIType(), false),
+                                       "", "");
+                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user,
+                    projectConfiguration.getXSIType(), projectConfiguration.getXsyncXsyncprojectdataId()+"",
+                    projectConfiguration.getSourceProjectId(), details);
+                WorkflowUtils.complete(wrk, c);
+            }
+
+            SyncConfigurationPojo configServicePojo = getSyncConfiguration(projectId);
+            configServicePojo.setEnabled(enabled);
+            saveConfig(user, configServicePojo, projectId);
+        } else {
+            throw new NotFoundException("Could not find configuration for project: {}", projectId);
+        }
+    }
+
     private List<XsyncXsyncprojectdata> getAllProjectsWithSpecificFrequency(UserI user, String syncFrequency) {
         return getAllProjectsSetToBeSynced(user).stream().filter(x -> x.getSyncinfo().getSyncFrequency()
                 .equals(syncFrequency)).toList();
     }
+
+    private final ConfigService _configService;
 }

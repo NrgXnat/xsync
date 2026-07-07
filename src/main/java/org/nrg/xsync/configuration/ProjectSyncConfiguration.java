@@ -127,7 +127,6 @@ public class ProjectSyncConfiguration {
             SyncConfigurationImagingSessionXsiType imgSessionAdvOption = _syncConfiguration.getImagingSession(imagingSessionXsiType);
             return imgSessionAdvOption.isAllowedToSyncScan(imagingScanType);
         }
-
     }
 
     public boolean isImagingSessionScanResourceToBeSynced(String imagingSessionXsiType, String imagingScanType, String imagingScanResourceName) {
@@ -200,7 +199,7 @@ public class ProjectSyncConfiguration {
                 EventMetaI c = EventUtils.DEFAULT_EVENT(_user, "ADMIN_EVENT occurred");
                 syncProjectConfiguration.save(_user, false, true, c);
             } catch (Exception e) {
-                _log.debug("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
+                _log.debug("Unable to save synchronization  start time:  Cause:{}", e.getMessage());
                 throw new XsyncNotConfiguredException("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
             }
         }
