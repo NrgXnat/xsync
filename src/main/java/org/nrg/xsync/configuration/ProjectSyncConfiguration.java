@@ -127,7 +127,6 @@ public class ProjectSyncConfiguration {
             SyncConfigurationImagingSessionXsiType imgSessionAdvOption = _syncConfiguration.getImagingSession(imagingSessionXsiType);
             return imgSessionAdvOption.isAllowedToSyncScan(imagingScanType);
         }
-
     }
 
     public boolean isImagingSessionScanResourceToBeSynced(String imagingSessionXsiType, String imagingScanType, String imagingScanResourceName) {

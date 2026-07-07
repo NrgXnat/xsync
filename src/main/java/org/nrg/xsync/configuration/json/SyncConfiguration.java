@@ -55,9 +55,7 @@ public class SyncConfiguration implements Serializable {
 			}else {
 				return true; //Anything not configured defaults to sync
 			}
-		} catch(NullPointerException ignored) {
-			
-		}
+		} catch(NullPointerException ignored) {}
 		return false;
 	}
 
@@ -68,7 +66,6 @@ public class SyncConfiguration implements Serializable {
 	public boolean hasSubjectResourceConfigurationDefinition() {
         return subject_resources != null;
 	}
-
 
 	public boolean hasSubjectAssessorConfigurationDefinition() {
         return subject_assessors != null;
@@ -92,16 +89,16 @@ public class SyncConfiguration implements Serializable {
 	public SyncConfigurationXsiType getSubjectAssessor(String xsiType) {
 		SyncConfigurationXsiType advOption = SyncConfigurationXsiType.GetDefaultSyncConfiguration(xsiType);
 		if (hasSubjectAssessorConfigurationDefinition()) {
-				List<SyncConfigurationXsiType> advOptions = subject_assessors.getXsi_types();
-				if (advOptions == null || advOptions.isEmpty()) {
-					return advOption;
+			List<SyncConfigurationXsiType> advOptions = subject_assessors.getXsi_types();
+			if (advOptions == null || advOptions.isEmpty()) {
+				return advOption;
+			}
+			for (SyncConfigurationXsiType aOption : advOptions) {
+				if (xsiType.equals(aOption.getXsi_type())) {
+					advOption = aOption;
+					break;
 				}
-				for (SyncConfigurationXsiType aOption : advOptions) {
-					if (xsiType.equals(aOption.getXsi_type())) {
-						advOption = aOption;
-						break;
-					}
-				}
+			}
 		}
 		return advOption;
 	}

@@ -20,6 +20,7 @@ import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
+import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +40,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.List;
 import java.util.zip.DataFormatException;
@@ -56,12 +59,13 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	public XsyncSetupController(final UserManagementServiceI userManagementService,
                                 final RoleHolder roleHolder,
                                 final ConfigService configService,
-                                final XsyncSitePreferencesBean prefs,
+                                final XsyncSitePreferencesBean prefs, XsyncConfigurationService xsyncConfigService,
                                 final WhitelistXsyncSiteService whitelistXsyncSiteService,
                                 final JdbcTemplate jdbcTemplate) {
 		super(userManagementService, roleHolder);
 		_configService = configService;
         _prefs = prefs;
+        _xsyncConfigService = xsyncConfigService;
         _whitelistXsyncSiteService = whitelistXsyncSiteService;
 		_jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
     }
@@ -98,6 +102,8 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 					
 					XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, user);
 					xsyncUtils.loadConfigurationToDB(configurationPojo);
+					_xsyncConfigService.saveConfig(getSessionUser(), configurationPojo, projectId);
+					return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
 					saveConfig(configurationPojo, projectId);
 					return projectId + " Xsync Setup complete";
 				}
@@ -107,7 +113,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			throw new Exception(projectId + " Xsync Setup failed ");
 		}
 	}
-	
+
 	@ApiOperation(value = "Gets the Xsync project configuration" )
 	@ApiResponses({@ApiResponse(code = 200, message = "XSync configuration returned."),
 			@ApiResponse(code = 401, message = "User does not have required credentials to get project configuration."),
@@ -115,22 +121,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
     @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.GET, produces =
 			{MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Read)
 	public ResponseEntity<SyncConfigurationPojo> getXsyncProjectConfiguration(@PathVariable("projectId") final String projectId) throws Exception{
-		final Configuration conf = _configService.getConfig("xsync", "json", Scope.Project, projectId);
-		final String config = conf != null ? conf.getContents() : null;
-		ObjectMapper objectMapper = new ObjectMapper();
-		if (StringUtils.isNotBlank(config)) {
-			SyncConfigurationPojo responsePojo = objectMapper.readValue(config, SyncConfigurationPojo.class);
-			return new ResponseEntity<>(responsePojo,  HttpStatus.OK);
-		} else {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-	}
-
-	private void saveConfig(SyncConfigurationPojo configurationPojo, String projectId) throws Exception {
-		ObjectMapper mapper = new ObjectMapper();
-		String serializedConfig = mapper.writeValueAsString(configurationPojo);
-		_configService.replaceConfig(getSessionUser().getUsername(), "", "xsync", "json", serializedConfig,
-									 Scope.Project, projectId);
+		return new ResponseEntity<>(_xsyncConfigService.getSyncConfiguration(projectId),  HttpStatus.OK);
 	}
 
 	private void saveDicomAnonymizationToConfig(XnatProjectdata project, String anonymizationScript) throws Exception {
@@ -181,6 +172,13 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 
 	private final ConfigService              _configService;
 	private final XsyncSitePreferencesBean   _prefs;
+	private final XsyncConfigurationService _xsyncConfigService;
 	private final WhitelistXsyncSiteService  _whitelistXsyncSiteService;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
+
+	@ResponseStatus(value = HttpStatus.NOT_FOUND)
+	@ExceptionHandler(value = {NotFoundException.class})
+	public String handleElementNotFound(final Exception e) {
+		return "Element not found: " + e.getMessage();
+	}
 }
