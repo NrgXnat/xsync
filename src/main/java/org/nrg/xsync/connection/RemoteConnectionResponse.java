@@ -3,6 +3,7 @@ package org.nrg.xsync.connection;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
@@ -17,7 +18,8 @@ import org.springframework.http.ResponseEntity;
 public class RemoteConnectionResponse {
 
 	HttpStatus status = null;
-	String responseBody;
+	@Getter
+    String responseBody;
 
 	public RemoteConnectionResponse(final CloseableHttpResponse  response) {
 		if (response != null) {
@@ -42,12 +44,8 @@ public class RemoteConnectionResponse {
 			return false;
 		return 	((status.value() == HttpStatus.OK.value()) || (status.value() == HttpStatus.CREATED.value())) ? true : false;
 	}
-	
-	public String getResponseBody() {
-		return responseBody;
-	}
 
-	public ResponseEntity<String> getResponse() {
+    public ResponseEntity<String> getResponse() {
 		return new ResponseEntity<>(responseBody, status);
 	}
 }

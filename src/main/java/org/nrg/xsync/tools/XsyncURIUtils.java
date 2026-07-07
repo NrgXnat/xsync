@@ -22,8 +22,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class XsyncURIUtils {
-	
-	
+
 	private static final Logger _logger = LoggerFactory.getLogger(XsyncURIUtils.class);
 	
 	public void prepareResourceURIForXar(XnatImagesessiondata exp,XnatImageassessordata assess){
@@ -38,10 +37,8 @@ public class XsyncURIUtils {
 		for (final XnatAbstractresourceI res : assess.getOut_file()) {
 			modifyExptResource((XnatAbstractresource) res, assess);
 		}
-	
 	}
 
-	
 	public void prepareResourceURI(XnatExperimentdata exp){
 		for (final XnatAbstractresourceI res : exp.getResources_resource()) {
 			modifyExptResource((XnatAbstractresource) res, exp);
@@ -114,8 +111,7 @@ public class XsyncURIUtils {
 	
 		}
 	}
-	
-	
+
 	public void prepareResourceURIForXar(XnatSubjectassessordata exp){
 		for (final XnatAbstractresourceI res : exp.getResources_resource()) {
 			modifyExptResource((XnatAbstractresource) res, exp);
@@ -130,5 +126,4 @@ public class XsyncURIUtils {
 		 String remote_id = remote_id_parts[remote_id_parts.length-1];
 		 return remote_id;
 	}
-
 }

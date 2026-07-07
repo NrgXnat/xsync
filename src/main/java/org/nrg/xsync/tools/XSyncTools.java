@@ -124,27 +124,25 @@ public class XSyncTools {
     }
     
 	public boolean hasExperimentBeenSuccessfullySyncedInThePast(String localProjectId, String local_id, String xsiType, String remoteProject, String remoteUrl) {
-	       boolean hasBeenSyncedAlready = false;
-	        String query = _queryResultUtil.getXsyncRemoteMapQueryString();
+       boolean hasBeenSyncedAlready = false;
+        String query = _queryResultUtil.getXsyncRemoteMapQueryString();
 
-	        MapSqlParameterSource parameters = new MapSqlParameterSource();
-	        parameters.addValue("PROJECT_ID", localProjectId);
-	        parameters.addValue("LOCAL_XNAT_ID", local_id);
-	        parameters.addValue("XSITYPE", xsiType);
-	        parameters.addValue("REMOTE_PROJECT", remoteProject);
-	        parameters.addValue("REMOTE_URL", remoteUrl);
-	        
-	        List<Map<String, Object>> syncMapRows = _jdbcTemplate.queryForList(query, parameters);
-	        if (syncMapRows != null && syncMapRows.size() > 0) {
-	            hasBeenSyncedAlready = true;
-	            Map<String, Object> row = syncMapRows.get(0);
-	            String syncStatus = (String)row.get("sync_status");
-	            if (syncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
-	            	hasBeenSyncedAlready = true;
-	            }
-	        }
-	        return hasBeenSyncedAlready;
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue("PROJECT_ID", localProjectId);
+        parameters.addValue("LOCAL_XNAT_ID", local_id);
+        parameters.addValue("XSITYPE", xsiType);
+        parameters.addValue("REMOTE_PROJECT", remoteProject);
+        parameters.addValue("REMOTE_URL", remoteUrl);
+
+        List<Map<String, Object>> syncMapRows = _jdbcTemplate.queryForList(query, parameters);
+        if (syncMapRows != null && syncMapRows.size() > 0) {
+            hasBeenSyncedAlready = true;
+            Map<String, Object> row = syncMapRows.get(0);
+            String syncStatus = (String)row.get("sync_status");
+            if (syncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+                hasBeenSyncedAlready = true;
+            }
+        }
+        return hasBeenSyncedAlready;
 	}
-
-
 }
