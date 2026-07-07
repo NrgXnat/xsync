@@ -1,6 +1,8 @@
 package org.nrg.xsync.configuration.json;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.xdat.base.BaseElement;
@@ -30,111 +32,22 @@ import java.util.regex.Pattern;
  * @author Mohana Ramaratnam
  * @author Atul Kaushal
  */
+@Getter
+@Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
-
 public class SyncConfigurationXsiType {
 
 	/** The logger. */
 	public static final Logger logger = LoggerFactory.getLogger(SyncConfigurationXsiType.class);
 
-	String xsi_type;
-	Boolean needs_ok_to_sync;
-	SyncConfigurationResource resources;
-	
-	/** The scan filters. */
-	List<SyncConfigurationFilter> scan_filters = new ArrayList<>();
-	
-	/** The filters. */
+    String xsi_type;
+    Boolean needs_ok_to_sync;
+    SyncConfigurationResource resources;
+    List<SyncConfigurationFilter> scan_filters = new ArrayList<>();
 	List<SyncConfigurationFilter> filters = new ArrayList<>();
 
-	/**
-	 * @return the xsi_type
-	 */
-	public String getXsi_type() {
-		return xsi_type;
-	}
 
-
-	/**
-	 * @param xsi_type the xsi_type to set
-	 */
-	public void setXsi_type(String xsi_type) {
-		this.xsi_type = xsi_type;
-	}
-
-
-	/**
-	 * @return the needs_ok_to_sync
-	 */
-	public Boolean getNeeds_ok_to_sync() {
-		return needs_ok_to_sync;
-	}
-
-
-	/**
-	 * @param needs_ok_to_sync the needs_ok_to_sync to set
-	 */
-	public void setNeeds_ok_to_sync(Boolean needs_ok_to_sync) {
-		this.needs_ok_to_sync = needs_ok_to_sync;
-	}
-
-
-	/**
-	 * @return the resources
-	 */
-	public SyncConfigurationResource getResources() {
-		return resources;
-	}
-
-
-	/**
-	 * @param resources the resources to set
-	 */
-	public void setResources(SyncConfigurationResource resources) {
-		this.resources = resources;
-	}
-
-	/**
-	 * Gets the scan filters.
-	 *
-	 * @return the scan_filters
-	 */
-	public List<SyncConfigurationFilter> getScan_filters() {
-		return scan_filters;
-	}
-
-	/**
-	 * Sets the scan filters.
-	 *
-	 * @param scan_filters
-	 *            the scan_filters to set
-	 */
-	public void setScan_filters(List<SyncConfigurationFilter> scan_filters) {
-		this.scan_filters = scan_filters;
-	}
-
-	/**
-	 * Gets the filters.
-	 *
-	 * @return the filters
-	 */
-	@SuppressWarnings("unused")
-	public List<SyncConfigurationFilter> getFilters() {
-		return filters;
-	}
-
-	/**
-	 * Sets the filters.
-	 *
-	 * @param filters
-	 *            the filters to set
-	 */
-	public void setFilters(List<SyncConfigurationFilter> filters) {
-		this.filters = filters;
-	}
-	
-	
-	/**
+    /**
 	 * Gets the default sync configuration.
 	 *
 	 * @param xsiType the xsi type
