@@ -40,12 +40,11 @@ public class SyncConfigurationXsiType {
 	/** The logger. */
 	public static final Logger logger = LoggerFactory.getLogger(SyncConfigurationXsiType.class);
 
-    String xsi_type;
-    Boolean needs_ok_to_sync;
-    SyncConfigurationResource resources;
-    List<SyncConfigurationFilter> scan_filters = new ArrayList<>();
-	List<SyncConfigurationFilter> filters = new ArrayList<>();
-
+    protected String xsi_type;
+	protected Boolean needs_ok_to_sync;
+	protected SyncConfigurationResource resources;
+	protected List<SyncConfigurationFilter> scan_filters = new ArrayList<>();
+	protected List<SyncConfigurationFilter> filters = new ArrayList<>();
 
     /**
 	 * Gets the default sync configuration.
