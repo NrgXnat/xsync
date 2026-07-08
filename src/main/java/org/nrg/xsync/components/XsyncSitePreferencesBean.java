@@ -200,7 +200,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 			try {
 				return calculateIntervalInMillis(DEFAULT_TOKEN_REFRESH_INTERVAL);
 			} catch (InvalidValueException e1) {
-				return (long) (1000 * 60 * 60 * 10);
+				return 1000 * 60 * 60 * 10;
 			}
 		}
 	}
@@ -294,8 +294,9 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 			} else {
 				throw new InvalidValueException("XSync - Interval too short - Specify minimum of " + minIntervalMilis*1000*60 + " minutes.");
 			}
-		}else
+		} else {
 			throw new InvalidValueException("XSync - Invalid interval specified - " + intervalStr);
+		}
 	}
 	
 	private void addInitialWhitelistSitesToPreferences() {

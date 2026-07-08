@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xft.exception.InvalidValueException;
@@ -60,11 +61,6 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		this.whitelistXsyncSiteService = whitelistXsyncSiteService;
 	}
 
-	/**
-	 * Sets the preferences.
-	 *
-	 * @param xsyncSitePreferencesPojo the preferences
-	 */
 	@XapiRequestMapping(value = "xsyncSitePreferences", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Admin)
 	@ApiOperation(value = "Sets the XSync site preferences")
 	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site preferences set."),
@@ -74,11 +70,6 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		prefs.update(xsyncSitePreferencesPojo);
 	}
 
-	/**
-	 * Gets the preferences.
-	 *
-	 * @return the preferences
-	 */
 	@XapiRequestMapping(value = "xsyncSitePreferences", method = RequestMethod.GET, produces = {
 			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Admin)
 	@ApiOperation(value = "Gets the XSync site preferences", response = XsyncSitePreferencesPojo.class)
@@ -88,11 +79,6 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return prefs.toPojo();
 	}
 
-	/**
-	 * Sets the preferences.
-	 *
-	 * @return the response entity
-	 */
 	@XapiRequestMapping(value = "xsyncSitePreferences/aspera", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Admin)
 	@ApiOperation(value = "Sets the XSync site aspera preferences")
 	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site preferences set."),
@@ -113,11 +99,6 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>("XSync preferences set", HttpStatus.OK);
 	}
 
-	/**
-	 * Gets the preferences.
-	 *
-	 * @return the preferences
-	 */
 	@XapiRequestMapping(value = "xsyncSitePreferences/aspera", method = RequestMethod.GET, produces = {
 			MediaType.APPLICATION_JSON_VALUE })
 	@ApiOperation(value = "Gets the XSync site preferences", response = Properties.class)
@@ -155,11 +136,6 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(prefsInfo.getAsperaEnabled(), HttpStatus.OK);
 	}
 
-	/**
-	 * Sets the preferences.
-	 *
-	 * @return the response entity
-	 */
 	@XapiRequestMapping(value = "xsyncProjectPreferences/project/{projectId}/aspera", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Owner)
 	@ApiOperation(value = "Sets the XSync project aspera preferences")
 	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site preferences set."),
@@ -183,11 +159,6 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>("XSync preferences set", HttpStatus.OK);
 	}
 
-	/**
-	 * Gets the preferences.
-	 *
-	 * @return the preferences
-	 */
 	@XapiRequestMapping(value = "xsyncProjectPreferences/project/{projectId}/aspera", method = RequestMethod.GET, produces = {
 			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Read)
 	@ApiOperation(value = "Gets the XSync project preferences", response = Properties.class)
@@ -197,10 +168,8 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 			@PathVariable("projectId") final String projectId) throws NrgServiceException {
 		final AsperaProjectPrefsInfo prefsInfo = new AsperaProjectPrefsInfo(asperaProjectPrefs, projectId);
 		// Get site defaults, if project settings have not been configured
-		if ((prefsInfo.getAsperaNodeUrl() == null || prefsInfo.getAsperaNodeUrl().isEmpty())
-				&& (prefsInfo.getAsperaNodeUser() == null || prefsInfo.getAsperaNodeUser().isEmpty())
-				&& (asperaSitePrefs.getAsperaNodeUrl() != null || !asperaSitePrefs.getAsperaNodeUrl().isEmpty())
-				&& (asperaSitePrefs.getAsperaNodeUser() != null || !asperaSitePrefs.getAsperaNodeUser().isEmpty())) {
+		if (StringUtils.isAllBlank(prefsInfo.getAsperaNodeUrl(), prefsInfo.getAsperaNodeUser(),
+								   asperaSitePrefs.getAsperaNodeUrl(), asperaSitePrefs.getAsperaNodeUser())) {
             _logger.warn("WARNING: Project Aspera preferences not found for project {}. " +
 								 "Returning site preferences instead for project preference call.", projectId);
 			prefsInfo.setAsperaEnabled(false);

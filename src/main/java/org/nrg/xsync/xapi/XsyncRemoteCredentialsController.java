@@ -13,6 +13,7 @@ import java.util.Date;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
@@ -90,8 +91,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 			final String estimatedExpirationTime = (synchronizationJson.get("estimatedExpirationTime")!=null) ? synchronizationJson.get("estimatedExpirationTime").asText() : null;
 			final boolean syncNewOnly = synchronizationJson.get("syncNewOnly") == null || synchronizationJson.get("syncNewOnly").asBoolean();
 			
-	        if (host==null || host.isEmpty() || alias==null || alias.isEmpty() || secret==null ||
-                    secret.isEmpty() || localProject==null || localProject.isEmpty() || username==null || username.isEmpty()) {
+	        if (StringUtils.isAnyBlank(host, alias, secret, localProject, username)) {
 	        	return new ResponseEntity<>("Could not save remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );
 	        }
 	    	final HttpStatus status = canEditProject(localProject);
