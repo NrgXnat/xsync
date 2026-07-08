@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -49,14 +50,13 @@ import javax.net.ssl.SSLHandshakeException;
 
 @XapiRestController
 @RequestMapping(value = "/xsync/credentials")
-@Api(description = "XSync Credentials API")
+@Api("XSync Credentials API")
 public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestController {
 	
 	private final RemoteAliasService 		_remoteAliasService;
 	private final SerializerService          _serializer;
 	public static Logger _logger = LoggerFactory.getLogger(XsyncRemoteCredentialsController.class);
 	
-
 
 	@Autowired
 	public XsyncRemoteCredentialsController(final RemoteAliasService remoteAliasService, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final SerializerService serializer) {
@@ -65,7 +65,6 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 		_serializer = serializer;
 	}
 
-	
 	/**
 	 * Saves the remote credentials
 	 *
@@ -91,16 +90,14 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 			final String estimatedExpirationTime = (synchronizationJson.get("estimatedExpirationTime")!=null) ? synchronizationJson.get("estimatedExpirationTime").asText() : null;
 			final boolean syncNewOnly = synchronizationJson.get("syncNewOnly") == null || synchronizationJson.get("syncNewOnly").asBoolean();
 			
-	        if (host==null || host.length()<1 || alias==null || alias.length()<1 || secret==null ||
-	        		secret.length()<1 || localProject==null || localProject.length()<1 || username==null || username.length()<1) {
+	        if (host==null || host.isEmpty() || alias==null || alias.isEmpty() || secret==null ||
+                    secret.isEmpty() || localProject==null || localProject.isEmpty() || username==null || username.isEmpty()) {
 	        	return new ResponseEntity<>("Could not save remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );
-	        	
 	        }
 	    	final HttpStatus status = canEditProject(localProject);
 	        if (status != null) {
 	            return new ResponseEntity<>(status);
 	        }
-
 	        
 	        final String userAccessUrl = (host.endsWith("/")? host:host+"/") + "data/archive/projects/"+remoteProjectId+"/users?format=json";
 	        response = userHasRequiredAccessAtRemoteProject(alias,secret,username,userAccessUrl,remoteProjectId,syncNewOnly);
@@ -114,12 +111,12 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 			        	try {
 			        		//1.7.1+ sends the estimatedExpirationTime like so
 			        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
-			        	}catch(Exception e) {
+			        	} catch(Exception e) {
 			        		try {
 			        			//1.6.5 may not send at all and 1.7.0 sends it in this format.
 			        			 DateFormat format = new SimpleDateFormat("YYYYMMDD_HHmmss");
 			        			 remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
-			        		}catch(Exception e1){}
+			        		} catch(Exception ignored){}
 			        	}
 		        	}
 		        	_remoteAliasService.update(remoteAliasEntity);
@@ -131,19 +128,19 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 		        	remoteAliasEntity.setRemote_alias_password(secret);
 		        	final Date now = new Date();
 		        	remoteAliasEntity.setAcquiredTime(now);
-			        	if (estimatedExpirationTime != null) {
-				        	try {
-				        		//1.7.1+ sends the estimatedExpirationTime like so
-				        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
-				        	}catch(Exception e) {
-				        		try {
-				        			//1.6.5 may not send at all and 1.7.0 sends it in this format.
-				        			 DateFormat format = new SimpleDateFormat("YYYYMMDD_HHmmss");
-				        			 remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
-				        		}catch(Exception e1){}
-				        		
-				        	}
-			        	}
+					if (estimatedExpirationTime != null) {
+						try {
+							//1.7.1+ sends the estimatedExpirationTime like so
+							remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
+						} catch(Exception e) {
+							try {
+								//1.6.5 may not send at all and 1.7.0 sends it in this format.
+								 DateFormat format = new SimpleDateFormat("YYYYMMDD_HHmmss");
+								 remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
+							} catch(Exception ignored){}
+
+						}
+					}
 		        	_remoteAliasService.create(remoteAliasEntity);
 		        }
 				if (response != null && response.getStatusCode().value() == HttpStatus.ACCEPTED.value()) {
@@ -158,7 +155,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	           		return new  ResponseEntity<>("XSync saving of remote credentials failed ", HttpStatus.BAD_REQUEST);
 	        }
 		}catch (Exception  exception) {
-        	_logger.error("ERROR:  Saving of remote credentials failed " + ExceptionUtils.getFullStackTrace(exception));
+            _logger.error("ERROR:  Saving of remote credentials failed {}", ExceptionUtils.getFullStackTrace(exception));
         	return new ResponseEntity<>("XSync saving of remote credentials failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
 		return new ResponseEntity<>("XSync remote credentials set.", HttpStatus.OK );
@@ -173,11 +170,11 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
         	final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			connection.setRequestMethod("GET");
         	connection.setDoOutput(true);
-        	connection.setRequestProperty  ("Authorization", "Basic " + new String(encoding, "UTF-8"));
+        	connection.setRequestProperty  ("Authorization", "Basic " + new String(encoding, StandardCharsets.UTF_8));
         	//Only Owners and Site Managers can access project level user resources
         	try (final InputStream content = connection.getInputStream()) {
         		permitted  = true;
-				final String results = IOUtils.toString(content, "UTF-8");
+				final String results = IOUtils.toString(content, StandardCharsets.UTF_8);
         		final JsonNode userJsonRoot = _serializer.deserializeJson(results, JsonNode.class);
         		final JsonNode userJsonNode = userJsonRoot.get("ResultSet");
         		final JsonNode usersNode = userJsonNode.get("Result");
@@ -197,12 +194,12 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
         				}
         			}
         		}
-			}catch(FileNotFoundException fne) {
+			} catch(FileNotFoundException fne) {
 		    	 return new ResponseEntity<>("User does not have access to the project " + remoteProjectId, HttpStatus.FORBIDDEN);
-			}catch (IOException ioe) {
+			} catch (IOException ioe) {
         		_logger.error("Issue querying user permissions", ioe);
 				 return new ResponseEntity<>("User " + username + " probably has Collaborator level access. Xsync will fail.", HttpStatus.FORBIDDEN);
-			}catch(Exception e) {
+			} catch(Exception e) {
 				_logger.error("Issue querying user permissions", e);
 				 return new ResponseEntity<>("Could not connect", HttpStatus.BAD_REQUEST);
 	        }
@@ -235,7 +232,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 			final JsonNode synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
 	        final String host = (synchronizationJson.get("host")!=null) ? synchronizationJson.get("host").asText() : null;
 	        final String localProject = (synchronizationJson.get("localProject")!=null) ? synchronizationJson.get("localProject").asText() : null;
-	        if (host==null || host.length()<1 || localProject==null || localProject.length()<1) {
+	        if (host==null || host.isEmpty() || localProject==null || localProject.isEmpty()) {
 	        	return new ResponseEntity<>("Could not check remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );
 	        }
 	    	final HttpStatus status = canEditProject(localProject);
@@ -251,9 +248,9 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 					final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 					connection.setRequestMethod("GET");
 					connection.setDoOutput(true);
-					connection.setRequestProperty  ("Authorization", "Basic " + new String(encoding, "UTF-8"));
+					connection.setRequestProperty  ("Authorization", "Basic " + new String(encoding, StandardCharsets.UTF_8));
 					try (final InputStream content = connection.getInputStream()) {
-						final String results = IOUtils.toString(content, "UTF-8");
+						final String results = IOUtils.toString(content, StandardCharsets.UTF_8);
 						return new ResponseEntity<>(results, HttpStatus.OK);
 					}
 				} catch (Exception e) {
@@ -268,8 +265,6 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	}
 
 	private boolean isHostConnectionAllowed(final RemoteAliasEntity remoteAliasEntity) {
-		return (null != remoteAliasEntity) ? true : false;
+		return null != remoteAliasEntity;
 	}
-	
-	
 }

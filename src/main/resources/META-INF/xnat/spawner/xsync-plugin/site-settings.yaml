@@ -84,6 +84,34 @@ siteSettings:
                             description: >
                                 Maximum total size of files in a zip (before compression) in bytes, -1 means no limit. 
                                 If a resource to be synced is larger than this value, multiple zips will be sent (none to exceed this size).
+        whitelistSiteTab:
+            kind: tab
+            label: Whitelist Of Accepted Receiving XNATs
+            group: xsyncConfig
+            active: false
+            contents:
+                whitelistSitePanel:
+                    kind: panel
+                    name: whitelistSitePanel
+                    label: Whitelist Of Accepted Receiving XNATs
+                    footer: false
+                    contents:
+                        limitToWhitelist:
+                            kind: panel.input.switchbox
+                            name: limitToWhitelist
+                            value: false
+                            label: Enable Site Whitelisting?
+                            onText: Enabled
+                            offText: Disabled
+                            description: >
+                                If turned on, users will only be able to export data to one of a set of pre-approved XNAT sites using Xsync.
+                                Users will always be able to use Xsync to transmit data within this XNAT.
+                        xsyncWhitelistTable:
+                            tag: "div#xsync-whitelist-table"
+                        xsyncWhitelistScript:
+                            tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncWhitelistManager.js"
+                        xsyncWhitelistCss:
+                            tag: link|rel="stylesheet"|type="text/css"|href="~/style/xnat-plugins/xsyncPlugin/xsync-whitelist.css"
         asperaDefaults:
             kind: tab
             label: Aspera Server Defaults
