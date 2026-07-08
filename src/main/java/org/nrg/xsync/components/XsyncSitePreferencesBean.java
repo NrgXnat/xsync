@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.nrg.framework.configuration.ConfigPaths;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.prefs.annotations.NrgPreference;
 import org.nrg.prefs.annotations.NrgPreferenceBean;
 import org.nrg.prefs.beans.AbstractPreferenceBean;
@@ -30,8 +31,9 @@ import java.util.List;
 @NrgPreferenceBean(toolId = XsyncSitePreferencesBean.XSYNC_TOOL_ID, toolName = "XSync Site Preferences")
 public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	@Autowired
-	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, final ConfigPaths configFolderPaths, WhitelistXsyncSiteService whitelistXsyncSitesService) {
+	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, final ConfigPaths configFolderPaths, SerializerService serializerService, WhitelistXsyncSiteService whitelistXsyncSitesService) {
 		super(preferenceService, configFolderPaths);
+        this.serializerService = serializerService;
         this.whitelistXsyncSitesService = whitelistXsyncSitesService;
 		addInitialWhitelistSitesToPreferences();
 	}
@@ -54,10 +56,12 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 
 	private static final String DEFAULT_SYNC_MAX_UNCOMPRESSED_FILESIZE = "-1" ; //All files no limits
 
+	final SerializerService serializerService;
 	final WhitelistXsyncSiteService whitelistXsyncSitesService;
 
-	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, WhitelistXsyncSiteService whitelistXsyncSitesService) {
+	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, SerializerService serializerService, WhitelistXsyncSiteService whitelistXsyncSitesService) {
 		super(preferenceService);
+        this.serializerService = serializerService;
         this.whitelistXsyncSitesService = whitelistXsyncSitesService;
 		addInitialWhitelistSitesToPreferences();
     }
@@ -263,12 +267,11 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 	private void addInitialWhitelistSitesToPreferences() {
 		try {
 			ClassPathResource resource = new ClassPathResource("META-INF/xnat/xsyncSiteWhitelist.json");
-			ObjectMapper mapper = new ObjectMapper();
-			JsonNode rootNode = mapper.readTree(resource.getInputStream());
+			JsonNode rootNode = serializerService.deserializeJson(resource.getInputStream());
 
 			if (rootNode.has("allowedSites")) {
-				List<WhitelistSitePojo> whitelistedSites = mapper.convertValue(rootNode.get("allowedSites"),
-																			   new TypeReference<>() {});
+				List<WhitelistSitePojo> whitelistedSites = serializerService.getObjectMapper()
+						.convertValue(rootNode.get("allowedSites"), new TypeReference<>() {});
 				whitelistXsyncSitesService.addWhiteListSitesFromJson(whitelistedSites);
 			} else {
 				_log.info("Whitelist json does not have proper formatting.");

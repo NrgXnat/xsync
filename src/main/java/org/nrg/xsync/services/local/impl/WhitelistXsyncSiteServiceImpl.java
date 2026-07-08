@@ -82,17 +82,14 @@ public class WhitelistXsyncSiteServiceImpl extends AbstractHibernateEntityServic
 
     private static SiteClassification getSiteClassification(WhitelistSitePojo whitelistSitePojo) throws DataFormatException {
         SiteClassification newSiteClassification;
-        if (whitelistSitePojo.getClassification().equalsIgnoreCase("clinical")) {
-            newSiteClassification = SiteClassification.CLINICAL;
-        } else if (whitelistSitePojo.getClassification().equalsIgnoreCase("research")) {
-            newSiteClassification = SiteClassification.RESEARCH;
-        } else if (whitelistSitePojo.getClassification().equalsIgnoreCase("public")) {
-            newSiteClassification = SiteClassification.PUBLIC;
-        } else {
-            throw new DataFormatException("Input whitelist listing with id "+ whitelistSitePojo.getSiteId() + " uses an " +
-                      "unknown site classification: " + whitelistSitePojo.getClassification() +". This site has not " +
-                      "been added to the whitelist.");
-        }
-        return newSiteClassification;
+        return switch (whitelistSitePojo.getClassification().toLowerCase()) {
+            case "clinical" -> SiteClassification.CLINICAL;
+            case "research" -> SiteClassification.RESEARCH;
+            case "public" -> SiteClassification.PUBLIC;
+            default ->
+                    throw new DataFormatException("Input whitelist listing with id " + whitelistSitePojo.getSiteId() + " uses an " +
+                                                          "unknown site classification: " + whitelistSitePojo.getClassification() + ". This site has not " +
+                                                          "been added to the whitelist.");
+        };
     }
 }
