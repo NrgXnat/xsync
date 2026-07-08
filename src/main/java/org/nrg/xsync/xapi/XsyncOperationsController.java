@@ -167,17 +167,17 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             final String remoteProjectId = syncProjectConfiguration.getSyncinfo().getRemoteProjectId();
             if (remoteUrl != null) {
            		boolean allOk = true;
-            	final ArrayList<XsyncXsyncremotemapdata> mapdatas = XsyncXsyncremotemapdata.getXsyncXsyncremotemapdatasByField(XsyncXsyncremotemapdata.SCHEMA_ELEMENT_NAME +
+            	final ArrayList<XsyncXsyncremotemapdata> mapDatas = XsyncXsyncremotemapdata.getXsyncXsyncremotemapdatasByField(XsyncXsyncremotemapdata.SCHEMA_ELEMENT_NAME +
             			"/source_project_id", projectId, user, false);
-            	if (mapdatas != null) {
-            		for (final XsyncXsyncremotemapdata mapdata : mapdatas) {
-            			if (!mapdata.getRemoteProjectId().equals(remoteProjectId)) {
+            	if (mapDatas != null) {
+            		for (final XsyncXsyncremotemapdata mapData : mapDatas) {
+            			if (!mapData.getRemoteProjectId().equals(remoteProjectId)) {
             				continue;
             			}
-            			mapdata.setRemoteHostUrl(remoteUrl);
+            			mapData.setRemoteHostUrl(remoteUrl);
             	        final EventMetaI c = EventUtils.DEFAULT_EVENT(user, "Updated RemoteHostUrl");
             	        try {
-							SaveItemHelper.authorizedSave(mapdata, user, false, true, c);
+							SaveItemHelper.authorizedSave(mapData, user, false, true, c);
 						} catch (Exception e) {
 							allOk = false;
 							log.error("ERROR:  Unable to update remote URL in RemoteMapData", e);
@@ -187,18 +187,18 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             	
             	final XsyncProjectHistory history = _syncManifestService.getRecentProjectSync(projectId, remoteProjectId);
             	if (history != null) {
-            		final ArrayList<XsyncXsyncinfodata> infodatas = XsyncXsyncinfodata.getXsyncXsyncinfodatasByField(XsyncXsyncinfodata.SCHEMA_ELEMENT_NAME +
+            		final ArrayList<XsyncXsyncinfodata> infoDatas = XsyncXsyncinfodata.getXsyncXsyncinfodatasByField(XsyncXsyncinfodata.SCHEMA_ELEMENT_NAME +
             				"/remote_project_id", remoteProjectId, user, false);
-            		if (infodatas != null) {
-            			for (final XsyncXsyncinfodata infodata : infodatas) {
-            				if (!infodata.getRemoteUrl().equals(remoteUrl)) {
+            		if (infoDatas != null) {
+            			for (final XsyncXsyncinfodata infoData : infoDatas) {
+            				if (!infoData.getRemoteUrl().equals(remoteUrl)) {
             					continue;
             				}
-            				infodata.setSyncStartTime(history.getStartDate());
-            				infodata.setSyncEndTime(history.getCompleteDate());
+            				infoData.setSyncStartTime(history.getStartDate());
+            				infoData.setSyncEndTime(history.getCompleteDate());
             				final EventMetaI c = EventUtils.DEFAULT_EVENT(user, "Updated RemoteHostUrl");
             				try {
-            					SaveItemHelper.authorizedSave(infodata, user, false, true, c);
+            					SaveItemHelper.authorizedSave(infoData, user, false, true, c);
             				} catch (Exception e) {
             					allOk = false;
             					log.error("ERROR:  Unable to update remote URL in Xsyncinfodata", e);
@@ -379,12 +379,6 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
     }
 
-    /**
-     * Gets the sync info.
-     *
-     * @param experimentId the experiment id
-     * @return the sync info
-     */
     @XapiRequestMapping(value = "/experiments/{experimentId}/syncStatus",
             method = RequestMethod.GET, restrictTo = AccessLevel.Edit)
     @ResponseBody
@@ -412,11 +406,6 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
     }
     
-    /**
-     * Gets Xsync custom id generator classes.
-     *
-     * @return the custom generators
-     */
     @ApiOperation(value = "Xsync custom Id generators.", notes = "Xsync custom Id generators.")
     @XapiRequestMapping(value = "/getXsyncCustomIdGenerators", method = RequestMethod.GET)
     @ResponseBody
@@ -429,11 +418,6 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
     }
     
-    /**
-     * Gets the mapping file.
-     *
-     * @return the sync info
-     */
     @ApiOperation(value = "Xsync subject/experiment id report.", notes = "Xsync subject/experiment id report.")
     @XapiRequestMapping(value = "/getSubjectMappingFile/{projectId}", method = RequestMethod.GET)
     @ResponseBody
@@ -472,7 +456,6 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         //If it does not exist, create one.
         final UserI user = getSessionUser();
         final List<XsyncXsyncassessordata> syncAssessors = XsyncXsyncassessordata.getXsyncXsyncassessordatasByField("xsync:xsyncAssessorData/synced_experiment_id", experimentId, user, true);
-
         final XsyncXsyncassessordata syncAssessor;
 
         try {
