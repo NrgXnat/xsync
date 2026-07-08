@@ -18,8 +18,10 @@ import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
+import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
+import org.nrg.xsync.pojo.XsyncRemoteCredentialsPojo;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -57,7 +59,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	private final RemoteAliasService 		_remoteAliasService;
 	private final SerializerService          _serializer;
 	public static Logger _logger = LoggerFactory.getLogger(XsyncRemoteCredentialsController.class);
-	
+
 
 	@Autowired
 	public XsyncRemoteCredentialsController(final RemoteAliasService remoteAliasService, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final SerializerService serializer) {
@@ -66,77 +68,57 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 		_serializer = serializer;
 	}
 
-	/**
-	 * Saves the remote credentials
-	 *
-	 * @param jsonbody the jsonbody
-	 * @return the response entity
-	 */
-    @XapiRequestMapping(path="/save/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
+    @XapiRequestMapping(path="/save/projects/{projectId}", method = RequestMethod.POST,
+			consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Edit)
     @ApiOperation(value = "Sets remote credentials for XSync")
-    @ApiResponses({@ApiResponse(code = 200, message = "XSync remote credentials set."),  @ApiResponse(code = 500, message = "Unexpected error")})
-	public synchronized ResponseEntity<String> saveRemoteCredentials(@RequestBody String jsonbody) {
+    @ApiResponses({@ApiResponse(code = 200, message = "XSync remote credentials set."),
+			@ApiResponse(code = 500, message = "Unexpected error")})
+	public synchronized ResponseEntity<String> saveRemoteCredentials(@RequestBody XsyncRemoteCredentialsPojo credentialsPojo) {
 		ResponseEntity<String> response;
 		String message;
 		try {
-			final ObjectMapper objectMapper = new ObjectMapper();
-			final JsonNode synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
-	        final String host = (synchronizationJson.get("host")!=null) ? synchronizationJson.get("host").asText() : null;
-	        final String alias = (synchronizationJson.get("alias")!=null) ? synchronizationJson.get("alias").asText() : null;
-	        final String secret = (synchronizationJson.get("secret")!=null) ? synchronizationJson.get("secret").asText() : null;
-	        final String localProject = (synchronizationJson.get("localProject")!=null) ? synchronizationJson.get("localProject").asText() : null;
-	        final String username = (synchronizationJson.get("username")!=null) ? synchronizationJson.get("username").asText() : null;
-			final String remoteProjectId = (synchronizationJson.get("remoteProject")!=null) ? synchronizationJson.get("remoteProject").asText() : null;
-			//Only XNAT 1.7 will supply the expiration time. If the Destination server is running on < XNAT 1.7, this value would be null
-			final String estimatedExpirationTime = (synchronizationJson.get("estimatedExpirationTime")!=null) ? synchronizationJson.get("estimatedExpirationTime").asText() : null;
-			final boolean syncNewOnly = synchronizationJson.get("syncNewOnly") == null || synchronizationJson.get("syncNewOnly").asBoolean();
-			
-	        if (StringUtils.isAnyBlank(host, alias, secret, localProject, username)) {
+	        if (StringUtils.isAnyBlank(credentialsPojo.getHost(), credentialsPojo.getAlias(), credentialsPojo.getSecret(), credentialsPojo.getLocalProject(), credentialsPojo.getUsername())) {
 	        	return new ResponseEntity<>("Could not save remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );
 	        }
-	    	final HttpStatus status = canEditProject(localProject);
-	        if (status != null) {
-	            return new ResponseEntity<>(status);
-	        }
-	        
-	        final String userAccessUrl = (host.endsWith("/")? host:host+"/") + "data/archive/projects/"+remoteProjectId+"/users?format=json";
-	        response = userHasRequiredAccessAtRemoteProject(alias,secret,username,userAccessUrl,remoteProjectId,syncNewOnly);
+
+	        final String userAccessUrl = (credentialsPojo.getHost().endsWith("/")? credentialsPojo.getHost():credentialsPojo.getHost()+"/") + "data/archive/projects/"+credentialsPojo.getRemoteProject()+"/users?format=json";
+	        response = userHasRequiredAccessAtRemoteProject(credentialsPojo.getAlias(),credentialsPojo.getSecret(),credentialsPojo.getUsername(),userAccessUrl,credentialsPojo.getRemoteProject());
 	        
 	        if (response != null && (response.getStatusCode().value() == HttpStatus.OK.value() || response.getStatusCode().value() == HttpStatus.ACCEPTED.value() )) {
-				RemoteAliasEntity remoteAliasEntity = _remoteAliasService.getRemoteAliasEntity(localProject, host);
+				RemoteAliasEntity remoteAliasEntity = _remoteAliasService.getRemoteAliasEntity(credentialsPojo.getLocalProject(), credentialsPojo.getHost());
 		        if (remoteAliasEntity != null) {
-		        	remoteAliasEntity.setRemote_alias_token(alias);
-		        	remoteAliasEntity.setRemote_alias_password(secret);
-		        	if (estimatedExpirationTime != null) {
+		        	remoteAliasEntity.setRemote_alias_token(credentialsPojo.getAlias());
+		        	remoteAliasEntity.setRemote_alias_password(credentialsPojo.getSecret());
+		        	if (credentialsPojo.getEstimatedExpirationTime() != null) {
 			        	try {
 			        		//1.7.1+ sends the estimatedExpirationTime like so
-			        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
+			        		remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(credentialsPojo.getEstimatedExpirationTime())));
 			        	} catch(Exception e) {
 			        		try {
 			        			//1.6.5 may not send at all and 1.7.0 sends it in this format.
 			        			 DateFormat format = new SimpleDateFormat("YYYYMMDD_HHmmss");
-			        			 remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
+			        			 remoteAliasEntity.setEstimatedExpirationTime(format.parse(credentialsPojo.getEstimatedExpirationTime()));
 			        		} catch(Exception ignored){}
 			        	}
 		        	}
 		        	_remoteAliasService.update(remoteAliasEntity);
 		        } else {
 		        	remoteAliasEntity = new RemoteAliasEntity();
-		        	remoteAliasEntity.setLocal_project(localProject);
-		        	remoteAliasEntity.setRemote_host(host);
-		        	remoteAliasEntity.setRemote_alias_token(alias);
-		        	remoteAliasEntity.setRemote_alias_password(secret);
+		        	remoteAliasEntity.setLocal_project(credentialsPojo.getLocalProject());
+		        	remoteAliasEntity.setRemote_host(credentialsPojo.getHost());
+		        	remoteAliasEntity.setRemote_alias_token(credentialsPojo.getAlias());
+		        	remoteAliasEntity.setRemote_alias_password(credentialsPojo.getSecret());
 		        	final Date now = new Date();
 		        	remoteAliasEntity.setAcquiredTime(now);
-					if (estimatedExpirationTime != null) {
+					if (credentialsPojo.getEstimatedExpirationTime() != null) {
 						try {
 							//1.7.1+ sends the estimatedExpirationTime like so
-							remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(estimatedExpirationTime)));
+							remoteAliasEntity.setEstimatedExpirationTime(new Date(Long.parseLong(credentialsPojo.getEstimatedExpirationTime())));
 						} catch(Exception e) {
 							try {
 								//1.6.5 may not send at all and 1.7.0 sends it in this format.
 								 DateFormat format = new SimpleDateFormat("YYYYMMDD_HHmmss");
-								 remoteAliasEntity.setEstimatedExpirationTime(format.parse(estimatedExpirationTime));
+								 remoteAliasEntity.setEstimatedExpirationTime(format.parse(credentialsPojo.getEstimatedExpirationTime()));
 							} catch(Exception ignored){}
 
 						}
@@ -144,7 +126,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 		        	_remoteAliasService.create(remoteAliasEntity);
 		        }
 				if (response != null && response.getStatusCode().value() == HttpStatus.ACCEPTED.value()) {
-					message = "User  " + username + " does not have Owner level access to " + remoteProjectId + ".";
+					message = "User " + credentialsPojo.getUsername() + " does not have Owner level access to " + credentialsPojo.getRemoteProject() + ".";
 					message += " Data Deletion will fail if the user has Member level access.";
 		           	return new ResponseEntity<>(message, HttpStatus.ACCEPTED);
 				}
@@ -154,14 +136,15 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	           	else
 	           		return new  ResponseEntity<>("XSync saving of remote credentials failed ", HttpStatus.BAD_REQUEST);
 	        }
-		}catch (Exception  exception) {
+		} catch (Exception  exception) {
             _logger.error("ERROR:  Saving of remote credentials failed {}", ExceptionUtils.getFullStackTrace(exception));
         	return new ResponseEntity<>("XSync saving of remote credentials failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
 		return new ResponseEntity<>("XSync remote credentials set.", HttpStatus.OK );
 	}
 	
-	private ResponseEntity<String> userHasRequiredAccessAtRemoteProject(String alias, String secret,String username,String urlStr,String remoteProjectId, boolean syncNewOnly) {
+	private ResponseEntity<String> userHasRequiredAccessAtRemoteProject(String alias, String secret, String username,
+									String urlStr, String remoteProjectId) {
 		boolean found = false;
 		boolean permitted = false; //Hack for users with Allow "All Data Access"
 		try {
@@ -217,33 +200,21 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 		}
 	}
 
-	/**
-	 * Checks the stored remote credentials
-	 *
-	 * @param jsonbody the jsonbody
-	 * @return the response entity
-	 */
-    @XapiRequestMapping(path="/check/projects/{projectId}", method = RequestMethod.POST, consumes = MediaType.TEXT_PLAIN_VALUE)
+    @XapiRequestMapping(path="/check/projects/{projectId}", method = RequestMethod.POST,
+			consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Edit)
     @ApiOperation(value = "Checks whether XSync remote credentials are valid")
-    @ApiResponses({@ApiResponse(code = 200, message = "Remote credentials valid."),  @ApiResponse(code = 500, message = "Unexpected error")})
-	public synchronized ResponseEntity<String> checkRemoteCredentials(@RequestBody String jsonbody) {
+    @ApiResponses({@ApiResponse(code = 200, message = "Remote credentials valid."),
+			@ApiResponse(code = 500, message = "Unexpected error")})
+	public synchronized ResponseEntity<String> checkRemoteCredentials(@RequestBody XsyncRemoteCredentialsPojo credentialsPojo) {
 		try {
-			final ObjectMapper objectMapper = new ObjectMapper();
-			final JsonNode synchronizationJson = objectMapper.readValue(jsonbody, JsonNode.class);
-	        final String host = (synchronizationJson.get("host")!=null) ? synchronizationJson.get("host").asText() : null;
-	        final String localProject = (synchronizationJson.get("localProject")!=null) ? synchronizationJson.get("localProject").asText() : null;
-	        if (host==null || host.isEmpty() || localProject==null || localProject.isEmpty()) {
+	        if (StringUtils.isBlank(credentialsPojo.getHost()) || StringUtils.isBlank(credentialsPojo.getLocalProject())) {
 	        	return new ResponseEntity<>("Could not check remote credentials.  Incomplete information supplied.", HttpStatus.BAD_REQUEST );
 	        }
-	    	final HttpStatus status = canEditProject(localProject);
-	        if (status != null) {
-	            return new ResponseEntity<>(status);
-	        }
-			RemoteAliasEntity remoteAliasEntity = _remoteAliasService.getRemoteAliasEntity(localProject, host);
+			RemoteAliasEntity remoteAliasEntity = _remoteAliasService.getRemoteAliasEntity(credentialsPojo.getLocalProject(), credentialsPojo.getHost());
 
 			if (isHostConnectionAllowed(remoteAliasEntity)) {
 				try {
-					final URL url = new URL (host + "/data/JSESSIONID");
+					final URL url = new URL (credentialsPojo.getHost() + "/data/JSESSIONID");
 					final byte[] encoding = Base64.encodeBase64((remoteAliasEntity.getRemote_alias_token() + ":" + remoteAliasEntity.getRemote_alias_password()).getBytes());
 					final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 					connection.setRequestMethod("GET");
