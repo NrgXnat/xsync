@@ -38,6 +38,7 @@ public interface XsyncConfigurationService {
     List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedMonthly(UserI user);
 
     List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedOnDemand(UserI user);
+
     Configuration getGenericXsyncConfiguration(String type, String projectId);
 
     Configuration replaceConfiguration(String username, String type, String inputElement, String projectId) throws ConfigServiceException;
@@ -45,6 +46,8 @@ public interface XsyncConfigurationService {
     SyncConfigurationPojo getSyncConfiguration(String projectId) throws IOException, NotFoundException;
 
     void saveConfig(UserI user, SyncConfigurationPojo configurationPojo, String projectId) throws Exception;
+
+    void changeEnabledForUrl(UserI user, String inputUrl, boolean enabled) throws Exception;
 
     void changeConnectionEnabled(UserI user, String inputUrl, String projectId, boolean enabled) throws Exception;
 }
