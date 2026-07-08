@@ -252,6 +252,15 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(whitelistXsyncSiteService.deleteWhitelistSiteFromSiteAdmin(whitelistSitePojo), HttpStatus.OK);
 	}
 
+	@XapiRequestMapping(value = "xsyncSitePreferences/blacklistSites", method = RequestMethod.GET, produces = {
+			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Read)
+	@ApiOperation(value = "Get the blacklist of sites not allowed for syncing")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Xsync blacklist sites retrieved."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<List<String>> getAllBlacklistSites () {
+		return new ResponseEntity<>(prefs.getSitesBlacklist(), HttpStatus.OK);
+	}
+
 	private final XsyncSitePreferencesBean prefs;
 	private final AsperaSitePrefs asperaSitePrefs;
 	private final AsperaProjectPrefs asperaProjectPrefs;

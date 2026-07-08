@@ -100,6 +100,19 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		}
 	}
 
+	@NrgPreference(defaultValue = "[]")
+	public List<String> getSitesBlacklist() {
+		return getListValue("sitesBlacklist");
+	}
+
+	public void setSitesBlacklist(final List<String> sitesBlacklist) {
+		try {
+			setListValue("sitesBlacklist", sitesBlacklist);
+		} catch (InvalidPreferenceName e) {
+			_log.error("Invalid preference name: 'sitesBlacklist'");
+		}
+	}
+
 	@NrgPreference(defaultValue = "true")
 	public boolean getHttpsEnabled() {
 		return getBooleanValue("httpsEnabled");
@@ -183,7 +196,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		try {
 			return calculateIntervalInMillis(getValue("tokenRefreshInterval"));
 		} catch (InvalidValueException e) {
-			_log.info("XSync - Invalid token refresh interval specified - " + getValue("tokenRefreshInterval") + ".  Using default.");
+            _log.info("XSync - Invalid token refresh interval specified - {}.  Using default.", getValue("tokenRefreshInterval"));
 			try {
 				return calculateIntervalInMillis(DEFAULT_TOKEN_REFRESH_INTERVAL);
 			} catch (InvalidValueException e1) {
@@ -216,7 +229,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		try {
 			return calculateIntervalInMillis(getValue("syncRetryInterval"));
 		} catch (InvalidValueException e) {
-			_log.info("XSync - Invalid sync refresh interval specified - " + getValue("syncRetryInterval") + ".  Using default.");
+            _log.info("XSync - Invalid sync refresh interval specified - {}.  Using default.", getValue("syncRetryInterval"));
 			try {
 				return calculateIntervalInMillis(DEFAULT_SYNC_RETRY_INTERVAL);
 			} catch (InvalidValueException e1) {
@@ -248,7 +261,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		try {
 			return Integer.parseInt(getValue("syncRetryCount"));
 		} catch (Exception e) {
-			_log.info("XSync - Invalid sync refresh count specified - " + getValue("syncRetryCount") + ".  Using default.");
+            _log.info("XSync - Invalid sync refresh count specified - {}.  Using default.", getValue("syncRetryCount"));
 			try {
 				return Integer.parseInt(DEFAULT_SYNC_RETRY_COUNT);
 			} catch (Exception e1) {
@@ -269,7 +282,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		final long minIntervalMilis = 300000;
 
 		if (intervalArr.length==2) {
-			final long intervalNum = Long.valueOf(intervalArr[0]);
+			final long intervalNum = Long.parseLong(intervalArr[0]);
 			Long interval = null;
 			if (intervalArr[1].toLowerCase().contains("hour")) {
 				interval = intervalNum*1000*60*60;
@@ -338,6 +351,4 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 				getAsperaEnabled()
 		);
 	}
-
-
 }

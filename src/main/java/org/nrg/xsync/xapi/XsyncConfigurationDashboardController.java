@@ -71,10 +71,10 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
         if (_sitePreferences.getXsyncWhitelistEnabled()) {
             return new ResponseEntity<>(_xsyncConfigurationService.createListOfRemoteDestinations(user,
-                                                                                                 allHistoryItems, true, _whitelistXsyncSiteService.getAllWhitelistedSites()), HttpStatus.OK);
+             allHistoryItems, true, _whitelistXsyncSiteService.getAllWhitelistedSites()), HttpStatus.OK);
         } else {
             return new ResponseEntity<>(_xsyncConfigurationService.createListOfRemoteDestinations(user,
-                                                                                                 allHistoryItems, false, Collections.emptyList()), HttpStatus.OK);
+             allHistoryItems, false, Collections.emptyList()), HttpStatus.OK);
         }
     }
 
@@ -95,7 +95,7 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
         final UserI user = getSessionUser();
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
         return new ResponseEntity<>(_xsyncConfigurationService.getAllNonWhitelistRemoteUrls(user,
-                                                                                           _whitelistXsyncSiteService.getAllWhitelistedSites(), allHistoryItems), HttpStatus.OK);
+                               _whitelistXsyncSiteService.getAllWhitelistedSites(), allHistoryItems), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Get a report of local projects connected to input remote url." )
@@ -113,6 +113,20 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
         return new ResponseEntity<>(_xsyncConfigurationService.getAllProjectConnectionsForUrl(
                 user, allHistoryItems, remoteUrl), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Set whether all configurations for input url are enabled." )
+    @ApiResponses({
+            @ApiResponse(code=200, message="Successfully set configurations enabled."),
+            @ApiResponse(code=403, message="User unauthorized to edit this information."),
+            @ApiResponse(code=404, message="Configuration data not found."),
+            @ApiResponse(code=500, message="Unexpected error")
+    })
+    @XapiRequestMapping(value = "/enable", method = RequestMethod.PUT, restrictTo = AccessLevel.Admin)
+    public void changeRemoteUrlEnabled(
+            @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl,
+            @ApiParam(required = true) @RequestParam boolean enabled) throws Exception {
+        _xsyncConfigurationService.changeEnabledForUrl(getSessionUser(), remoteUrl, enabled);
     }
 
     @ApiOperation(value = "Set whether configuration for input project/url is enabled." )
