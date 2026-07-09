@@ -52,7 +52,6 @@ public class WhitelistXsyncSiteServiceImpl extends AbstractHibernateEntityServic
     @Override
     public List<WhitelistSitePojo> addOrUpdateWhitelistSiteFromSiteAdmin(WhitelistSitePojo whitelistSitePojo) throws DataFormatException {
         SiteClassification newSiteClassification = getSiteClassification(whitelistSitePojo);
-
         WhitelistSite newSite;
         if (getDao().findWhitelistSiteBySiteId(whitelistSitePojo.getSiteId()) == null) {
             newSite = new WhitelistSite(whitelistSitePojo.getSiteId(), whitelistSitePojo.getSiteName(),
@@ -65,7 +64,6 @@ public class WhitelistXsyncSiteServiceImpl extends AbstractHibernateEntityServic
         }
 
         getDao().saveOrUpdate(newSite);
-
         return getAllWhitelistedSites();
     }
 

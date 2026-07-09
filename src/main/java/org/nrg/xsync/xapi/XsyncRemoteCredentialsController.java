@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
@@ -36,14 +37,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-
-import javax.net.ssl.SSLHandshakeException;
 
 /**
  * The Class XsyncPreferencesController.
@@ -60,9 +58,11 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	private final SerializerService          _serializer;
 	public static Logger _logger = LoggerFactory.getLogger(XsyncRemoteCredentialsController.class);
 
-
 	@Autowired
-	public XsyncRemoteCredentialsController(final RemoteAliasService remoteAliasService, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final SerializerService serializer) {
+	public XsyncRemoteCredentialsController(final RemoteAliasService remoteAliasService,
+											final UserManagementServiceI userManagementService,
+											final RoleHolder roleHolder,
+											final SerializerService serializer) {
         super(userManagementService, roleHolder);
         _remoteAliasService = remoteAliasService;
 		_serializer = serializer;
@@ -131,10 +131,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 		           	return new ResponseEntity<>(message, HttpStatus.ACCEPTED);
 				}
 	        }else {
-	           	if (response != null)
-	           		return response;
-	           	else
-	           		return new  ResponseEntity<>("XSync saving of remote credentials failed ", HttpStatus.BAD_REQUEST);
+                return Objects.requireNonNullElseGet(response, () -> new ResponseEntity<>("XSync saving of remote credentials failed ", HttpStatus.BAD_REQUEST));
 	        }
 		} catch (Exception  exception) {
             _logger.error("ERROR:  Saving of remote credentials failed {}", ExceptionUtils.getFullStackTrace(exception));
@@ -144,7 +141,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 	}
 	
 	private ResponseEntity<String> userHasRequiredAccessAtRemoteProject(String alias, String secret, String username,
-									String urlStr, String remoteProjectId) {
+																		String urlStr, String remoteProjectId) {
 		boolean found = false;
 		boolean permitted = false; //Hack for users with Allow "All Data Access"
 		try {
@@ -167,9 +164,9 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
         					final String accessLevel = u.get(XsyncUtils.USER_API_GROUP_ID).asText();
         					if (accessLevel.endsWith("_"+XsyncUtils.USER_ACCESS_MEMBER)) {
         			           	return new ResponseEntity<>("User  " + username + " has Member level access", HttpStatus.ACCEPTED);
-        					}else if (accessLevel.endsWith("_"+XsyncUtils.USER_ACCESS_COLLABORATOR)) {
+        					} else if (accessLevel.endsWith("_"+XsyncUtils.USER_ACCESS_COLLABORATOR)) {
         			           	return new ResponseEntity<>("User  " + username + " has Collaborator level access", HttpStatus.FORBIDDEN);
-        					}else if (accessLevel.endsWith("_"+XsyncUtils.USER_ACCESS_OWNER)) {
+        					} else if (accessLevel.endsWith("_"+XsyncUtils.USER_ACCESS_OWNER)) {
         						return new ResponseEntity<>("User " + username + " has CRUD access.", HttpStatus.OK);
         					}
         					found = true;
@@ -193,9 +190,9 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 		if (!found) {
 			if (permitted) {
 	           	return new ResponseEntity<>("User  " + username + " may have All Data Access.", HttpStatus.ACCEPTED);
-			}else
+			} else
 				return new ResponseEntity<>("User  " + username + " has no access", HttpStatus.FORBIDDEN);
-		}else {
+		} else {
            	return new ResponseEntity<>("User  " + username + " has access.", HttpStatus.ACCEPTED);
 		}
 	}
@@ -230,7 +227,7 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 			} else {
 				return new ResponseEntity<>("Check project configuration", HttpStatus.FORBIDDEN);
 			}
-		}catch (Exception exception) {
+		} catch (Exception exception) {
         	return new ResponseEntity<>("Could not connect", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
 	}

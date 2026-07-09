@@ -409,7 +409,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     @ApiOperation(value = "Xsync custom Id generators.", notes = "Xsync custom Id generators.")
     @XapiRequestMapping(value = "/getXsyncCustomIdGenerators", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<Set<String>> getCustomIdentifers(){
+    public ResponseEntity<Set<String>> getCustomIdentifiers(){
     	try {
             return new ResponseEntity<>(_idGenerators.keySet(), HttpStatus.OK);
         } catch (Exception e) {
