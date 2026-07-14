@@ -45,7 +45,7 @@ import io.swagger.annotations.ApiResponses;
  */
 
 @XapiRestController
-@Api(description = "XSync Preferences API")
+@Api("XSync Preferences API")
 @SuppressWarnings("unused")
 public class XsyncPreferencesController extends AbstractXapiRestController {
 
@@ -79,7 +79,6 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	 *
 	 * @return the preferences
 	 */
-	@SuppressWarnings("deprecation")
 	@XapiRequestMapping(value = "xsyncSitePreferences", method = RequestMethod.GET, produces = {
 			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Admin)
 	@ApiOperation(value = "Gets the XSync site preferences", response = XsyncSitePreferencesPojo.class)
@@ -128,6 +127,34 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(new AsperaSitePrefsInfo(asperaSitePrefs), HttpStatus.OK);
 	}
 
+	@XapiRequestMapping(value = "xsyncSitePreferences/httpsEnabled", method =
+			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "Checks whether Https connection is enabled on the site level.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Https enabled returned."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<Boolean> getHttpsEnabled() {
+		return new ResponseEntity<>(prefs.getHttpsEnabled(), HttpStatus.OK);
+	}
+
+	@XapiRequestMapping(value = "xsyncSitePreferences/asperaEnabled", method =
+			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "Checks whether Aspera is enabled on the site level.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Aspera enabled returned."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<Boolean> getAsperaEnabled() {
+		return new ResponseEntity<>(prefs.getAsperaEnabled(), HttpStatus.OK);
+	}
+
+	@XapiRequestMapping(value = "xsyncProjectPreferences/project/{projectId}/asperaEnabled", method =
+			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Read)
+	@ApiOperation(value = "Checks whether Aspera is enabled for project.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Aspera enabled returned."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<Boolean> getProjectAsperaEnabled(@PathVariable("projectId") final String projectId) {
+		final AsperaProjectPrefsInfo prefsInfo = new AsperaProjectPrefsInfo(asperaProjectPrefs, projectId);
+		return new ResponseEntity<>(prefsInfo.getAsperaEnabled(), HttpStatus.OK);
+	}
+
 	/**
 	 * Sets the preferences.
 	 *
@@ -150,7 +177,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 			asperaProjectPrefs.setSshPort(projectId, asperaPrefs.getSshPort());
 			asperaProjectPrefs.setUdpPort(projectId, asperaPrefs.getUdpPort());
 		} catch (Exception exception) {
-			_logger.error("ERROR:  Error setting preferences:  " + ExceptionUtils.getFullStackTrace(exception));
+            _logger.error("ERROR:  Error setting preferences:  {}", ExceptionUtils.getFullStackTrace(exception));
 			return new ResponseEntity<>("XSync preferences assignment failed ", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		return new ResponseEntity<>("XSync preferences set", HttpStatus.OK);
@@ -170,12 +197,12 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 			@PathVariable("projectId") final String projectId) throws NrgServiceException {
 		final AsperaProjectPrefsInfo prefsInfo = new AsperaProjectPrefsInfo(asperaProjectPrefs, projectId);
 		// Get site defaults, if project settings have not been configured
-		if ((prefsInfo.getAsperaNodeUrl() == null || prefsInfo.getAsperaNodeUrl().length() < 1)
-				&& (prefsInfo.getAsperaNodeUser() == null || prefsInfo.getAsperaNodeUser().length() < 1)
-				&& (asperaSitePrefs.getAsperaNodeUrl() != null || asperaSitePrefs.getAsperaNodeUrl().length() > 0)
-				&& (asperaSitePrefs.getAsperaNodeUser() != null || asperaSitePrefs.getAsperaNodeUser().length() > 0)) {
-			_logger.warn("WARNING: Project Aspera preferences not found for project " + projectId + 
-					".  Returning site preferences instead for project preference call.");
+		if ((prefsInfo.getAsperaNodeUrl() == null || prefsInfo.getAsperaNodeUrl().isEmpty())
+				&& (prefsInfo.getAsperaNodeUser() == null || prefsInfo.getAsperaNodeUser().isEmpty())
+				&& (asperaSitePrefs.getAsperaNodeUrl() != null || !asperaSitePrefs.getAsperaNodeUrl().isEmpty())
+				&& (asperaSitePrefs.getAsperaNodeUser() != null || !asperaSitePrefs.getAsperaNodeUser().isEmpty())) {
+            _logger.warn("WARNING: Project Aspera preferences not found for project {}. " +
+								 "Returning site preferences instead for project preference call.", projectId);
 			prefsInfo.setAsperaEnabled(false);
 			prefsInfo.setAsperaNodeUrl(asperaSitePrefs.getAsperaNodeUrl());
 			prefsInfo.setAsperaNodeUser(asperaSitePrefs.getAsperaNodeUser());
@@ -189,8 +216,17 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(prefsInfo, HttpStatus.OK);
 	}
 
+	@XapiRequestMapping(value = "xsyncProjectPreferences/whitelistEnabled", method =
+			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "Checks whether site whitelist is enabled on the site level.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Site whitelist enabled returned."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public ResponseEntity<Boolean> getWhitelistEnabled() {
+		return new ResponseEntity<>(prefs.getXsyncWhitelistEnabled(), HttpStatus.OK);
+	}
+
 	@XapiRequestMapping(value = "xsyncSitePreferences/whitelistSites", method = RequestMethod.GET, produces = {
-			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Admin)
+			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Read)
 	@ApiOperation(value = "Get the whitelist of sites allowed for syncing")
 	@ApiResponses({ @ApiResponse(code = 200, message = "Xsync whitelist sites retrieved."),
 			@ApiResponse(code = 500, message = "Unexpected error") })

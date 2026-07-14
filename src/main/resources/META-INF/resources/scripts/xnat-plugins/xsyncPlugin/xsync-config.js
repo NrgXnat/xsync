@@ -65,6 +65,9 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         XSYNC.xsyncConfig.configuration.subject_assessors.sync_type = 'none';
         XSYNC.xsyncConfig.configuration.imaging_sessions.sync_type = 'all';
         // XSYNC.xsyncConfig.configuration.imaging_sessions.xsi_types.types_list = ['xnat:mrSessionData'];
+
+        XSYNC.xsyncConfig.isProjectAsperaEnabled = false;
+        XSYNC.xsyncConfig.isSiteWideAsperaEnabled = false;
     };
 
     XSYNC.xsyncConfig.initialConfig = function(){
@@ -543,12 +546,31 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
 
         function configPanel() {
             XNAT.xhr.get({
-                url: restUrl('/xapi/xsyncSitePreferences/'),
+                url: restUrl('/xapi/xsyncSitePreferences/asperaEnabled/'),
                 async: false,
                 success: function (data) {
-                    let enabled = data['xsyncWhitelistEnabled'];
-                    XSYNC.xsyncConfig.isWhitelistEnabledBackend = enabled;
-                    if (enabled == true) {
+                    XSYNC.xsyncConfig.isSiteWideAsperaEnabled = data;
+                },
+                fail: function (e) {
+                    XNAT.ui.banner.top(2000, 'Could not retrieve aspera information: ' + e.responseText, 'error');
+                }
+            });
+             XNAT.xhr.get({
+                url: restUrl('/xapi/xsyncProjectPreferences/project/' + XNAT.data.context.project + '/asperaEnabled/'),
+                async: false,
+                success: function (data) {
+                    XSYNC.xsyncConfig.isProjectAsperaEnabled = data;
+                },
+                fail: function (e) {
+                    XNAT.ui.banner.top(2000, 'Could not retrieve aspera information: ' + e.responseText, 'error');
+                }
+            });
+            XNAT.xhr.get({
+                url: restUrl('/xapi/xsyncProjectPreferences/whitelistEnabled/'),
+                async: false,
+                success: function (data) {
+                    XSYNC.xsyncConfig.isWhitelistEnabledBackend = data;
+                    if (XSYNC.xsyncConfig.isWhitelistEnabledBackend == true) {
                         XNAT.xhr.get({
                             url: restUrl('/xapi/xsyncSitePreferences/whitelistSites/'),
                             async: false,
@@ -720,9 +742,13 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         ///////////////////////////
 
         function aspera() {
-            return {
-		        tag:  "div.message.bold",
-               	content: "NOTICE: Aspera transfers are now supported, if your destination site supports them.  Please see project settings, in the actions menu, to configure Aspera settings."
+            if (XSYNC.xsyncConfig.isProjectAsperaEnabled === true && XSYNC.xsyncConfig.isSiteWideAsperaEnabled) {
+                return {
+                    tag:  "div.message.bold",
+                    content: "NOTICE: Aspera transfers are now supported, if your destination site supports them.  Please see project settings, in the actions menu, to configure Aspera settings."
+                }
+            } else {
+                return '';
             }
         }
 

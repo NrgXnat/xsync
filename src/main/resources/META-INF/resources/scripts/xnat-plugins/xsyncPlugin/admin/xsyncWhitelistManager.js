@@ -37,7 +37,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     xsyncWhitelistManager.toggleWhitelistSwitch = function(enabled) {
         let $whitelistTableDiv = $('div#xsync-whitelist-table');
-        let inputPrefs = {}
+        let inputPrefs = {};
         if (enabled === "true") {
             inputPrefs['xsyncWhitelistEnabled'] = true;
             $whitelistTableDiv.empty().append(xsyncWhitelistManager.table());
@@ -126,7 +126,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         form.id = 'form';
 
         form.appendChild(spawn('div|class="warning"',{'style': {visibility: 'hidden'}, 'id': 'warning'}));
-        form.appendChild(createInputElement('Site Id', 'site_id_input', item.id, 'text', 'The unique identifier for the site.'));
+        form.appendChild(createInputElement('Site Id', 'site_id_input', item.siteId, 'text', 'The unique identifier for the site.'));
         form.appendChild(createInputElement('Site Name', 'site_name_input', item.siteName, 'text', 'The name given to the site so that it is clearly identifiable to users.'));
         form.appendChild(createInputElement('Site Url', 'site_url_input', item.siteUrl, 'text', 'The url of the site.'));
         let options = ['CLINICAL', 'RESEARCH', 'PUBLIC']
