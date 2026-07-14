@@ -7,7 +7,6 @@ import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * @author Mohana Ramaratnam
  *
@@ -32,7 +31,7 @@ public class SyncStatusUpdater {
 	            EventMetaI c = EventUtils.DEFAULT_EVENT(_user, "ADMIN_EVENT occurred");
 	            _projectSyncConfiguration.getProjectSyncConfigurationFromDB().save(_user, false, true, c);
 	        } catch (Exception e) {
-	            _log.debug("Unable to save synchronization  details for project: " + _projectId + " Cause:" + e.getMessage());
+                _log.debug("Unable to save synchronization  details for project: {} Cause:{}", _projectId, e.getMessage());
 
 	        }
 	    }

@@ -29,7 +29,6 @@ public class XSyncFailureHandler {
 		subjectSyncInfo.setXsiType(xsiType);
 		subjectSyncInfo.setMessage(response.getResponseBody());
 		SynchronizationManager.UPDATE_MANIFEST(project, subjectSyncInfo);
-
 	}
 
 	public static void handle (String project, String localId,	String xsiType, String preassigned_remote_id, SubjectSyncItem subjectSyncInfo, Exception e) {
@@ -46,7 +45,6 @@ public class XSyncFailureHandler {
 		subjectSyncInfo.setMessage(ExceptionUtils.getStackTrace(e));
 		subjectSyncInfo.stateChanged();
 		SynchronizationManager.UPDATE_MANIFEST(project, subjectSyncInfo);
-
 	}
 
 	public static void handle(final MailService mailService, String adminEmail, String siteId, String project, Exception e, String message) {
@@ -74,7 +72,7 @@ public class XSyncFailureHandler {
 	}
 
 	private static void handle(String project, String localId) {
-		_log.error("Failed to sync " + project + " xsiType " + localId );
+        _log.error("Failed to sync {} xsiType {}", project, localId);
 	}
 
 }

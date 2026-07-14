@@ -122,8 +122,7 @@ public class XsyncURIUtils {
 		 String remote_id_with_line_breaks = connectionResponse.getResponseBody();
 		 remote_id_with_line_breaks = remote_id_with_line_breaks.replaceAll("\\r\\n|\\r|\\n", "");
 		 _logger.debug("connectionResopnse.getResponseBody()=" + remote_id_with_line_breaks);
-		 String remote_id_parts[] = remote_id_with_line_breaks.split("/");
-		 String remote_id = remote_id_parts[remote_id_parts.length-1];
-		 return remote_id;
+		 String[] remote_id_parts = remote_id_with_line_breaks.split("/");
+        return remote_id_parts[remote_id_parts.length-1];
 	}
 }

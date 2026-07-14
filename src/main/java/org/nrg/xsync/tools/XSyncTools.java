@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.nrg.xdat.om.XsyncXsyncassessordata;
 import org.nrg.xdat.om.XsyncXsyncremotemapdata;
 import org.nrg.xft.event.EventMetaI;
@@ -65,7 +66,7 @@ public class XSyncTools {
         parameters.addValue("REMOTE_URL", remoteUrl);
 
         List<Map<String, Object>> syncMapRows = _jdbcTemplate.queryForList(query, parameters);
-        if (syncMapRows != null && syncMapRows.size() > 0) {
+        if (!CollectionUtils.isEmpty(syncMapRows)) {
             hasBeenSyncedAlready = true;
         }
         return hasBeenSyncedAlready;
@@ -112,7 +113,7 @@ public class XSyncTools {
     private XsyncXsyncassessordata getXsyncAssessor(String exptId, String remote_url) {
         XsyncXsyncassessordata assessor = null;
         ArrayList<XsyncXsyncassessordata> okToSyncDatas = XsyncXsyncassessordata.getXsyncXsyncassessordatasByField("xsync:xsyncAssessorData/synced_experiment_id", exptId, _user, true);
-        if (okToSyncDatas != null && okToSyncDatas.size() > 0) {
+        if (!CollectionUtils.isEmpty(okToSyncDatas)) {
             for (XsyncXsyncassessordata okToSyncData : okToSyncDatas) {
                 if (okToSyncData.getRemoteUrl().equals(remote_url)) {
                     assessor = okToSyncData;
@@ -135,9 +136,9 @@ public class XSyncTools {
         parameters.addValue("REMOTE_URL", remoteUrl);
 
         List<Map<String, Object>> syncMapRows = _jdbcTemplate.queryForList(query, parameters);
-        if (syncMapRows != null && syncMapRows.size() > 0) {
+        if (!CollectionUtils.isEmpty(syncMapRows)) {
             hasBeenSyncedAlready = true;
-            Map<String, Object> row = syncMapRows.get(0);
+            Map<String, Object> row = syncMapRows.getFirst();
             String syncStatus = (String)row.get("sync_status");
             if (syncStatus.equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
                 hasBeenSyncedAlready = true;

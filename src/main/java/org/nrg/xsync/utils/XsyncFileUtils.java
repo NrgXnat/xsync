@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-//import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.*;
 import org.nrg.xdat.base.BaseElement;
 import org.nrg.xdat.bean.CatCatalogBean;
@@ -45,7 +44,7 @@ public class XsyncFileUtils {
 
 				ArrayList<File> filteredFiles = new ArrayList<>(org.apache.commons.io.FileUtils.listFiles(pathToFiles,
 						CatalogUtils.XNAT_CATALOGABLE_FILE_FILTER, DirectoryFileFilter.DIRECTORY));
-				if (filteredFiles.size()> 0) {
+				if (!filteredFiles.isEmpty()) {
 					rep.addAllAtRelativeDirectory(path, filteredFiles);
 				}
 				zipFile = new File(expCachePath, (new Date()).getTime()+".zip");
@@ -53,7 +52,7 @@ public class XsyncFileUtils {
 				rep.write(new FileOutputStream(zipFile));
 			}
 		} catch (Exception e) {
-			_log.error("Could not build zip {} cause: {}", e.toString(), e.getMessage());
+			_log.error("Could not build zip {} cause: {}", e, e.getMessage());
 			throw new Exception("Unable to create/save zip file " + e.getMessage());
 		}
 		return zipFile;
@@ -65,7 +64,7 @@ public class XsyncFileUtils {
 
 
 	public static  String GetSyncFilPath(XnatExperimentdata exp) {
-		String path = null;
+		String path;
 		path = exp.getCachePath() ;
 		return path;
 	}
@@ -91,66 +90,63 @@ public class XsyncFileUtils {
 	
 	public static String getAnonymizedSessionPath(XnatExperimentdata orig) {
 		return SynchronizationManager.GET_SYNC_FILE_PATH_TO_SESSION(orig.getProject(),orig) ;
-
 	}
 
 	public static XnatAbstractresourceI createSynchronizationLogResource(XnatProjectdata project, final UserI _user) throws Exception {
-	    	boolean synchronizationResourceExists  = false;
-	    	for (XnatAbstractresourceI r: project.getResources_resource()) {
-	    		if (r.getLabel()!= null && r.getLabel().equalsIgnoreCase(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL)) {
-	    			synchronizationResourceExists = true;
-	    		}
-	    		if (synchronizationResourceExists) {
-	    			return r;
-	    		}
-	    	}
-	    	if (!synchronizationResourceExists) {
-	    		//Create the resource
-	    		//Create a catalog
-	    		Class c = BaseElement.GetGeneratedClass(XnatResourcecatalog.SCHEMA_ELEMENT_NAME);
-	    		ItemI o = null;
-	            o = (ItemI) c.newInstance();
+		boolean synchronizationResourceExists  = false;
+		for (XnatAbstractresourceI r: project.getResources_resource()) {
+			if (r.getLabel()!= null && r.getLabel().equalsIgnoreCase(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL)) {
+				synchronizationResourceExists = true;
+			}
+			if (synchronizationResourceExists) {
+				return r;
+			}
+		}
+		if (!synchronizationResourceExists) {
+			//Create the resource
+			//Create a catalog
+			Class c = BaseElement.GetGeneratedClass(XnatResourcecatalog.SCHEMA_ELEMENT_NAME);
+			ItemI o;
+			o = (ItemI) c.newInstance();
 
-	    		XnatResourcecatalog catResource = (XnatResourcecatalog)BaseElement.GetGeneratedItem(o);
-	    		catResource.setLabel(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL);
-	    		catResource.setContent(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL);
-	    		
-	    		String resourceFolder=catResource.getLabel();
-	    		String dest_path = org.nrg.xft.utils.FileUtils.AppendRootPath(project.getArchiveRootPath() , "resources/" );
-	    		File dest=null;
-	    		CatCatalogBean cat = new CatCatalogBean();
-	    		cat.setId(catResource.getLabel());
+			XnatResourcecatalog catResource = (XnatResourcecatalog)BaseElement.GetGeneratedItem(o);
+			catResource.setLabel(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL);
+			catResource.setContent(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL);
 
-	    		if(resourceFolder==null){
-	    			dest = new File(new File(dest_path),cat.getId() + "_catalog.xml");
-	    		}else{
-	    			dest = new File(new File(dest_path,resourceFolder),cat.getId() + "_catalog.xml");
-	    		}
-	    		dest.getParentFile().mkdirs();
-	    		try {
-	    			FileWriter fw = new FileWriter(dest);
-	    			cat.toXML(fw, true);
-	    			fw.close();
-	    		} catch (IOException e) {
-	    			_log.error("",e);
-	    		}
+			String resourceFolder=catResource.getLabel();
+			String dest_path = org.nrg.xft.utils.FileUtils.AppendRootPath(project.getArchiveRootPath() , "resources/" );
+			File dest=null;
+			CatCatalogBean cat = new CatCatalogBean();
+			cat.setId(catResource.getLabel());
 
-	    		catResource.setUri(dest.getAbsolutePath());
-	    		project.addResources_resource(catResource);
-		       try {
-		   	        EventMetaI e = EventUtils.DEFAULT_EVENT(_user, "ADMIN_EVENT occurred");
-		            boolean saved = project.save(_user, false, false, e);
-		            if (!saved) {
-		            	_log.error("Unable to save " + project.getId() + ". User " + _user.getLogin() + " may not have sufficient privileges");
-		            }
-		        }catch(Exception e) {
-		        	_log.error("Unable to save " + project.getId() + ". User " + _user.getLogin() + " may not have sufficient privileges",e);
-		        }
-	    	     		
-	    		return catResource;
-	    	}
-	    	return null;
-	    }
-	
+			if(resourceFolder==null){
+				dest = new File(new File(dest_path),cat.getId() + "_catalog.xml");
+			}else{
+				dest = new File(new File(dest_path,resourceFolder),cat.getId() + "_catalog.xml");
+			}
+			dest.getParentFile().mkdirs();
+			try {
+				FileWriter fw = new FileWriter(dest);
+				cat.toXML(fw, true);
+				fw.close();
+			} catch (IOException e) {
+				_log.error("",e);
+			}
 
+			catResource.setUri(dest.getAbsolutePath());
+			project.addResources_resource(catResource);
+		   try {
+				EventMetaI e = EventUtils.DEFAULT_EVENT(_user, "ADMIN_EVENT occurred");
+				boolean saved = project.save(_user, false, false, e);
+				if (!saved) {
+					_log.error("Unable to save {}. User {} may not have sufficient privileges", project.getId(), _user.getLogin());
+				}
+			}catch(Exception e) {
+			   _log.error("Unable to save {}. User {} may not have sufficient privileges", project.getId(), _user.getLogin(), e);
+			}
+
+			return catResource;
+		}
+		return null;
+	}
 }

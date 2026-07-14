@@ -210,14 +210,12 @@ public class QueryResultUtil {
 	public String getParametrizedQueryForFetchingConfiguredSubjectResourcesChangedSinceLastSync() {
 		String query = getQueryForFetchingSubjectResourcesModifiedSinceLastSync() ; 
 		//query += " UNION " + getQueryForFetchingSubjectResourcesDeletedSinceLastSync();
-		String selectTheResourcesWhichAreToBeSynced = "select * from (" + query + ") as results ";
-		return selectTheResourcesWhichAreToBeSynced;
+        return "select * from (" + query + ") as results ";
 	}
 
 	public String getParametrizedQueryForFetchingConfiguredSubjectResourcesDeletedSinceLastSync() {
 		String 	query = getQueryForFetchingSubjectResourcesDeletedSinceLastSync();
-		String selectTheResourcesWhichAreToBeSynced = "select * from (" + query + ") as results ";
-		return selectTheResourcesWhichAreToBeSynced;
+        return "select * from (" + query + ") as results ";
 	}
 
 	public String getQueryForFetchingSubjectExperimentsModifiedSinceLastSync() {
@@ -319,16 +317,15 @@ public class QueryResultUtil {
 		}	
 	}
 	public void append(List<Map<String,Object>> source, Map<String,Object> destination) {
-		for (int i=0; i< source.size();i++) {
-			append(source.get(i),destination);
-		}	
+        for (Map<String, Object> stringObjectMap : source) {
+            append(stringObjectMap, destination);
+        }
 	}
 	
 	public void addColumn(String columnName,Object columnValue,List<Map<String,Object>> destination){
-		for (int i=0; i< destination.size();i++) {
-			Map<String,Object> row = destination.get(i);
-			row.put(columnName, columnValue);
-		}
+        for (Map<String, Object> row : destination) {
+            row.put(columnName, columnValue);
+        }
 	}
 	
 	public Map<Object,List<Map<String,Object>>> separateByColumn(List<Map<String,Object>> queryResults, String separatorColumnName) {
@@ -343,56 +340,52 @@ public class QueryResultUtil {
 	
 	public List<Map<String,Object>> getRows(List<Map<String,Object>> queryResults, String columnName, Object columnValue, boolean dropColumn) {
 		List<Map<String,Object>> sublist = new ArrayList<Map<String,Object>>();
-		for (int i=0; i<queryResults.size(); i++) { //For each row
-			Map<String,Object> row = queryResults.get(i);
-			Object rowColumnValue = row.get(columnName);
-			if (rowColumnValue.equals(columnValue)) {
-				if (dropColumn){
-					Map<String,Object> newRow = new HashMap<String,Object>();
-					for (String queryColumnName : row.keySet()) {
-					    if (!columnName.equals(queryColumnName)) {
-					    	newRow.put(queryColumnName,row.get(queryColumnName));
-					    }
-					}
-					sublist.add(newRow);
-				}else 
-				   sublist.add(row);
-			}
-		}
+        for (Map<String, Object> row : queryResults) { //For each row
+            Object rowColumnValue = row.get(columnName);
+            if (rowColumnValue.equals(columnValue)) {
+                if (dropColumn) {
+                    Map<String, Object> newRow = new HashMap<String, Object>();
+                    for (String queryColumnName : row.keySet()) {
+                        if (!columnName.equals(queryColumnName)) {
+                            newRow.put(queryColumnName, row.get(queryColumnName));
+                        }
+                    }
+                    sublist.add(newRow);
+                } else
+                    sublist.add(row);
+            }
+        }
 		return sublist;
 	}
 	
 	public Set<Object> getDistinctValuesInColumn(List<Map<String,Object>> queryResults, String columnName) {
 		Hashtable<Object,String> columnValues = new Hashtable<Object,String>();
-		for (int i=0; i<queryResults.size(); i++) { //For each row
-			Map<String,Object> row = queryResults.get(i);
-			Object columnValue = row.get(columnName);
-			if (!columnValues.containsKey(columnValue)) {
-				columnValues.put(columnValue, "1");
-			}
-		}
+        for (Map<String, Object> row : queryResults) { //For each row
+            Object columnValue = row.get(columnName);
+            if (!columnValues.containsKey(columnValue)) {
+                columnValues.put(columnValue, "1");
+            }
+        }
 		return columnValues.keySet();
 	}
 
 	public List<Object> getValuesInColumn(List<Map<String,Object>> queryResults, String columnName) {
 		List<Object> distinctValues = new ArrayList<Object>();
-		for (int i=0; i<queryResults.size(); i++) { //For each row
-			Map<String,Object> row = queryResults.get(i);
-			Object columnValue = row.get(columnName);
-			distinctValues.add(columnValue);
-		}
+        for (Map<String, Object> row : queryResults) { //For each row
+            Object columnValue = row.get(columnName);
+            distinctValues.add(columnValue);
+        }
 		return distinctValues;
 	}
 
 	public Object getValueInColumnInRowWithColumnValue(List<Map<String,Object>> queryResults, String desiredColumnName, String filterColumnName, Object filterColumnValue) {
 		Object value = null;
-		for (int i=0; i<queryResults.size(); i++) { //For each row
-			Map<String,Object> row = queryResults.get(i);
-			Object columnValue = row.get(filterColumnName);
-			if (columnValue.equals(filterColumnValue)) {
-				value = row.get(desiredColumnName);
-			}
-		}
+        for (Map<String, Object> row : queryResults) { //For each row
+            Object columnValue = row.get(filterColumnName);
+            if (columnValue.equals(filterColumnValue)) {
+                value = row.get(desiredColumnName);
+            }
+        }
 		return value;
 	}
 	
@@ -403,38 +396,37 @@ public class QueryResultUtil {
 	public List<Map<String,Object>> reorganizeAsPivotColumnArray(List<Map<String,Object>> queryResults, String collatorColumn, String pivotColumnName) {
 		List<Map<String,Object>> rowsCollated = new ArrayList<Map<String,Object>>();
 		Hashtable<String,Integer> rowIndices = new Hashtable<String,Integer>();
-		for (int i=0; i<queryResults.size(); i++) { //For each row
-			Map<String,Object> row = queryResults.get(i);
-			Set<String> columns = row.keySet();
-			for (String columnName : columns) {
-			    if (columnName.equals(collatorColumn)) {
-			    	Object columnRowValue = row.get(columnName); 
-			    	if (rowIndices.containsKey(columnRowValue)) {
-			    		Integer rowIndex = rowIndices.get(columnRowValue);
-			    		Map<String,Object> appendToThisRow = rowsCollated.get(rowIndex.intValue());
-			    		@SuppressWarnings({ "unchecked", "rawtypes" })
-						ArrayList<Object> collatedValues = (ArrayList)appendToThisRow.get(pivotColumnName);
-			    		collatedValues.add(row.get(pivotColumnName));
-			    	}else {
-			    		//Insert the row - the first time you see the collatorColumn
-		    			Map<String,Object> newRow = new HashMap<String,Object>();
-			    		for (String column : row.keySet()) {
-			    			if (column.equals(pivotColumnName)) {
-			    				ArrayList<Object> pivotedArray = new ArrayList<Object>();
-			    				pivotedArray.add(row.get(column));
-			    				newRow.put(column, pivotedArray);
-			    			}else {
-			    				newRow.put(column, row.get(column));
-			    			}
-			    		}
-			    		int insertionPoint = (rowsCollated.size()-1)>0?(rowsCollated.size()-1):0;
-			    		rowsCollated.add(insertionPoint,newRow);
-			    		rowIndices.put(columnRowValue.toString(), insertionPoint);
-			    	}
-			    	break; //Move to next row
-			    }
-			}
-		}
+        for (Map<String, Object> row : queryResults) { //For each row
+            Set<String> columns = row.keySet();
+            for (String columnName : columns) {
+                if (columnName.equals(collatorColumn)) {
+                    Object columnRowValue = row.get(columnName);
+                    if (rowIndices.containsKey(columnRowValue)) {
+                        Integer rowIndex = rowIndices.get(columnRowValue);
+                        Map<String, Object> appendToThisRow = rowsCollated.get(rowIndex.intValue());
+                        @SuppressWarnings({"unchecked", "rawtypes"})
+                        ArrayList<Object> collatedValues = (ArrayList) appendToThisRow.get(pivotColumnName);
+                        collatedValues.add(row.get(pivotColumnName));
+                    } else {
+                        //Insert the row - the first time you see the collatorColumn
+                        Map<String, Object> newRow = new HashMap<String, Object>();
+                        for (String column : row.keySet()) {
+                            if (column.equals(pivotColumnName)) {
+                                ArrayList<Object> pivotedArray = new ArrayList<Object>();
+                                pivotedArray.add(row.get(column));
+                                newRow.put(column, pivotedArray);
+                            } else {
+                                newRow.put(column, row.get(column));
+                            }
+                        }
+                        int insertionPoint = (rowsCollated.size() - 1) > 0 ? (rowsCollated.size() - 1) : 0;
+                        rowsCollated.add(insertionPoint, newRow);
+                        rowIndices.put(columnRowValue.toString(), insertionPoint);
+                    }
+                    break; //Move to next row
+                }
+            }
+        }
 		return rowsCollated;
 	}
 	
@@ -504,13 +496,11 @@ public class QueryResultUtil {
 
 	
 	public String getAllRemoteConnections() {
-		String query = "select * from xhbm_remote_alias_entity";
-		return query;
+        return "select * from xhbm_remote_alias_entity";
 	}
 
 	public String getRemoteConnectionQuery() {
-		String query = "select * from xhbm_remote_alias_entity where local_project=:LOCAL_PROJECT and remote_host=:REMOTE_HOST";
-		return query;
+        return "select * from xhbm_remote_alias_entity where local_project=:LOCAL_PROJECT and remote_host=:REMOTE_HOST";
 	}
 
 	/**
@@ -519,8 +509,7 @@ public class QueryResultUtil {
 	 * @return the last sync status for subject
 	 */
 	public String getLastSyncStatusForSubject() {
-		String query="Select sync_status from xsync_xsyncremotemapdata where remote_project_id=:remoteProjectId and xsitype='xnat:subjectData' and local_xnat_id=:localSubjectId and source_project_id=:localProjectId";
-		return query;
+        return "Select sync_status from xsync_xsyncremotemapdata where remote_project_id=:remoteProjectId and xsitype='xnat:subjectData' and local_xnat_id=:localSubjectId and source_project_id=:localProjectId";
 	}
 	
 	/*public String getNumberOfRetry() {

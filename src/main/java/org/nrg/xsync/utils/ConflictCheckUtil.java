@@ -3,6 +3,7 @@ package org.nrg.xsync.utils;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.nrg.xdat.model.XnatExperimentdataI;
 import org.nrg.xdat.model.XnatSubjectdataI;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
@@ -33,9 +34,9 @@ public class ConflictCheckUtil {
 		final RemoteConnectionResponse connectionResponse = manager.getResult(connection,uri);
 		if (connectionResponse.wasSuccessful()) {
 			final List<Map<String, String>> result = getResultList(connectionResponse);;
-			if (result != null && result.size()>0) {
-				final String remoteSessionLabel = result.get(0).get("label");
-				final String remoteSessionProject = result.get(0).get("project");
+			if (!CollectionUtils.isEmpty(result)) {
+				final String remoteSessionLabel = result.getFirst().get("label");
+				final String remoteSessionProject = result.getFirst().get("project");
 				if (remoteSessionLabel != null && remoteSessionProject != null) {
 					if (subject.getLabel().equals(remoteSessionLabel) && remoteProjectId.equals(remoteSessionProject)) {
 						return;
@@ -44,11 +45,11 @@ public class ConflictCheckUtil {
 								" exists at destination with a different label or in a different project.");
 					}
 				}
-			} else if (result.size() == 0) {
+			} else {
 				return;
 			}
 		}
-		throw new XsyncConflictCheckFailureException("Cound not check for subject label conflict (SUBJECT=" + subject.getLabel() + ")");
+		throw new XsyncConflictCheckFailureException("Could not check for subject label conflict (SUBJECT=" + subject.getLabel() + ")");
 	}
 	
 	public static void checkForConflict(XnatExperimentdataI exp, String remoteId,
@@ -66,8 +67,8 @@ public class ConflictCheckUtil {
 			if (result == null || result.isEmpty()) {
 				return;
 			}
-			final String remoteSessionLabel = result.get(0).get("label");
-			final String remoteSessionProject = result.get(0).get("project");
+			final String remoteSessionLabel = result.getFirst().get("label");
+			final String remoteSessionProject = result.getFirst().get("project");
 			if (exp.getLabel().equals(remoteSessionLabel) && remoteProjectId.equals(remoteSessionProject)) {
 				return;
 			} else {
@@ -75,26 +76,26 @@ public class ConflictCheckUtil {
 						" exists at destination with a different label or in a different project.");
 			}
 		}
-		throw new XsyncConflictCheckFailureException("Cound not check for experiment label conflict (EXPERIMENT=" + exp.getLabel() + ")");
+		throw new XsyncConflictCheckFailureException("Could not check for experiment label conflict (EXPERIMENT=" + exp.getLabel() + ")");
 	}
 
 	@SuppressWarnings("unchecked")
 	private static List<Map<String, String>> getResultList(RemoteConnectionResponse connectionResponse) throws XsyncConflictCheckFailureException {
-			final String responseBody = connectionResponse.getResponseBody();
-			final Map<String,Map<String,Object>> responseObj = 
-					_gson.fromJson(responseBody, new TypeToken<Map<String,Map<String,Object>>>(){}.getType());
-			if (responseObj == null) {
-				return null;
-			}
-			final Map<String, Object> resultSet = responseObj.get("ResultSet");
-			if (resultSet == null) {
-				return null;
-			}
-			final Object resultObj = resultSet.get("Result");
-			if (resultObj instanceof List) {
-				return (List<Map<String,String>>)resultObj;
-			}
-			throw new XsyncConflictCheckFailureException("Failed to get results list");
+		final String responseBody = connectionResponse.getResponseBody();
+		final Map<String,Map<String,Object>> responseObj =
+				_gson.fromJson(responseBody, new TypeToken<Map<String,Map<String,Object>>>(){}.getType());
+		if (responseObj == null) {
+			return null;
+		}
+		final Map<String, Object> resultSet = responseObj.get("ResultSet");
+		if (resultSet == null) {
+			return null;
+		}
+		final Object resultObj = resultSet.get("Result");
+		if (resultObj instanceof List) {
+			return (List<Map<String,String>>)resultObj;
+		}
+		throw new XsyncConflictCheckFailureException("Failed to get results list");
 	}
 
 }
