@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class JsonUtils {
     private static final Logger _log = LoggerFactory.getLogger(JsonUtils.class);
-
 	
 	public JsonNode  toJSONFromMap(List<Map<String,Object>> results) {
 		ObjectMapper objectMapper = new ObjectMapper();
@@ -44,8 +43,8 @@ public class JsonUtils {
 	
 	public void debug(String name, List<Map<String, Object>> list) {
 		ObjectMapper objectMapper = new ObjectMapper();
-		JsonNode json = null;
-		ObjectNode root = null;
+		JsonNode json;
+		ObjectNode root;
 		try {
 			String jsonAsStr = objectMapper.writeValueAsString(list);
 			root = objectMapper.createObjectNode();
