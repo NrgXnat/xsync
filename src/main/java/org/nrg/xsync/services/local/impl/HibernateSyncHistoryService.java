@@ -90,11 +90,11 @@ public class HibernateSyncHistoryService
 
     private void addWhitelistDetail(XsyncRemoteUrlDetailsPojo inputPojo, List<WhitelistSitePojo> whitelist,
                                     String remoteUrl) {
-            WhitelistSitePojo whitelistElement = whitelist.stream()
-                    .filter(wl -> wl.getSiteUrl().equals(remoteUrl)).toList().getFirst();
-
-            inputPojo.setSiteName(whitelistElement.getSiteName());
-            inputPojo.setClassification(whitelistElement.getClassification());
+            whitelist.stream().filter(wl -> wl.getSiteUrl().equals(remoteUrl)).findAny()
+                .ifPresent(wle -> {
+                    inputPojo.setSiteName(wle.getSiteName());
+                    inputPojo.setClassification(wle.getClassification());
+                });
     }
 
     @Transactional

@@ -88,7 +88,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 					if (sitePreferencesPojo.getXsyncWhitelistEnabled()) {
 						List<WhitelistSitePojo> whitelistSitePojoList =
 								_whitelistXsyncSiteService.getAllWhitelistedSites();
-						if (whitelistSitePojoList.stream().filter(wl -> wl.getSiteUrl().equalsIgnoreCase(configurationPojo.getRemote_url())).toList().isEmpty()) {
+						if (whitelistSitePojoList.stream().noneMatch(wl -> wl.getSiteUrl().equalsIgnoreCase(configurationPojo.getRemote_url()))) {
 							return new ResponseEntity<>(" Site URL " + configurationPojo.getRemote_url() + " is not an allowed option to " +
 																"receive data. ",HttpStatus.BAD_REQUEST);
 						}

@@ -44,7 +44,7 @@ public class ConfigurationDashboardServiceImpl implements ConfigurationDashboard
                 currentPojo.setNumberErrors(0);
                 if (whitelistEnabled) {
                     WhitelistSitePojo whitelistElement = whitelist.stream()
-                            .filter(wl -> wl.getSiteUrl().equals(remoteUrl)).toList().getFirst();
+                            .filter(wl -> wl.getSiteUrl().equals(remoteUrl)).findAny().get();
                     currentPojo.setSiteName(whitelistElement.getSiteName());
                     currentPojo.setClassification(whitelistElement.getClassification());
                 }
