@@ -1,5 +1,7 @@
 package org.nrg.xsync.xapi;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,7 +90,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     @ApiOperation(value="Get xsync history for project.")
     @ApiResponses({
             @ApiResponse(code=200, message="Returned history elements."),
-            @ApiResponse(code=401, message="History element not found."),
+            @ApiResponse(code=401, message="History data not found."),
             @ApiResponse(code=403, message="Insufficient permissions to obtain history elements."),
             @ApiResponse(code=500, message="Unexpected error")
     })
@@ -105,6 +107,30 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             }
         }
         return new ResponseEntity<>(filteredHistory, HttpStatus.OK);
+    }
+
+    @ApiOperation(value="Get history elements from last 3 months for project.")
+    @ApiResponses({
+            @ApiResponse(code=200, message="Returned history elements."),
+            @ApiResponse(code=401, message="History data not found."),
+            @ApiResponse(code=403, message="Insufficient permissions to obtain history elements."),
+            @ApiResponse(code=500, message="Unexpected error")
+    })
+    @XapiRequestMapping(value="/projects/{projectId}/recentHistory", method=RequestMethod.GET, restrictTo =
+            AccessLevel.Read,
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    public List<XsyncProjectHistoryPojo> getRecentSyncHistoryForProject(
+            @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId) {
+        List<XsyncProjectHistory> allHistory = syncManifestService.getAll();
+        List<XsyncProjectHistoryPojo> filteredHistory = new ArrayList<>();
+
+        for (XsyncProjectHistory history : allHistory) {
+            LocalDate startLocalDate = LocalDate.ofInstant(history.getStartDate().toInstant(), ZoneId.systemDefault());
+            if (history.getLocalProject().equals(projectId) && startLocalDate.isAfter(LocalDate.now().minusMonths(3))) {
+                filteredHistory.add(mapper.convertValue(history, XsyncProjectHistoryPojo.class));
+            }
+        }
+        return filteredHistory;
     }
 
     @ApiOperation(value="Get xsync history for specific subject.")
