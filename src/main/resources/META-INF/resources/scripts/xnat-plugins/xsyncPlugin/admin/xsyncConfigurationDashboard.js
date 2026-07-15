@@ -67,7 +67,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 onclick: function (e) {
                     e.preventDefault();
                     XNAT.dialog.close();
-                    xsyncConfigurationDashboard.createFullHistoryModal(projectId);
+                    xsyncConfigurationDashboard.createHistoryModal(projectId, false);
                 },
                 title: "Show the complete history of this connection."
             }, 'History');
@@ -145,44 +145,40 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         });
     }
 
-    xsyncConfigurationDashboard.createFullHistoryModal = function(projectId) {
-        XNAT.xhr.get({
-            url: restUrl('/xapi/xsync/history/projects/' + projectId),
-            async: false,
-            success: function (data) {
-                xsyncConfigurationDashboard.currentHistoryData = []
-                data.forEach(function (item) {
-                    var startDate = new Date(item.startDate);
-                    item.startDateAsDate = startDate;
-                    item.startDate = startDate.toDateString() + ' ' + startDate.toLocaleTimeString();
-                    var completeDate = new Date(item.completeDate);
-                    item.completeDate = completeDate.toDateString() + ' ' + completeDate.toLocaleTimeString();
-                    xsyncConfigurationDashboard.currentHistoryData.push(item);
-                });
-            },
-            fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not project history information for: ' + projectId + '\nError message: s' + e.responseText, 'error');
-            }
-        });
+    xsyncConfigurationDashboard.createHistoryModal = function(projectId, fullHistory) {
+        xsyncConfigurationDashboard.getCurrentConnectionHistoryData(fullHistory, projectId);
+        var modalTitle = fullHistory ? 'Full history for project: ' + projectId : 'History for project ' + projectId + ' within the last month';
+
+        var modalButtons = [
+           {
+               label: 'Back',
+               isDefault: true,
+               close: true,
+               action: function(){
+                   xsyncConfigurationDashboard.getRemoteUrlListingModal(xsyncConfigurationDashboard.currentRemoteUrl, true);
+               }
+           }
+        ];
+        if (!fullHistory) {
+            modalButtons.push({
+                 label: 'Full History',
+                 isDefault: true,
+                 close: true,
+                 action: function(){
+                     xsyncConfigurationDashboard.createHistoryModal(projectId, true);
+                 }
+             });
+        }
         let historyDiv = spawn('div#history_modal_content');
 
         this.dialog = XNAT.ui.dialog.open({
-            title: 'Full history for project: ' + projectId,
+            title: modalTitle,
             width: 900,
             content:historyDiv,
             isDraggable: true,
             mask: false,
             esc: true,
-            buttons: [
-                {
-                    label: 'Back',
-                    isDefault: true,
-                    close: true,
-                    action: function(){
-                        xsyncConfigurationDashboard.getRemoteUrlListingModal(xsyncConfigurationDashboard.currentRemoteUrl, true);
-                    }
-                }
-            ],
+            buttons: modalButtons,
             afterShow: function() {
                 xsyncConfigurationDashboard.currentHistoryData.sort((a,b) => (a.startDateAsDate < b.startDateAsDate) ? 1 : -1);
                 $('#history_modal_content').append(spawnDetailsForList(xsyncConfigurationDashboard.currentHistoryData));
@@ -251,6 +247,28 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             fail: function (e) {
                 XNAT.ui.banner.top(2000, 'Could not update configuration information for project: ' + projectId + '\nError message: s' + e.responseText, 'error');
                 checkbox.checked=!enable;
+            }
+        });
+    }
+
+    xsyncConfigurationDashboard.getCurrentConnectionHistoryData = function(allData, projectId) {
+        var inputUrl = allData ? '/xapi/xsync/history/projects/' + projectId : 'xapi/xsync/history/projects/' + projectId + '/recentHistory';
+        XNAT.xhr.get({
+            url: restUrl(inputUrl),
+            async: false,
+            success: function (data) {
+                xsyncConfigurationDashboard.currentHistoryData = []
+                data.forEach(function (item) {
+                    var startDate = new Date(item.startDate);
+                    item.startDateAsDate = startDate;
+                    item.startDate = startDate.toDateString() + ' ' + startDate.toLocaleTimeString();
+                    var completeDate = new Date(item.completeDate);
+                    item.completeDate = completeDate.toDateString() + ' ' + completeDate.toLocaleTimeString();
+                    xsyncConfigurationDashboard.currentHistoryData.push(item);
+                });
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not project history information for: ' + projectId + '\nError message: s' + e.responseText, 'error');
             }
         });
     }
