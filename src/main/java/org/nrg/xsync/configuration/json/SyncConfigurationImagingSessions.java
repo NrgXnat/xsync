@@ -3,23 +3,20 @@ package org.nrg.xsync.configuration.json;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.nrg.xsync.utils.XsyncUtils;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
+@Setter
+@Getter
 public class SyncConfigurationImagingSessions extends BaseSyncConfiguration{
-	List<SyncConfigurationImagingSessionXsiType> xsi_types = new ArrayList<SyncConfigurationImagingSessionXsiType>();
+    List<SyncConfigurationImagingSessionXsiType> xsi_types = new ArrayList<SyncConfigurationImagingSessionXsiType>();
 
-	/**
-	 * @return the xsi_types
-	 */
-	public List<SyncConfigurationImagingSessionXsiType> getXsi_types() {
-		return xsi_types;
-	}
-	
-	public SyncConfigurationImagingSessionXsiType getXsiType(String type) {
+    public SyncConfigurationImagingSessionXsiType getXsiType(String type) {
 		SyncConfigurationImagingSessionXsiType match = null;
 		for (SyncConfigurationImagingSessionXsiType x:xsi_types) {
 			if (type.equals(x.getXsi_type())) {
@@ -29,15 +26,8 @@ public class SyncConfigurationImagingSessions extends BaseSyncConfiguration{
 		}
 		return match;
 	}
-	
-	/**
-	 * @param xsi_types the xsi_types to set
-	 */
-	public void setXsi_types(List<SyncConfigurationImagingSessionXsiType> xsi_types) {
-		this.xsi_types = xsi_types;
-	}
-	
-	public boolean isAllowedToSync(String xsiType) {
+
+    public boolean isAllowedToSync(String xsiType) {
 		boolean isAllowed = false;
 		if (sync_type.equals(XsyncUtils.SYNC_TYPE_ALL)) {
 			isAllowed = true;

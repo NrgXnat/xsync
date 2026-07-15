@@ -9,10 +9,11 @@ import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
-import org.nrg.xft.search.CriteriaCollection;
 import org.nrg.xft.security.UserI;
+import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.manifest.XsyncProjectHistory;
 import org.nrg.xsync.services.local.SyncManifestService;
+import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,17 +35,22 @@ import io.swagger.annotations.ApiResponses;
  * Created by Michael Hileman on 2016/07/05.
  * @author Atul
  */
-@Api(description="Xsync History API")
+@Api("Xsync History API")
 @XapiRestController
 @RequestMapping(value="/xsync/history")
 @JsonIgnoreProperties(value = { "created" })
 public class XsyncHistoryController extends AbstractXapiProjectRestController {
 	@Autowired
-	public XsyncHistoryController(final SyncManifestService service, final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
+	public XsyncHistoryController(final SyncManifestService syncManifestService,
+                                  final UserManagementServiceI userManagementService,
+                                  final RoleHolder roleHolder,
+                                  final WhitelistXsyncSiteService whitelistXsyncSiteService,
+                                  final XsyncSitePreferencesBean xsyncSitePreferencesBean) {
         super(userManagementService, roleHolder);
-        this.service = service;
-	}
-
+        this.syncManifestService = syncManifestService;
+        this.whitelistXsyncSiteService = whitelistXsyncSiteService;
+        this.xsyncSitePreferencesBean = xsyncSitePreferencesBean;
+    }
 	
     /**
      * Gets the all sync history.
@@ -63,7 +69,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         if (status != null) {
             return new ResponseEntity<>(status);
         }    	
-        return new ResponseEntity<>(service.getAll(), HttpStatus.OK);
+        return new ResponseEntity<>(syncManifestService.getAll(), HttpStatus.OK);
     }
 
     /**
@@ -81,7 +87,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         if (status != null) {
             return new ResponseEntity<>(status);
         }
-        return new ResponseEntity<>(service.retrieve(id), HttpStatus.OK);
+        return new ResponseEntity<>(syncManifestService.retrieve(id), HttpStatus.OK);
     }
 
     /**
@@ -99,7 +105,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         if (status != null) {
             return new ResponseEntity<>(status);
         }
-    	List<XsyncProjectHistory> allHistory = service.getAll();
+    	List<XsyncProjectHistory> allHistory = syncManifestService.getAll();
         List<XsyncProjectHistory> filteredHistory = new ArrayList<>();
 
         for (XsyncProjectHistory history : allHistory) {
@@ -109,7 +115,6 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
         }
         return new ResponseEntity<>(filteredHistory, HttpStatus.OK);
     }
-
 
     /**
      * Gets the most recent sync history by project and subject label.
@@ -130,7 +135,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
 
         XnatSubjectdata subject  = XnatSubjectdata.GetSubjectByProjectIdentifier(projectId, subjectLabel, user, false);
         if (subject != null) {
-            XsyncProjectHistory latest = service.findMostRecentBySubject(projectId,subjectLabel);
+            XsyncProjectHistory latest = syncManifestService.findMostRecentBySubject(projectId, subjectLabel);
             if (latest == null) {
               return new ResponseEntity("{}",HttpStatus.OK);
             }
@@ -140,5 +145,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     }
 
     /** The service. */
-    private final SyncManifestService service;
+    private final SyncManifestService syncManifestService;
+    private final WhitelistXsyncSiteService whitelistXsyncSiteService;
+    private final XsyncSitePreferencesBean xsyncSitePreferencesBean;
 }

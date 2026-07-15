@@ -217,7 +217,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             //Save into the DB the starttime and end-time
             //Clear the time logs
             //syncStatusUpdater.saveSyncBlockStatus(Boolean.FALSE);
-            SynchronizationManager.END_SYNC(_serializer, project.getId(), _jdbcTemplate, true, true);
+            SynchronizationManager.END_SYNC(project.getId(), _jdbcTemplate, true, true);
             _syncStatusService.registerSyncEnd(_projectId, SynchronizationManager.getProjectManifest(project.getId()));
         } catch (Exception e) {
             //Roll back the syncBlocked flag

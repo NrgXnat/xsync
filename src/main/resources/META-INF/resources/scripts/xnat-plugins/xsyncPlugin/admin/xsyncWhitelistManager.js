@@ -56,6 +56,9 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 data: JSON.stringify(inputPrefs),
                 success: function () {
                     xsyncWhitelistManager.isWhitelistEnabledBackend = inputPrefs['xsyncWhitelistEnabled'];
+                    $.getScript("xsyncConfigurationDashboard.js",function(){
+                       XNAT.plugin.xsync.xsyncConfigurationDashboard.refreshTable();
+                    });
                     console.log('Updated site enabled preference.');
                 },
                 fail: function (e) {
@@ -432,7 +435,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             async: false,
             success: function (data) {
                 let enabled = data['xsyncWhitelistEnabled'];
-                xsyncWhitelistManager.isWhitelistEnabledBackend = true;
+                xsyncWhitelistManager.isWhitelistEnabledBackend = enabled;
                 if (enabled == true) {
                     $('#whitelist-site-panel').find('.switchbox.panel-switchbox').children("input").prop("checked",true);
                     xsyncWhitelistManager.toggleWhitelistSwitch("true");

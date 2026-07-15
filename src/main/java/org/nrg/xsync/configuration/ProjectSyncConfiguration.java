@@ -5,6 +5,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.config.entities.Configuration;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
@@ -22,8 +23,6 @@ import org.nrg.xsync.configuration.json.SyncConfigurationImagingSessionXsiType;
 import org.nrg.xsync.configuration.json.SyncConfigurationXsiType;
 import org.nrg.xsync.exception.XsyncNotConfiguredException;
 import org.nrg.xsync.utils.XsyncUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -31,6 +30,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  * @author Mohana Ramaratnam
  */
 @SuppressWarnings("unused")
+@Slf4j
 public class ProjectSyncConfiguration {
     public ProjectSyncConfiguration(final ConfigService configService, final SerializerService serializer, final JdbcTemplate jdbcTemplate,
     		final String projectId, final UserI user) throws XsyncNotConfiguredException {
@@ -113,11 +113,7 @@ public class ProjectSyncConfiguration {
     }
 
     public boolean isOnlyASubjectAssessor(XnatSubjectassessordataI experiment) {
-        boolean isOnlyASubjectAssessor = true;
-        if (experiment instanceof XnatImagesessiondataI) {
-            isOnlyASubjectAssessor = false;
-        }
-        return isOnlyASubjectAssessor;
+        return !(experiment instanceof XnatImagesessiondataI);
     }
 
     public boolean isImagingSessionToBeSynced(String imagingSessionXsiType) {
@@ -180,11 +176,11 @@ public class ProjectSyncConfiguration {
     }
 
     private XsyncXsyncprojectdata setProjectSyncConfiguration() throws XsyncNotConfiguredException {
-        final XsyncUtils xsyncUtils = new XsyncUtils(_serializer, _jdbcTemplate, _user);
+        final XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, _user);
         final XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(_project.getId());
 
         if (syncProjectConfiguration == null) {
-            _log.error("Could not find sync data for _project " + _project.getId());
+            log.error("Could not find sync data for _project {}", _project.getId());
             throw new XsyncNotConfiguredException("Could not find sync data for _project " + _project.getId());
         }
         boolean save = false;
@@ -204,7 +200,7 @@ public class ProjectSyncConfiguration {
                 EventMetaI c = EventUtils.DEFAULT_EVENT(_user, "ADMIN_EVENT occurred");
                 syncProjectConfiguration.save(_user, false, true, c);
             } catch (Exception e) {
-                _log.debug("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
+                log.debug("Unable to save synchronization  start time:  Cause:{}", e.getMessage());
                 throw new XsyncNotConfiguredException("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
             }
         }
@@ -225,7 +221,6 @@ public class ProjectSyncConfiguration {
         }
     }
 
-    private static final Logger   _log         = LoggerFactory.getLogger(ProjectSyncConfiguration.class);
     private static final Calendar OLD_CALENDAR = new GregorianCalendar(1970, 1, 1);
 
     private final ConfigService              _configService;

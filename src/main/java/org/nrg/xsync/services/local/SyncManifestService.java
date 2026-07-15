@@ -6,6 +6,8 @@ import java.util.List;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 import org.nrg.xsync.manifest.SyncManifest;
 import org.nrg.xsync.manifest.XsyncProjectHistory;
+import org.nrg.xsync.pojo.WhitelistSitePojo;
+import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
 
 public interface SyncManifestService extends BaseHibernateService<XsyncProjectHistory> {
 

@@ -5,12 +5,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
-import org.apache.ecs.html.Map;
-import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
-import org.hibernate.criterion.Restrictions;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
-import org.nrg.xdat.entities.UserRole;
 import org.nrg.xsync.manifest.ExperimentSyncItem;
 import org.nrg.xsync.manifest.ResourceSyncItem;
 import org.nrg.xsync.manifest.ScanSyncItem;
@@ -22,6 +18,8 @@ import org.nrg.xsync.manifest.XsyncExperimentHistory;
 import org.nrg.xsync.manifest.XsyncProjectHistory;
 import org.nrg.xsync.manifest.XsyncResourceHistory;
 import org.nrg.xsync.manifest.XsyncSubjectHistory;
+import org.nrg.xsync.pojo.WhitelistSitePojo;
+import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.utils.XsyncFileUtils;
 import org.nrg.xsync.utils.XsyncUtils;
@@ -67,9 +65,6 @@ public class HibernateSyncHistoryService
         return recentHistory;
     }
 
-
-
-
     @Transactional
     @Override
     public XsyncProjectHistory findByStartDate(final Date date) {
@@ -93,6 +88,14 @@ public class HibernateSyncHistoryService
         return getDao().findMostRecentBySubject(projectId,subjectLabel);
     }
 
+    private void addWhitelistDetail(XsyncRemoteUrlDetailsPojo inputPojo, List<WhitelistSitePojo> whitelist,
+                                    String remoteUrl) {
+            whitelist.stream().filter(wl -> wl.getSiteUrl().equals(remoteUrl)).findAny()
+                .ifPresent(wle -> {
+                    inputPojo.setSiteName(wle.getSiteName());
+                    inputPojo.setClassification(wle.getClassification());
+                });
+    }
 
     @Transactional
     public synchronized void persistHistory(SyncManifest manifest) {

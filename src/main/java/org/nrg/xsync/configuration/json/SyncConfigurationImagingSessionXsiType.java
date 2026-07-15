@@ -2,6 +2,8 @@ package org.nrg.xsync.configuration.json;
 
 import java.util.ArrayList;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,6 +14,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * @author Mohana Ramaratnam
  * @author Atul Kaushal
  */
+@Setter
+@Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
 
 public class SyncConfigurationImagingSessionXsiType extends SyncConfigurationXsiType {
@@ -19,48 +23,11 @@ public class SyncConfigurationImagingSessionXsiType extends SyncConfigurationXsi
 	/** The Constant logger. */
 	public static final Logger logger = LoggerFactory.getLogger(SyncConfigurationImagingSessionXsiType.class);
 
-	SyncConfigurationScanTypes scan_types;
-	SyncConfigurationResource scan_resources;
-	SyncConfigurationSessionAssessor session_assessors;
+    SyncConfigurationScanTypes scan_types;
+    SyncConfigurationResource scan_resources;
+    SyncConfigurationSessionAssessor session_assessors;
 
-	/**
-	 * @return the scan_types
-	 */
-	public SyncConfigurationScanTypes getScan_types() {
-		return scan_types;
-	}
-	/**
-	 * @param scan_types the scan_types to set
-	 */
-	public void setScan_types(SyncConfigurationScanTypes scan_types) {
-		this.scan_types = scan_types;
-	}
-	/**
-	 * @return the scan_resources
-	 */
-	public SyncConfigurationResource getScan_resources() {
-		return scan_resources;
-	}
-	/**
-	 * @param scan_resources the scan_resources to set
-	 */
-	public void setScan_resources(SyncConfigurationResource scan_resources) {
-		this.scan_resources = scan_resources;
-	}
-	/**
-	 * @return the session_assessors
-	 */
-	public SyncConfigurationSessionAssessor getSession_assessors() {
-		return session_assessors;
-	}
-	/**
-	 * @param session_assessors the session_assessors to set
-	 */
-	public void setSession_assessors(SyncConfigurationSessionAssessor session_assessors) {
-		this.session_assessors = session_assessors;
-	}
-
-	/**
+    /**
 	 * Default configuration.
 	 * 
 	 * @param xsiType

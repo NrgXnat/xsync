@@ -104,7 +104,7 @@ public class SubjectDataSync {
         newSubject.setProject(remoteProjectId);
         IdMapper idMapper = new IdMapper(manager, queryResultUtil, jdbcTemplate, user, projectSyncConfiguration);
         String subject_remote_id;
-        subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_BEGINING);
+        subjectSyncInfo.setSyncStatus(XsyncUtils.SYNC_STATUS_BEGINNING);
         subjectSyncInfo.stateChanged();
         ResourceSyncManager resourceSyncManager = new ResourceSyncManager(
                 manager, xnatInfo,queryResultUtil,

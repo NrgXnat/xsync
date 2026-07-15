@@ -4,124 +4,96 @@ import java.io.Serializable;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * @author Mohana Ramaratnam
  *
  */
+@Setter
+@Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
+public class SyncConfiguration implements Serializable {
 
-public class SyncConfiguration implements Serializable{
-
-	
-	Boolean enabled;
-	String sync_frequency;
-	Boolean sync_new_only;
-	String source_project_id;
-	String remote_project_id;
-	String remote_url;
-	String identifiers;
-	
-	/** The custom identifier generator class. */
+    Boolean enabled;
+    String sync_frequency;
+    Boolean sync_new_only;
+    String source_project_id;
+    String remote_project_id;
+    String remote_url;
+    String identifiers;
 	String customIdentifierClass;
-	Boolean anonymize;
-	SyncConfigurationResource project_resources;
-	SyncConfigurationResource subject_resources;
-	SyncConfigurationSubjectAssessor subject_assessors;
-	SyncConfigurationImagingSessions imaging_sessions;
-	
-	/** The notification emails. */
+    Boolean anonymize;
+    SyncConfigurationResource project_resources;
+    SyncConfigurationResource subject_resources;
+    SyncConfigurationSubjectAssessor subject_assessors;
+    SyncConfigurationImagingSessions imaging_sessions;
 	private String notification_emails;
-	/**
-	 * Number of days for retry.
-	 */
 	private Integer no_of_retry_days=3;
-	
-	
+
 	public boolean isProjectResourceAllowedToSync(String resourceLabel) {
-		boolean isAllowed = false;
 		if (hasProjectResourceConfigurationDefinition()) {
-			isAllowed = project_resources.isAllowedToSync(resourceLabel);
+			return project_resources.isAllowedToSync(resourceLabel);
 		}else {
 			return true; //Anything not configured defaults to sync
 		}
-		return isAllowed;
 	}
 
 	public boolean isSubjectResourceAllowedToSync(String resourceLabel) {
-		boolean isAllowed = false;
 		if (hasSubjectResourceConfigurationDefinition()) {
-			isAllowed = subject_resources.isAllowedToSync(resourceLabel);
+			return subject_resources.isAllowedToSync(resourceLabel);
 		}else {
 			return true; //Anything not configured defaults to sync
 		}
-		return isAllowed;
 	}
 
 	public boolean isSubjectAssessorAllowedToSync(String xsiType) {
-		boolean isAllowed = false;
 		try {
 			if (hasSubjectAssessorConfigurationDefinition()) {
-				isAllowed = subject_assessors.isAllowedToSync(xsiType);
+				return subject_assessors.isAllowedToSync(xsiType);
 			}else {
 				return true; //Anything not configured defaults to sync
 			}
-		}catch(NullPointerException npe) {
+		} catch(NullPointerException ignored) {
 			
 		}
-		return isAllowed;
+		return false;
 	}
 
 	public boolean hasProjectResourceConfigurationDefinition() {
-		if (project_resources == null) {
-			return false;
-		}else {
-			return true;
-		}
+        return project_resources != null;
 	}
 
 	public boolean hasSubjectResourceConfigurationDefinition() {
-		if (subject_resources == null) {
-			return false;
-		}else {
-			return true;
-		}
+        return subject_resources != null;
 	}
 
 
 	public boolean hasSubjectAssessorConfigurationDefinition() {
-		if (subject_assessors == null) {
-			return false;
-		}else {
-			return true;
-		}
+        return subject_assessors != null;
 	}
 
 	public boolean hasImagingSessionConfigurationDefinition() {
-		if (imaging_sessions == null) {
-			return false;
-		}else {
-			return true;
-		}
+        return imaging_sessions != null;
 	}
 
 	public boolean isImagingSessionAllowedToSync(String xsiType) {
-		boolean isAllowed = false;
 		try {
 			if (hasImagingSessionConfigurationDefinition()) {
-				isAllowed = imaging_sessions.isAllowedToSync(xsiType);
+				return imaging_sessions.isAllowedToSync(xsiType);
 			}else {
 				return true; //Anything not configured defaults to sync
 			}
-		}catch(NullPointerException npe) {}
-		return isAllowed;
+		} catch(NullPointerException ignored) {}
+		return false;
 	}
 
 	public SyncConfigurationXsiType getSubjectAssessor(String xsiType) {
 		SyncConfigurationXsiType advOption = SyncConfigurationXsiType.GetDefaultSyncConfiguration(xsiType);
 		if (hasSubjectAssessorConfigurationDefinition()) {
 				List<SyncConfigurationXsiType> advOptions = subject_assessors.getXsi_types();
-				if (advOptions == null || advOptions.size() < 1) {
+				if (advOptions == null || advOptions.isEmpty()) {
 					return advOption;
 				}
 				for (SyncConfigurationXsiType aOption : advOptions) {
@@ -139,7 +111,7 @@ public class SyncConfiguration implements Serializable{
 		if (hasImagingSessionConfigurationDefinition()) {
 			//if (isImagingSessionAllowedToSync(xsiType)) {
 				List<SyncConfigurationImagingSessionXsiType> advOptions = imaging_sessions.getXsi_types();
-				if (advOptions == null || advOptions.size() < 1){
+				if (advOptions == null || advOptions.isEmpty()) {
 					return advOption;
 				}
 				for (SyncConfigurationImagingSessionXsiType aOption : advOptions) {
@@ -151,220 +123,5 @@ public class SyncConfiguration implements Serializable{
 			//}
 		}
 		return advOption;
-	}
-
-
-	/**
-	 * @return the source_project_id
-	 */
-	public String getSource_project_id() {
-		return source_project_id;
-	}
-
-	/**
-	 * @param source_project_id the source_project_id to set
-	 */
-	public void setSource_project_id(String source_project_id) {
-		this.source_project_id = source_project_id;
-	}
-
-	/**
-	 * @return the project_resources
-	 */
-	public SyncConfigurationResource getProject_resources() {
-		return project_resources;
-	}
-
-	/**
-	 * @param project_resources the project_resources to set
-	 */
-	public void setProject_resources(SyncConfigurationResource project_resources) {
-		this.project_resources = project_resources;
-	}
-
-	/**
-	 * @return the subject_resources
-	 */
-	public SyncConfigurationResource getSubject_resources() {
-		return subject_resources;
-	}
-
-	/**
-	 * @param subject_resources the subject_resources to set
-	 */
-	public void setSubject_resources(SyncConfigurationResource subject_resources) {
-		this.subject_resources = subject_resources;
-	}
-
-	/**
-	 * @return the subject_assessors
-	 */
-	public SyncConfigurationSubjectAssessor getSubject_assessors() {
-		return subject_assessors;
-	}
-
-	/**
-	 * @param subject_assessors the subject_assessors to set
-	 */
-	public void setSubject_assessors(SyncConfigurationSubjectAssessor subject_assessors) {
-		this.subject_assessors = subject_assessors;
-	}
-
-	/**
-	 * @return the imaging_sessions
-	 */
-	public SyncConfigurationImagingSessions getImaging_sessions() {
-		return imaging_sessions;
-	}
-
-	/**
-	 * @return the enabled
-	 */
-	public Boolean getEnabled() {
-		return enabled;
-	}
-
-	/**
-	 * @param enabled the enabled to set
-	 */
-	public void setEnabled(Boolean enabled) {
-		this.enabled = enabled;
-	}
-
-	/**
-	 * @return the sync_frequency
-	 */
-	public String getSync_frequency() {
-		return sync_frequency;
-	}
-
-	/**
-	 * @param sync_frequency the sync_frequency to set
-	 */
-	public void setSync_frequency(String sync_frequency) {
-		this.sync_frequency = sync_frequency;
-	}
-
-	/**
-	 * @return the sync_new_only
-	 */
-	public Boolean getSync_new_only() {
-		return sync_new_only;
-	}
-
-	/**
-	 * @param sync_new_only the sync_new_only to set
-	 */
-	public void setSync_new_only(Boolean sync_new_only) {
-		this.sync_new_only = sync_new_only;
-	}
-
-	/**
-	 * @return the remote_project_id
-	 */
-	public String getRemote_project_id() {
-		return remote_project_id;
-	}
-
-	/**
-	 * @param remote_project_id the remote_project_id to set
-	 */
-	public void setRemote_project_id(String remote_project_id) {
-		this.remote_project_id = remote_project_id;
-	}
-
-	/**
-	 * @return the remote_url
-	 */
-	public String getRemote_url() {
-		return remote_url;
-	}
-
-	/**
-	 * @param remote_url the remote_url to set
-	 */
-	public void setRemote_url(String remote_url) {
-		this.remote_url = remote_url;
-	}
-
-	/**
-	 * @return the identifiers
-	 */
-	public String getIdentifiers() {
-		return identifiers;
-	}
-
-	/**
-	 * @param identifiers the identifiers to set
-	 */
-	public void setIdentifiers(String identifiers) {
-		this.identifiers = identifiers;
-	}
-
-	/**
-	 * @param imaging_sessions the imaging_sessions to set
-	 */
-	public void setImaging_sessions(SyncConfigurationImagingSessions imaging_sessions) {
-		this.imaging_sessions = imaging_sessions;
-	}
-	
-	/**
-	 * @return the anonymize
-	 */
-	public Boolean getAnonymize() {
-		return anonymize;
-	}
-	/**
-	 * @param anonymize the anonymize to set
-	 */
-	public void setAnonymize(Boolean anonymize) {
-		this.anonymize = anonymize;
-	}
-
-	/**
-	 * Gets the notification emails.
-	 *
-	 * @return the notification_emails
-	 */
-	public String getNotification_emails() {
-		return notification_emails;
-	}
-
-	/**
-	 * Sets the notification emails.
-	 *
-	 * @param notification_emails the notification_emails to set
-	 */
-	public void setNotification_emails(String notification_emails) {
-		this.notification_emails = notification_emails;
-	}
-
-	/**
-	 * @return the no_of_retry_days
-	 */
-	public Integer getNo_of_retry_days() {
-		return no_of_retry_days;
-	}
-
-	/**
-	 * @param no_of_retry_days the no_of_retry_days to set
-	 */
-	public void setNo_of_retrydays(Integer no_of_retry_days) {
-		if(no_of_retry_days!=null)
-		this.no_of_retry_days = no_of_retry_days;
-	}
-	
-	/**
-	 * @return the customIdenfitierClass
-	 */
-	public String getCustomIdenfitierClass() {
-		return customIdentifierClass;
-	}
-
-	/**
-	 * @param customIdenfitierClass the customIdenfitierClass to set
-	 */
-	public void setCustomIdenfitierClass(String customIdenfitierClass) {
-		this.customIdentifierClass = customIdenfitierClass;
 	}
 }
