@@ -64,15 +64,15 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
     })
     @XapiRequestMapping(method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Admin)
-    public ResponseEntity<List<XsyncRemoteUrlDetailsPojo>> getAllXsyncConfigInformation() {
+    public List<XsyncRemoteUrlDetailsPojo> getAllXsyncConfigInformation() {
         final UserI user = getSessionUser();
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
         if (_sitePreferences.getXsyncWhitelistEnabled()) {
-            return new ResponseEntity<>(_configurationDashboardService.createListOfRemoteDestinations(user,
-              allHistoryItems, true, _whitelistXsyncSiteService.getAllWhitelistedSites()), HttpStatus.OK);
+            return _configurationDashboardService.createListOfRemoteDestinations(user,
+              allHistoryItems, true, _whitelistXsyncSiteService.getAllWhitelistedSites());
         } else {
-            return new ResponseEntity<>(_configurationDashboardService.createListOfRemoteDestinations(user,
-              allHistoryItems, false, Collections.emptyList()), HttpStatus.OK);
+            return _configurationDashboardService.createListOfRemoteDestinations(user,
+              allHistoryItems, false, Collections.emptyList());
         }
     }
 
@@ -85,12 +85,9 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
     })
     @XapiRequestMapping(value = "/remoteUrl", method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Admin)
-    public ResponseEntity<List<XsyncDashboardProjectConfigurationPojo>> getSyncDetailsForRemoteUrl(
+    public List<XsyncDashboardProjectConfigurationPojo> getSyncDetailsForRemoteUrl(
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) {
-        final UserI user = getSessionUser();
-        List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
-        return new ResponseEntity<>(_configurationDashboardService.getAllProjectConnectionsForUrl(
-                user, allHistoryItems, remoteUrl), HttpStatus.OK);
-
+        return _configurationDashboardService.getAllProjectConnectionsForUrl(getSessionUser(),
+                                                                             _syncManifestService.getAll(), remoteUrl);
     }
 }

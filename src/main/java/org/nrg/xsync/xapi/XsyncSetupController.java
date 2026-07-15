@@ -1,11 +1,13 @@
 package org.nrg.xsync.xapi;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.config.entities.Configuration;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.constants.Scope;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatProjectdata;
@@ -19,8 +21,6 @@ import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.nrg.xsync.utils.XsyncUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -40,6 +40,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
 import java.util.List;
+import java.util.zip.DataFormatException;
 
 /**
  * @author Mohana Ramaratnam
@@ -49,6 +50,7 @@ import java.util.List;
 @XapiRestController
 @RequestMapping(value = "/xsync/setup")
 @Api("XSync Management API")
+@Slf4j
 public class XsyncSetupController extends AbstractXapiProjectRestController {
 	@Autowired
 	public XsyncSetupController(final UserManagementServiceI userManagementService,
@@ -70,42 +72,41 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			@ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.POST, consumes =
 			MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Delete)
-	public ResponseEntity<String> setup(@PathVariable("projectId") String projectId,
-										@RequestBody SyncConfigurationPojo configurationPojo) {
+	public String setup(@PathVariable("projectId") String projectId,
+										@RequestBody SyncConfigurationPojo configurationPojo) throws Exception {
 		try {
 			final UserI user = getSessionUser();
 
 			if (configurationPojo.getSource_project_id().isBlank()) {
-				return new ResponseEntity<>(" Project ID not provided ", HttpStatus.BAD_REQUEST);
+				throw new DataFormatException("Project ID not provided.");
 			}  else if (!configurationPojo.getSource_project_id().equals(projectId)) {
-				return new ResponseEntity<>(" Project ID values are inconsistent ", HttpStatus.BAD_REQUEST);
+				throw new DataFormatException("Project ID values are inconsistent");
 			} else {
 				XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
 				if (project == null) {
-					return new ResponseEntity<>(" Project " + projectId + " not found. ", HttpStatus.BAD_REQUEST);
+					throw new NotFoundException(" Project " + projectId + " not found. ");
 				} else {
 					XsyncSitePreferencesPojo sitePreferencesPojo = _prefs.toPojo();
 					if (sitePreferencesPojo.getXsyncWhitelistEnabled()) {
 						List<WhitelistSitePojo> whitelistSitePojoList =
 								_whitelistXsyncSiteService.getAllWhitelistedSites();
 						if (whitelistSitePojoList.stream().noneMatch(wl -> wl.getSiteUrl().equalsIgnoreCase(configurationPojo.getRemote_url()))) {
-							return new ResponseEntity<>(" Site URL " + configurationPojo.getRemote_url() + " is not an allowed option to " +
-																"receive data. ",HttpStatus.BAD_REQUEST);
+							throw new IllegalArgumentException( " Site URL " + configurationPojo.getRemote_url() +
+																		" is not an allowed option to receive data.");
 						}
 					}
 					
 					XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, user);
 					xsyncUtils.loadConfigurationToDB(configurationPojo);
 					saveConfig(configurationPojo, projectId);
-					return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
+					return projectId + " Xsync Setup complete";
 				}
 			}
 		} catch (Exception  exception) {
-            _logger.error("ERROR:  Xsync Setup Threw an Exception:  {}", ExceptionUtils.getFullStackTrace(exception));
-			return new ResponseEntity<>(projectId + " Xsync Setup failed ", HttpStatus.INTERNAL_SERVER_ERROR );
+            log.error("ERROR: Xsync Setup Threw an Exception:  {}", ExceptionUtils.getFullStackTrace(exception));
+			throw new Exception(projectId + " Xsync Setup failed ");
 		}
 	}
-
 	
 	@ApiOperation(value = "Gets the Xsync project configuration" )
 	@ApiResponses({@ApiResponse(code = 200, message = "XSync configuration returned."),
@@ -153,7 +154,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
             }
 			saveDicomAnonymizationToConfig(project,anonymizationScript);
 		}catch(Exception e) {
-            _logger.error("ERROR:  Error saving pre-sync DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
+            log.error("ERROR:  Error saving pre-sync DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
         	return new ResponseEntity<>(projectId + " Pre-Sync DICOM Anonymization script could not be saved. ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
     	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved",  HttpStatus.OK);
@@ -173,15 +174,13 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			Configuration config = _configService.getConfig("xsync", "presyncanonymization", Scope.Project, projectId);
 			return new ResponseEntity<>(config == null ? "" : config.getContents(), HttpStatus.OK);
 		} catch(Exception e) {
-            _logger.error("ERROR:  Error returning DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
+            log.error("ERROR:  Error returning DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
 			return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
 		}
 	}
-
 
 	private final ConfigService              _configService;
 	private final XsyncSitePreferencesBean   _prefs;
 	private final WhitelistXsyncSiteService  _whitelistXsyncSiteService;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
-	public static Logger _logger = LoggerFactory.getLogger(XsyncSetupController.class);
 }
