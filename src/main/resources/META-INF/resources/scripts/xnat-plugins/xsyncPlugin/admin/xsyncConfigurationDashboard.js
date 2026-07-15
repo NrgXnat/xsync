@@ -153,6 +153,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 xsyncConfigurationDashboard.currentHistoryData = []
                 data.forEach(function (item) {
                     var startDate = new Date(item.startDate);
+                    item.startDateAsDate = startDate;
                     item.startDate = startDate.toDateString() + ' ' + startDate.toLocaleTimeString();
                     var completeDate = new Date(item.completeDate);
                     item.completeDate = completeDate.toDateString() + ' ' + completeDate.toLocaleTimeString();
@@ -183,7 +184,8 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 }
             ],
             afterShow: function() {
-                 $('#history_modal_content').append(spawnDetailsForList(xsyncConfigurationDashboard.currentHistoryData));
+                xsyncConfigurationDashboard.currentHistoryData.sort((a,b) => (a.startDateAsDate < b.startDateAsDate) ? 1 : -1);
+                $('#history_modal_content').append(spawnDetailsForList(xsyncConfigurationDashboard.currentHistoryData));
             }
         });
     }
