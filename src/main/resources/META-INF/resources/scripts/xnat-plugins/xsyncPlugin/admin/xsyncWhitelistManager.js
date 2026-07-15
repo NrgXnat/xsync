@@ -209,7 +209,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                             whitelistSite['siteId'] = xsyncWhitelistManager.validate($('#site_id_input'), 'Site Name', 'required');
                         }
                         whitelistSite['siteName'] = xsyncWhitelistManager.validate($('#site_name_input'), 'Site Name', 'required');
-                        whitelistSite['siteUrl'] = xsyncWhitelistManager.validate($('#site_url_input'), 'Site URL', 'required');
+                        whitelistSite['siteUrl'] = trimUrl(xsyncWhitelistManager.validate($('#site_url_input'), 'Site URL', 'required'));
                         whitelistSite['classification'] = $('#classification_input').val();
                         if (xsyncWhitelistManager.validation!="") {
                             $("#warning").html(xsyncWhitelistManager.validation);
@@ -466,4 +466,9 @@ function spacer(width){
 
 function textContains(string, substring){
     return (string.indexOf(substring) !== -1);
+}
+
+//strip urls of whitespace and trailing slashes
+function trimUrl(x) {
+  return x.replace(/\/$/,'');
 }
