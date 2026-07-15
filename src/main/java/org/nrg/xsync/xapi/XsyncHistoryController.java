@@ -20,7 +20,6 @@ import org.nrg.xsync.services.local.SyncManifestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -62,12 +61,12 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             @ApiResponse(code=500, message="Unexpected error")
     })
     @XapiRequestMapping(method=RequestMethod.GET, restrictTo = AccessLevel.Admin, produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<List<XsyncProjectHistoryPojo>> getAllSyncHistory() {
+    public List<XsyncProjectHistoryPojo> getAllSyncHistory() {
         List<XsyncProjectHistoryPojo> allHistoryPojos = new ArrayList<>();
         for (XsyncProjectHistory history : syncManifestService.getAll()) {
             allHistoryPojos.add(mapper.convertValue(history, XsyncProjectHistoryPojo.class));
         }
-        return new ResponseEntity<>(allHistoryPojos, HttpStatus.OK);
+        return allHistoryPojos;
     }
 
     @ApiOperation(value="Get a specific history element from a project's history record.")
@@ -79,10 +78,10 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     })
     @XapiRequestMapping(method=RequestMethod.GET, value="/projects/{projectId}/{id}", restrictTo = AccessLevel.Read,
             produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<XsyncProjectHistoryPojo> getSyncHistoryById(
+    public XsyncProjectHistoryPojo getSyncHistoryById(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") final String projectId,
             @ApiParam(value = "Id of requested history item.", required = true)@PathVariable("id") final long id) {
-        return new ResponseEntity<>(mapper.convertValue(syncManifestService.retrieve(id), XsyncProjectHistoryPojo.class), HttpStatus.OK);
+        return mapper.convertValue(syncManifestService.retrieve(id), XsyncProjectHistoryPojo.class);
     }
 
     @ApiOperation(value="Get xsync history for project.")
@@ -94,7 +93,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     })
     @XapiRequestMapping(value="/projects/{projectId}", method=RequestMethod.GET, restrictTo = AccessLevel.Read,
             produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<List<XsyncProjectHistoryPojo>> getSyncHistoryByProject(
+    public List<XsyncProjectHistoryPojo> getSyncHistoryByProject(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId) {
     	List<XsyncProjectHistory> allHistory = syncManifestService.getAll();
         List<XsyncProjectHistoryPojo> filteredHistory = new ArrayList<>();
@@ -104,7 +103,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
                 filteredHistory.add(mapper.convertValue(history, XsyncProjectHistoryPojo.class));
             }
         }
-        return new ResponseEntity<>(filteredHistory, HttpStatus.OK);
+        return filteredHistory;
     }
 
     @ApiOperation(value="Get xsync history for specific subject.")
@@ -117,20 +116,20 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     })
     @XapiRequestMapping(value="/latest/projects/{projectId}/subjects/{subjectLabel}", method=RequestMethod.GET,
             restrictTo = AccessLevel.Read, produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<XsyncProjectHistoryPojo> getSubjectHistoryElement(
+    public XsyncProjectHistoryPojo getSubjectHistoryElement(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId,
-            @ApiParam(value = "Subject label.", required = true)@PathVariable("subjectLabel") String subjectLabel)  {
+            @ApiParam(value = "Subject label.", required = true)@PathVariable("subjectLabel") String subjectLabel) throws NotFoundException {
         final UserI user = getSessionUser();
 
         XnatSubjectdata subject  = XnatSubjectdata.GetSubjectByProjectIdentifier(projectId, subjectLabel, user, false);
         if (subject != null) {
             XsyncProjectHistory latest = syncManifestService.findMostRecentBySubject(projectId, subjectLabel);
             if (latest == null) {
-              return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                throw new NotFoundException("No history elements found for subject: {}", subjectLabel);
             }
-            return new ResponseEntity<>(mapper.convertValue(latest, XsyncProjectHistoryPojo.class), HttpStatus.OK);
+            return mapper.convertValue(latest, XsyncProjectHistoryPojo.class);
         }
-        return new ResponseEntity<>( HttpStatus.BAD_REQUEST);
+        throw new NotFoundException("Subject label {} not found.", subjectLabel);
     }
 
     @ApiOperation(value = "Get the stack trace for a failed sync." )
@@ -142,10 +141,10 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     })
     @XapiRequestMapping(value = "{projectId}/failure", method = RequestMethod.GET,
             produces = {MediaType.TEXT_PLAIN_VALUE}, restrictTo = AccessLevel.Read)
-    public ResponseEntity<String> getFailureStackTrace(
+    public String getFailureStackTrace(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") final String projectId,
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) throws NotFoundException {
-        return new ResponseEntity<>(syncManifestService.getStacktraceForFailedSync(remoteUrl, projectId), HttpStatus.OK);
+        return syncManifestService.getStacktraceForFailedSync(remoteUrl, projectId);
     }
 
     private final SyncManifestService syncManifestService;
