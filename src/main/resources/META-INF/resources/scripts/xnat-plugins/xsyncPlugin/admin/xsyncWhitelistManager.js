@@ -37,35 +37,30 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     xsyncWhitelistManager.toggleWhitelistSwitch = function(enabled) {
         let $whitelistTableDiv = $('div#xsync-whitelist-table');
-        let inputPrefs = {};
         if (enabled === "true") {
-            inputPrefs['xsyncWhitelistEnabled'] = true;
             $whitelistTableDiv.empty().append(xsyncWhitelistManager.table());
             $whitelistTableDiv.append(xsyncWhitelistManager.getAddButton());
+            return {xsyncWhitelistEnabled: true}
         } else {
-            inputPrefs['xsyncWhitelistEnabled'] = false;
             $whitelistTableDiv.empty();
+            return {xsyncWhitelistEnabled: false}
         }
+    }
 
-        //checking this saved field should avoid an unnecessary API call upon page load
-        if (inputPrefs['xsyncWhitelistEnabled'] != xsyncWhitelistManager.isWhitelistEnabledBackend) {
-            XNAT.xhr.post({
-                url: restUrl('/xapi/xsyncSitePreferences/'),
-                async: false,
-                contentType: 'application/json',
-                data: JSON.stringify(inputPrefs),
-                success: function () {
-                    xsyncWhitelistManager.isWhitelistEnabledBackend = inputPrefs['xsyncWhitelistEnabled'];
-                    $.getScript("xsyncConfigurationDashboard.js",function(){
-                       XNAT.plugin.xsync.xsyncConfigurationDashboard.refreshTable();
-                    });
-                    console.log('Updated site enabled preference.');
-                },
-                fail: function (e) {
-                    XNAT.ui.banner.top(2000, 'Could not update site enabled preference: ' +  e.responseText, 'error');
-                }
-            });
-        }
+    xsyncWhitelistManager.postWhitelistPreferences = function(preferences) {
+        XNAT.xhr.post({
+            url: restUrl('/xapi/xsyncSitePreferences/'),
+            async: false,
+            contentType: 'application/json',
+            data: JSON.stringify(preferences),
+            success: function () {
+                xsyncWhitelistManager.isWhitelistEnabledBackend = preferences['xsyncWhitelistEnabled'];
+                XNAT.plugin.xsync.xsyncConfigurationDashboard.refreshTable();
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not update site enabled preference: ' +  e.responseText, 'error');
+            }
+        });
     }
 
     xsyncWhitelistManager.getWhitelistedSites = function() {
@@ -141,7 +136,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 options: {
                     opt1: { label: 'CLINICAL',   value: 'CLINICAL' },
                     opt2: { label: 'RESEARCH',   value: 'RESEARCH' },
-                    opt3: { label: 'PUBLIC', value: 'PUBLIC' }
+                    opt3: { label: 'PUBLIC',     value: 'PUBLIC' }
                 }
             })
         ];
@@ -426,7 +421,8 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     }
 
     $(document).on('change','#limit-to-whitelist', function(){
-        xsyncWhitelistManager.toggleWhitelistSwitch($(this).val());
+        var preferences = xsyncWhitelistManager.toggleWhitelistSwitch($(this).val());
+        xsyncWhitelistManager.postWhitelistPreferences(preferences)
     });
 
     xsyncWhitelistManager.init = function() {
@@ -470,5 +466,5 @@ function textContains(string, substring){
 
 //strip urls of whitespace and trailing slashes
 function trimUrl(x) {
-  return x.replace(/\/$/,'');
+    return x.replace(/\/$/,'');
 }
