@@ -90,10 +90,10 @@ public class ConfigurationDashboardServiceImpl implements ConfigurationDashboard
                 currentPojo.setNumberProjects(1);
                 currentPojo.setNumberErrors(0);
                 if (whitelistEnabled && whitelist.stream().map(WhitelistSitePojo::getSiteUrl).toList().contains(remoteUrl)) {
-                    WhitelistSitePojo whitelistElement = whitelist.stream()
-                            .filter(wl -> wl.getSiteUrl().equals(remoteUrl)).toList().getFirst();
-                    currentPojo.setSiteName(whitelistElement.getSiteName());
-                    currentPojo.setClassification(whitelistElement.getClassification());
+                   whitelist.stream().filter(wl -> wl.getSiteUrl().equals(remoteUrl)).findAny().ifPresent(wl ->{
+                             currentPojo.setSiteName(wl.getSiteName());
+                             currentPojo.setClassification(wl.getClassification());
+                    });
                 } else {
                     currentPojo.setSiteName("NOT ON WHITELIST");
                 }
