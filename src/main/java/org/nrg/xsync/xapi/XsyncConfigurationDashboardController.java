@@ -88,14 +88,14 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
     })
     @XapiRequestMapping(value = "/whitelist", method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Admin)
-    public ResponseEntity<List<XsyncRemoteUrlDetailsPojo>> getAllNonConformingRemoteUrls() {
+    public List<XsyncRemoteUrlDetailsPojo> getAllNonConformingRemoteUrls() {
         if (!_sitePreferences.getXsyncWhitelistEnabled()) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            throw new UnsupportedOperationException("Whitelist is not turned on for xsync.");
         }
         final UserI user = getSessionUser();
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
-        return new ResponseEntity<>(_configurationDashboardService.getAllNonWhitelistRemoteUrls(user,
-            _whitelistXsyncSiteService.getAllWhitelistedSites(), allHistoryItems), HttpStatus.OK);
+        return _configurationDashboardService.getAllNonWhitelistRemoteUrls(user,
+            _whitelistXsyncSiteService.getAllWhitelistedSites(), allHistoryItems);
     }
 
     @ApiOperation(value = "Get a report of local projects connected to input remote url." )
@@ -117,5 +117,11 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
     @ExceptionHandler(value = {NotFoundException.class})
     public String handleElementNotFound(final Exception e) {
         return "Element not found: " + e.getMessage();
+    }
+
+    @ResponseStatus(value = HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(value = {UnsupportedOperationException.class})
+    public String handleUnsupportedOperation(final Exception e) {
+        return e.getMessage();
     }
 }
