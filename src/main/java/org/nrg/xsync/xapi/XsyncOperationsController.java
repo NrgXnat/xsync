@@ -40,7 +40,7 @@ import org.nrg.xsync.exception.XsyncNotConfiguredException;
 import org.nrg.xsync.local.SingleExperimentTransfer;
 import org.nrg.xsync.local.SingleSubjectTransfer;
 import org.nrg.xsync.manager.SynchronizationManager;
-import org.nrg.xsync.manifest.XsyncProjectHistory;
+import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.remote.alias.services.SyncStatusService;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.tools.XsyncXnatInfo;

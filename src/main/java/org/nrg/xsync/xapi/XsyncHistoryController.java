@@ -3,24 +3,28 @@ package org.nrg.xsync.xapi;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.annotations.ApiParam;
 import org.nrg.framework.annotations.XapiRestController;
+import org.nrg.xapi.exceptions.NoContentException;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatSubjectdata;
+import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
-import org.nrg.xsync.components.XsyncSitePreferencesBean;
-import org.nrg.xsync.manifest.XsyncProjectHistory;
+import org.nrg.xsync.manifest.history.XsyncProjectHistory;
+import org.nrg.xsync.pojo.history.XsyncProjectHistoryPojo;
 import org.nrg.xsync.services.local.SyncManifestService;
-import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -28,6 +32,8 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 
 /**
@@ -43,109 +49,116 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
 	@Autowired
 	public XsyncHistoryController(final SyncManifestService syncManifestService,
                                   final UserManagementServiceI userManagementService,
-                                  final RoleHolder roleHolder,
-                                  final WhitelistXsyncSiteService whitelistXsyncSiteService,
-                                  final XsyncSitePreferencesBean xsyncSitePreferencesBean) {
+                                  final RoleHolder roleHolder) {
         super(userManagementService, roleHolder);
         this.syncManifestService = syncManifestService;
-        this.whitelistXsyncSiteService = whitelistXsyncSiteService;
-        this.xsyncSitePreferencesBean = xsyncSitePreferencesBean;
     }
 	
-    /**
-     * Gets the all sync history.
-     *
-     * @return the all sync history
-     */
-    @ApiOperation(value="History of Xsync transactions", response=String.class)
+    @ApiOperation(value="Get the complete list of history elements.")
     @ApiResponses({
-            @ApiResponse(code=200, message="OK"),
-            @ApiResponse(code=401, message="Not Found")
+            @ApiResponse(code=200, message="Returned history elements."),
+            @ApiResponse(code=401, message="History elements not found."),
+            @ApiResponse(code=403, message="Insufficient permissions to obtain all history data."),
+            @ApiResponse(code=500, message="Unexpected error")
     })
-    @XapiRequestMapping(method=RequestMethod.GET)
-    @ResponseBody
-    public ResponseEntity<List<XsyncProjectHistory>> getAllSyncHistory() {
-    	final HttpStatus status = isPermitted();
-        if (status != null) {
-            return new ResponseEntity<>(status);
-        }    	
-        return new ResponseEntity<>(syncManifestService.getAll(), HttpStatus.OK);
+    @XapiRequestMapping(method=RequestMethod.GET, restrictTo = AccessLevel.Admin, produces = {MediaType.APPLICATION_JSON_VALUE})
+    public List<XsyncProjectHistoryPojo> getAllSyncHistory() {
+        List<XsyncProjectHistoryPojo> allHistoryPojos = new ArrayList<>();
+        for (XsyncProjectHistory history : syncManifestService.getAll()) {
+            allHistoryPojos.add(mapper.convertValue(history, XsyncProjectHistoryPojo.class));
+        }
+        return allHistoryPojos;
     }
 
-    /**
-     * Gets the sync history by id.
-     *
-     * @param projectId the project id
-     * @param id the id
-     * @return the sync history by id
-     * @throws Exception the exception
-     */
-    @XapiRequestMapping(method=RequestMethod.GET, value="/projects/{projectId}/{id}")
-    @ResponseBody
-    public ResponseEntity<XsyncProjectHistory> getSyncHistoryById(@PathVariable("projectId") final String projectId,@PathVariable("id") final long id) throws Exception {
-    	final HttpStatus status = canReadProject(projectId);
-        if (status != null) {
-            return new ResponseEntity<>(status);
-        }
-        return new ResponseEntity<>(syncManifestService.retrieve(id), HttpStatus.OK);
+    @ApiOperation(value="Get a specific history element from a project's history record.")
+    @ApiResponses({
+            @ApiResponse(code=200, message="Returned history element."),
+            @ApiResponse(code=401, message="History element not found."),
+            @ApiResponse(code=403, message="Insufficient permissions to obtain history element."),
+            @ApiResponse(code=500, message="Unexpected error")
+    })
+    @XapiRequestMapping(method=RequestMethod.GET, value="/projects/{projectId}/{id}", restrictTo = AccessLevel.Read,
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    public XsyncProjectHistoryPojo getSyncHistoryById(
+            @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") final String projectId,
+            @ApiParam(value = "Id of requested history item.", required = true)@PathVariable("id") final long id) {
+        return mapper.convertValue(syncManifestService.retrieve(id), XsyncProjectHistoryPojo.class);
     }
 
-    /**
-     * Gets the sync history by project.
-     *
-     * @param projectId the project id
-     * @return the sync history by project
-     * @throws Exception the exception
-     */
-    @XapiRequestMapping(value="/projects/{projectId}", method=RequestMethod.GET)
-    @ResponseBody
-    public ResponseEntity<List<XsyncProjectHistory>> getSyncHistoryByProject(@PathVariable("projectId") String projectId) throws Exception {
-    	final UserI user = getSessionUser();
-    	final HttpStatus status = canReadProject(projectId);
-        if (status != null) {
-            return new ResponseEntity<>(status);
-        }
+    @ApiOperation(value="Get xsync history for project.")
+    @ApiResponses({
+            @ApiResponse(code=200, message="Returned history elements."),
+            @ApiResponse(code=401, message="History element not found."),
+            @ApiResponse(code=403, message="Insufficient permissions to obtain history elements."),
+            @ApiResponse(code=500, message="Unexpected error")
+    })
+    @XapiRequestMapping(value="/projects/{projectId}", method=RequestMethod.GET, restrictTo = AccessLevel.Read,
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    public List<XsyncProjectHistoryPojo> getSyncHistoryByProject(
+            @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId) {
     	List<XsyncProjectHistory> allHistory = syncManifestService.getAll();
-        List<XsyncProjectHistory> filteredHistory = new ArrayList<>();
+        List<XsyncProjectHistoryPojo> filteredHistory = new ArrayList<>();
 
         for (XsyncProjectHistory history : allHistory) {
             if (history.getLocalProject().equals(projectId)) {
-                filteredHistory.add(history);
+                filteredHistory.add(mapper.convertValue(history, XsyncProjectHistoryPojo.class));
             }
         }
-        return new ResponseEntity<>(filteredHistory, HttpStatus.OK);
+        return filteredHistory;
     }
 
-    /**
-     * Gets the most recent sync history by project and subject label.
-     *
-     * @param projectId the project id
-     * @param subjectLabel the subject label
-     * @return the most recent sync history by project
-     * @throws Exception the exception
-     */
-    @XapiRequestMapping(value="/latest/projects/{projectId}/subjects/{subjectLabel}", method=RequestMethod.GET)
-    @ResponseBody
-    public ResponseEntity<XsyncProjectHistory> getMostRecentSyncHistoryByProject(@PathVariable("projectId") String projectId, @PathVariable("subjectLabel") String subjectLabel) throws Exception {
+    @ApiOperation(value="Get xsync history for specific subject.")
+    @ApiResponses({
+            @ApiResponse(code=200, message="Returned the history item"),
+            @ApiResponse(code=204, message="No history data found."),
+            @ApiResponse(code=401, message="No such subject."),
+            @ApiResponse(code=403, message="Insufficient permissions to obtain history data."),
+            @ApiResponse(code=404, message="Input subject label does not exist within this project."),
+            @ApiResponse(code=500, message="Unexpected error")
+    })
+    @XapiRequestMapping(value="/latest/projects/{projectId}/subjects/{subjectLabel}", method=RequestMethod.GET,
+            restrictTo = AccessLevel.Read, produces = {MediaType.APPLICATION_JSON_VALUE})
+    public XsyncProjectHistoryPojo getSubjectHistoryElement(
+            @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId,
+            @ApiParam(value = "Subject label.", required = true)@PathVariable("subjectLabel") String subjectLabel) throws NotFoundException, NoContentException {
         final UserI user = getSessionUser();
-        final HttpStatus status = canReadProject(projectId);
-        if (status != null) {
-            return new ResponseEntity<>(status);
-        }
-
         XnatSubjectdata subject  = XnatSubjectdata.GetSubjectByProjectIdentifier(projectId, subjectLabel, user, false);
         if (subject != null) {
             XsyncProjectHistory latest = syncManifestService.findMostRecentBySubject(projectId, subjectLabel);
             if (latest == null) {
-              return new ResponseEntity("{}",HttpStatus.OK);
+                throw new NoContentException("No history elements found for subject: " + subjectLabel);
             }
-            return new ResponseEntity(latest, HttpStatus.OK);
+            return mapper.convertValue(latest, XsyncProjectHistoryPojo.class);
         }
-        return new ResponseEntity("Subject identified by " + subjectLabel + " does not exist", HttpStatus.BAD_REQUEST);
+        throw new NotFoundException("Subject label {} not found.", subjectLabel);
     }
 
-    /** The service. */
+    @ApiOperation(value = "Get the stack trace for a failed sync." )
+    @ApiResponses({
+            @ApiResponse(code=200, message="Obtained stack trace."),
+            @ApiResponse(code=403, message="User unauthorized to obtain failure information."),
+            @ApiResponse(code=404, message="Configuration data not found."),
+            @ApiResponse(code=500, message="Unexpected error")
+    })
+    @XapiRequestMapping(value = "{projectId}/failure", method = RequestMethod.GET,
+            produces = {MediaType.TEXT_PLAIN_VALUE}, restrictTo = AccessLevel.Read)
+    public String getFailureStackTrace(
+            @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") final String projectId,
+            @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) throws NotFoundException {
+        return syncManifestService.getStacktraceForFailedSync(remoteUrl, projectId);
+    }
+
     private final SyncManifestService syncManifestService;
-    private final WhitelistXsyncSiteService whitelistXsyncSiteService;
-    private final XsyncSitePreferencesBean xsyncSitePreferencesBean;
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    @ResponseStatus(value = HttpStatus.NO_CONTENT)
+    @ExceptionHandler(value = {NoContentException.class})
+    public String handleNoContentException(final Exception e) {
+        return "Element not found: " + e.getMessage();
+    }
+    @ResponseStatus(value = HttpStatus.NOT_FOUND)
+    @ExceptionHandler(value = {NotFoundException.class})
+    public String handleElementNotFound(final Exception e) {
+        return "Element not found: " + e.getMessage();
+    }
 }

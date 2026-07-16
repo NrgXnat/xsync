@@ -3,7 +3,7 @@ package org.nrg.xsync.services.local.impl;
 import lombok.extern.slf4j.Slf4j;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xft.security.UserI;
-import org.nrg.xsync.manifest.XsyncProjectHistory;
+import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncDashboardProjectConfigurationPojo;
 import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;

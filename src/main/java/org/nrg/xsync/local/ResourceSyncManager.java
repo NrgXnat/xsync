@@ -81,7 +81,7 @@ public class ResourceSyncManager {
         List<XnatAbstractresourceI> deletedResources = resourcesToBeSynced.get(QueryResultUtil.DELETE_STATUS);
         List<XnatAbstractresourceI> updatedResources = resourcesToBeSynced.get(QueryResultUtil.ACTIVE_STATUS);
         List<XnatAbstractresourceI> newResources = resourcesToBeSynced.get(QueryResultUtil.NEW_STATUS);
-        if (deletedResources != null && deletedResources.size() > 0) {
+        if (deletedResources != null && !deletedResources.isEmpty()) {
             //Remove each of these resources from the Remote site
             if (syncAllStates) {
                 for (XnatAbstractresourceI resource:deletedResources) {
@@ -245,7 +245,7 @@ public class ResourceSyncManager {
                 if (resource.getFileSize() != null) {
                     resourceSyncItem.setFileSize(resource.getFileSize());
                 } else {
-                    resourceSyncItem.setFileSize(new Long(0));
+                    resourceSyncItem.setFileSize(0L);
                 }
                 resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
                 resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + responses.toString() );
@@ -262,7 +262,7 @@ public class ResourceSyncManager {
             if (resource.getFileSize() != null) {
                 resourceSyncItem.setFileSize(resource.getFileSize());
             } else {
-                resourceSyncItem.setFileSize(new Long(0));
+                resourceSyncItem.setFileSize(0L);
             }
             resourceSyncItem.setSyncStatus(XsyncUtils.SYNC_STATUS_FAILED);
             resourceSyncItem.setMessage("Subject " + localSubject.getLabel() + " resource " + rLabel + " could not be updated. " + e.getMessage() );

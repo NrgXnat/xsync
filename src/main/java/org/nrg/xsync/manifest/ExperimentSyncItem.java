@@ -2,6 +2,8 @@ package org.nrg.xsync.manifest;
 
 import java.util.ArrayList;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.om.XnatExperimentdata;
@@ -14,26 +16,27 @@ import org.nrg.xsync.utils.XsyncUtils;
  * @author Mohana Ramaratnam
  *
  */
+@Getter
 public class ExperimentSyncItem extends SyncedItem {
-	
-	ArrayList<ResourceSyncItem> resources;
-	ArrayList<ScanSyncItem> scans;
-	ArrayList<ExperimentSyncItem> assessors;
 
-	
+    @Setter
+    ArrayList<ResourceSyncItem> resources;
+    ArrayList<ScanSyncItem> scans;
+    @Setter
+    ArrayList<ExperimentSyncItem> assessors;
+
 	public ExperimentSyncItem(String localId, String localLabel) {
 		super(localId, localLabel);
-		resources = new ArrayList<ResourceSyncItem>();
-		scans = new ArrayList<ScanSyncItem>();
-		assessors = new ArrayList<ExperimentSyncItem>();
+		resources = new ArrayList<>();
+		scans = new ArrayList<>();
+		assessors = new ArrayList<>();
 	}
-	
 	
 	public void updateSyncStatus(String status, String msg) {
 		boolean someSyncFailed = false;
 		String childStatus = null;
 		String message = "";
-		if (resources != null && resources.size() > 0) {
+		if (resources != null && !resources.isEmpty()) {
 			for (ResourceSyncItem r: resources) {
 				if (r.getSyncStatus()!=null) {
 					if (r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
@@ -46,7 +49,7 @@ public class ExperimentSyncItem extends SyncedItem {
 				}
 			}
 		}
-		if (scans != null && scans.size() > 0) {
+		if (scans != null && !scans.isEmpty()) {
 			for (ScanSyncItem r: scans) {
 				if (r.getSyncStatus() != null && r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
 					someSyncFailed = true;
@@ -57,12 +60,12 @@ public class ExperimentSyncItem extends SyncedItem {
 				}
 			}
 		}
-		if (assessors != null && assessors.size() > 0) {
+		if (assessors != null && !assessors.isEmpty()) {
 			for (ExperimentSyncItem r: assessors) {
 				if (r.getSyncStatus() != null && r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_FAILED)) {
 					someSyncFailed = true;
 					message += " Assessor " + r.getLocalId() + " failed to sync. ";
-				}else if (!r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
+				} else if (!r.getSyncStatus().equals(XsyncUtils.SYNC_STATUS_SYNCED_AND_VERIFIED)) {
 					childStatus = r.getSyncStatus();
 					message += "Assessor " + r.getLocalId() + " sync needs to be verified. ";
 				}
@@ -80,26 +83,24 @@ public class ExperimentSyncItem extends SyncedItem {
 				setMessage(message);
 			}
 		}
-		
-		return;
 	}
 	
 	public Integer getTotalSyncedFileCount() {
 		int count = 0;
 		try {
 			for (ResourceSyncItem r: resources) {
-				count += r.getFileCount().intValue();
+				count += r.getFileCount();
 			}
 			for (ScanSyncItem s:scans) {
 				for (ResourceSyncItem r: s.getResources()) {
-					count += r.getFileCount().intValue();
+					count += r.getFileCount();
 				}
 			}
 			for (ExperimentSyncItem s:assessors) {
 					count += s.getTotalSyncedFileCount();
 			}
-		}catch(NullPointerException npe) {}
-		return new Integer(count);
+		} catch(NullPointerException ignored) {}
+		return count;
 	}
 
 	public Long getTotalSyncedFileSize() {
@@ -116,50 +117,21 @@ public class ExperimentSyncItem extends SyncedItem {
 			for (ExperimentSyncItem s:assessors) {
 					size += (s.getTotalSyncedFileSize()!=null?(Long)s.getTotalSyncedFileSize():0);
 			}
-		}catch(NullPointerException npe) {
+		} catch(NullPointerException ignored) {
 		}
-		return new Long(size);
+		return size;
 	}
 
 	public String getFormattedTotalSyncedFileSize() {
 		return XsyncFileUtils.getFormattedFileSize(getTotalSyncedFileSize());
-	}	
-	
-	
-	/**
-	 * @return the resources
-	 */
-	public ArrayList<ResourceSyncItem> getResources() {
-		return resources;
 	}
 
-	/**
-	 * @return the scans
-	 */
-	public ArrayList<ScanSyncItem> getScans() {
-		return scans;
-	}
 
-	
-	public void addResources(ResourceSyncItem resource) {
+    public void addResources(ResourceSyncItem resource) {
 		resources.add(resource);
 	}
 
-	/**
-	 * @param resources the resources to set
-	 */
-	public void setResources(ArrayList<ResourceSyncItem> resources) {
-		this.resources = resources;
-	}
-
-	/**
-	 * @return the assessors
-	 */
-	public ArrayList<ExperimentSyncItem> getAssessors() {
-		return assessors;
-	}
-
-	public void addAssessor(ExperimentSyncItem assessor) {
+    public void addAssessor(ExperimentSyncItem assessor) {
 		assessors.add(assessor);
 	}
 
@@ -167,38 +139,29 @@ public class ExperimentSyncItem extends SyncedItem {
 		scans.add(scan);
 	}
 
-	/**
-	 * @param assessors the assessors to set
-	 */
-	public void setAssessors(ArrayList<ExperimentSyncItem> assessors) {
-		this.assessors = assessors;
-	}
-
-	public void extractAssessorDetails(XnatImageassessordata ass) {
-		if (ass.getResources_resource() != null && ass.getResources_resource().size() > 0) {
+    public void extractAssessorDetails(XnatImageassessordata ass) {
+		if (ass.getResources_resource() != null && !ass.getResources_resource().isEmpty()) {
 			for (XnatAbstractresourceI r: ass.getResources_resource()) {
 				ResourceSyncItem rSync = getResourceSyncItem(r);
 				addResources(rSync);
 			}
 		}
-		if (ass.getIn_file() != null && ass.getIn_file().size() > 0) {
+		if (ass.getIn_file() != null && !ass.getIn_file().isEmpty()) {
 			for (XnatAbstractresourceI r: ass.getIn_file()) {
 				ResourceSyncItem rSync = getResourceSyncItem(r);
 				addResources(rSync);
 			}
 		}
-		if (ass.getOut_file() != null && ass.getOut_file().size() > 0) {
+		if (ass.getOut_file() != null && !ass.getOut_file().isEmpty()) {
 			for (XnatAbstractresourceI r: ass.getOut_file()) {
 				ResourceSyncItem rSync = getResourceSyncItem(r);
 				addResources(rSync);
 			}
 		}
-		
-		
 	}
 	
 	public void extractDetails(XnatExperimentdata exp) {
-		if (exp.getResources_resource() != null && exp.getResources_resource().size() > 0) {
+		if (exp.getResources_resource() != null && !exp.getResources_resource().isEmpty()) {
 			for (XnatAbstractresourceI r: exp.getResources_resource()) {
 				ResourceSyncItem rSync = getResourceSyncItem(r);
 				addResources(rSync);
@@ -206,10 +169,10 @@ public class ExperimentSyncItem extends SyncedItem {
 		}
 		if (exp instanceof XnatImagesessiondata) {
 			XnatImagesessiondata imgSession = (XnatImagesessiondata) exp;
-			if (imgSession.getScans_scan() != null && imgSession.getScans_scan().size() > 0) {
+			if (imgSession.getScans_scan() != null && !imgSession.getScans_scan().isEmpty()) {
 				for (XnatImagescandataI scan: imgSession.getScans_scan()) {
 					ScanSyncItem scanSync = new ScanSyncItem(scan.getId(), scan.getId());
-					if (scan.getFile() != null && scan.getFile().size() > 0) {
+					if (scan.getFile() != null && !scan.getFile().isEmpty()) {
 						for (XnatAbstractresourceI r: scan.getFile()) {
 							ResourceSyncItem rSync = getResourceSyncItem(r);
 							scanSync.addResources(rSync);
@@ -220,8 +183,4 @@ public class ExperimentSyncItem extends SyncedItem {
 			}
 		}
 	}
-	
-
-
-	
 }

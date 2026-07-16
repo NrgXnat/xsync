@@ -1,9 +1,10 @@
-package org.nrg.xsync.manifest;
+package org.nrg.xsync.manifest.history;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 
+import lombok.Getter;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,26 +14,20 @@ import org.springframework.transaction.annotation.Transactional;
  */
 
 @Entity
-@Table(uniqueConstraints = {})
+@Table()
 public class XsyncSubjectHistory extends AbstractHibernateEntity {
 
     public XsyncSubjectHistory() {}
 
+    @Getter
     private String localLabel;
+    @Getter
     private String syncStatus;
     private String syncMessage;
-
-    public String getLocalLabel() {
-        return localLabel;
-    }
 
     @Transactional
     public void setLocalLabel(String localLabel) {
         this.localLabel = localLabel;
-    }
-
-    public String getSyncStatus() {
-        return syncStatus;
     }
 
     @Transactional
@@ -50,11 +45,4 @@ public class XsyncSubjectHistory extends AbstractHibernateEntity {
         this.syncMessage = syncMessage;
     }
 
-//    @ManyToOne(cascade= CascadeType.ALL)
-//    public XsyncProjectHistory getProjectHistory() {
-//        return projectHistory;
-//    }
-//    public void persistHistory(XsyncProjectHistory projectHistory) {
-//        this.projectHistory = projectHistory;
-//    }
 }

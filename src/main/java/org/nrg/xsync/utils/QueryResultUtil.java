@@ -23,8 +23,7 @@ public class QueryResultUtil {
 	public static final String PROJECT_QUERY_PARAMETER_NAME="project";
 	public static final String REMOTE_PROJECT_QUERY_PARAMETER_NAME="remote_project";
 	public static final String REMOTE_URL_QUERY_PARAMETER_NAME="remote_url";
-	
-		
+
 	public static final String SUBJECT_QUERY_PARAMETER_NAME="subject";
 	
 	public static final String EXPERIMENT_IDS = "expertment_ids";
@@ -160,7 +159,6 @@ public class QueryResultUtil {
 		query += "  where am.status='"+ DELETE_STATUS + "' and prh.xnat_projectdata_id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time "; 
 		return query;
 	}
-	
 
 	public String getQueryForFetchingSubjectResourcesModifiedOrDeletedSinceLastSync() {
 		String query = getQueryForFetchingSubjectResourcesModifiedSinceLastSync();
@@ -208,7 +206,6 @@ public class QueryResultUtil {
 		query += " 		left join xsync_xsyncinfodata xsi ON xp.syncinfo_xsync_xsyncinfodata_id=xsi.xsync_xsyncinfodata_id ";
 		query += " 		 where s.id=:" + SUBJECT_QUERY_PARAMETER_NAME + " and am.status='"+ DELETE_STATUS + "' and p.id=:"+PROJECT_QUERY_PARAMETER_NAME+" and am.row_last_modified > xsi.sync_end_time ";
 		return query;
-		
 	}	
 	public String getParametrizedQueryForFetchingConfiguredSubjectResourcesChangedSinceLastSync() {
 		String query = getQueryForFetchingSubjectResourcesModifiedSinceLastSync() ; 
@@ -287,7 +284,6 @@ public class QueryResultUtil {
 		return query;
 	}
 	
-	
 	public String getQueryForFetchingSubjectExperimentsDeletedSinceLastSync() {
 		//Has two identical rows
 		String query = "select eh.id,eh.label,xdme.element_name,eh.project,em.status,em.last_modified, xsi.sync_end_time,em.insert_date from xnat_experimentdata_meta_data em ";
@@ -300,7 +296,6 @@ public class QueryResultUtil {
 		query += " where sa.subject_id=:" + SUBJECT_QUERY_PARAMETER_NAME +  " and p.id=:"+ PROJECT_QUERY_PARAMETER_NAME +  " and  em.status='"+ DELETE_STATUS + "' and em.row_last_modified > xsi.sync_end_time  ";
 		return query;
 	}
-	
 	
 	public String getQueryForSubjectsSharedIntoProject(String projectId) {
 		String query = "select label,project,subject_id from xnat_projectparticipant where project='"+projectId +"'";
@@ -333,8 +328,7 @@ public class QueryResultUtil {
 		for (int i=0; i< destination.size();i++) {
 			Map<String,Object> row = destination.get(i);
 			row.put(columnName, columnValue);
-		}	
-
+		}
 	}
 	
 	public Map<Object,List<Map<String,Object>>> separateByColumn(List<Map<String,Object>> queryResults, String separatorColumnName) {
@@ -406,7 +400,6 @@ public class QueryResultUtil {
 		return queryResults.keySet();
 	}
 
-	
 	public List<Map<String,Object>> reorganizeAsPivotColumnArray(List<Map<String,Object>> queryResults, String collatorColumn, String pivotColumnName) {
 		List<Map<String,Object>> rowsCollated = new ArrayList<Map<String,Object>>();
 		Hashtable<String,Integer> rowIndices = new Hashtable<String,Integer>();
@@ -436,7 +429,7 @@ public class QueryResultUtil {
 			    		}
 			    		int insertionPoint = (rowsCollated.size()-1)>0?(rowsCollated.size()-1):0;
 			    		rowsCollated.add(insertionPoint,newRow);
-			    		rowIndices.put(columnRowValue.toString(),new Integer(insertionPoint));
+			    		rowIndices.put(columnRowValue.toString(), insertionPoint);
 			    	}
 			    	break; //Move to next row
 			    }
@@ -520,7 +513,6 @@ public class QueryResultUtil {
 		return query;
 	}
 
-	
 	/**
 	 * Gets the last sync status for subject.
 	 *
@@ -536,6 +528,4 @@ public class QueryResultUtil {
 		return query;
 	}
 */
-	
-	
 }

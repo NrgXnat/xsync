@@ -1,5 +1,7 @@
 package org.nrg.xsync.manifest;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.nrg.xsync.tools.XSyncTools;
 import org.nrg.xsync.utils.XsyncFileUtils;
 
@@ -7,49 +9,21 @@ import org.nrg.xsync.utils.XsyncFileUtils;
  * @author Mohana Ramaratnam
  *
  */
+@Setter
+@Getter
 public class ResourceSyncItem extends SyncedItem {
 
-	Integer fileCount;
-	Object fileSize;
+    Integer fileCount;
+    Object fileSize;
 	
 	public ResourceSyncItem(String localId, String localLabel) {
 		super(localId, localLabel);
 		this.remoteLabel = localLabel;
-		this.fileCount  = new Integer(0);
-		this.fileSize = new Long(0);
+		this.fileCount  = 0;
+		this.fileSize = 0L;
 	}
 
-	/**
-	 * @return the fileCount
-	 */
-	public Integer getFileCount() {
-		return fileCount;
-	}
-
-	/**
-	 * @param fileCount the fileCount to set
-	 */
-	public void setFileCount(Integer fileCount) {
-		this.fileCount = fileCount;
-	}
-
-	/**
-	 * @return the fileSize
-	 */
-	public Object getFileSize() {
-		return fileSize;
-	}
-	
-	
-
-	/**
-	 * @param fileSize the fileSize to set
-	 */
-	public void setFileSize(Object fileSize) {
-		this.fileSize = fileSize;
-	}
-
-	@Override
+    @Override
 	public String toString() {
 		StringBuilder stringBuilder = new StringBuilder();
 		final  String newline = XSyncTools.NEWLINE;
@@ -79,5 +53,4 @@ public class ResourceSyncItem extends SyncedItem {
 		stringBuilder.append(newline);
 		return stringBuilder.toString();
 	}
-
 }
