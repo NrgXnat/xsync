@@ -111,10 +111,6 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) {
         return _configurationDashboardService.getAllProjectConnectionsForUrl(getSessionUser(),
                                                                              _syncManifestService.getAll(), remoteUrl);
-        final UserI user = getSessionUser();
-        List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
-        return new ResponseEntity<>(_configurationDashboardService.getAllProjectConnectionsForUrl(
-                user, allHistoryItems, remoteUrl), HttpStatus.OK);
     }
 
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
