@@ -6,6 +6,7 @@ import java.util.List;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.ApiParam;
 import org.nrg.framework.annotations.XapiRestController;
+import org.nrg.xapi.exceptions.NoContentException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
@@ -109,7 +110,8 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     @ApiOperation(value="Get xsync history for specific subject.")
     @ApiResponses({
             @ApiResponse(code=200, message="Returned the history item"),
-            @ApiResponse(code=401, message="The input subject has no history entries."),
+            @ApiResponse(code=204, message="No history data found."),
+            @ApiResponse(code=401, message="No such subject."),
             @ApiResponse(code=403, message="Insufficient permissions to obtain history data."),
             @ApiResponse(code=404, message="Input subject label does not exist within this project."),
             @ApiResponse(code=500, message="Unexpected error")
@@ -118,14 +120,13 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             restrictTo = AccessLevel.Read, produces = {MediaType.APPLICATION_JSON_VALUE})
     public XsyncProjectHistoryPojo getSubjectHistoryElement(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId,
-            @ApiParam(value = "Subject label.", required = true)@PathVariable("subjectLabel") String subjectLabel) throws NotFoundException {
+            @ApiParam(value = "Subject label.", required = true)@PathVariable("subjectLabel") String subjectLabel) throws NotFoundException, NoContentException {
         final UserI user = getSessionUser();
-
         XnatSubjectdata subject  = XnatSubjectdata.GetSubjectByProjectIdentifier(projectId, subjectLabel, user, false);
         if (subject != null) {
             XsyncProjectHistory latest = syncManifestService.findMostRecentBySubject(projectId, subjectLabel);
             if (latest == null) {
-                throw new NotFoundException("No history elements found for subject: {}", subjectLabel);
+                throw new NoContentException("No history elements found for subject: " + subjectLabel);
             }
             return mapper.convertValue(latest, XsyncProjectHistoryPojo.class);
         }
@@ -150,6 +151,11 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     private final SyncManifestService syncManifestService;
     private final ObjectMapper mapper = new ObjectMapper();
 
+    @ResponseStatus(value = HttpStatus.NO_CONTENT)
+    @ExceptionHandler(value = {NoContentException.class})
+    public String handleNoContentException(final Exception e) {
+        return "Element not found: " + e.getMessage();
+    }
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
     @ExceptionHandler(value = {NotFoundException.class})
     public String handleElementNotFound(final Exception e) {
