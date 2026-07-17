@@ -128,7 +128,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     xsyncConfigurationDashboard.createFullHistoryModal = function(projectId) {
         XNAT.xhr.get({
-            url: restUrl('xapi/xsync/history/projects/' + projectId),
+            url: restUrl('/xapi/xsync/history/projects/' + projectId),
             async: false,
             success: function (data) {
                 xsyncConfigurationDashboard.currentHistoryData = []
