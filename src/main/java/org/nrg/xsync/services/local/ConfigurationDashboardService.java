@@ -15,4 +15,7 @@ public interface ConfigurationDashboardService {
 
     List<XsyncDashboardProjectConfigurationPojo> getAllProjectConnectionsForUrl(UserI user,
               List<XsyncProjectHistory> allHistoryItems, String inputUrl);
+
+    List<XsyncRemoteUrlDetailsPojo> getAllNonWhitelistRemoteUrls(UserI user, List<WhitelistSitePojo> whitelist,
+             List<XsyncProjectHistory> allHistoryItems);
 }
