@@ -17,12 +17,11 @@ import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.XsyncDashboardProjectConfigurationPojo;
 import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
-import org.nrg.xsync.services.local.ConfigurationDashboardService;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
+import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -68,10 +67,10 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
         final UserI user = getSessionUser();
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
         if (_sitePreferences.getXsyncWhitelistEnabled()) {
-            return _configurationDashboardService.createListOfRemoteDestinations(user,
+            return _xsyncConfigurationService.createListOfRemoteDestinations(user,
               allHistoryItems, true, _whitelistXsyncSiteService.getAllWhitelistedSites());
         } else {
-            return _configurationDashboardService.createListOfRemoteDestinations(user,
+            return _xsyncConfigurationService.createListOfRemoteDestinations(user,
               allHistoryItems, false, Collections.emptyList());
         }
     }
@@ -92,7 +91,7 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
         }
         final UserI user = getSessionUser();
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
-        return _configurationDashboardService.getAllNonWhitelistRemoteUrls(user,
+        return _xsyncConfigurationService.getAllNonWhitelistRemoteUrls(user,
             _whitelistXsyncSiteService.getAllWhitelistedSites(), allHistoryItems);
     }
 
@@ -107,7 +106,7 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
             produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Admin)
     public List<XsyncDashboardProjectConfigurationPojo> getSyncDetailsForRemoteUrl(
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) {
-        return _configurationDashboardService.getAllProjectConnectionsForUrl(getSessionUser(),
+        return _xsyncConfigurationService.getAllProjectConnectionsForUrl(getSessionUser(),
                                                                              _syncManifestService.getAll(), remoteUrl);
     }
 
