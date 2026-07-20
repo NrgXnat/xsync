@@ -2,7 +2,6 @@ package org.nrg.xsync.xapi;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.nrg.config.entities.Configuration;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
@@ -33,8 +32,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -103,8 +100,6 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 					XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, user);
 					xsyncUtils.loadConfigurationToDB(configurationPojo);
 					_xsyncConfigService.saveConfig(getSessionUser(), configurationPojo, projectId);
-					return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
-					saveConfig(configurationPojo, projectId);
 					return projectId + " Xsync Setup complete";
 				}
 			}
