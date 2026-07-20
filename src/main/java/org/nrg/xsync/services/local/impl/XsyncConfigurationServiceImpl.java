@@ -7,7 +7,6 @@ import org.nrg.config.entities.Configuration;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
-import org.nrg.framework.services.SerializerService;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
@@ -45,9 +44,8 @@ import java.util.stream.Collectors;
 public class XsyncConfigurationServiceImpl implements XsyncConfigurationService {
 
     @Autowired
-    public XsyncConfigurationServiceImpl(ConfigService configService, SerializerService serializerService) {
+    public XsyncConfigurationServiceImpl(ConfigService configService) {
         this.configService = configService;
-        this.serializerService = serializerService;
     }
 
     @Override
@@ -113,16 +111,11 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
                 currentPojo.setRemoteUrl(remoteUrl);
                 currentPojo.setNumberProjects(1);
                 currentPojo.setNumberErrors(0);
-                if (whitelistEnabled && whitelist.stream().map(WhitelistSitePojo::getSiteUrl).toList().contains(remoteUrl)) {
+                if (checkForWhitelistConformation(whitelistEnabled, whitelist, remoteUrl)) {
                    whitelist.stream().filter(wl -> wl.getSiteUrl().equals(remoteUrl)).findAny().ifPresent(wl ->{
                              currentPojo.setSiteName(wl.getSiteName());
                              currentPojo.setClassification(wl.getClassification());
                     });
-                if (checkForWhitelistConformation(whitelistEnabled, whitelist, remoteUrl)) {
-                    WhitelistSitePojo whitelistElement = whitelist.stream()
-                            .filter(wl -> wl.getSiteUrl().equals(remoteUrl)).toList().getFirst();
-                    currentPojo.setSiteName(whitelistElement.getSiteName());
-                    currentPojo.setClassification(whitelistElement.getClassification());
                 } else {
                     currentPojo.setSiteName("NOT ON WHITELIST");
                 }
@@ -189,8 +182,9 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
     public SyncConfigurationPojo getSyncConfiguration(String projectId) throws IOException, NotFoundException {
         final Configuration conf = getGenericXsyncConfiguration("json", projectId);
         final String config = conf != null ? conf.getContents() : null;
+        ObjectMapper objectMapper = new ObjectMapper();
         if (StringUtils.isNotBlank(config)) {
-            return serializerService.deserializeJson(config, SyncConfigurationPojo.class);
+            return objectMapper.readValue(config, SyncConfigurationPojo.class);
         } else {
             throw new NotFoundException("Could not find configuration for project: {}", projectId);
         }
@@ -256,5 +250,4 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
     }
 
     private final ConfigService configService;
-    private final SerializerService serializerService;
 }

@@ -172,10 +172,8 @@ public class ProjectSyncConfiguration {
         final XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(project.getId());
 
         if (syncProjectConfiguration == null) {
-            _log.error("Could not find sync data for _project {}", project.getId());
-            throw new XsyncNotConfiguredException("Could not find sync data for _project " + project.getId());
-            log.error("Could not find sync data for _project {}", _project.getId());
-            throw new XsyncNotConfiguredException("Could not find sync data for _project " + _project.getId());
+            log.error("Could not find sync data for project {}", project.getId());
+            throw new XsyncNotConfiguredException("Could not find sync data for project " + project.getId());
         }
         boolean save = false;
         //No sync has been done so far. Set a dummy date and then start
@@ -195,8 +193,6 @@ public class ProjectSyncConfiguration {
                 syncProjectConfiguration.save(_user, false, true, c);
             } catch (Exception e) {
                 log.debug("Unable to save synchronization  start time:  Cause:{}", e.getMessage());
-                throw new XsyncNotConfiguredException("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
-                _log.debug("Unable to save synchronization start time: Cause:{}", e.getMessage());
                 throw new XsyncNotConfiguredException("Unable to save synchronization start time: Cause:" + e.getMessage());
             }
         }

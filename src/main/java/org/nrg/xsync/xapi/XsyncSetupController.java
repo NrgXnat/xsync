@@ -3,9 +3,7 @@ package org.nrg.xsync.xapi;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.config.entities.Configuration;
-import org.nrg.config.services.ConfigService;
 import org.nrg.framework.annotations.XapiRestController;
-import org.nrg.framework.constants.Scope;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
@@ -72,49 +70,27 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 										@RequestBody SyncConfigurationPojo configurationPojo) throws Exception {
 		try {
 			if (configurationPojo.getSource_project_id().isBlank()) {
-				throw new DataFormatException("Project ID not provided.");
+				throw new DataFormatException(" Project ID not provided ");
 			}  else if (!configurationPojo.getSource_project_id().equals(projectId)) {
-				return new ResponseEntity<>(" Project ID values are inconsistent ", HttpStatus.BAD_REQUEST);
+				throw new DataFormatException(" Project ID values are inconsistent ");
 			}
 			XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, getSessionUser(), false);
 			if (project == null) {
-				return new ResponseEntity<>(" Project " + projectId + " not found. ", HttpStatus.BAD_REQUEST);
+				throw new DataFormatException(" Project " + projectId + " not found. ");
 			}
 			if (!_xsyncConfigService.checkForWhitelistConformation(_prefs.toPojo().getXsyncWhitelistEnabled(),
-				_whitelistXsyncSiteService.getAllWhitelistedSites(), configurationPojo.getRemote_url())) {
-				return new ResponseEntity<>(" Site URL " + configurationPojo.getRemote_url() +
-												" is not an allowed option to receive data. ",HttpStatus.BAD_REQUEST);
+																   _whitelistXsyncSiteService.getAllWhitelistedSites(), configurationPojo.getRemote_url())) {
+				throw new DataFormatException(" Site URL " + configurationPojo.getRemote_url() +
+													" is not an allowed option to receive data. ");
 			}
 
 			XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, getSessionUser());
 			xsyncUtils.loadConfigurationToDB(configurationPojo);
 			_xsyncConfigService.saveConfig(getSessionUser(), configurationPojo, projectId);
-			return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
-				throw new DataFormatException("Project ID values are inconsistent");
-			} else {
-				XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
-				if (project == null) {
-					throw new NotFoundException(" Project " + projectId + " not found. ");
-				} else {
-					XsyncSitePreferencesPojo sitePreferencesPojo = _prefs.toPojo();
-					if (sitePreferencesPojo.getXsyncWhitelistEnabled()) {
-						List<WhitelistSitePojo> whitelistSitePojoList =
-								_whitelistXsyncSiteService.getAllWhitelistedSites();
-						if (whitelistSitePojoList.stream().noneMatch(wl -> wl.getSiteUrl().equalsIgnoreCase(configurationPojo.getRemote_url()))) {
-							throw new IllegalArgumentException( " Site URL " + configurationPojo.getRemote_url() +
-																		" is not an allowed option to receive data.");
-						}
-					}
-
-					XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, user);
-					xsyncUtils.loadConfigurationToDB(configurationPojo);
-					_xsyncConfigService.saveConfig(getSessionUser(), configurationPojo, projectId);
-					return projectId + " Xsync Setup complete";
-				}
-			}
+			return projectId + " Xsync Setup complete";
 		} catch (Exception  exception) {
-            log.error("ERROR: Xsync Setup Threw an Exception:  {}", ExceptionUtils.getFullStackTrace(exception));
-			throw new Exception(projectId + " Xsync Setup failed ");
+			log.error("ERROR:  Xsync Setup Threw an Exception:  {}", ExceptionUtils.getFullStackTrace(exception));
+			throw new Exception(projectId + " Xsync Setup failed.");
 		}
 	}
 
@@ -140,21 +116,19 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			@ApiResponse(code = 200, message = "Pre-Sync DICOM anonymization successfully configured."),
 			@ApiResponse(code = 401, message = "User does not have required credentials to edit project anonymization."),
 			@ApiResponse(code = 500, message = "Unexpected error")})
-	public ResponseEntity<String> addDICOMAnonymization(@PathVariable("projectId") String projectId,
-														@RequestBody(required=false) String anonymizationScript){
+	public String addDICOMAnonymization(@PathVariable("projectId") String projectId,
+														@RequestBody(required=false) String anonymizationScript) throws Exception {
 		try {
 	        XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, getSessionUser(), false);
             if (project == null) {
-	        	return new ResponseEntity<>(" Project ID " +  projectId +"  does not exist ",HttpStatus.BAD_REQUEST);
+	        	return " Project ID " +  projectId +"  does not exist ";
             }
 			saveDicomAnonymizationToConfig(project,anonymizationScript);
 		} catch(Exception e) {
-            _logger.error("ERROR:  Error saving pre-sync DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
-		}catch(Exception e) {
             log.error("ERROR:  Error saving pre-sync DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
-        	return new ResponseEntity<>(projectId + " Pre-Sync DICOM Anonymization script could not be saved. ", HttpStatus.INTERNAL_SERVER_ERROR );
+        	throw new Exception(projectId + " Pre-Sync DICOM Anonymization script could not be saved. " );
 		}
-    	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved",  HttpStatus.OK);
+    	return projectId + " Pre-Sync anonymization saved";
 	}
 
     @XapiRequestMapping(path="/presyncanonymization/projects/{projectId}", method = RequestMethod.GET,
@@ -164,13 +138,13 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			       @ApiResponse(code = 204, message = "No DICOM anonymization found."),
 			       @ApiResponse(code = 401, message = "User does not have required credentials to access project."),
 			       @ApiResponse(code = 500, message = "Unexpected error")})
-	public ResponseEntity<String> getDICOMAnonymization(@PathVariable("projectId") String projectId) {
+	public String getDICOMAnonymization(@PathVariable("projectId") String projectId) throws Exception {
 		try {
 			Configuration config = _xsyncConfigService.getGenericXsyncConfiguration("presyncanonymization", projectId);
-			return new ResponseEntity<>(config == null ? "" : config.getContents(), HttpStatus.OK);
+			return config == null ? "" : config.getContents();
 		} catch(Exception e) {
             log.error("ERROR:  Error returning DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
-			return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
+			throw new Exception("Error obtaining DICOM anonymization script: " + ExceptionUtils.getFullStackTrace(e));
 		}
 	}
 
