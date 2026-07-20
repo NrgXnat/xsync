@@ -7,6 +7,7 @@ import org.nrg.config.entities.Configuration;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;

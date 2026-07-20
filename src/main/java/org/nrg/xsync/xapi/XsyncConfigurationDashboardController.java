@@ -71,13 +71,9 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
         if (_sitePreferences.getXsyncWhitelistEnabled()) {
             return _xsyncConfigurationService.createListOfRemoteDestinations(user,
               allHistoryItems, true, _whitelistXsyncSiteService.getAllWhitelistedSites());
-            return new ResponseEntity<>(_xsyncConfigurationService.createListOfRemoteDestinations(user,
-             allHistoryItems, true, _whitelistXsyncSiteService.getAllWhitelistedSites()), HttpStatus.OK);
         } else {
             return _xsyncConfigurationService.createListOfRemoteDestinations(user,
               allHistoryItems, false, Collections.emptyList());
-            return new ResponseEntity<>(_xsyncConfigurationService.createListOfRemoteDestinations(user,
-             allHistoryItems, false, Collections.emptyList()), HttpStatus.OK);
         }
     }
 
@@ -99,8 +95,6 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
         return _xsyncConfigurationService.getAllNonWhitelistRemoteUrls(user,
             _whitelistXsyncSiteService.getAllWhitelistedSites(), allHistoryItems);
-        return new ResponseEntity<>(_xsyncConfigurationService.getAllNonWhitelistRemoteUrls(user,
-                               _whitelistXsyncSiteService.getAllWhitelistedSites(), allHistoryItems), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Get a report of local projects connected to input remote url." )
