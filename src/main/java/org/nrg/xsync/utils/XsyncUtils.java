@@ -180,66 +180,6 @@ public class XsyncUtils {
         }
 	}
 
-	public List<XsyncXsyncprojectdata> getAllProjectsSetToBeSynced() {
-		return XsyncXsyncprojectdata.getAllXsyncXsyncprojectdatas(_user, true);
-	}
-	
-	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedDaily() {
-		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
-		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
-		if (xsyncProjects != null && !xsyncProjects.isEmpty()) {
-			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
-				XsyncXsyncinfodata xsyncInfo = projectXsync.getSyncinfo();
-				if (SYNC_FREQUENCY_DAILY.equals(xsyncInfo.getSyncFrequency())) {
-					xsyncThese.add(projectXsync);
-				}
-			}
-		}
-		return xsyncThese;
-	}
-
-	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedWeekly() {
-		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
-		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
-		if (xsyncProjects != null && !xsyncProjects.isEmpty()) {
-			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
-				XsyncXsyncinfodata xsyncInfo = projectXsync.getSyncinfo();
-				if (SYNC_FREQUENCY_WEEKLY.equals(xsyncInfo.getSyncFrequency())) {
-					xsyncThese.add(projectXsync);
-				}
-			}
-		}
-		return xsyncThese;
-	}
-	
-	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedMonthly() {
-		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
-		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
-		if (xsyncProjects != null && !xsyncProjects.isEmpty()) {
-			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
-				XsyncXsyncinfodata xsyncInfo = projectXsync.getSyncinfo();
-				if (SYNC_FREQUENCY_MONTHLY.equals(xsyncInfo.getSyncFrequency())) {
-					xsyncThese.add(projectXsync);
-				}
-			}
-		}
-		return xsyncThese;
-	}
-	
-	public List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedOnDemand() {
-		List<XsyncXsyncprojectdata> xsyncThese = new ArrayList<>();
-		List<XsyncXsyncprojectdata> xsyncProjects = getAllProjectsSetToBeSynced();
-		if (xsyncProjects != null && !xsyncProjects.isEmpty()) {
-			for (XsyncXsyncprojectdata projectXsync:xsyncProjects) {
-				XsyncXsyncinfodata xsyncInfo = projectXsync.getSyncinfo();
-				if (SYNC_FREQUENCY_ON_DEMAND.equals(xsyncInfo.getSyncFrequency())) {
-					xsyncThese.add(projectXsync);
-				}
-			}
-		}
-		return xsyncThese;
-	}
-
 	public boolean isProjectConfiguredToSyncOnDemand(String projectId) {
 		boolean isToBeSyncedOnDemand = false;
 		XsyncXsyncprojectdata xsyncProject = getSyncDetailsForProject(projectId);

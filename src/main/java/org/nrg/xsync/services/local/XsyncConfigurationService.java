@@ -1,5 +1,6 @@
 package org.nrg.xsync.services.local;
 
+import org.nrg.xdat.om.XsyncXsyncprojectdata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
@@ -8,7 +9,7 @@ import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
 
 import java.util.List;
 
-public interface ConfigurationDashboardService {
+public interface XsyncConfigurationService {
 
     List<XsyncRemoteUrlDetailsPojo> createListOfRemoteDestinations(UserI user,
               List<XsyncProjectHistory> allHistoryItems, boolean whitelistEnabled, List<WhitelistSitePojo> whitelist);
@@ -18,4 +19,16 @@ public interface ConfigurationDashboardService {
 
     List<XsyncRemoteUrlDetailsPojo> getAllNonWhitelistRemoteUrls(UserI user, List<WhitelistSitePojo> whitelist,
              List<XsyncProjectHistory> allHistoryItems);
+
+    List<XsyncXsyncprojectdata> getAllProjectsSetToBeSynced(UserI user);
+
+    List<XsyncXsyncprojectdata> getAllProjectsForRemoteUrl(UserI user, String inputUrl);
+
+    List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedDaily(UserI user);
+
+    List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedWeekly(UserI user);
+
+    List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedMonthly(UserI user);
+
+    List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedOnDemand(UserI user);
 }
