@@ -282,6 +282,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 data.forEach(function (item) {
                     xsyncConfigurationDashboard.currentRemoteUrlData.push(item);
                 });
+                xsyncConfigurationDashboard.currentRemoteUrlData.sort((a,b) =>  a.localProject.toLowerCase().localeCompare(b.localProject.toLowerCase()));
             },
             fail: function (e) {
                 XNAT.ui.banner.top(2000, 'Could not retrieve configuration information for url: ' + remoteUrl + '\nError message: s' + e.responseText, 'error');
