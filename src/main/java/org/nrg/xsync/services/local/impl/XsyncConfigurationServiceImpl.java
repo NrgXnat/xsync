@@ -201,17 +201,14 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
 
     @Override
     public void saveConfig(UserI user, SyncConfigurationPojo configurationPojo, String projectId) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        String serializedConfig = mapper.writeValueAsString(configurationPojo);
-        Configuration newConfiguration = replaceConfiguration(user.getUsername(), "json", serializedConfig, projectId);
-        List<Configuration> allConfigurationsRemove = configService.getAll().stream()
-                .filter(c -> c.getTool().equals("xsync"))
-                .filter(c-> c.getScope().equals(Scope.Project))
-                .filter(c -> c.getEntityId().equals(configurationPojo.getSource_project_id()))
-                .filter(c -> c.getId() != newConfiguration.getId()).toList();
-        for (Configuration config : allConfigurationsRemove) {
-            configService.delete(config);
-        }
+        Configuration newConfiguration = replaceConfiguration(user.getUsername(), "json",
+                                                              serializerService.toJson(configurationPojo), projectId);
+        configService.getAll().stream()
+            .filter(c -> c.getTool().equals("xsync"))
+            .filter(c-> c.getScope().equals(Scope.Project))
+            .filter(c -> c.getEntityId().equals(configurationPojo.getSource_project_id()))
+            .filter(c -> c.getId() != newConfiguration.getId())
+            .forEach(configService::delete);
     }
 
     @Override
