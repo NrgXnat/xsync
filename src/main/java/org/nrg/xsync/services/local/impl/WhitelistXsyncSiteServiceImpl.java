@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
+import org.nrg.xdat.XDAT;
 import org.nrg.xsync.manifest.whitelist.SiteClassification;
 import org.nrg.xsync.manifest.whitelist.WhitelistSite;
 import org.nrg.xsync.manifest.whitelist.WhitelistSiteRepository;
@@ -24,6 +25,12 @@ public class WhitelistXsyncSiteServiceImpl extends AbstractHibernateEntityServic
     public List<WhitelistSitePojo> getAllWhitelistedSites() {
         List<WhitelistSite> allWhitelistedSites = getDao().findAll();
         List<WhitelistSitePojo> allSitePojos = new ArrayList<>();
+        if (allWhitelistedSites.stream().noneMatch(w -> w.getSiteUrl().equals(XDAT.getSiteUrl()))) {
+            WhitelistSite sourceSiteWhitelist = new WhitelistSite(XDAT.getSiteId(), XDAT.getSiteId(), XDAT.getSiteUrl(),
+                                                           SiteClassification.PUBLIC);
+            getDao().saveOrUpdate(sourceSiteWhitelist);
+            allWhitelistedSites.add(sourceSiteWhitelist);
+        }
         for (WhitelistSite site : allWhitelistedSites) {
             WhitelistSitePojo pojo = new WhitelistSitePojo(site.getSiteId(), site.getSiteName(), site.getSiteUrl(),
                                                            site.getClassification().toString());

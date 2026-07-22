@@ -71,10 +71,10 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
         if (_sitePreferences.getXsyncWhitelistEnabled()) {
             return new ResponseEntity<>(_xsyncConfigurationService.createListOfRemoteDestinations(user,
-             allHistoryItems, true, _whitelistXsyncSiteService.getAllWhitelistedSites()), HttpStatus.OK);
+                allHistoryItems, true, _whitelistXsyncSiteService.getAllWhitelistedSites()), HttpStatus.OK);
         } else {
             return new ResponseEntity<>(_xsyncConfigurationService.createListOfRemoteDestinations(user,
-             allHistoryItems, false, Collections.emptyList()), HttpStatus.OK);
+                allHistoryItems, false, Collections.emptyList()), HttpStatus.OK);
         }
     }
 

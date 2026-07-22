@@ -11,6 +11,7 @@ import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
+import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.nrg.xsync.services.local.XsyncConfigurationService;
@@ -75,8 +76,8 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			if (project == null) {
 				return new ResponseEntity<>(" Project " + projectId + " not found. ", HttpStatus.BAD_REQUEST);
 			}
-			if (!_xsyncConfigService.checkForWhitelistConformation(_prefs.toPojo().getXsyncWhitelistEnabled(),
-				_whitelistXsyncSiteService.getAllWhitelistedSites(), configurationPojo.getRemote_url())) {
+			if (!_prefs.toPojo().getXsyncWhitelistEnabled() ||_whitelistXsyncSiteService.getAllWhitelistedSites()
+					.stream().map(WhitelistSitePojo::getSiteUrl).toList().contains(configurationPojo.getRemote_url())) {
 				return new ResponseEntity<>(" Site URL " + configurationPojo.getRemote_url() +
 												" is not an allowed option to receive data. ",HttpStatus.BAD_REQUEST);
 			}
