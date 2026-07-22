@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.Getter;
 import org.nrg.config.entities.Configuration;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
@@ -35,50 +36,42 @@ public class ProjectSyncConfiguration {
     public ProjectSyncConfiguration(final ConfigService configService, final SerializerService serializer, final JdbcTemplate jdbcTemplate,
     		final String projectId, final UserI user) throws XsyncNotConfiguredException {
         _user = user;
-        _project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
+        project = XnatProjectdata.getProjectByIDorAlias(projectId, user, false);
         _configService = configService;
         _serializer = serializer;
         _jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-        _syncConfiguration = setSyncConfigurationFromService(projectId);
-        _syncProjectConfiguration = setProjectSyncConfiguration();
-    }
-
-    public XnatProjectdata getProject() {
-        return _project;
+        synchronizationConfiguration = setSyncConfigurationFromService(projectId);
+        syncProjectConfiguration = setProjectSyncConfiguration();
     }
 
     public XsyncXsyncprojectdata getProjectSyncConfigurationFromDB() {
-        return _syncProjectConfiguration;
-    }
-
-    public SyncConfiguration getSynchronizationConfiguration() {
-        return _syncConfiguration;
+        return syncProjectConfiguration;
     }
 
     public boolean isResourceToBeSynced(String resourceLabel) {
-        return _syncConfiguration != null && _syncConfiguration.isProjectResourceAllowedToSync(resourceLabel);
+        return synchronizationConfiguration != null && synchronizationConfiguration.isProjectResourceAllowedToSync(resourceLabel);
     }
 
     public boolean isSubjectResourceToBeSynced(String resourceLabel) {
-        return _syncConfiguration != null && _syncConfiguration.isSubjectResourceAllowedToSync(resourceLabel);
+        return synchronizationConfiguration != null && synchronizationConfiguration.isSubjectResourceAllowedToSync(resourceLabel);
     }
 
     public boolean isSubjectAssessorToBeSynced(String assessorXsiType) {
-        return _syncConfiguration != null && _syncConfiguration.isSubjectAssessorAllowedToSync(assessorXsiType);
+        return synchronizationConfiguration != null && synchronizationConfiguration.isSubjectAssessorAllowedToSync(assessorXsiType);
     }
 
     public boolean isSubjectAssessorResourceToBeSynced(String assessorXsiType, String resourceLabel) {
     	boolean allowedToSync = true;
-        if (_syncConfiguration.hasSubjectAssessorConfigurationDefinition()) {
-            SyncConfigurationXsiType advOption = _syncConfiguration.getSubjectAssessor(assessorXsiType);
+        if (synchronizationConfiguration.hasSubjectAssessorConfigurationDefinition()) {
+            SyncConfigurationXsiType advOption = synchronizationConfiguration.getSubjectAssessor(assessorXsiType);
             allowedToSync = advOption.isResourceAllowedToSync(resourceLabel);
         } 
         return allowedToSync;
     }
 
     public boolean subjectAssessorNeedsOkToSync(String assessorXsiType) {
-        if (_syncConfiguration.hasSubjectAssessorConfigurationDefinition()) {
-            SyncConfigurationXsiType advOption = _syncConfiguration.getSubjectAssessor(assessorXsiType);
+        if (synchronizationConfiguration.hasSubjectAssessorConfigurationDefinition()) {
+            SyncConfigurationXsiType advOption = synchronizationConfiguration.getSubjectAssessor(assessorXsiType);
             return advOption.getNeeds_ok_to_sync();
         } else {
             return false;
@@ -86,8 +79,8 @@ public class ProjectSyncConfiguration {
     }
 
     public boolean imagingSessionNeedsOkToSync(String xsiType) {
-        if (_syncConfiguration.hasImagingSessionConfigurationDefinition()) {
-            SyncConfigurationImagingSessionXsiType advOption = _syncConfiguration.getImagingSession(xsiType);
+        if (synchronizationConfiguration.hasImagingSessionConfigurationDefinition()) {
+            SyncConfigurationImagingSessionXsiType advOption = synchronizationConfiguration.getImagingSession(xsiType);
             try {
             	return advOption.getNeeds_ok_to_sync();
             }catch(Exception e) {
@@ -99,8 +92,8 @@ public class ProjectSyncConfiguration {
     }
 
     public boolean imagingAssessorNeedsOkToSync(String xsiType, String assessorXsiType) {
-        if (_syncConfiguration.hasImagingSessionConfigurationDefinition()) {
-            SyncConfigurationImagingSessionXsiType advOption = _syncConfiguration.getImagingSession(xsiType);
+        if (synchronizationConfiguration.hasImagingSessionConfigurationDefinition()) {
+            SyncConfigurationImagingSessionXsiType advOption = synchronizationConfiguration.getImagingSession(xsiType);
             try {
                 SyncConfigurationXsiType advSessionAssessorOption = advOption.getSession_assessors().getXsiType(assessorXsiType);
                 return advSessionAssessorOption.getNeeds_ok_to_sync();
@@ -117,24 +110,23 @@ public class ProjectSyncConfiguration {
     }
 
     public boolean isImagingSessionToBeSynced(String imagingSessionXsiType) {
-        return _syncConfiguration != null && _syncConfiguration.isImagingSessionAllowedToSync(imagingSessionXsiType);
+        return synchronizationConfiguration != null && synchronizationConfiguration.isImagingSessionAllowedToSync(imagingSessionXsiType);
     }
 
     public boolean isImagingSessionScanToBeSynced(String imagingSessionXsiType, String imagingScanType) {
-        if (_syncConfiguration == null) {
+        if (synchronizationConfiguration == null) {
             return false;
         } else {
-            SyncConfigurationImagingSessionXsiType imgSessionAdvOption = _syncConfiguration.getImagingSession(imagingSessionXsiType);
+            SyncConfigurationImagingSessionXsiType imgSessionAdvOption = synchronizationConfiguration.getImagingSession(imagingSessionXsiType);
             return imgSessionAdvOption.isAllowedToSyncScan(imagingScanType);
         }
-
     }
 
     public boolean isImagingSessionScanResourceToBeSynced(String imagingSessionXsiType, String imagingScanType, String imagingScanResourceName) {
-        if (_syncConfiguration == null) {
+        if (synchronizationConfiguration == null) {
             return false;
         }
-        SyncConfigurationImagingSessionXsiType imgSessionAdvOption = _syncConfiguration.getImagingSession(imagingSessionXsiType);
+        SyncConfigurationImagingSessionXsiType imgSessionAdvOption = synchronizationConfiguration.getImagingSession(imagingSessionXsiType);
         return imgSessionAdvOption.isAllowedToSyncScan(imagingScanType) && imgSessionAdvOption.isAllowedToSyncScanResource(imagingScanResourceName);
     }
 
@@ -162,12 +154,12 @@ public class ProjectSyncConfiguration {
     @Override
     public String toString() {
         String self = "";
-        self += " Project : " + _project + "\n";
-        self += "SyncConfiguration: " + _syncConfiguration + "\n";
+        self += " Project : " + project + "\n";
+        self += "SyncConfiguration: " + synchronizationConfiguration + "\n";
         self += " DB SyncInfo:  " + "\n";
-        self += "Remote Project: " + _syncProjectConfiguration.getSyncinfo().getRemoteProjectId() + "\n";
-        self += "Remote URL: " + _syncProjectConfiguration.getSyncinfo().getRemoteUrl();
-        self += "Sync_Blocked: " + _syncProjectConfiguration.getSyncBlocked();
+        self += "Remote Project: " + syncProjectConfiguration.getSyncinfo().getRemoteProjectId() + "\n";
+        self += "Remote URL: " + syncProjectConfiguration.getSyncinfo().getRemoteUrl();
+        self += "Sync_Blocked: " + syncProjectConfiguration.getSyncBlocked();
         return self;
     }
 
@@ -177,11 +169,11 @@ public class ProjectSyncConfiguration {
 
     private XsyncXsyncprojectdata setProjectSyncConfiguration() throws XsyncNotConfiguredException {
         final XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, _user);
-        final XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(_project.getId());
+        final XsyncXsyncprojectdata syncProjectConfiguration = xsyncUtils.getSyncDetailsForProject(project.getId());
 
         if (syncProjectConfiguration == null) {
-            log.error("Could not find sync data for _project {}", _project.getId());
-            throw new XsyncNotConfiguredException("Could not find sync data for _project " + _project.getId());
+            log.error("Could not find sync data for project {}", project.getId());
+            throw new XsyncNotConfiguredException("Could not find sync data for project " + project.getId());
         }
         boolean save = false;
         //No sync has been done so far. Set a dummy date and then start
@@ -201,7 +193,7 @@ public class ProjectSyncConfiguration {
                 syncProjectConfiguration.save(_user, false, true, c);
             } catch (Exception e) {
                 log.debug("Unable to save synchronization  start time:  Cause:{}", e.getMessage());
-                throw new XsyncNotConfiguredException("Unable to save synchronization  start time: " + " Cause:" + e.getMessage());
+                throw new XsyncNotConfiguredException("Unable to save synchronization start time: Cause:" + e.getMessage());
             }
         }
         return syncProjectConfiguration;
@@ -214,10 +206,10 @@ public class ProjectSyncConfiguration {
             try {
                 return _serializer.deserializeJson(config, SyncConfiguration.class);
             } catch (Exception e) {
-                throw new XsyncNotConfiguredException("Synchronization Configuration does not exist for " + _project.getId());
+                throw new XsyncNotConfiguredException("Synchronization Configuration does not exist for " + project.getId());
             }
         } else {
-            throw new XsyncNotConfiguredException("Synchronization Configuration does not exist for " + _project.getId());
+            throw new XsyncNotConfiguredException("Synchronization Configuration does not exist for " + project.getId());
         }
     }
 
@@ -227,7 +219,9 @@ public class ProjectSyncConfiguration {
     private final SerializerService          _serializer;
     private final NamedParameterJdbcTemplate _jdbcTemplate;
     private final UserI                      _user;
-    private final XsyncXsyncprojectdata      _syncProjectConfiguration;
-    private final XnatProjectdata            _project;
-    private final SyncConfiguration          _syncConfiguration;
+    private final XsyncXsyncprojectdata syncProjectConfiguration;
+    @Getter
+    private final XnatProjectdata project;
+    @Getter
+    private final SyncConfiguration synchronizationConfiguration;
 }

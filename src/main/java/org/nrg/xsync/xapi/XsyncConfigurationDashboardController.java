@@ -23,6 +23,7 @@ import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.zip.DataFormatException;
 
 @XapiRestController
 @RequestMapping(value = "/xsync/dashboard")
@@ -108,6 +110,41 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) {
         return _xsyncConfigurationService.getAllProjectConnectionsForUrl(getSessionUser(),
                                                                              _syncManifestService.getAll(), remoteUrl);
+    }
+
+    @ApiOperation(value = "Set whether all configurations for input url are enabled." )
+    @ApiResponses({
+            @ApiResponse(code=200, message="Successfully set configurations enabled."),
+            @ApiResponse(code=403, message="User unauthorized to edit this information."),
+            @ApiResponse(code=404, message="Configuration data not found."),
+            @ApiResponse(code=500, message="Unexpected error")
+    })
+    @XapiRequestMapping(value = "/enable", method = RequestMethod.PUT, restrictTo = AccessLevel.Admin)
+    public void changeRemoteUrlEnabled(
+            @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl,
+            @ApiParam(required = true) @RequestParam boolean enabled) throws Exception {
+        _xsyncConfigurationService.changeEnabledForUrl(getSessionUser(), remoteUrl, enabled);
+    }
+
+    @ApiOperation(value = "Set whether configuration for input project/url is enabled." )
+    @ApiResponses({
+            @ApiResponse(code=200, message="Successfully set configuration enabled."),
+            @ApiResponse(code=403, message="User unauthorized to edit this information."),
+            @ApiResponse(code=404, message="Configuration data not found."),
+            @ApiResponse(code=500, message="Unexpected error")
+    })
+    @XapiRequestMapping(value = "/{projectId}/enable", method = RequestMethod.PUT, restrictTo = AccessLevel.Delete)
+    public void changeConfigurationEnabled(
+            @PathVariable("projectId") String projectId,
+            @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl,
+            @ApiParam(required = true) @RequestParam boolean enabled) throws Exception {
+        _xsyncConfigurationService.changeConnectionEnabled(getSessionUser(), remoteUrl, projectId, enabled);
+    }
+
+    @ResponseStatus(value = HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(value = {DataFormatException.class})
+    public String handleBadDataFormatting(final Exception e) {
+        return "Input element not formatted correctly: " + e.getMessage();
     }
 
     @ResponseStatus(value = HttpStatus.NOT_FOUND)

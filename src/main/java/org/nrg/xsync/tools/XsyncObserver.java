@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 public class XsyncObserver implements Observer {
 	private final static Logger logger = LoggerFactory.getLogger(XsyncObserver.class);
 
-	
 	final String projectId;
 	private File logFile;
 	private BufferedWriter bWriter;

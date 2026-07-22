@@ -1,18 +1,38 @@
 package org.nrg.xsync.services.local.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.nrg.xdat.om.XsyncXsyncinfodata;
+import org.apache.commons.lang3.StringUtils;
+import org.nrg.config.entities.Configuration;
+import org.nrg.config.exceptions.ConfigServiceException;
+import org.nrg.config.services.ConfigService;
+import org.nrg.framework.constants.Scope;
+import org.nrg.framework.services.SerializerService;
+import org.nrg.xapi.exceptions.DataFormatException;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XsyncXsyncprojectdata;
+import org.nrg.xft.event.EventDetails;
+import org.nrg.xft.event.EventMetaI;
+import org.nrg.xft.event.EventUtils;
+import org.nrg.xft.event.persist.PersistentWorkflowI;
+import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xft.utils.SaveItemHelper;
+import org.nrg.xft.utils.ValidationUtils.ValidationResults;
+import org.nrg.xnat.utils.WorkflowUtils;
+import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncDashboardProjectConfigurationPojo;
 import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
+import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.nrg.xsync.utils.XsyncUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +44,14 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class XsyncConfigurationServiceImpl implements XsyncConfigurationService {
+
+    @Autowired
+    public XsyncConfigurationServiceImpl(ConfigService configService, SerializerService serializerService,
+                                         XsyncSitePreferencesBean sitePreferences) {
+        this.configService = configService;
+        this.serializerService = serializerService;
+        this.sitePreferences = sitePreferences;
+    }
 
     @Override
     public List<XsyncRemoteUrlDetailsPojo> createListOfRemoteDestinations(UserI user,
@@ -88,7 +116,7 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
                 currentPojo.setRemoteUrl(remoteUrl);
                 currentPojo.setNumberProjects(1);
                 currentPojo.setNumberErrors(0);
-                if (whitelistEnabled && whitelist.stream().map(WhitelistSitePojo::getSiteUrl).toList().contains(remoteUrl)) {
+                if (checkForWhitelistConformation(whitelistEnabled, whitelist, remoteUrl)) {
                    whitelist.stream().filter(wl -> wl.getSiteUrl().equals(remoteUrl)).findAny().ifPresent(wl ->{
                              currentPojo.setSiteName(wl.getSiteName());
                              currentPojo.setClassification(wl.getClassification());
@@ -112,6 +140,11 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
             configurationsMap.put(remoteUrl, currentPojo);
         }
         return configurationsMap.values().stream().toList();
+    }
+
+    @Override
+    public boolean checkForWhitelistConformation(boolean whitelistEnabled, List<WhitelistSitePojo> whitelist, String url) {
+        return whitelistEnabled && whitelist.stream().map(WhitelistSitePojo::getSiteUrl).toList().contains(url);
     }
 
     @Override
@@ -145,8 +178,102 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
         return getAllProjectsWithSpecificFrequency(user, XsyncUtils.SYNC_FREQUENCY_ON_DEMAND);
     }
 
+    @Override
+    public Configuration getGenericXsyncConfiguration(String type, String projectId) {
+        return configService.getConfig("xsync", type, Scope.Project, projectId);
+    }
+
+    @Override
+    public SyncConfigurationPojo getSyncConfiguration(String projectId) throws IOException, NotFoundException {
+        final Configuration conf = getGenericXsyncConfiguration("json", projectId);
+        final String config = conf != null ? conf.getContents() : null;
+        if (StringUtils.isNotBlank(config)) {
+            return serializerService.deserializeJson(config, SyncConfigurationPojo.class);
+        } else {
+            throw new NotFoundException("Could not find configuration for project: {}", projectId);
+        }
+    }
+
+    @Override
+    public Configuration replaceConfiguration(String username, String type, String inputElement, String projectId) throws ConfigServiceException {
+        return configService.replaceConfig(username, "", "xsync", type, inputElement, Scope.Project, projectId);
+    }
+
+    @Override
+    public void saveConfig(UserI user, SyncConfigurationPojo configurationPojo, String projectId) throws Exception {
+        Configuration newConfiguration = replaceConfiguration(user.getUsername(), "json",
+                                                              serializerService.toJson(configurationPojo), projectId);
+        configService.getAll().stream()
+            .filter(c -> c.getTool().equals("xsync"))
+            .filter(c-> c.getScope().equals(Scope.Project))
+            .filter(c -> c.getEntityId().equals(configurationPojo.getSource_project_id()))
+            .filter(c -> c.getId() != newConfiguration.getId())
+            .forEach(configService::delete);
+    }
+
+    @Override
+    public void changeEnabledForUrl(UserI user, String inputUrl, boolean enabled) throws Exception {
+        List<XsyncXsyncprojectdata> allConnectionsForUrl = getAllProjectsForRemoteUrl(user, inputUrl);
+        for (XsyncXsyncprojectdata connection: allConnectionsForUrl) {
+            enableOrDisableSingleConnection(connection, user, connection.getSourceProjectId(), enabled);
+        }
+        if (!enabled) {
+            List<String> blacklist = sitePreferences.getSitesBlacklist();
+            blacklist.add(inputUrl);
+            sitePreferences.setSitesBlacklist(blacklist);
+        } else {
+            List<String> blacklist = sitePreferences.getSitesBlacklist();
+            blacklist.remove(inputUrl);
+            sitePreferences.setSitesBlacklist(blacklist);
+        }
+    }
+
+    @Override
+    public void changeConnectionEnabled(UserI user, String inputUrl, String projectId, boolean enabled) throws Exception {
+        if (enabled && sitePreferences.getSitesBlacklist().contains(inputUrl)) {
+            throw new IllegalArgumentException("The remote site for the input configuration has been turned off by an" +
+                               " administrator. They must turn it on before you can enable the connection.");
+        }
+        Optional<XsyncXsyncprojectdata> projectConfigurationElement =
+                getAllProjectsForRemoteUrl(user, inputUrl).stream()
+                .filter(x -> x.getSourceProjectId().equals(projectId)).findFirst();
+        if (projectConfigurationElement.isPresent()) {
+            enableOrDisableSingleConnection(projectConfigurationElement.get(), user, projectId, enabled);
+        } else {
+            throw new NotFoundException("Could not find configuration for project: {}", projectId);
+        }
+    }
+
+    private void enableOrDisableSingleConnection(XsyncXsyncprojectdata connection, UserI user, String projectId, boolean enabled) throws Exception {
+        connection.setSyncEnabled(enabled);
+        connection.setSyncScheduledBy(user.getLogin());
+        final ValidationResults vr = connection.validate();
+        if (vr != null && !vr.isValid()) {
+            throw new DataFormatException(projectId + " Xsync Setup failed. Invalid JSON: " + vr.isValid());
+        }
+        String msg = "Updated Synchronization";
+        EventMetaI c = EventUtils.DEFAULT_EVENT(user, msg);
+
+        if (SaveItemHelper.authorizedSave(connection, user, false, true, c)) {
+            EventDetails details = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,
+                                   EventUtils.getAddModifyAction(connection.getXSIType(), false), "", "");
+            PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user,
+                                        connection.getXSIType(), connection.getXsyncXsyncprojectdataId()+"",
+                                        connection.getSourceProjectId(), details);
+            WorkflowUtils.complete(wrk, c);
+        }
+
+        SyncConfigurationPojo configServicePojo = getSyncConfiguration(projectId);
+        configServicePojo.setEnabled(enabled);
+        saveConfig(user, configServicePojo, projectId);
+    }
+
     private List<XsyncXsyncprojectdata> getAllProjectsWithSpecificFrequency(UserI user, String syncFrequency) {
         return getAllProjectsSetToBeSynced(user).stream().filter(x -> x.getSyncinfo().getSyncFrequency()
                 .equals(syncFrequency)).toList();
     }
+
+    private final ConfigService configService;
+    private final SerializerService serializerService;
+    private final XsyncSitePreferencesBean sitePreferences;
 }

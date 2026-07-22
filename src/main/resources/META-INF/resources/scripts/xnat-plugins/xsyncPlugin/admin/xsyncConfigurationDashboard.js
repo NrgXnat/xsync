@@ -73,13 +73,32 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             }, 'History');
         }
 
-    xsyncConfigurationDashboard.getAddNewButton = function() {
+    xsyncConfigurationDashboard.getDisableButton = function(remoteUrl) {
+        let remoteUrlDisabled = xsyncConfigurationDashboard.blacklistSites.includes(remoteUrl);
+        let buttonTitle = remoteUrlDisabled ? 'Enable all site connections.' : 'Disable all site connections.';
+        let buttonWording = remoteUrlDisabled ? 'Enable' : 'Disable';
         return spawn('button.btn.btn-sm.edit', {
             onclick: function (e) {
                 e.preventDefault();
+                xsyncConfigurationDashboard.disableOrEnableSiteModal(remoteUrl, remoteUrlDisabled);
             },
-            title: "Add new connection to this site."
-        }, 'Add New');
+            title: buttonTitle
+        }, buttonWording);
+    }
+
+    xsyncConfigurationDashboard.spawnStatusColumn = function(status, localProject){
+        return(XNAT.ui.panel.input.switchbox({
+            title: "Connection enabled",
+            checked: status === "true",
+            onclick: function() {
+                let enabled = this.checked;
+                if (enabled === true) {
+                    xsyncConfigurationDashboard.enableOrDisableProjectConfig(true, localProject, xsyncConfigurationDashboard.currentRemoteUrl, this);
+                } else {
+                    xsyncConfigurationDashboard.enableOrDisableProjectConfig(false, localProject, xsyncConfigurationDashboard.currentRemoteUrl, this);
+                }
+            }
+        }));
     }
 
     xsyncConfigurationDashboard.getFailedStackTraceModal = function(projectId) {
@@ -172,19 +191,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     xsyncConfigurationDashboard.getRemoteUrlListingModal = function(remoteUrl, dataAlreadyRetrieved) {
         if (!dataAlreadyRetrieved) {
             xsyncConfigurationDashboard.currentRemoteUrl = remoteUrl;
-            XNAT.xhr.get({
-                url: restUrl('/xapi/xsync/dashboard/remoteUrl?remoteUrl=' + remoteUrl),
-                async: false,
-                success: function (data) {
-                    xsyncConfigurationDashboard.currentRemoteUrlData = [];
-                    data.forEach(function (item) {
-                        xsyncConfigurationDashboard.currentRemoteUrlData.push(item);
-                    });
-                },
-                fail: function (e) {
-                    XNAT.ui.banner.top(2000, 'Could not retrieve configuration information for url: ' + remoteUrl + '\nError message: s' + e.responseText, 'error');
-                }
-            });
+            xsyncConfigurationDashboard.getCurrentUrlTableData(remoteUrl);
         }
         let tmpl = spawn('div#modal_table_wrapper');
 
@@ -208,6 +215,60 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         });
     }
 
+    xsyncConfigurationDashboard.disableOrEnableSiteModal = function(remoteUrl, enable) {
+        let modalTitle = enable ? 'Enable all connections for ' + remoteUrl +"?" : 'Disable all connections for ' + remoteUrl +"?";
+        let modalContent = enable ? 'Are you sure you want to enable all connections associated with this remote url?' : 'Are you sure you want to disable all connections associated with this remote url?';
+        xmodal.confirm({
+            title: modalTitle,
+            content: modalContent,
+            okAction: function(){
+                XNAT.xhr.put({
+                    url: restUrl('/xapi/xsync/dashboard/enable?remoteUrl=' + remoteUrl + '&enabled=' + enable),
+                    async: false,
+                    success: function() {
+                        xmodal.closeAll();
+                        XNAT.dialog.closeAll();
+                        xsyncConfigurationDashboard.refreshTable();
+                    },
+                    fail: function (e) {
+                        XNAT.ui.banner.top(2000, 'Could not update configuration information for url: ' + remoteUrl + '\nError message: ' + e.responseText, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    xsyncConfigurationDashboard.enableOrDisableProjectConfig = function(enable, projectId, remoteUrl, checkbox) {
+        XNAT.xhr.put({
+            url: restUrl('/xapi/xsync/dashboard/' + projectId +'/enable?remoteUrl=' + remoteUrl + '&enabled=' + enable),
+            async: false,
+            success: function() {
+                xsyncConfigurationDashboard.getCurrentUrlTableData(remoteUrl);
+                xsyncConfigurationDashboard.refreshModalTable();
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not update configuration information for project: ' + projectId + '\nError message: s' + e.responseText, 'error');
+                checkbox.checked=!enable;
+            }
+        });
+    }
+
+    xsyncConfigurationDashboard.getCurrentUrlTableData = function(remoteUrl) {
+        XNAT.xhr.get({
+            url: restUrl('/xapi/xsync/dashboard/remoteUrl?remoteUrl=' + remoteUrl),
+            async: false,
+            success: function (data) {
+                xsyncConfigurationDashboard.currentRemoteUrlData = [];
+                data.forEach(function (item) {
+                    xsyncConfigurationDashboard.currentRemoteUrlData.push(item);
+                });
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not retrieve configuration information for url: ' + remoteUrl + '\nError message: s' + e.responseText, 'error');
+            }
+        });
+    }
+
     xsyncConfigurationDashboard.getConfigurationData = function() {
         XNAT.xhr.get({
             url: restUrl('/xapi/xsyncSitePreferences/'),
@@ -215,6 +276,19 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             success: function (data) {
                 let enabled = data['xsyncWhitelistEnabled'];
                 xsyncConfigurationDashboard.isWhitelistEnabledBackend = enabled;
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not retrieve whitelist information: ' + e.responseText, 'error');
+            }
+        });
+        XNAT.xhr.get({
+            url: restUrl('/xapi/xsyncSitePreferences/blacklistSites'),
+            async: false,
+            success: function (data) {
+                xsyncConfigurationDashboard.blacklistSites = []
+                data.forEach(function (item) {
+                    xsyncConfigurationDashboard.blacklistSites.push(item);
+                });
             },
             fail: function (e) {
                 XNAT.ui.banner.top(2000, 'Could not retrieve whitelist information: ' + e.responseText, 'error');
@@ -249,12 +323,18 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         }
         let $configurationDashboardTableDiv = $('div#xsync-configuration-dashboard-panel');
         $configurationDashboardTableDiv.prepend(xsyncConfigurationDashboard.table());
+        let allRemoteUrlSpans = xsyncConfigurationDashboard.$table.find('.remoteUrl').children('span');
+        allRemoteUrlSpans.each(function (span) {
+            if (xsyncConfigurationDashboard.blacklistSites.includes(this.element.textContent)) {
+                this.parentElement.parentElement.style.background = "#bfbfbf";
+            }
+        });
     };
 
     xsyncConfigurationDashboard.modalTable = function() {
         let tableData = [];
         let remoteUrlDetails = xsyncConfigurationDashboard.currentRemoteUrlData;
-        DATA_FIELDS = "localProject, remoteProject, status, frequency, lastSyncStatus"
+        DATA_FIELDS = "localProject, remoteProject, frequency, lastSyncStatus"
 
         for (let k = 0; k < remoteUrlDetails.length; k++) {
             let detail = remoteUrlDetails[k];
@@ -306,10 +386,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 }
             },
             apply: function (status) {
-                return spawn('span', {
-                    title: status,
-                    html: status
-                });
+                return xsyncConfigurationDashboard.spawnStatusColumn(status, this.localProject);
             }
         }
         columnsInTable['frequency'] = {
@@ -485,7 +562,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 }
             },
             apply: function (actions) {
-                return [xsyncConfigurationDashboard.getAddNewButton()]
+                return [xsyncConfigurationDashboard.getDisableButton(this.remoteUrl)]
             }
         }
 
@@ -518,6 +595,15 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         xsyncConfigurationDashboard.init();
     })
 }));
+
+function spacer(width) {
+    return spawn('i.spacer', {
+        style: {
+            display: 'inline-block',
+            width: width + 'px'
+        }
+    })
+}
 
 function spawnDetailsForList(items) {
     return spawn('div.details-list', items.map(function(item, i){

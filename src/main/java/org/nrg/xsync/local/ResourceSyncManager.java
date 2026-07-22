@@ -52,7 +52,6 @@ public class ResourceSyncManager {
     private final SerializerService serializer;
     private final SyncStatusService syncStatusService;
 
-
     public ResourceSyncManager(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil,
                          final NamedParameterJdbcTemplate jdbcTemplate, XnatSubjectdataI localSubject, ProjectSyncConfiguration projectSyncConfiguration,
                          UserI user, boolean syncAll, SubjectSyncItem  subjectSyncItem, SerializerService serializer, SyncStatusService syncStatusService) {
@@ -269,6 +268,4 @@ public class ResourceSyncManager {
             subjectSyncInfo.addResources(resourceSyncItem);
         }
     }
-
-
 }

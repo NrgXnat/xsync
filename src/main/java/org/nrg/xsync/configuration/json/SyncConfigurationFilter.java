@@ -2,6 +2,8 @@ package org.nrg.xsync.configuration.json;
 
 import java.util.ArrayList;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.xsync.utils.XsyncUtils;
 
@@ -11,75 +13,15 @@ import org.nrg.xsync.utils.XsyncUtils;
  * @author Atul Kaushal
  */
 
+@Setter
+@Getter
 public class SyncConfigurationFilter extends BaseSyncConfiguration {
 
-	/** The xml path. */
 	private String xml_path;
-
-	/** The filter type. */
 	private String filter_type;
-
-	/** The filter values. */
 	private ArrayList<String> filter_values;
 
-	/**
-	 * Gets the xml path.
-	 *
-	 * @return the xml path
-	 */
-	public String getXml_path() {
-		return xml_path;
-	}
-
-	/**
-	 * Sets the xml path.
-	 *
-	 * @param xml_path
-	 *            the new xml path
-	 */
-	public void setXml_path(String xml_path) {
-		this.xml_path = xml_path;
-	}
-
-	/**
-	 * Gets the filter type.
-	 *
-	 * @return the filter type
-	 */
-	public String getFilter_type() {
-		return filter_type;
-	}
-
-	/**
-	 * Sets the filter type.
-	 *
-	 * @param filter_type
-	 *            the new filter type
-	 */
-	public void setFilter_type(String filter_type) {
-		this.filter_type = filter_type;
-	}
-
-	/**
-	 * Gets the filter values.
-	 *
-	 * @return the filter values
-	 */
-	public ArrayList<String> getFilter_values() {
-		return filter_values;
-	}
-
-	/**
-	 * Sets the filter values.
-	 *
-	 * @param filter_values
-	 *            the new filter values
-	 */
-	public void setFilter_values(ArrayList<String> filter_values) {
-		this.filter_values = filter_values;
-	}
-
-	/**
+    /**
 	 * Gets the default sync configuration filter.
 	 *
 	 * @return the default sync configuration filter

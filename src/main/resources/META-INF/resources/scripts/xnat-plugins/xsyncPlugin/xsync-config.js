@@ -788,6 +788,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
 
         function remoteUrl() {
             if (XSYNC.xsyncConfig.isWhitelistEnabledBackend === true) {
+                XSYNC.xsyncConfig.configuration.site_select_menu = XSYNC.xsyncConfig.configuration.remote_url;
                 return remoteUrlWhitelist();
             } else {
                 return remoteUrlNoWhitelist();
