@@ -105,7 +105,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         let remoteUrl = xsyncConfigurationDashboard.currentRemoteUrl;
         var stackTrace = '';
         XNAT.xhr.get({
-            url: restUrl('xapi/xsync/history/' + projectId +'/failure?remoteUrl=' + remoteUrl),
+            url: restUrl('/xapi/xsync/history/' + projectId +'/failure?remoteUrl=' + remoteUrl),
             async: false,
             success: function (data) {
                 stackTrace = data;
@@ -252,7 +252,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     }
 
     xsyncConfigurationDashboard.getCurrentConnectionHistoryData = function(allData, projectId) {
-        var inputUrl = allData ? '/xapi/xsync/history/projects/' + projectId : 'xapi/xsync/history/projects/' + projectId + '/recentHistory';
+        var inputUrl = allData ? '/xapi/xsync/history/projects/' + projectId : '/xapi/xsync/history/projects/' + projectId + '/recentHistory';
         XNAT.xhr.get({
             url: restUrl(inputUrl),
             async: false,
