@@ -122,6 +122,7 @@ dependencies {
     implementation "org.apache.httpcomponents:httpclient"
     implementation 'org.apache.httpcomponents:httpmime'
 
+    implementation "org.aspectj:aspectjweaver"
 
     implementation "org.hibernate:hibernate-core"
 

@@ -80,6 +80,8 @@ public class XsyncUtils {
 	public static final String XSYNC_VERIFICATION_STATUS_FAILED_TO_CONNECT = "FAILED_TO_CONNECT";
 	public static final String XSYNC_VERIFICATION_STATUS_FAILED_DUE_TO_EXCEPTION = "FAILED_DUE_TO_EXCEPTION";
 
+	public static final String XSYNC_ADMINISTRATOR_ROLE = "XsyncAdministrator";
+
 	public static final long GLOBAL_SLEEP_IN_MILLIS = 900000; //15 Minutes
 	public static final int GLOBAL_RETRY_COUNTS = 3; //15 Minutes
 
