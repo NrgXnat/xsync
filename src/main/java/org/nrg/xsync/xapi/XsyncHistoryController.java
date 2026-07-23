@@ -11,6 +11,7 @@ import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xapi.exceptions.NoContentException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
+import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatSubjectdata;
 import org.nrg.xdat.security.helpers.AccessLevel;
@@ -19,6 +20,7 @@ import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.history.XsyncProjectHistoryPojo;
+import org.nrg.xsync.security.XsyncAdministratorUserAuthorization;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -63,8 +65,9 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             @ApiResponse(code=403, message="Insufficient permissions to obtain all history data."),
             @ApiResponse(code=500, message="Unexpected error")
     })
-    @XapiRequestMapping(method=RequestMethod.GET, restrictTo = AccessLevel.Admin, produces = {MediaType.APPLICATION_JSON_VALUE})
-    public List<XsyncProjectHistoryPojo> getAllSyncHistory() {
+    @AuthDelegate(XsyncAdministratorUserAuthorization.class)
+    @XapiRequestMapping(method=RequestMethod.GET, restrictTo = AccessLevel.Authorizer, produces = {MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<List<XsyncProjectHistoryPojo>> getAllSyncHistory() {
         List<XsyncProjectHistoryPojo> allHistoryPojos = new ArrayList<>();
         for (XsyncProjectHistory history : syncManifestService.getAll()) {
             allHistoryPojos.add(mapper.convertValue(history, XsyncProjectHistoryPojo.class));
@@ -117,8 +120,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             @ApiResponse(code=500, message="Unexpected error")
     })
     @XapiRequestMapping(value="/projects/{projectId}/recentHistory", method=RequestMethod.GET, restrictTo =
-            AccessLevel.Read,
-            produces = {MediaType.APPLICATION_JSON_VALUE})
+            AccessLevel.Read, produces = {MediaType.APPLICATION_JSON_VALUE})
     public List<XsyncProjectHistoryPojo> getRecentSyncHistoryForProject(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId) {
         List<XsyncProjectHistory> allHistory = syncManifestService.getAll();

@@ -37,7 +37,9 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan({
 	"org.nrg.xsync.aspera",
 	"org.nrg.xsync.components",
+	"org.nrg.xsync.initialization.tasks",
 	"org.nrg.xsync.scheduler",
+	"org.nrg.xsync.security",
 	"org.nrg.xsync.services",
 	"org.nrg.xsync.services.local",
 	"org.nrg.xsync.tools",

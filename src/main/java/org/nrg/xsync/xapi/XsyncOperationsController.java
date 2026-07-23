@@ -137,7 +137,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     @ResponseBody
     public ResponseEntity<String> exportProject(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
     	
-    	if(!_syncStatusService.getProjectSyncStatus(projectId).isSyncing())
+    	if(!_syncStatusService.getProjectSyncStatus(projectId).getIsSyncing())
     	{
 	    	//Check user credentials to see if the user is a member or an owner of the project
 	        final UserI user = getSessionUser();
@@ -256,7 +256,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             			return new ResponseEntity<>("Unable to mark sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
             		}
             	} catch (Exception e) {
-            		log.error("Unable to mark sync assessor for syncing:  " + ExceptionUtils.getFullStackTrace(e));
+                    log.error("Unable to mark sync assessor for syncing:  {}", ExceptionUtils.getFullStackTrace(e));
             		return new ResponseEntity<>("Unable to mark sync assessor for syncing.", HttpStatus.INTERNAL_SERVER_ERROR);
             	}
            	}
@@ -344,7 +344,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                     okToSyncData.setRemoteProjectId(syncProjectConfiguration.getSyncinfo().getRemoteProjectId());
                 }
             } else {
-                okToSyncData = createNewXsyncassessor(experimentId, okToSync, user);
+                okToSyncData = createNewXsyncAssessor(experimentId, okToSync, user);
             }
             if (okToSyncData != null) {
                 //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
@@ -379,8 +379,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
     }
 
-    @XapiRequestMapping(value = "/experiments/{experimentId}/syncStatus",
-            method = RequestMethod.GET, restrictTo = AccessLevel.Edit)
+    @XapiRequestMapping(value = "/experiments/{experimentId}/syncStatus", method = RequestMethod.GET,
+            restrictTo = AccessLevel.Edit)
     @ResponseBody
     public ResponseEntity<String> getSyncInfo(@PathVariable("experimentId") final String experimentId){
         final UserI user = getSessionUser();
@@ -421,8 +421,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
     @ApiOperation(value = "Xsync subject/experiment id report.", notes = "Xsync subject/experiment id report.")
     @XapiRequestMapping(value = "/getSubjectMappingFile/{projectId}", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<StringStreamingResponseBody> getSubjectMappingFile(
-            @PathVariable("projectId") final String projectId,
+    public ResponseEntity<StringStreamingResponseBody> getSubjectMappingFile(@PathVariable("projectId") final String projectId,
             @RequestParam Map<String,String> params) throws Exception{
     		
     		final ProjectChangeDiscoverer projectChangeDiscoverer = new ProjectChangeDiscoverer(_manager, _configService, _serializer, _queryResultUtil, _jdbcTemplate, _mailService,_catalogService, _xnatInfo, _syncStatusService, projectId, getSessionUser());
@@ -467,7 +466,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
                 syncAssessor.setRemoteUrl(syncProjectConfiguration.getSyncinfo().getRemoteUrl());
                 syncAssessor.setRemoteProjectId(syncProjectConfiguration.getSyncinfo().getRemoteProjectId());
             } else {
-                syncAssessor = createNewXsyncassessor(experimentId, true, user);
+                syncAssessor = createNewXsyncAssessor(experimentId, true, user);
             }
             if (syncAssessor != null) {
                 //Backward compatible XNAT 1.6.5 does not have ADMIN_EVENT method
@@ -551,7 +550,7 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
     }
     
-    private XsyncXsyncassessordata createNewXsyncassessor(final String experimentId, final boolean okToSync, final UserI user) throws Exception {
+    private XsyncXsyncassessordata createNewXsyncAssessor(final String experimentId, final boolean okToSync, final UserI user) throws Exception {
         final XsyncXsyncassessordata okToSyncData;
         final XnatExperimentdata experiment = XnatExperimentdata.getXnatExperimentdatasById(experimentId, user, false);
         final XsyncXsyncprojectdata syncProjectConfiguration = (new XsyncUtils(_jdbcTemplate, user)).getSyncDetailsForProject(experiment.getProject());

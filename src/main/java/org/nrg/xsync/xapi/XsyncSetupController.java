@@ -43,10 +43,10 @@ import java.util.zip.DataFormatException;
  *
  */
 
+@Slf4j
 @XapiRestController
 @RequestMapping(value = "/xsync/setup")
 @Api("XSync Management API")
-@Slf4j
 public class XsyncSetupController extends AbstractXapiProjectRestController {
 	@Autowired
 	public XsyncSetupController(final UserManagementServiceI userManagementService,
@@ -153,6 +153,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	private final XsyncConfigurationService _xsyncConfigService;
 	private final WhitelistXsyncSiteService  _whitelistXsyncSiteService;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
+	public static Logger _logger = LoggerFactory.getLogger(XsyncSetupController.class);
 
 	@ResponseStatus(value = HttpStatus.NOT_FOUND)
 	@ExceptionHandler(value = {NotFoundException.class})

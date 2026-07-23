@@ -26,7 +26,7 @@ public class SyncStatusService {
 	
 	public void registerSyncStart(String projectId, SyncType syncType, SyncManifest syncManifest) {
 		final ProjectSyncStatus projectSyncStatus = _statusHolder.getProjectSyncStatus(projectId);
-		projectSyncStatus.setSyncing(true);
+		projectSyncStatus.setIsSyncing(true);
 		if (syncManifest!=null) {
 			projectSyncStatus.setSyncStartTime(syncManifest.getSync_start_time());
 		} else {
@@ -46,7 +46,7 @@ public class SyncStatusService {
 
 	public void registerSyncEnd(String projectId, SyncManifest syncManifest) {
 		final ProjectSyncStatus projectSyncStatus = _statusHolder.getProjectSyncStatus(projectId);
-		projectSyncStatus.setSyncing(false);
+		projectSyncStatus.setIsSyncing(false);
 		if (syncManifest!=null) {
 			projectSyncStatus.setWasSyncSuccessful(syncManifest.wasSyncSuccessful());
 			projectSyncStatus.setSyncEndTime(syncManifest.getSync_end_time());
@@ -98,7 +98,7 @@ public class SyncStatusService {
 	}
 	
 	public boolean isCurrentlySyncing(String projectId) {
-		return _statusHolder.getProjectSyncStatus(projectId).isSyncing();
+		return _statusHolder.getProjectSyncStatus(projectId).getIsSyncing();
 	}
 	
 	public ProjectSyncStatus getProjectSyncStatus(String projectId) {
