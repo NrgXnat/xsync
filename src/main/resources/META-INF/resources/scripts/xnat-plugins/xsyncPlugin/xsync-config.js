@@ -188,16 +188,14 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
 
                 // sample credentials JSON
                 var credentialsSample = {
-                    "xdatUserId": "bob",
+                    "host": "http://10.1.100.170",
+                    "localProject": "Xa",
+                    "remoteProject": "Xb",
+                    "syncNewOnly": true,
                     "alias": "a8174140-acb3-4b28-ba3d-006dd68be980",
                     "secret": "QuVoGllg591PTMIcYcnNoEJDcYefbfwmadlESyHFDGaec29yxpGEJb0r8cXZigRF",
-                    "singleUse": false,
-                    "estimatedExpirationTime": 1477178868198,
-                    "enabled": true,
-                    "created": 1477006068199,
-                    "id": 36,
-                    "disabled": 0,
-                    "timestamp": 1477006068199
+                    "username": "bob",
+                    "estimatedExpirationTime": 1477178868198
                 };
 
                 credentialsAjax.done(function(data) {
@@ -219,10 +217,9 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
                         var saveCredentials = $.ajax({
                             type: 'POST',
                             url: XNAT.url.csrfUrl('/xapi/xsync/credentials/save/projects/' + XNAT.data.context.project),
-                            dataType: 'text',
                             data: JSON.stringify(formData),
                             processData: false,
-                            contentType: 'text/plain'
+                            contentType: 'application/json'
                         });
 
                         saveCredentials.done(function(data, textStatus, jqXHR){
@@ -303,13 +300,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         // sample JSON for valid credentials check
         var formDataSample = {
             "host": "http://10.1.100.170",
-            "localProject": "Xa",
-            "remoteProject": "Xb",
-            "syncNewOnly": true,
-            "alias": "a8174140-acb3-4b28-ba3d-006dd68be980",
-            "secret": "QuVoGllg591PTMIcYcnNoEJDcYefbfwmadlESyHFDGaec29yxpGEJb0r8cXZigRF",
-            "username": "bob",
-            "estimatedExpirationTime": 1477178868198
+            "localProject": "Xa"
         };
 
         var checkCredentialsAjax = $.ajax({
@@ -317,10 +308,9 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
             url: XNAT.url.csrfUrl('/xapi/xsync/credentials/check/projects/' + XNAT.data.context.project),
             cache: false,
             async: false,
-            dataType: 'text',
             data: JSON.stringify(formData),
             processData: false,
-            contentType: "text/plain"
+            contentType: 'application/json'
         });
 
         checkCredentialsAjax.done(function(data, textStatus, jqXHR){

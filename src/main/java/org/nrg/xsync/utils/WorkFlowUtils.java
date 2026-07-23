@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-
 /**
  * @author Mohana Ramaratnam
  *
@@ -34,7 +33,6 @@ public class WorkFlowUtils {
     	this._manager = manager;
     	this._queryResultUtil = queryResultUtil;
 		_jdbcTemplate = jdbcTemplate;
-
     }
 	
 	public void createWorkflowAtRemote(XnatImagesessiondata img, String remoteId,String remoteProject, String status) {
@@ -54,13 +52,13 @@ public class WorkFlowUtils {
 			RemoteConnectionResponse response = _manager.createWorkflow(connection, workFlowData);
             
 		}catch(Exception e) {
-        	_log.debug("Could not instantiate the workflow for " + img.getLabel(),e);
+            _log.debug("Could not instantiate the workflow for {}", img.getLabel(), e);
         }
 	}
 
 	public void createWorkflowAtRemote(XnatSubjectdata sub, String remoteId,String remoteProject, String status) {
 		Class c = BaseElement.GetGeneratedClass(WrkWorkflowdata.SCHEMA_ELEMENT_NAME);
-		ItemI o = null;
+		ItemI o;
 		try {
             o = (ItemI) c.newInstance();
             WrkWorkflowdata workFlowData = new WrkWorkflowdata(o);
@@ -74,12 +72,8 @@ public class WorkFlowUtils {
 			RemoteConnection connection = remoteConnectionHandler.getConnection(projectSyncConfiguration.getProject().getId(),projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteUrl());
 			RemoteConnectionResponse response = _manager.createWorkflow(connection, workFlowData);
             
-		}catch(Exception e) {
-        	_log.debug("Could not instantiate the workflow for " + sub.getLabel(),e);
+		} catch(Exception e) {
+            _log.debug("Could not instantiate the workflow for {}", sub.getLabel(), e);
         }
 	}
-	
-	
-
-
 }

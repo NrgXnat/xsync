@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
@@ -256,7 +257,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         ResourceUtils resourceUtils = new ResourceUtils(_projectSyncConfiguration);
 
         List<Map<String, Object>> resourceRows = getProjectResourcesModifiedSinceLastSync();
-        if (resourceRows == null || resourceRows.size() < 1) {
+        if (!CollectionUtils.isEmpty(resourceRows)) {
             return;
         }
         String remoteProjectId = _projectSyncConfiguration.getProjectSyncConfigurationFromDB().getSyncinfo().getRemoteProjectId();
@@ -268,7 +269,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
             if (label != null && label.equalsIgnoreCase(XsyncUtils.PROJECT_SYNC_LOG_RESOURCE_LABEL)) {
                 continue;
             }
-            _log.debug("Resource " + row.get("label") + " has been modfied since " + this.getLastSyncStartTime());
+            _log.debug("Resource {} has been modified since {}", row.get("label"), this.getLastSyncStartTime());
             if (_projectSyncConfiguration.isResourceToBeSynced(label)) {
                 String status = (String) row.get("status");
                 if (_syncAll) {
@@ -403,7 +404,6 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         }
     }
 
-
     private List<Map<String, Object>> getSubjectsModifiedSinceLastSync() {
         //Any entity  that is derived from the subject or linked to the subject
         //if modified, would result in an update in the last_modified column
@@ -423,7 +423,6 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         return _jdbcTemplate.queryForList(query, _parameters);
     }
 
-
     /**
      * Append failed subjects.
      *
@@ -441,7 +440,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         MapSqlParameterSource parameters = new MapSqlParameterSource();
         parameters.addValue("project", _projectId);
         boolean skipSubjectIdCheck = false;
-        if (excludeIds.size() > 0) {
+        if (!excludeIds.isEmpty()) {
             parameters.addValue(QueryResultUtil.SUBJECT_IDS, excludeIds);
         } else {
             skipSubjectIdCheck = true;
@@ -456,7 +455,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
     }
 
     private void syncSubject(XnatSubjectdata localSubject) throws Exception {
-        _log.debug("Exporting " + localSubject.getId());
+        _log.debug("Exporting {}", localSubject.getId());
         SubjectDataSync remoteSubject = new SubjectDataSync(_manager, _xnatInfo, _queryResultUtil, (JdbcTemplate) _jdbcTemplate.getJdbcOperations(),
                 localSubject, _projectSyncConfiguration, _user, _syncAll, _observer, _serializer, _syncStatusService);
         remoteSubject.sync(true);
@@ -478,7 +477,7 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
                 subject.setId(remoteId);
                 ConflictCheckUtil.checkForConflict(subject, remoteId, _projectSyncConfiguration,
                         _jdbcTemplate, _queryResultUtil, _manager);
-                _log.debug("Deleting subject " + subject.getId() + " from remote project " + subject.getProject());
+                _log.debug("Deleting subject {} from remote project {}", subject.getId(), subject.getProject());
                 try {
                     RemoteConnectionHandler remoteConnectionHandler = new RemoteConnectionHandler(_jdbcTemplate, _queryResultUtil);
                     RemoteConnection connection = remoteConnectionHandler.getConnection(_projectId, remoteUrl);
@@ -569,5 +568,4 @@ public class ProjectChangeDiscoverer implements Callable<Void> {
         XsyncProjectReportGenerator reportGenerator = new XsyncProjectReportGenerator(_manager, _queryResultUtil, _jdbcTemplate, _projectSyncConfiguration, _serializer, _user);
         return reportGenerator.generateMappingReport(reportFormat, objectType);
     }
-
 }

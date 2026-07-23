@@ -50,7 +50,6 @@ public class ResourceUtils {
 	        return projectResource;
 	    }
 	  
-	  
 	  public void setSyncStatus(Map<String,String> fileComparison, ResourceSyncItem resourceSyncItem, String msg) {
           if (fileComparison == null) return;
 		  String verificationStatus = fileComparison.get(XsyncUtils.XSYNC_VERIFICATION_STATUS);
@@ -118,14 +117,13 @@ public class ResourceUtils {
 		            	break;
 		            }
 		      }
-		  }catch(Exception e) {}
+		  } catch(Exception ignored) {}
 		  return found;
 	  }
 	  
 	  private JsonNode getResultNode(JsonNode rootNode) {
 		  JsonNode resultSetNode = rootNode.get("ResultSet");
-		  JsonNode resultNode = resultSetNode.get("Result");
-		  return resultNode;
+          return resultSetNode.get("Result");
 	  }
 
 	@SuppressWarnings("unused")
@@ -158,7 +156,4 @@ public class ResourceUtils {
 		}
 		return path;
 	}
-
-
-
 }

@@ -57,7 +57,7 @@ public class XsyncObserver implements Observer {
 		        bWriter.newLine();
 		        bWriter.flush();
 			} catch (IOException e) {
-				logger.error("An error occurred writing the log sync file " + logFile.getAbsolutePath(), e);
+                logger.error("An error occurred writing the log sync file {}", logFile.getAbsolutePath(), e);
 			}
 		}
 	}
@@ -81,7 +81,7 @@ public class XsyncObserver implements Observer {
 				try {			
 					FileUtils.CopyFile(logFile, dest, true);
 				}catch(Exception e) {
-					logger.error("Unable to save file " + logFile.getAbsolutePath() + " to " + dest.getAbsolutePath(),e);
+                    logger.error("Unable to save file {} to {}", logFile.getAbsolutePath(), dest.getAbsolutePath(), e);
 				}
 			}
 		
