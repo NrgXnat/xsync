@@ -1,5 +1,6 @@
 package org.nrg.xsync.xapi;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.config.entities.Configuration;
 import org.nrg.framework.annotations.XapiRestController;
@@ -16,8 +17,6 @@ import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.nrg.xsync.utils.XsyncUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -41,6 +40,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  */
 
+@Slf4j
 @XapiRestController
 @RequestMapping(value = "/xsync/setup")
 @Api("XSync Management API")
@@ -87,7 +87,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			_xsyncConfigService.saveConfig(getSessionUser(), configurationPojo, projectId);
 			return new ResponseEntity<>(projectId + " Xsync Setup complete",  HttpStatus.OK);
 		} catch (Exception  exception) {
-            _logger.error("ERROR:  Xsync Setup Threw an Exception:  {}", ExceptionUtils.getFullStackTrace(exception));
+            log.error("ERROR:  Xsync Setup Threw an Exception:  {}", ExceptionUtils.getFullStackTrace(exception));
 			return new ResponseEntity<>(projectId + " Xsync Setup failed ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
 	}
@@ -123,7 +123,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
             }
 			saveDicomAnonymizationToConfig(project,anonymizationScript);
 		} catch(Exception e) {
-            _logger.error("ERROR:  Error saving pre-sync DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
+            log.error("ERROR:  Error saving pre-sync DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
         	return new ResponseEntity<>(projectId + " Pre-Sync DICOM Anonymization script could not be saved. ", HttpStatus.INTERNAL_SERVER_ERROR );
 		}
     	return new ResponseEntity<>(projectId + " Pre-Sync anonymization saved",  HttpStatus.OK);
@@ -141,7 +141,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			Configuration config = _xsyncConfigService.getGenericXsyncConfiguration("presyncanonymization", projectId);
 			return new ResponseEntity<>(config == null ? "" : config.getContents(), HttpStatus.OK);
 		} catch(Exception e) {
-            _logger.error("ERROR:  Error returning DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
+            log.error("ERROR:  Error returning DICOM anonymization script:  {}", ExceptionUtils.getFullStackTrace(e));
 			return new ResponseEntity<>("", HttpStatus.NO_CONTENT);
 		}
 	}
@@ -150,7 +150,6 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	private final XsyncConfigurationService _xsyncConfigService;
 	private final WhitelistXsyncSiteService  _whitelistXsyncSiteService;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
-	public static Logger _logger = LoggerFactory.getLogger(XsyncSetupController.class);
 
 	@ResponseStatus(value = HttpStatus.NOT_FOUND)
 	@ExceptionHandler(value = {NotFoundException.class})

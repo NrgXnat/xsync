@@ -5,6 +5,7 @@ siteSettings:
     kind: tabs
     label: Xsync Configuration
     meta:
+        restricted: XsyncAdministrator
         tabGroups:
             xsyncConfig: XSync Site Level Configuration
     contents:

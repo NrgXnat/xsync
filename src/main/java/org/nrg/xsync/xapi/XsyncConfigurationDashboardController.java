@@ -8,6 +8,7 @@ import io.swagger.annotations.ApiResponses;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiRestController;
+import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
@@ -17,6 +18,7 @@ import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.XsyncDashboardProjectConfigurationPojo;
 import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
+import org.nrg.xsync.security.XsyncAdministratorUserAuthorization;
 import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
@@ -64,8 +66,9 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
             @ApiResponse(code=404, message="Configuration data not found."),
             @ApiResponse(code=500, message="Unexpected error")
     })
+    @AuthDelegate(XsyncAdministratorUserAuthorization.class)
     @XapiRequestMapping(method = RequestMethod.GET,
-            produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Admin)
+            produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Authorizer)
     public ResponseEntity<List<XsyncRemoteUrlDetailsPojo>> getAllXsyncConfigInformation() {
         final UserI user = getSessionUser();
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
@@ -86,8 +89,9 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
             @ApiResponse(code=404, message="Configuration data not found."),
             @ApiResponse(code=500, message="Unexpected error")
     })
+    @AuthDelegate(XsyncAdministratorUserAuthorization.class)
     @XapiRequestMapping(value = "/whitelist", method = RequestMethod.GET,
-            produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Admin)
+            produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Authorizer)
     public ResponseEntity<List<XsyncRemoteUrlDetailsPojo>> getAllNonConformingRemoteUrls() {
         if (!_sitePreferences.getXsyncWhitelistEnabled()) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -105,8 +109,9 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
             @ApiResponse(code=404, message="Configuration data not found."),
             @ApiResponse(code=500, message="Unexpected error")
     })
+    @AuthDelegate(XsyncAdministratorUserAuthorization.class)
     @XapiRequestMapping(value = "/remoteUrl", method = RequestMethod.GET,
-            produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Admin)
+            produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Authorizer)
     public ResponseEntity<List<XsyncDashboardProjectConfigurationPojo>> getSyncDetailsForRemoteUrl(
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) {
         final UserI user = getSessionUser();
@@ -122,7 +127,8 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
             @ApiResponse(code=404, message="Configuration data not found."),
             @ApiResponse(code=500, message="Unexpected error")
     })
-    @XapiRequestMapping(value = "/enable", method = RequestMethod.PUT, restrictTo = AccessLevel.Admin)
+    @AuthDelegate(XsyncAdministratorUserAuthorization.class)
+    @XapiRequestMapping(value = "/enable", method = RequestMethod.PUT, restrictTo = AccessLevel.Authorizer)
     public void changeRemoteUrlEnabled(
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl,
             @ApiParam(required = true) @RequestParam boolean enabled) throws Exception {
