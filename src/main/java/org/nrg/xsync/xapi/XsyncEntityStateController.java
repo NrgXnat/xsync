@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
+import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
@@ -11,6 +12,7 @@ import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.discoverer.ProjectInformation;
 import org.nrg.xsync.exception.XsyncNoProjectEntitiesSpecifiedException;
 import org.nrg.xsync.exception.XsyncNoProjectSpecifiedException;
+import org.nrg.xsync.security.XsyncReadProjectUserAuthority;
 import org.nrg.xsync.utils.QueryResultUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -47,7 +49,9 @@ public class XsyncEntityStateController extends AbstractXapiProjectRestControlle
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "User not authorized to access indicated project."),
             @ApiResponse(code = 500, message = "Unexpected error")})
-    @XapiRequestMapping(value = "/projects/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = AccessLevel.Read)
+    @AuthDelegate(XsyncReadProjectUserAuthority.class)
+    @XapiRequestMapping(value = "/projects/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE,
+            method = RequestMethod.GET, restrictTo = AccessLevel.Authorizer)
     @ResponseBody
     public ObjectNode getProjectInformation(@PathVariable("projectId") final String projectId,
                                                             @RequestParam("listChoices") final String listChoices) throws  Exception {

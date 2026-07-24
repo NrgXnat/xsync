@@ -13,6 +13,8 @@ import org.nrg.xft.exception.InvalidValueException;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
 import org.nrg.xsync.security.XsyncAdministratorUserAuthorization;
+import org.nrg.xsync.security.XsyncDeleteProjectUserAuthority;
+import org.nrg.xsync.security.XsyncReadProjectUserAuthority;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NrgServiceException;
@@ -84,8 +86,9 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return prefs.toPojo();
 	}
 
+	@AuthDelegate(XsyncAdministratorUserAuthorization.class)
 	@XapiRequestMapping(value = "xsyncSitePreferences/aspera", method = RequestMethod.POST,
-			consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Admin)
+			consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
 	@ApiOperation(value = "Sets the XSync site aspera preferences")
 	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site preferences set."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
@@ -132,8 +135,9 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return prefs.getAsperaEnabled();
 	}
 
+	@AuthDelegate(XsyncReadProjectUserAuthority.class)
 	@XapiRequestMapping(value = "xsyncProjectPreferences/project/{projectId}/asperaEnabled", method =
-			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Read)
+			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
 	@ApiOperation(value = "Checks whether Aspera is enabled for project.")
 	@ApiResponses({ @ApiResponse(code = 200, message = "Aspera enabled returned."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
@@ -142,8 +146,9 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return prefsInfo.getAsperaEnabled();
 	}
 
-	@XapiRequestMapping(value = "xsyncProjectPreferences/project/{projectId}/aspera",
-			method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Delete)
+	@AuthDelegate(XsyncDeleteProjectUserAuthority.class)
+	@XapiRequestMapping(value = "xsyncProjectPreferences/project/{projectId}/aspera", method = RequestMethod.POST,
+			consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
 	@ApiOperation(value = "Sets the XSync project aspera preferences")
 	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site preferences set."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
@@ -166,8 +171,9 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>("XSync preferences set", HttpStatus.OK);
 	}
 
+	@AuthDelegate(XsyncReadProjectUserAuthority.class)
 	@XapiRequestMapping(value = "xsyncProjectPreferences/project/{projectId}/aspera", method = RequestMethod.GET,
-			produces = {MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Read)
+			produces = {MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Authorizer)
 	@ApiOperation(value = "Gets the XSync project preferences", response = Properties.class)
 	@ApiResponses({ @ApiResponse(code = 200, message = "XSync site Aspera preferences retrieved."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
@@ -201,8 +207,9 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return prefs.getXsyncWhitelistEnabled();
 	}
 
+	@AuthDelegate(XsyncReadProjectUserAuthority.class)
 	@XapiRequestMapping(value = "xsyncSitePreferences/whitelistSites", method = RequestMethod.GET,
-			produces = {MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Read)
+			produces = {MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Authorizer)
 	@ApiOperation(value = "Get the whitelist of sites allowed for syncing")
 	@ApiResponses({ @ApiResponse(code = 200, message = "Xsync whitelist sites retrieved."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
@@ -230,8 +237,9 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(whitelistXsyncSiteService.deleteWhitelistSiteFromSiteAdmin(whitelistSitePojo), HttpStatus.OK);
 	}
 
+	@AuthDelegate(XsyncReadProjectUserAuthority.class)
 	@XapiRequestMapping(value = "xsyncSitePreferences/blacklistSites", method = RequestMethod.GET, produces = {
-			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Read)
+			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Authorizer)
 	@ApiOperation(value = "Get the blacklist of sites not allowed for syncing")
 	@ApiResponses({ @ApiResponse(code = 200, message = "Xsync blacklist sites retrieved."),
 			@ApiResponse(code = 500, message = "Unexpected error") })

@@ -19,6 +19,7 @@ import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.XsyncDashboardProjectConfigurationPojo;
 import org.nrg.xsync.pojo.XsyncRemoteUrlDetailsPojo;
 import org.nrg.xsync.security.XsyncAdministratorUserAuthorization;
+import org.nrg.xsync.security.XsyncDeleteProjectUserAuthority;
 import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
@@ -142,7 +143,8 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
             @ApiResponse(code=404, message="Configuration data not found."),
             @ApiResponse(code=500, message="Unexpected error")
     })
-    @XapiRequestMapping(value = "/{projectId}/enable", method = RequestMethod.PUT, restrictTo = AccessLevel.Delete)
+    @AuthDelegate(XsyncDeleteProjectUserAuthority.class)
+    @XapiRequestMapping(value = "/{projectId}/enable", method = RequestMethod.PUT, restrictTo = AccessLevel.Authorizer)
     public void changeConfigurationEnabled(
             @PathVariable("projectId") String projectId,
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl,
