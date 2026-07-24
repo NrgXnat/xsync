@@ -13,7 +13,6 @@ import org.nrg.xsync.components.SyncStatusHolder.SyncType;
 
 public class ProjectSyncStatus {
 
-	@Setter
     private boolean isSyncing;
 	@Setter
     @Getter
@@ -57,6 +56,10 @@ public class ProjectSyncStatus {
 		return isSyncing;
 	}
 
+	public void setIsSyncing(boolean isSyncing) {
+		this.isSyncing = isSyncing;
+	}
+
     public String getSyncStartTime() {
 		return (syncStartTime!=null) ? datef.format(syncStartTime) : null;
 	}
@@ -68,5 +71,4 @@ public class ProjectSyncStatus {
     public void setWasSyncSuccessful(boolean wasSyncSuccessful) {
 		this.wasSyncSuccessful=wasSyncSuccessful;
 	}
-	
 }

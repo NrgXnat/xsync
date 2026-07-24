@@ -23,6 +23,7 @@ import org.nrg.framework.net.AuthenticatedClientHttpRequestFactory;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
+import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.*;
 import org.nrg.xdat.security.helpers.AccessLevel;
@@ -44,6 +45,9 @@ import org.nrg.xsync.local.SingleSubjectTransfer;
 import org.nrg.xsync.manager.SynchronizationManager;
 import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.remote.alias.services.SyncStatusService;
+import org.nrg.xsync.security.XsyncDeleteProjectUserAuthority;
+import org.nrg.xsync.security.XsyncEditProjectUserAuthority;
+import org.nrg.xsync.security.XsyncReadProjectUserAuthority;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.tools.XsyncXnatInfo;
 import org.nrg.xsync.utils.QueryResultUtil;
@@ -132,8 +136,9 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "User not authorized to export the indicated project."),
             @ApiResponse(code = 500, message = "Unexpected error")})
+    @AuthDelegate(XsyncDeleteProjectUserAuthority.class)
     @XapiRequestMapping(value = "/projects/{projectId}", consumes = MediaType.ALL_VALUE,
-            produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST, restrictTo = AccessLevel.Delete)
+            produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST, restrictTo = AccessLevel.Authorizer)
     @ResponseBody
     public ResponseEntity<String> exportProject(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
     	
@@ -155,8 +160,9 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "User not authorized to export the indicated project."),
             @ApiResponse(code = 500, message = "Unexpected error")})
+    @AuthDelegate(XsyncDeleteProjectUserAuthority.class)
     @XapiRequestMapping(value = "/projects/{projectId}/updateRemoteHostUrl", consumes = MediaType.ALL_VALUE,
-            produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST, restrictTo = AccessLevel.Delete)
+            produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST, restrictTo = AccessLevel.Authorizer)
     @ResponseBody
     public ResponseEntity<String> updateRemoteHostUrl(@PathVariable("projectId") final String projectId) throws URISyntaxException, XsyncNotConfiguredException {
     	
@@ -222,8 +228,9 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "User not authorized to export the indicated project."),
             @ApiResponse(code = 500, message = "Unexpected error")})
+    @AuthDelegate(XsyncDeleteProjectUserAuthority.class)
     @XapiRequestMapping(value = "/syncexperiment/{experimentId}", consumes = MediaType.ALL_VALUE,
-            produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST, restrictTo = AccessLevel.Delete)
+            produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST, restrictTo = AccessLevel.Authorizer)
     @ResponseBody
     public ResponseEntity<String> syncSingleExperiment(@PathVariable("experimentId") final String experimentId) throws URISyntaxException, XsyncNotConfiguredException {
         final UserI user = getSessionUser();
@@ -278,7 +285,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "User not authorized to export the indicated project."),
             @ApiResponse(code = 500, message = "Unexpected error")})
-    @XapiRequestMapping(value = "/syncsubject/{subjectId}", restrictTo = AccessLevel.Delete, consumes = MediaType.ALL_VALUE,
+    @AuthDelegate(XsyncDeleteProjectUserAuthority.class)
+    @XapiRequestMapping(value = "/syncsubject/{subjectId}", restrictTo = AccessLevel.Authorizer, consumes = MediaType.ALL_VALUE,
             produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST)
     @ResponseBody
     public ResponseEntity<String> syncSingleSubject(@PathVariable("subjectId") final String subjectId) throws XsyncNotConfiguredException {
@@ -311,8 +319,9 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "User not authorized to export the indicated project."),
             @ApiResponse(code = 500, message = "Unexpected error")})
+    @AuthDelegate(XsyncEditProjectUserAuthority.class)
     @XapiRequestMapping(value = "/experiments/{experimentId}", consumes = MediaType.ALL_VALUE,
-            produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST, restrictTo = AccessLevel.Edit)
+            produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST, restrictTo = AccessLevel.Authorizer)
     @ResponseBody
     public ResponseEntity<String> exportExperiment(@PathVariable("experimentId") final String experimentId, @RequestParam("okToSync") final boolean okToSync) throws URISyntaxException, XsyncNotConfiguredException {
         //If the OkToSync Assessor already exists, update that
@@ -379,8 +388,9 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
     }
 
+    @AuthDelegate(XsyncEditProjectUserAuthority.class)
     @XapiRequestMapping(value = "/experiments/{experimentId}/syncStatus", method = RequestMethod.GET,
-            restrictTo = AccessLevel.Edit)
+            restrictTo = AccessLevel.Authorizer)
     @ResponseBody
     public ResponseEntity<String> getSyncInfo(@PathVariable("experimentId") final String experimentId){
         final UserI user = getSessionUser();
@@ -447,8 +457,9 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "User not authorized to export the indicated project."),
             @ApiResponse(code = 500, message = "Unexpected error")})
+    @AuthDelegate(XsyncEditProjectUserAuthority.class)
     @XapiRequestMapping(value = "/requestSync/{experimentId}", consumes = MediaType.ALL_VALUE,
-            produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST, restrictTo = AccessLevel.Edit)
+            produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.POST, restrictTo = AccessLevel.Authorizer)
     @ResponseBody
     public ResponseEntity<String> markForSync(@PathVariable("experimentId") final String experimentId) throws URISyntaxException, XsyncNotConfiguredException {
         //If the OkToSync Assessor already exists, update that
@@ -529,7 +540,8 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
 
     @ApiOperation(value = "Gets the log file to display the progress of sync.",
             notes = "Gets the log file containing sync progress")
-    @XapiRequestMapping(value = "/progress/{projectId}",  method = RequestMethod.GET, restrictTo = AccessLevel.Read)
+    @AuthDelegate(XsyncReadProjectUserAuthority.class)
+    @XapiRequestMapping(value = "/progress/{projectId}",  method = RequestMethod.GET, restrictTo = AccessLevel.Authorizer)
     @ResponseBody
     public void getSyncProgress(HttpServletRequest request, HttpServletResponse response,
                                 @PathVariable("projectId") final String projectId) {

@@ -21,6 +21,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xsync.manifest.history.XsyncProjectHistory;
 import org.nrg.xsync.pojo.history.XsyncProjectHistoryPojo;
 import org.nrg.xsync.security.XsyncAdministratorUserAuthorization;
+import org.nrg.xsync.security.XsyncReadProjectUserAuthority;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -81,9 +82,10 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             @ApiResponse(code=403, message="Insufficient permissions to obtain history element."),
             @ApiResponse(code=500, message="Unexpected error")
     })
-    @XapiRequestMapping(method=RequestMethod.GET, value="/projects/{projectId}/{id}", restrictTo = AccessLevel.Read,
-            produces = {MediaType.APPLICATION_JSON_VALUE})
-    public XsyncProjectHistoryPojo getSyncHistoryById(
+    @AuthDelegate(XsyncReadProjectUserAuthority.class)
+    @XapiRequestMapping(method=RequestMethod.GET, value="/projects/{projectId}/{id}",
+            restrictTo = AccessLevel.Authorizer, produces = {MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<XsyncProjectHistoryPojo> getSyncHistoryById(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") final String projectId,
             @ApiParam(value = "Id of requested history item.", required = true)@PathVariable("id") final long id) {
         return mapper.convertValue(syncManifestService.retrieve(id), XsyncProjectHistoryPojo.class);
@@ -96,9 +98,10 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             @ApiResponse(code=403, message="Insufficient permissions to obtain history elements."),
             @ApiResponse(code=500, message="Unexpected error")
     })
-    @XapiRequestMapping(value="/projects/{projectId}", method=RequestMethod.GET, restrictTo = AccessLevel.Read,
+    @AuthDelegate(XsyncReadProjectUserAuthority.class)
+    @XapiRequestMapping(value="/projects/{projectId}", method=RequestMethod.GET, restrictTo = AccessLevel.Authorizer,
             produces = {MediaType.APPLICATION_JSON_VALUE})
-    public List<XsyncProjectHistoryPojo> getSyncHistoryByProject(
+    public ResponseEntity<List<XsyncProjectHistoryPojo>> getSyncHistoryByProject(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId) {
     	List<XsyncProjectHistory> allHistory = syncManifestService.getAll();
         List<XsyncProjectHistoryPojo> filteredHistory = new ArrayList<>();
@@ -118,8 +121,9 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             @ApiResponse(code=403, message="Insufficient permissions to obtain history elements."),
             @ApiResponse(code=500, message="Unexpected error")
     })
+    @AuthDelegate(XsyncReadProjectUserAuthority.class)
     @XapiRequestMapping(value="/projects/{projectId}/recentHistory", method=RequestMethod.GET, restrictTo =
-            AccessLevel.Read, produces = {MediaType.APPLICATION_JSON_VALUE})
+            AccessLevel.Authorizer, produces = {MediaType.APPLICATION_JSON_VALUE})
     public List<XsyncProjectHistoryPojo> getRecentSyncHistoryForProject(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId) {
         List<XsyncProjectHistory> allHistory = syncManifestService.getAll();
@@ -143,9 +147,10 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             @ApiResponse(code=404, message="Input subject label does not exist within this project."),
             @ApiResponse(code=500, message="Unexpected error")
     })
+    @AuthDelegate(XsyncReadProjectUserAuthority.class)
     @XapiRequestMapping(value="/latest/projects/{projectId}/subjects/{subjectLabel}", method=RequestMethod.GET,
-            restrictTo = AccessLevel.Read, produces = {MediaType.APPLICATION_JSON_VALUE})
-    public XsyncProjectHistoryPojo getSubjectHistoryElement(
+            restrictTo = AccessLevel.Authorizer, produces = {MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<XsyncProjectHistoryPojo> getSubjectHistoryElement(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId,
             @ApiParam(value = "Subject label.", required = true)@PathVariable("subjectLabel") String subjectLabel) throws NotFoundException, NoContentException {
         final UserI user = getSessionUser();
@@ -167,9 +172,10 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
             @ApiResponse(code=404, message="Configuration data not found."),
             @ApiResponse(code=500, message="Unexpected error")
     })
+    @AuthDelegate(XsyncReadProjectUserAuthority.class)
     @XapiRequestMapping(value = "{projectId}/failure", method = RequestMethod.GET,
-            produces = {MediaType.TEXT_PLAIN_VALUE}, restrictTo = AccessLevel.Read)
-    public String getFailureStackTrace(
+            produces = {MediaType.TEXT_PLAIN_VALUE}, restrictTo = AccessLevel.Authorizer)
+    public ResponseEntity<String> getFailureStackTrace(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") final String projectId,
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) throws NotFoundException {
         return syncManifestService.getStacktraceForFailedSync(remoteUrl, projectId);

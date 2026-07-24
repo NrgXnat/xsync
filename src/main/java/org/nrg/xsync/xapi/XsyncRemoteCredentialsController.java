@@ -18,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.services.SerializerService;
 import org.nrg.xapi.rest.AbstractXapiProjectRestController;
+import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
@@ -25,6 +26,7 @@ import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.pojo.XsyncRemoteCredentialsPojo;
 import org.nrg.xsync.remote.alias.RemoteAliasEntity;
 import org.nrg.xsync.remote.alias.services.RemoteAliasService;
+import org.nrg.xsync.security.XsyncEditProjectUserAuthority;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,8 +70,9 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 		_serializer = serializer;
 	}
 
+	@AuthDelegate(XsyncEditProjectUserAuthority.class)
     @XapiRequestMapping(path="/save/projects/{projectId}", method = RequestMethod.POST,
-			consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Edit)
+			consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
     @ApiOperation(value = "Sets remote credentials for XSync")
     @ApiResponses({@ApiResponse(code = 200, message = "XSync remote credentials set."),
 			@ApiResponse(code = 500, message = "Unexpected error")})
@@ -197,8 +200,9 @@ public class XsyncRemoteCredentialsController extends AbstractXapiProjectRestCon
 		}
 	}
 
+	@AuthDelegate(XsyncEditProjectUserAuthority.class)
     @XapiRequestMapping(path="/check/projects/{projectId}", method = RequestMethod.POST,
-			consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Edit)
+			consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
     @ApiOperation(value = "Checks whether XSync remote credentials are valid")
     @ApiResponses({@ApiResponse(code = 200, message = "Remote credentials valid."),
 			@ApiResponse(code = 500, message = "Unexpected error")})
