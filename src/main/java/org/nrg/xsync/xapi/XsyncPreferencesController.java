@@ -207,9 +207,8 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return prefs.getXsyncWhitelistEnabled();
 	}
 
-	@AuthDelegate(XsyncReadProjectUserAuthority.class)
 	@XapiRequestMapping(value = "xsyncSitePreferences/whitelistSites", method = RequestMethod.GET,
-			produces = {MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Authorizer)
+			produces = {MediaType.APPLICATION_JSON_VALUE })
 	@ApiOperation(value = "Get the whitelist of sites allowed for syncing")
 	@ApiResponses({ @ApiResponse(code = 200, message = "Xsync whitelist sites retrieved."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
@@ -237,7 +236,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(whitelistXsyncSiteService.deleteWhitelistSiteFromSiteAdmin(whitelistSitePojo), HttpStatus.OK);
 	}
 
-	@AuthDelegate(XsyncReadProjectUserAuthority.class)
+	@AuthDelegate(XsyncAdministratorUserAuthorization.class)
 	@XapiRequestMapping(value = "xsyncSitePreferences/blacklistSites", method = RequestMethod.GET, produces = {
 			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Authorizer)
 	@ApiOperation(value = "Get the blacklist of sites not allowed for syncing")
