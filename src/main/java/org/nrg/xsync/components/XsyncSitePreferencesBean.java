@@ -117,6 +117,19 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		}
 	}
 
+	@NrgPreference(defaultValue = "[]")
+	public List<String> getProjectBlacklist() {
+		return getListValue("projectBlacklist");
+	}
+
+	public void setProjectBlacklist(final List<String> projectBlacklist) {
+		try {
+			setListValue("projectBlacklist", projectBlacklist);
+		} catch (InvalidPreferenceName e) {
+			_log.error("Invalid preference name: 'projectBlacklist'");
+		}
+	}
+
 	@NrgPreference(defaultValue = "true")
 	public boolean getHttpsEnabled() {
 		return getBooleanValue("httpsEnabled");

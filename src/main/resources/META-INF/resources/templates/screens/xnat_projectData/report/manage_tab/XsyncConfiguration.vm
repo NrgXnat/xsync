@@ -6,7 +6,7 @@
 <script type="text/javascript" src="${SITE_ROOT}/scripts/xnat-plugins/xsyncPlugin/xsync-reporting.js"></script>
 <script type="text/javascript" src="${SITE_ROOT}/scripts/xnat/app/codeEditor.js"></script>
 
-<h3>XSync Configuration</h3>
+<h3 id="xsync_panel_header">XSync Configuration</h3>
 <div>
     <div id="xsync-config"></div>
     <script type="text/javascript">
