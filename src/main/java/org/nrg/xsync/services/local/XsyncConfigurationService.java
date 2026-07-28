@@ -47,6 +47,8 @@ public interface XsyncConfigurationService {
 
     void saveConfig(UserI user, SyncConfigurationPojo configurationPojo, String projectId) throws Exception;
 
+    void changeConnectionEnabledForProject(UserI user, String projectId, boolean enabled) throws Exception;
+
     void changeEnabledForUrl(UserI user, String inputUrl, boolean enabled) throws Exception;
 
     void changeConnectionEnabled(UserI user, String inputUrl, String projectId, boolean enabled) throws Exception;

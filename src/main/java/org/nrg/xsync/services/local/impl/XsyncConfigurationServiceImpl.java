@@ -212,20 +212,27 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
     }
 
     @Override
+    public void changeConnectionEnabledForProject(UserI user, String projectId, boolean enabled) throws Exception {
+        List<XsyncXsyncprojectdata> allConnectionsForProject = getAllProjectsSetToBeSynced(user).stream()
+                .filter(x -> x.getSourceProjectId().equals(projectId)).toList();
+        for (XsyncXsyncprojectdata connection: allConnectionsForProject) {
+            enableOrDisableSingleConnection(connection, user, connection.getSourceProjectId(), enabled);
+        }
+    }
+
+    @Override
     public void changeEnabledForUrl(UserI user, String inputUrl, boolean enabled) throws Exception {
         List<XsyncXsyncprojectdata> allConnectionsForUrl = getAllProjectsForRemoteUrl(user, inputUrl);
         for (XsyncXsyncprojectdata connection: allConnectionsForUrl) {
             enableOrDisableSingleConnection(connection, user, connection.getSourceProjectId(), enabled);
         }
+        List<String> blacklist = sitePreferences.getSitesBlacklist();
         if (!enabled) {
-            List<String> blacklist = sitePreferences.getSitesBlacklist();
             blacklist.add(inputUrl);
-            sitePreferences.setSitesBlacklist(blacklist);
         } else {
-            List<String> blacklist = sitePreferences.getSitesBlacklist();
             blacklist.remove(inputUrl);
-            sitePreferences.setSitesBlacklist(blacklist);
         }
+        sitePreferences.setSitesBlacklist(blacklist);
     }
 
     @Override
@@ -244,7 +251,11 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
         }
     }
 
-    private void enableOrDisableSingleConnection(XsyncXsyncprojectdata connection, UserI user, String projectId, boolean enabled) throws Exception {
+    private void enableOrDisableSingleConnection(XsyncXsyncprojectdata connection, UserI user, String projectId,
+                                                                                boolean enabled) throws Exception {
+        if (sitePreferences.getProjectBlacklist().contains(projectId) && enabled) {
+            throw new IllegalArgumentException("This project is currently not allowed to have an Xsync connections.");
+        }
         connection.setSyncEnabled(enabled);
         connection.setSyncScheduledBy(user.getLogin());
         final ValidationResults vr = connection.validate();

@@ -114,7 +114,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 stackTrace = data;
             },
             fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not retrieve failure information for project: ' + projectId + '\nError message: s' + e.responseText, 'error');
+                XNAT.ui.banner.top(5000, 'Could not retrieve failure information for project: ' + projectId + '\nError message: ' + e.responseText, 'error');
             }
         });
         var stacktraceDiv = spawn('div.stacktrace', {
@@ -244,7 +244,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                         xsyncConfigurationDashboard.refreshTable();
                     },
                     fail: function (e) {
-                        XNAT.ui.banner.top(2000, 'Could not update configuration information for url: ' + remoteUrl + '\nError message: ' + e.responseText, 'error');
+                        XNAT.ui.banner.top(5000, 'Could not update configuration information for url: ' + remoteUrl + '\nError message: ' + e.responseText, 'error');
                     }
                 });
             }
@@ -260,7 +260,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 xsyncConfigurationDashboard.refreshModalTable(false);
             },
             fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not update configuration information for project: ' + projectId + '\nError message: s' + e.responseText, 'error');
+                XNAT.ui.banner.top(5000, 'Could not update configuration information for project: ' + projectId + '\nError message: ' + e.responseText, 'error');
                 checkbox.checked=!enable;
             }
         });
@@ -283,7 +283,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 });
             },
             fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not project history information for: ' + projectId + '\nError message: s' + e.responseText, 'error');
+                XNAT.ui.banner.top(5000, 'Could not project history information for: ' + projectId + '\nError message: ' + e.responseText, 'error');
             }
         });
     }
@@ -300,7 +300,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 xsyncConfigurationDashboard.currentRemoteUrlData.sort((a,b) =>  a.localProject.toLowerCase().localeCompare(b.localProject.toLowerCase()));
             },
             fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not retrieve configuration information for url: ' + remoteUrl + '\nError message: s' + e.responseText, 'error');
+                XNAT.ui.banner.top(5000, 'Could not retrieve configuration information for url: ' + remoteUrl + '\nError message: ' + e.responseText, 'error');
             }
         });
     }
@@ -314,7 +314,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 xsyncConfigurationDashboard.isWhitelistEnabledBackend = enabled;
             },
             fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not retrieve whitelist information: ' + e.responseText, 'error');
+                XNAT.ui.banner.top(5000, 'Could not retrieve whitelist information: ' + e.responseText, 'error');
             }
         });
         XNAT.xhr.get({
@@ -327,7 +327,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 });
             },
             fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not retrieve whitelist information: ' + e.responseText, 'error');
+                XNAT.ui.banner.top(5000, 'Could not retrieve whitelist information: ' + e.responseText, 'error');
             }
         });
         XNAT.xhr.get({

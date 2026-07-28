@@ -28,6 +28,7 @@ import org.nrg.xsync.aspera.AsperaProjectPrefsInfo;
 import org.nrg.xsync.aspera.AsperaSitePrefs;
 import org.nrg.xsync.aspera.AsperaSitePrefsInfo;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
+import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -56,14 +57,15 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 
 	@Autowired
 	public XsyncPreferencesController(final XsyncSitePreferencesBean prefs, final AsperaSitePrefs asperaSitePrefs,
-									  final AsperaProjectPrefs asperaProjectPrefs, final UserManagementServiceI userManagementService,
-									  final RoleHolder roleHolder, final WhitelistXsyncSiteService whitelistXsyncSiteService) {
+                                      final AsperaProjectPrefs asperaProjectPrefs, final UserManagementServiceI userManagementService,
+                                      final RoleHolder roleHolder, final WhitelistXsyncSiteService whitelistXsyncSiteService, XsyncConfigurationService configurationService) {
 		super(userManagementService, roleHolder);
 		this.prefs = prefs;
 		this.asperaSitePrefs = asperaSitePrefs;
 		this.asperaProjectPrefs = asperaProjectPrefs;
 		this.whitelistXsyncSiteService = whitelistXsyncSiteService;
-	}
+        this.configurationService = configurationService;
+    }
 
 	@AuthDelegate(XsyncAdministratorUserAuthorization.class)
 	@XapiRequestMapping(value = "xsyncSitePreferences", method = RequestMethod.POST,
@@ -272,11 +274,12 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	@ApiResponses({ @ApiResponse(code = 200, message = "Blacklist site added or updated."),
 			@ApiResponse(code = 401, message = "User does not have required credentials to update project blacklist."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
-	public List<String> addProjectToBlacklist (@PathVariable("projectId") String projectId) throws DataFormatException {
+	public List<String> addProjectToBlacklist (@PathVariable("projectId") String projectId) throws Exception {
 		List<String> blacklist = prefs.getProjectBlacklist();
 		if (!blacklist.contains(projectId)) {
 			blacklist.add(projectId);
 			prefs.setProjectBlacklist(blacklist);
+			configurationService.changeConnectionEnabledForProject(getSessionUser(),projectId, false);
 			return prefs.getProjectBlacklist();
 		} else {
 			throw new DataFormatException("The input projectID " + projectId +"is already in the project blacklist.");
@@ -305,6 +308,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	private final AsperaSitePrefs asperaSitePrefs;
 	private final AsperaProjectPrefs asperaProjectPrefs;
 	private final WhitelistXsyncSiteService whitelistXsyncSiteService;
+	private final XsyncConfigurationService configurationService;
 
 	@ResponseStatus(value = HttpStatus.BAD_REQUEST)
 	@ExceptionHandler(value = {InvalidValueException.class})
