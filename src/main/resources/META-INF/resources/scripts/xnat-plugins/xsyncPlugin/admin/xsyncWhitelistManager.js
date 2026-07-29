@@ -37,35 +37,30 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     xsyncWhitelistManager.toggleWhitelistSwitch = function(enabled) {
         let $whitelistTableDiv = $('div#xsync-whitelist-table');
-        let inputPrefs = {};
         if (enabled === "true") {
-            inputPrefs['xsyncWhitelistEnabled'] = true;
             $whitelistTableDiv.empty().append(xsyncWhitelistManager.table());
             $whitelistTableDiv.append(xsyncWhitelistManager.getAddButton());
+            return {xsyncWhitelistEnabled: true}
         } else {
-            inputPrefs['xsyncWhitelistEnabled'] = false;
             $whitelistTableDiv.empty();
+            return {xsyncWhitelistEnabled: false}
         }
+    }
 
-        //checking this saved field should avoid an unnecessary API call upon page load
-        if (inputPrefs['xsyncWhitelistEnabled'] != xsyncWhitelistManager.isWhitelistEnabledBackend) {
-            XNAT.xhr.post({
-                url: restUrl('/xapi/xsyncSitePreferences/'),
-                async: false,
-                contentType: 'application/json',
-                data: JSON.stringify(inputPrefs),
-                success: function () {
-                    xsyncWhitelistManager.isWhitelistEnabledBackend = inputPrefs['xsyncWhitelistEnabled'];
-                    $.getScript("xsyncConfigurationDashboard.js",function(){
-                       XNAT.plugin.xsync.xsyncConfigurationDashboard.refreshTable();
-                    });
-                    console.log('Updated site enabled preference.');
-                },
-                fail: function (e) {
-                    XNAT.ui.banner.top(2000, 'Could not update site enabled preference: ' +  e.responseText, 'error');
-                }
-            });
-        }
+    xsyncWhitelistManager.postWhitelistPreferences = function(preferences) {
+        XNAT.xhr.post({
+            url: restUrl('/xapi/xsyncSitePreferences/'),
+            async: false,
+            contentType: 'application/json',
+            data: JSON.stringify(preferences),
+            success: function () {
+                xsyncWhitelistManager.isWhitelistEnabledBackend = preferences['xsyncWhitelistEnabled'];
+                XNAT.plugin.xsync.xsyncConfigurationDashboard.refreshTable();
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not update site enabled preference: ' +  e.responseText, 'error');
+            }
+        });
     }
 
     xsyncWhitelistManager.getWhitelistedSites = function() {
@@ -94,7 +89,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 xsyncWhitelistManager.refreshTable();
                 XNAT.ui.banner.top(2000, "Site " + createOrUpdate + " successfully", 'success');
                 XNAT.ui.dialog.closeAll();
-
+                XNAT.plugin.xsync.xsyncConfigurationDashboard.refreshTable();
             },
             fail: function (e) {
                 XNAT.ui.banner.top(2000, 'Could not ' + createOrUpdate + ' site information.' + e.responseText, 'error');
@@ -141,7 +136,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 options: {
                     opt1: { label: 'CLINICAL',   value: 'CLINICAL' },
                     opt2: { label: 'RESEARCH',   value: 'RESEARCH' },
-                    opt3: { label: 'PUBLIC', value: 'PUBLIC' }
+                    opt3: { label: 'PUBLIC',     value: 'PUBLIC' }
                 }
             })
         ];
@@ -238,6 +233,30 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         });
     }
 
+    xsyncWhitelistManager.getUrlsNotConformingModal = function(nonConformingSites) {
+        let tmpl = spawn('div#non_conforming_table_wrapper');
+
+        this.dialog = XNAT.ui.dialog.open({
+            title: 'Remote urls not conforming to whitelist',
+            width: 900,
+            content:tmpl,
+            isDraggable: true,
+            mask: false,
+            esc: true,
+            buttons: [
+                {
+                    label: 'Close',
+                    isDefault: true,
+                    close: true
+                }
+            ],
+            afterShow: function () {
+                let $modalTableDiv = $('div#non_conforming_table_wrapper');
+                $modalTableDiv.prepend(XNAT.plugin.xsync.xsyncConfigurationDashboard.table(true, nonConformingSites));
+            }
+        });
+    }
+
     xsyncWhitelistManager.deleteWhitelistElement = function(whitelistSite) {
         xmodal.open({
             title: 'Confirm Listing Deletion',
@@ -259,6 +278,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                                 xmodal.closeAll();
                                 XNAT.ui.banner.top(2000, "Listing deleted", 'success');
                                 xsyncWhitelistManager.refreshTable();
+                                XNAT.plugin.xsync.xsyncConfigurationDashboard.refreshTable();
                             },
                             fail: function (e) {
                                 XNAT.ui.banner.top(2000, 'Could not delete the listing element: ' + e.responseText, 'error');
@@ -426,7 +446,24 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     }
 
     $(document).on('change','#limit-to-whitelist', function(){
-        xsyncWhitelistManager.toggleWhitelistSwitch($(this).val());
+        var preferences = xsyncWhitelistManager.toggleWhitelistSwitch($(this).val());
+        xsyncWhitelistManager.postWhitelistPreferences(preferences);
+        if (preferences.xsyncWhitelistEnabled) {
+            XNAT.xhr.get({
+                url: restUrl('/xapi/xsync/dashboard/whitelist'),
+                async: false,
+                success: function (data) {
+                    xsyncWhitelistManager.nonWhitelistSites = []
+                    data.forEach(function (item) {
+                        xsyncWhitelistManager.nonWhitelistSites.push(item);
+                    });
+                    xsyncWhitelistManager.getUrlsNotConformingModal(xsyncWhitelistManager.nonWhitelistSites);
+                },
+                fail: function (e) {
+                    XNAT.ui.banner.top(2000, 'Could not retrieve configuration information: ' + e.responseText, 'error');
+                }
+            });
+        }
     });
 
     xsyncWhitelistManager.init = function() {
@@ -470,5 +507,5 @@ function textContains(string, substring){
 
 //strip urls of whitespace and trailing slashes
 function trimUrl(x) {
-  return x.replace(/\/$/,'');
+    return x.replace(/\/$/,'');
 }
