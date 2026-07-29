@@ -79,7 +79,7 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			if (project == null) {
 				throw new DataFormatException(" Project " + projectId + " not found. ");
 			}
-			if (!_prefs.toPojo().getXsyncWhitelistEnabled() ||_whitelistXsyncSiteService.getAllWhitelistedSites()
+			if (_prefs.toPojo().getXsyncWhitelistEnabled() && !_whitelistXsyncSiteService.getAllWhitelistedSites()
 					.stream().map(WhitelistSitePojo::getSiteUrl).toList().contains(configurationPojo.getRemote_url())) {
                 throw new DataFormatException(" Site URL " + configurationPojo.getRemote_url() +
                                                       " is not an allowed option to receive data. ");
