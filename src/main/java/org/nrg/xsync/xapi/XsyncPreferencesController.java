@@ -28,6 +28,7 @@ import org.nrg.xsync.aspera.AsperaProjectPrefsInfo;
 import org.nrg.xsync.aspera.AsperaSitePrefs;
 import org.nrg.xsync.aspera.AsperaSitePrefsInfo;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
+import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -56,14 +57,15 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 
 	@Autowired
 	public XsyncPreferencesController(final XsyncSitePreferencesBean prefs, final AsperaSitePrefs asperaSitePrefs,
-									  final AsperaProjectPrefs asperaProjectPrefs, final UserManagementServiceI userManagementService,
-									  final RoleHolder roleHolder, final WhitelistXsyncSiteService whitelistXsyncSiteService) {
+                                      final AsperaProjectPrefs asperaProjectPrefs, final UserManagementServiceI userManagementService,
+                                      final RoleHolder roleHolder, final WhitelistXsyncSiteService whitelistXsyncSiteService, XsyncConfigurationService configurationService) {
 		super(userManagementService, roleHolder);
 		this.prefs = prefs;
 		this.asperaSitePrefs = asperaSitePrefs;
 		this.asperaProjectPrefs = asperaProjectPrefs;
 		this.whitelistXsyncSiteService = whitelistXsyncSiteService;
-	}
+        this.configurationService = configurationService;
+    }
 
 	@AuthDelegate(XsyncAdministratorUserAuthorization.class)
 	@XapiRequestMapping(value = "xsyncSitePreferences", method = RequestMethod.POST,
@@ -239,17 +241,74 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	@AuthDelegate(XsyncAdministratorUserAuthorization.class)
 	@XapiRequestMapping(value = "xsyncSitePreferences/blacklistSites", method = RequestMethod.GET, produces = {
 			MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Authorizer)
-	@ApiOperation(value = "Get the blacklist of sites not allowed for syncing")
+	@ApiOperation(value = "Get the blacklist of sites not allowed for syncing.")
 	@ApiResponses({ @ApiResponse(code = 200, message = "Xsync blacklist sites retrieved."),
+			@ApiResponse(code = 401, message = "User does not have required credentials to get blacklist sites."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
 	public List<String> getAllBlacklistSites () {
 		return prefs.getSitesBlacklist();
+	}
+
+	@XapiRequestMapping(value = "xsyncSitePreferences/blacklistProjects", method = RequestMethod.GET, produces = {
+			MediaType.APPLICATION_JSON_VALUE })
+	@ApiOperation(value = "Get the blacklist of local projects which are not allowed to have xsync connections.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Xsync blacklist projects retrieved."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public List<String> getAllBlacklistedProjects () {
+		return prefs.getProjectBlacklist();
+	}
+
+	@XapiRequestMapping(value = "xsyncSitePreferences/blacklistProjects/{projectId}", method = RequestMethod.GET,
+			produces = {MediaType.APPLICATION_JSON_VALUE })
+	@ApiOperation(value = "Check whether project is in xsync blacklist.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Returned is in blacklist."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public boolean checkIfProjectInBlacklist (@PathVariable("projectId") String projectId) {
+		return prefs.getProjectBlacklist().contains(projectId);
+	}
+
+	@AuthDelegate(XsyncAdministratorUserAuthorization.class)
+	@XapiRequestMapping(value = "xsyncSitePreferences/blacklistProjects/{projectId}", method = RequestMethod.POST,
+			produces = {MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Authorizer)
+	@ApiOperation(value = "Add a project to the xsync project blacklist.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Blacklist site added or updated."),
+			@ApiResponse(code = 401, message = "User does not have required credentials to update project blacklist."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public List<String> addProjectToBlacklist (@PathVariable("projectId") String projectId) throws Exception {
+		List<String> blacklist = prefs.getProjectBlacklist();
+		if (!blacklist.contains(projectId)) {
+			blacklist.add(projectId);
+			prefs.setProjectBlacklist(blacklist);
+			configurationService.changeConnectionEnabledForProject(getSessionUser(),projectId, false);
+			return prefs.getProjectBlacklist();
+		} else {
+			throw new DataFormatException("The input projectID " + projectId +"is already in the project blacklist.");
+		}
+	}
+
+	@AuthDelegate(XsyncAdministratorUserAuthorization.class)
+	@XapiRequestMapping(value = "xsyncSitePreferences/blacklistProjects/{projectId}", method = RequestMethod.DELETE,
+			produces = {MediaType.APPLICATION_JSON_VALUE }, restrictTo = AccessLevel.Authorizer)
+	@ApiOperation(value = "Removes a project from the xsync blacklist.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Project removed from blacklist."),
+			@ApiResponse(code = 401, message = "User does not have required credentials to update project blacklist."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public List<String> removeProjectFromBlacklist (@PathVariable("projectId") String projectId) throws DataFormatException {
+		List<String> blacklist = prefs.getProjectBlacklist();
+		if (blacklist.contains(projectId)) {
+			blacklist.remove(projectId);
+			prefs.setProjectBlacklist(blacklist);
+			return prefs.getProjectBlacklist();
+		} else {
+			throw new DataFormatException("Input project id " + projectId + " is not in blacklist.");
+		}
 	}
 
 	private final XsyncSitePreferencesBean prefs;
 	private final AsperaSitePrefs asperaSitePrefs;
 	private final AsperaProjectPrefs asperaProjectPrefs;
 	private final WhitelistXsyncSiteService whitelistXsyncSiteService;
+	private final XsyncConfigurationService configurationService;
 
 	@ResponseStatus(value = HttpStatus.BAD_REQUEST)
 	@ExceptionHandler(value = {InvalidValueException.class})

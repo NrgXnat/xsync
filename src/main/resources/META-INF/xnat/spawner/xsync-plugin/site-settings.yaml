@@ -159,6 +159,22 @@ siteSettings:
                             tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncWhitelistManager.js"
                         xsyncWhitelistCss:
                             tag: link|rel="stylesheet"|type="text/css"|href="~/style/xnat-plugins/xsyncPlugin/xsync-whitelist.css"
+        projectBlacklist:
+            kind: tab
+            label: Project Blacklist
+            group: xsyncConfig
+            active: true
+            contents:
+                projectBlacklistPanel:
+                    kind: panel.form
+                    name: projectBlacklistPanel
+                    label: Project Blacklist
+                    footer: false
+                    contents:
+                        xsyncProjectBlacklistTable:
+                            tag: "div#xsync-project-blacklist-panel"
+                        xsyncProjectBlacklistScript:
+                            tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncProjectBlacklistManager.js"
         asperaDefaults:
             kind: tab
             label: Aspera Server Defaults

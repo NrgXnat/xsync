@@ -75,7 +75,9 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			if (configurationPojo.getSource_project_id().isBlank()) {
 				throw new DataFormatException(" Project ID not provided ");
 			}  else if (!configurationPojo.getSource_project_id().equals(projectId)) {
-				throw new DataFormatException(" Project ID values are inconsistent ");
+                throw new DataFormatException(" Project ID values are inconsistent ");
+			} else if (_prefs.getProjectBlacklist().contains(configurationPojo.getSource_project_id())) {
+				throw new IllegalArgumentException("This project is currently not allowed to have an Xsync connections.");
 			}
 			XnatProjectdata project = XnatProjectdata.getProjectByIDorAlias(projectId, getSessionUser(), false);
 			if (project == null) {
@@ -163,5 +165,11 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	@ExceptionHandler(value = {NotFoundException.class})
 	public String handleElementNotFound(final Exception e) {
 		return "Element not found: " + e.getMessage();
+	}
+
+	@ResponseStatus(value = HttpStatus.FORBIDDEN)
+	@ExceptionHandler(value = {IllegalArgumentException.class})
+	public String handleIllegalArgumentException(final Exception e) {
+		return e.getMessage();
 	}
 }

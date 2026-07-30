@@ -23,6 +23,21 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
      Initialization
     */
     XSYNC.xsyncConfig.init = function(){
+        XNAT.xhr.get({
+            url: restUrl('/xapi/xsyncSitePreferences/blacklistProjects/' + XNAT.data.context.project),
+            async: false,
+            contentType: 'application/json',
+            success: function (data) {
+                if (data===true) {
+                    document.getElementById("xsync_panel_header").remove();
+                    document.getElementById("xsyncbox").parentElement.remove();
+                    return;
+                }
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not check if project in blacklist: ' + e.responseText, 'error');
+            }
+        });
         XNAT.xhr.getJSON({
             url: restUrl('/xapi/xsync/setup/projects/' + XNAT.data.context.project),
             success: function(data){

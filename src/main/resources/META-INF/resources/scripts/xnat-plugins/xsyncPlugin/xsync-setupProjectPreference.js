@@ -40,22 +40,31 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             async: false,
             success: function (data) {
                 xsyncProjectPreferenceManager.siteWideAsperaEnabled = data;
-                if (xsyncProjectPreferenceManager.siteWideAsperaEnabled == true) {
-                    $("#xsync-config").removeClass('hidden');
-                } else {
-                    $("#xsync-config").addClass('hidden');
-                }
             },
             fail: function (e) {
                 XNAT.ui.banner.top(2000, 'Could not retrieve aspera information: ' + e.responseText, 'error');
             }
         });
         XNAT.xhr.get({
+            url: restUrl('/xapi/xsyncSitePreferences/blacklistProjects/' + XNAT.data.context.project),
+            async: false,
+            success: function (data) {
+                xsyncProjectPreferenceManager.isOnBlacklist = data;
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not retrieve aspera information: ' + e.responseText, 'error');
+            }
+        });
+        if (xsyncProjectPreferenceManager.siteWideAsperaEnabled == true && xsyncProjectPreferenceManager.isOnBlacklist === false) {
+            $("#xsync-config").removeClass('hidden');
+        } else {
+            $("#xsync-config").addClass('hidden');
+        }
+        XNAT.xhr.get({
             url: restUrl('/xapi/xsyncProjectPreferences/project/' + XNAT.data.context.project + '/asperaEnabled/'),
             async: false,
             success: function (data) {
                 let enabled = data;
-                xsyncProjectPreferenceManager.isAsperaEnabled = true;
                 if (enabled == true) {
                     $('#aspera-panel').find('.switchbox.panel-switchbox').children("input").prop("checked",true);
                 }
