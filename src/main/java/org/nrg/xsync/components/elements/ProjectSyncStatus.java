@@ -7,24 +7,44 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.nrg.xsync.components.SyncStatusHolder.SyncType;
 
 public class ProjectSyncStatus {
 
-	private boolean isSyncing;
-	private SyncType syncType; 
-	private Date syncStartTime;
-	private Date syncEndTime;
-	private String currentSubject;
-	private String currentExperiment;
-	private String currentExperimentType;
-	private long historyId;
-	private Boolean wasSyncSuccessful;
-	private final List<String> initialSubjectList = new ArrayList<>();
-	private final List<String> completedSubjects = new ArrayList<>();
-	private final List<String> failedSubjects = new ArrayList<>();
-	private final Map<String,String> completedExperiments = new HashMap<>();
-	private final Map<String,String> failedExperiments = new HashMap<>();
+    private boolean isSyncing;
+	@Setter
+    @Getter
+    private SyncType syncType;
+	@Setter
+    private Date syncStartTime;
+	@Setter
+    private Date syncEndTime;
+	@Setter
+    @Getter
+    private String currentSubject;
+	@Setter
+    @Getter
+    private String currentExperiment;
+	@Setter
+    @Getter
+    private String currentExperimentType;
+	@Setter
+    @Getter
+    private long historyId;
+	@Getter
+    private Boolean wasSyncSuccessful;
+	@Getter
+    private final List<String> initialSubjectList = new ArrayList<>();
+	@Getter
+    private final List<String> completedSubjects = new ArrayList<>();
+	@Getter
+    private final List<String> failedSubjects = new ArrayList<>();
+	@Getter
+    private final Map<String,String> completedExperiments = new HashMap<>();
+	@Getter
+    private final Map<String,String> failedExperiments = new HashMap<>();
 	private static final SimpleDateFormat datef = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss"); 
 	
 	public ProjectSyncStatus() {
@@ -32,96 +52,23 @@ public class ProjectSyncStatus {
 		syncType = SyncType.NONE_SINCE_STARTUP;
 	}
 	
-	public boolean isSyncing() {
+	public boolean getIsSyncing() {
 		return isSyncing;
 	}
-	
-	public void setSyncing(boolean isSyncing) {
+
+	public void setIsSyncing(boolean isSyncing) {
 		this.isSyncing = isSyncing;
 	}
-	
-	public SyncType getSyncType() {
-		return syncType;
-	}
-	
-	public void setSyncType(SyncType syncType) {
-		this.syncType = syncType;
-	}
-	
-	public String getSyncStartTime() {
+
+    public String getSyncStartTime() {
 		return (syncStartTime!=null) ? datef.format(syncStartTime) : null;
 	}
 
-	public void setSyncStartTime(Date syncStartTime) {
-		this.syncStartTime = syncStartTime;
-	}
-
-	public String getSyncEndTime() {
+    public String getSyncEndTime() {
 		return (syncEndTime!=null) ? datef.format(syncEndTime) : null;
 	}
 
-	public void setSyncEndTime(Date syncEndTime) {
-		this.syncEndTime = syncEndTime;
-	}
-
-	public String getCurrentSubject() {
-		return currentSubject;
-	}
-	
-	public void setCurrentSubject(String currentSubject) {
-		this.currentSubject = currentSubject;
-	}
-
-	public String getCurrentExperiment() {
-		return currentExperiment;
-	}
-	
-	public void setCurrentExperiment(String currentExperiment) {
-		this.currentExperiment = currentExperiment;
-	}
-
-	public String getCurrentExperimentType() {
-		return currentExperimentType;
-	}
-	
-	public void setCurrentExperimentType(String currentExperimentType) {
-		this.currentExperimentType = currentExperimentType;
-	}
-	
-	public List<String> getInitialSubjectList() {
-		return initialSubjectList;
-	}
-	
-	public List<String> getCompletedSubjects() {
-		return completedSubjects;
-	}
-	
-	public List<String> getFailedSubjects() {
-		return failedSubjects;
-	}
-	
-	public Map<String,String> getCompletedExperiments() {
-		return completedExperiments;
-	}
-	
-	public Map<String,String> getFailedExperiments() {
-		return failedExperiments;
-	}
-
-	public long getHistoryId() {
-		return historyId;
-	}
-
-	public void setHistoryId(long historyId) {
-		this.historyId = historyId;
-	}
-
-	public Boolean getWasSyncSuccessful() {
-		return this.wasSyncSuccessful;
-	}
-
-	public void setWasSyncSuccessful(boolean wasSyncSuccessful) {
+    public void setWasSyncSuccessful(boolean wasSyncSuccessful) {
 		this.wasSyncSuccessful=wasSyncSuccessful;
 	}
-	
 }
