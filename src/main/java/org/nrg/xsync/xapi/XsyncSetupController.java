@@ -12,7 +12,6 @@ import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
-import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.nrg.xsync.services.local.XsyncConfigurationService;
@@ -35,7 +34,6 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import java.util.List;
 import java.util.zip.DataFormatException;
 
 /**
@@ -153,7 +151,6 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 	private final XsyncConfigurationService _xsyncConfigService;
 	private final WhitelistXsyncSiteService  _whitelistXsyncSiteService;
 	private final NamedParameterJdbcTemplate _jdbcTemplate;
-	public static Logger _logger = LoggerFactory.getLogger(XsyncSetupController.class);
 
 	@ResponseStatus(value = HttpStatus.NOT_FOUND)
 	@ExceptionHandler(value = {NotFoundException.class})

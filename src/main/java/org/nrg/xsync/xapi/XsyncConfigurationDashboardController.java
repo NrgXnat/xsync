@@ -22,7 +22,6 @@ import org.nrg.xsync.security.XsyncAdministratorUserAuthorization;
 import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.nrg.xsync.services.local.SyncManifestService;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
-import org.nrg.xsync.services.local.XsyncConfigurationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -69,7 +68,7 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
     @AuthDelegate(XsyncAdministratorUserAuthorization.class)
     @XapiRequestMapping(method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Authorizer)
-    public ResponseEntity<List<XsyncRemoteUrlDetailsPojo>> getAllXsyncConfigInformation() {
+    public List<XsyncRemoteUrlDetailsPojo> getAllXsyncConfigInformation() {
         final UserI user = getSessionUser();
         List<XsyncProjectHistory> allHistoryItems = _syncManifestService.getAll();
         if (_sitePreferences.getXsyncWhitelistEnabled()) {
@@ -92,7 +91,7 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
     @AuthDelegate(XsyncAdministratorUserAuthorization.class)
     @XapiRequestMapping(value = "/whitelist", method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Authorizer)
-    public ResponseEntity<List<XsyncRemoteUrlDetailsPojo>> getAllNonConformingRemoteUrls() {
+    public List<XsyncRemoteUrlDetailsPojo> getAllNonConformingRemoteUrls() {
         if (!_sitePreferences.getXsyncWhitelistEnabled()) {
             throw new UnsupportedOperationException("Whitelist is not turned on for xsync.");
         }
@@ -112,7 +111,7 @@ public class XsyncConfigurationDashboardController extends AbstractXapiRestContr
     @AuthDelegate(XsyncAdministratorUserAuthorization.class)
     @XapiRequestMapping(value = "/remoteUrl", method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE}, restrictTo = AccessLevel.Authorizer)
-    public ResponseEntity<List<XsyncDashboardProjectConfigurationPojo>> getSyncDetailsForRemoteUrl(
+    public List<XsyncDashboardProjectConfigurationPojo> getSyncDetailsForRemoteUrl(
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) {
         return _xsyncConfigurationService.getAllProjectConnectionsForUrl(getSessionUser(),
                                                                              _syncManifestService.getAll(), remoteUrl);

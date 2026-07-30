@@ -39,7 +39,6 @@ import io.swagger.annotations.ApiResponses;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-
 /**
  * The Class XsyncHistoryController.
  * Created by Michael Hileman on 2016/07/05.
@@ -67,7 +66,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     })
     @AuthDelegate(XsyncAdministratorUserAuthorization.class)
     @XapiRequestMapping(method=RequestMethod.GET, restrictTo = AccessLevel.Authorizer, produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<List<XsyncProjectHistoryPojo>> getAllSyncHistory() {
+    public List<XsyncProjectHistoryPojo> getAllSyncHistory() {
         List<XsyncProjectHistoryPojo> allHistoryPojos = new ArrayList<>();
         for (XsyncProjectHistory history : syncManifestService.getAll()) {
             allHistoryPojos.add(mapper.convertValue(history, XsyncProjectHistoryPojo.class));
