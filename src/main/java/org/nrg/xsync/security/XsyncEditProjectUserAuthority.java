@@ -24,7 +24,8 @@ public class XsyncEditProjectUserAuthority extends AbstractXapiAuthorization {
             return (Permissions.canEditProject(user, projectId) || Roles.checkRole(user, XsyncUtils.XSYNC_ADMINISTRATOR_ROLE));
         } catch (Exception e) {
             throw new RuntimeException(e);
-        }    }
+        }
+    }
 
     @Override
     protected boolean considerGuests() {

@@ -51,19 +51,17 @@ public class AssignXsyncAdministratorRoleToSiteAdminOnUpgrade extends AbstractIn
     }
 
     private void grantXsyncAdministratorRole(final UserI adminUser, final Collection<String> allSiteAdmins) throws Exception {
-        if (!allSiteAdmins.isEmpty()) {
-            for (String userName : allSiteAdmins) {
-                UserI user = Users.getUser(userName);
-                if (user instanceof XDATUser) {
-                    if (user.isEnabled()) {
-                        if (!((XDATUser) user).checkRole(XSYNC_ADMINISTRATOR_ROLE)) {
-                            if (!roleHolder.addRole(adminUser, user, XSYNC_ADMINISTRATOR_ROLE)) {
-                                log.error("Could not assign user {} the " + XSYNC_ADMINISTRATOR_ROLE + " role.", userName);
-                            }
+        for (String userName : allSiteAdmins) {
+            UserI user = Users.getUser(userName);
+            if (user instanceof XDATUser) {
+                if (user.isEnabled()) {
+                    if (!((XDATUser) user).checkRole(XSYNC_ADMINISTRATOR_ROLE)) {
+                        if (!roleHolder.addRole(adminUser, user, XSYNC_ADMINISTRATOR_ROLE)) {
+                            log.error("Could not assign user {} the " + XSYNC_ADMINISTRATOR_ROLE + " role.", userName);
                         }
-                    } else {
-                        log.error("User {}  is not enabled. Could not assign the " + XSYNC_ADMINISTRATOR_ROLE + " role.", userName);
                     }
+                } else {
+                    log.error("User {}  is not enabled. Could not assign the " + XSYNC_ADMINISTRATOR_ROLE + " role.", userName);
                 }
             }
         }
