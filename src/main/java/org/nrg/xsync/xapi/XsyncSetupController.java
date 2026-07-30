@@ -69,8 +69,8 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			@ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "/projects/{projectId}", method = RequestMethod.POST, consumes =
 			MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
-	public ResponseEntity<String> setup(@PathVariable("projectId") String projectId,
-										@RequestBody SyncConfigurationPojo configurationPojo) {
+	public String setup(@PathVariable("projectId") String projectId,
+										@RequestBody SyncConfigurationPojo configurationPojo) throws Exception {
 		try {
 			if (configurationPojo.getSource_project_id().isBlank()) {
 				throw new DataFormatException(" Project ID not provided ");

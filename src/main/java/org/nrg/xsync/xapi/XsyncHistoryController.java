@@ -85,7 +85,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     @AuthDelegate(XsyncReadProjectUserAuthority.class)
     @XapiRequestMapping(method=RequestMethod.GET, value="/projects/{projectId}/{id}",
             restrictTo = AccessLevel.Authorizer, produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<XsyncProjectHistoryPojo> getSyncHistoryById(
+    public XsyncProjectHistoryPojo getSyncHistoryById(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") final String projectId,
             @ApiParam(value = "Id of requested history item.", required = true)@PathVariable("id") final long id) {
         return mapper.convertValue(syncManifestService.retrieve(id), XsyncProjectHistoryPojo.class);
@@ -101,7 +101,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     @AuthDelegate(XsyncReadProjectUserAuthority.class)
     @XapiRequestMapping(value="/projects/{projectId}", method=RequestMethod.GET, restrictTo = AccessLevel.Authorizer,
             produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<List<XsyncProjectHistoryPojo>> getSyncHistoryByProject(
+    public List<XsyncProjectHistoryPojo> getSyncHistoryByProject(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId) {
     	List<XsyncProjectHistory> allHistory = syncManifestService.getAll();
         List<XsyncProjectHistoryPojo> filteredHistory = new ArrayList<>();
@@ -150,7 +150,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     @AuthDelegate(XsyncReadProjectUserAuthority.class)
     @XapiRequestMapping(value="/latest/projects/{projectId}/subjects/{subjectLabel}", method=RequestMethod.GET,
             restrictTo = AccessLevel.Authorizer, produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<XsyncProjectHistoryPojo> getSubjectHistoryElement(
+    public XsyncProjectHistoryPojo getSubjectHistoryElement(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") String projectId,
             @ApiParam(value = "Subject label.", required = true)@PathVariable("subjectLabel") String subjectLabel) throws NotFoundException, NoContentException {
         final UserI user = getSessionUser();
@@ -175,7 +175,7 @@ public class XsyncHistoryController extends AbstractXapiProjectRestController {
     @AuthDelegate(XsyncReadProjectUserAuthority.class)
     @XapiRequestMapping(value = "{projectId}/failure", method = RequestMethod.GET,
             produces = {MediaType.TEXT_PLAIN_VALUE}, restrictTo = AccessLevel.Authorizer)
-    public ResponseEntity<String> getFailureStackTrace(
+    public String getFailureStackTrace(
             @ApiParam(value = "Project id.", required = true) @PathVariable("projectId") final String projectId,
             @ApiParam(value = "The input url.", required = true) @RequestParam String remoteUrl) throws NotFoundException {
         return syncManifestService.getStacktraceForFailedSync(remoteUrl, projectId);
