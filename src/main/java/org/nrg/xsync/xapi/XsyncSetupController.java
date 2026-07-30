@@ -12,6 +12,7 @@ import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
+import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.configuration.SyncConfigurationPojo;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.nrg.xsync.services.local.XsyncConfigurationService;
@@ -78,11 +79,11 @@ public class XsyncSetupController extends AbstractXapiProjectRestController {
 			if (project == null) {
 				throw new DataFormatException(" Project " + projectId + " not found. ");
 			}
-			if (!_xsyncConfigService.checkForWhitelistConformation(_prefs.toPojo().getXsyncWhitelistEnabled(),
-																   _whitelistXsyncSiteService.getAllWhitelistedSites(), configurationPojo.getRemote_url())) {
-				throw new DataFormatException(" Site URL " + configurationPojo.getRemote_url() +
-													" is not an allowed option to receive data. ");
-			}
+			if (_prefs.toPojo().getXsyncWhitelistEnabled() && _whitelistXsyncSiteService.getAllWhitelistedSites()
+					.stream().noneMatch(wl -> wl.getSiteUrl().equals(configurationPojo.getRemote_url()))) {
+                throw new DataFormatException(" Site URL " + configurationPojo.getRemote_url() +
+                                                      " is not an allowed option to receive data. ");
+            }
 
 			XsyncUtils xsyncUtils = new XsyncUtils(_jdbcTemplate, getSessionUser());
 			xsyncUtils.loadConfigurationToDB(configurationPojo);
