@@ -39,7 +39,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.io.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -109,7 +109,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			// Tests for Bad Request and Internal Server Error in addition to OK and Created.  Those error statues will
 			// be thrown by invalid XAR requests, and we don't want a long wait with retry for errors returned by the
 			// XarImporter class.
-			final HttpStatus statusCode = response.getStatusCode();
+			final HttpStatus statusCode = HttpStatus.valueOf(response.getStatusCode().value());
 			final boolean    status     = COMPLETED_STATUSES.contains(statusCode) || ERROR_STATUSES.contains(statusCode);
 			if(!status){
 				throw new RuntimeException("importXar request failed. Retrying...");
@@ -219,7 +219,7 @@ public class RemoteRESTServiceImpl  extends AbstractRemoteRESTService implements
 			// Tests for Bad Request and Internal Server Error in addition to OK and Created.  Those error statues will
 			// be thrown by invalid XAR requests, and we don't want a long wait with retry for errors returned by the
 			// XarImporter class.
-			final HttpStatus statusCode = response.getStatusCode();
+			final HttpStatus statusCode = HttpStatus.valueOf(response.getStatusCode().value());
 			final boolean    status     = COMPLETED_STATUSES.contains(statusCode) || ERROR_STATUSES.contains(statusCode);
 			if(!status){
 				throw new RuntimeException("importXar request failed. Retrying...");

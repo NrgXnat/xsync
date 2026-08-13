@@ -34,7 +34,7 @@ public class RemoteConnectionResponse {
 
 	public RemoteConnectionResponse(final ResponseEntity<String> response) {
 		if (response != null) {
-			status = response.getStatusCode();
+			status = HttpStatus.valueOf(response.getStatusCode().value());
 			responseBody = response.getBody();
 		}
 	}

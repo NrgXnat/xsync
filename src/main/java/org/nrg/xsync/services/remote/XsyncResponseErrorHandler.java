@@ -18,13 +18,13 @@ public class XsyncResponseErrorHandler implements ResponseErrorHandler {
 
 	@Override
 	public boolean hasError(ClientHttpResponse response) throws IOException {
-		final HttpStatus statusCode = response.getStatusCode();
+		final HttpStatus statusCode = HttpStatus.valueOf(response.getStatusCode().value());
 		return (statusCode.is4xxClientError() || statusCode.is5xxServerError());
 	}
 
 	@Override
 	public void handleError(ClientHttpResponse response) throws IOException {
-		final HttpStatus statusCode = response.getStatusCode();
+		final HttpStatus statusCode = HttpStatus.valueOf(response.getStatusCode().value());
 		switch (statusCode.series()) {
 			case CLIENT_ERROR:
 				if (statusCode.equals(HttpStatus.UNAUTHORIZED)) {
