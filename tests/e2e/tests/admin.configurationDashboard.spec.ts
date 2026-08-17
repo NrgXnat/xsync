@@ -157,8 +157,12 @@ test.describe('@admin XSync configuration dashboard', () => {
         const details = openDialog(page);
         await details.waitFor({ state: 'visible', timeout: 15_000 });
 
+        // The enabled column is an XNAT switchbox: the checkbox itself is
+        // display:none, so read state from the input but click the visible
+        // toggle beside it.
         const projectRow = details.locator('tbody tr').filter({ hasText: PROJECT_A });
-        await projectRow.locator('input[type="checkbox"]').first().uncheck();
+        await expect(projectRow.locator('input[type="checkbox"]').first()).toBeChecked();
+        await projectRow.locator('span.switchbox-outer').first().click();
 
         await expect.poll(async () => {
             const config = (await api.getConfigurationsForRemoteUrl(siteUrl))

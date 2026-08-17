@@ -17,6 +17,7 @@ import {
     setSwitchbox,
     whitelistTable,
     WHITELIST_PANEL,
+    WHITELIST_TAB_READY,
     XSYNC_TABS,
 } from '../lib/pages';
 
@@ -31,10 +32,14 @@ test.describe('@admin XSync destination whitelist', () => {
     let api: XsyncApi;
     let originalWhitelistEnabled: boolean;
 
-    /** Open the tab with the whitelist switched on, which is when the table renders. */
+    /**
+     * Open the whitelist tab. The wait target is the toggle's label rather
+     * than the table div: the div is emptied while whitelisting is off, and
+     * an empty div has no bounding box, which Playwright reads as hidden.
+     */
     async function openWhitelistTab(page: import('@playwright/test').Page) {
         await gotoPluginSettings(page);
-        await openXsyncTab(page, XSYNC_TABS.whitelist, WHITELIST_PANEL);
+        await openXsyncTab(page, XSYNC_TABS.whitelist, WHITELIST_TAB_READY);
     }
 
     test.beforeAll(async ({ baseURL }) => {
@@ -57,12 +62,12 @@ test.describe('@admin XSync destination whitelist', () => {
 
         await setSwitchbox(page, 'limit-to-whitelist', true);
 
-        // Enabling the whitelist opens the non-conforming connections report
-        // (PLUGINS-310). Dismiss it to get back to the tab.
+        // Enabling the whitelist always opens the non-conforming connections
+        // report for an admin (PLUGINS-310), even when the list is empty.
+        // Wait for it and dismiss it to get back to the tab.
         const report = openDialog(page);
-        if (await report.isVisible().catch(() => false)) {
-            await clickDialogButton(report, 'Close');
-        }
+        await report.waitFor({ state: 'visible', timeout: 15_000 });
+        await clickDialogButton(report, 'Close');
 
         await expect(whitelistTable(page)).toBeVisible();
         await expect(page.locator(`${WHITELIST_PANEL} button`, { hasText: 'Add Site' })).toBeVisible();
@@ -128,8 +133,10 @@ test.describe('@admin XSync destination whitelist', () => {
         const dialog = openDialog(page);
         await dialog.waitFor({ state: 'visible' });
 
-        // The site id keys the record, so edit mode must not allow it to change.
-        await expect(dialog.locator('#site_id_input')).toHaveAttribute('readonly', /.*/);
+        // The site id keys the record, so edit mode must not allow it to
+        // change. The dialog sets the readOnly property directly, so assert
+        // the property rather than the attribute.
+        await expect(dialog.locator('#site_id_input')).toHaveJSProperty('readOnly', true);
 
         await dialog.locator('#site_name_input').fill('XSync E2E Renamed XNAT');
         await dialog.locator('#classification_input').selectOption('PUBLIC');

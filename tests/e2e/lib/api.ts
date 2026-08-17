@@ -198,7 +198,9 @@ export class XsyncApi {
             data: {
                 enabled: true,
                 source_project_id: projectId,
-                sync_frequency: 'on_demand',
+                // The value the UI writes for On Demand, from the frequency
+                // select in xsync-config.js. It contains a space.
+                sync_frequency: 'on demand',
                 sync_new_only: true,
                 identifiers: 'use_local',
                 remote_url: remoteUrl,

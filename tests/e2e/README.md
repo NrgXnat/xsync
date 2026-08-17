@@ -12,6 +12,15 @@ test returns 404. The specs were written against the plugin source, so
 selectors and payloads come from the code rather than from observed behaviour.
 Expect to fix things on first execution.
 
+A second pass audited every selector and behavioural claim against the XNAT
+core source (xnat-web) as well as the plugin: switchbox checkboxes are
+display:none so all toggling goes through the visible span.switchbox-outer,
+dialog and xmodal class names and default button labels were confirmed in
+dialog.js and xmodal.js, dashboard status values were confirmed as the strings
+"true"/"false", the sync frequency value for on-demand is "on demand" with a
+space, and restricted XAPI endpoints return 403, matching what the main
+regression suite already asserts elsewhere.
+
 ## What is covered
 
 | Ticket | Spec | Covers |

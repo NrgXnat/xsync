@@ -12,6 +12,7 @@
 import { test, expect } from '@playwright/test';
 import { XsyncApi } from '../lib/api';
 import {
+    CONNECTION_TAB_READY,
     gotoPluginSettings,
     gotoProjectXsyncTab,
     openXsyncTab,
@@ -21,7 +22,6 @@ import {
     XSYNC_TABS,
 } from '../lib/pages';
 
-const CONNECTION_PANEL = '#https-enabled';
 const ASPERA_PROJECT = 'xsync_e2e_aspera';
 
 test.describe('@admin XSync connection management', () => {
@@ -47,7 +47,7 @@ test.describe('@admin XSync connection management', () => {
 
     test('HTTPS is locked on and Aspera settings are hidden while Aspera is disabled', async ({ page }) => {
         await gotoPluginSettings(page);
-        await openXsyncTab(page, XSYNC_TABS.connectionManagement, CONNECTION_PANEL);
+        await openXsyncTab(page, XSYNC_TABS.connectionManagement, CONNECTION_TAB_READY);
 
         await expect(switchbox(page, 'aspera-enabled')).not.toBeChecked();
 
@@ -62,7 +62,7 @@ test.describe('@admin XSync connection management', () => {
 
     test('enabling Aspera unlocks the HTTPS control and reveals the Aspera Server Defaults tab', async ({ page }) => {
         await gotoPluginSettings(page);
-        await openXsyncTab(page, XSYNC_TABS.connectionManagement, CONNECTION_PANEL);
+        await openXsyncTab(page, XSYNC_TABS.connectionManagement, CONNECTION_TAB_READY);
 
         await setSwitchbox(page, 'aspera-enabled', true);
 
@@ -75,7 +75,7 @@ test.describe('@admin XSync connection management', () => {
         await api.setSitePreferences({ asperaEnabled: true });
 
         await gotoPluginSettings(page);
-        await openXsyncTab(page, XSYNC_TABS.connectionManagement, CONNECTION_PANEL);
+        await openXsyncTab(page, XSYNC_TABS.connectionManagement, CONNECTION_TAB_READY);
         await setSwitchbox(page, 'aspera-enabled', false);
 
         await expect(switchbox(page, 'https-enabled')).toBeDisabled();

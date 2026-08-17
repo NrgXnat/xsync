@@ -53,6 +53,14 @@ export const WHITELIST_PANEL = 'div#xsync-whitelist-table';
 export const BLACKLIST_PANEL = 'div#xsync-project-blacklist-panel';
 export const DASHBOARD_PANEL = 'div#xsync-configuration-dashboard-panel';
 
+// Wait targets for tabs whose panel content is conditional. The whitelist
+// table div is emptied while whitelisting is off, and an empty div has no
+// bounding box, so Playwright treats it as hidden; the checkbox inputs are
+// display:none always. The switchbox labels are rendered unconditionally, so
+// they are what openXsyncTab should wait for on these two tabs.
+export const CONNECTION_TAB_READY = 'label.switchbox:has(#https-enabled)';
+export const WHITELIST_TAB_READY = 'label.switchbox:has(#limit-to-whitelist)';
+
 export function whitelistTable(page: Page): Locator {
     return page.locator('table.whitelist-site-table');
 }
@@ -105,34 +113,42 @@ export async function clickDialogButton(dialog: Locator, label: string): Promise
 
 /**
  * XNAT switchboxes render as a checkbox whose id is the kebab-case form of the
- * preference name. Setting one fires a change handler that immediately POSTs
- * the new value, so callers should wait on the resulting state, not on a save
- * button.
+ * preference name, wrapped in a label that draws the visible toggle. Core CSS
+ * hides the checkbox itself (label.switchbox > input { display: none; } in
+ * app.css), so state is read from the input but clicks must land on the
+ * sibling span.switchbox-outer. Toggling fires a change handler that POSTs
+ * the new value immediately; callers wait on the resulting state, not on a
+ * save button.
  */
 export function switchbox(page: Page, id: string): Locator {
     return page.locator(`#${id}`);
+}
+
+/** The visible toggle for a switchbox. This is the element a user clicks. */
+export function switchboxToggle(page: Page, id: string): Locator {
+    return page.locator(`label.switchbox:has(#${id}) span.switchbox-outer`);
 }
 
 export async function setSwitchbox(page: Page, id: string, on: boolean): Promise<void> {
     const box = switchbox(page, id);
     await box.waitFor({ state: 'attached', timeout: 15_000 });
     if ((await box.isChecked()) !== on) {
-        await box.setChecked(on);
+        await switchboxToggle(page, id).click();
+        await expect(box, `switchbox #${id} did not reach checked=${on}`).toBeChecked({ checked: on });
     }
 }
 
 // ------------------------------------------------------------------ project pages
 
-/** The XSync Configuration tab on a project's Manage page. */
+/**
+ * The Manage tab of a project report page, where the XSync Configuration
+ * panel renders. The tab is a client-side YUI tab; the selector matches the
+ * one the xnat-test-automation page objects use for the same element.
+ */
 export async function gotoProjectXsyncTab(page: Page, projectId: string): Promise<void> {
     await page.goto(`/data/projects/${encodeURIComponent(projectId)}?format=html`);
     await page.waitForLoadState('domcontentloaded');
-    const manageTab = page.locator('a', { hasText: /^\s*Manage\s*$/ }).first();
-    if (await manageTab.isVisible().catch(() => false)) {
-        await manageTab.click();
-    }
-    const xsyncTab = page.locator('a', { hasText: /XSync Configuration/i }).first();
-    if (await xsyncTab.isVisible().catch(() => false)) {
-        await xsyncTab.click();
-    }
+    const manageTab = page.locator('#projectSummary ul.yui-nav li a em', { hasText: 'Manage' }).first();
+    await manageTab.waitFor({ state: 'visible', timeout: 30_000 });
+    await manageTab.click();
 }

@@ -17,7 +17,7 @@ import {
     openDialog,
     openXsyncTab,
     setSwitchbox,
-    WHITELIST_PANEL,
+    WHITELIST_TAB_READY,
     XSYNC_TABS,
 } from '../lib/pages';
 
@@ -46,6 +46,7 @@ test.describe('@admin XSync whitelist enforcement', () => {
     });
 
     test.afterAll(async () => {
+        await api.deleteWhitelistSite(localSite);
         await api.setSitePreferences({ xsyncWhitelistEnabled: originalWhitelistEnabled });
         await api.deleteProject(LOCAL_PROJECT);
         await api.deleteProject(REMOTE_PROJECT);
@@ -94,7 +95,7 @@ test.describe('@admin XSync whitelist enforcement', () => {
         // The admin sees the same list as a report when they enable the whitelist.
         await api.setSitePreferences({ xsyncWhitelistEnabled: false });
         await gotoPluginSettings(page);
-        await openXsyncTab(page, XSYNC_TABS.whitelist, WHITELIST_PANEL);
+        await openXsyncTab(page, XSYNC_TABS.whitelist, WHITELIST_TAB_READY);
         await setSwitchbox(page, 'limit-to-whitelist', true);
 
         const report = openDialog(page);
