@@ -6,20 +6,39 @@ exhaustive happy-path, negative and edge-case coverage.
 
 ## Status
 
-**These tests have never been run.** No available XNAT instance carries
-1.8.2-SNAPSHOT; the development stacks are on 1.8.1, where every endpoint under
-test returns 404. The specs were written against the plugin source, so
-selectors and payloads come from the code rather than from observed behaviour.
-Expect to fix things on first execution.
+**Validated against a live 1.8.2-SNAPSHOT instance (2026-08-17), with two
+plugin defects found in the process.** Three iterations against a dedicated
+1.8.2 stack: 31 of 37 tests pass, and every remaining red traces to a
+confirmed plugin defect rather than to the tests.
 
-A second pass audited every selector and behavioural claim against the XNAT
-core source (xnat-web) as well as the plugin: switchbox checkboxes are
-display:none so all toggling goes through the visible span.switchbox-outer,
-dialog and xmodal class names and default button labels were confirmed in
-dialog.js and xmodal.js, dashboard status values were confirmed as the strings
-"true"/"false", the sync frequency value for on-demand is "on demand" with a
-space, and restricted XAPI endpoints return 403, matching what the main
-regression suite already asserts elsewhere.
+- The PLUGINS-332 REST-path test carries a `test.fail()` marker: the backend
+  stores trailing slashes verbatim (confirmed live), the fix in the admin
+  dialog being front-end only. When the backend normalises, the marker
+  becomes an unexpected pass and gets removed.
+- The six `admin.projectBlacklist` tests fail against any stack that has ever
+  deleted a project with an XSync configuration. Deleting a project leaves
+  its configuration rows behind with a null source project id, and
+  `POST /xapi/xsyncSitePreferences/blacklistProjects/{id}` then returns 500
+  for every project ("Cannot invoke String.equals because
+  getSourceProjectId() is null" -- reproduced with a plain curl on a freshly
+  created project). The url-wide enable endpoint 500s on the same orphans.
+  The specs sidestep the orphan pollution by using per-run destination urls,
+  but the blacklist endpoint iterates every configuration site-wide, so
+  nothing test-side can route around it. These tests go green once the plugin
+  tolerates (or cleans up) orphaned configurations.
+
+Suite hygiene learned from those runs, baked into `lib/run.ts`: XNAT
+permanently retires deleted project ids, so all created projects and all sync
+destination urls are suffixed per run.
+
+An earlier source audit checked every selector and behavioural claim against
+the XNAT core source (xnat-web) as well as the plugin: switchbox checkboxes
+are display:none so all toggling goes through the visible
+span.switchbox-outer, dialog and xmodal class names and default button labels
+were confirmed in dialog.js and xmodal.js, dashboard status values were
+confirmed as the strings "true"/"false", the sync frequency value for
+on-demand is "on demand" with a space, and restricted XAPI endpoints return
+403, matching what the main regression suite already asserts elsewhere.
 
 ## What is covered
 

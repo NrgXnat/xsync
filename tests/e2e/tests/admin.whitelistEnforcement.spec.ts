@@ -11,6 +11,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { XsyncApi, WhitelistSite } from '../lib/api';
+import { fakeRemoteUrl, projectId } from '../lib/run';
 import {
     clickDialogButton,
     gotoPluginSettings,
@@ -21,9 +22,13 @@ import {
     XSYNC_TABS,
 } from '../lib/pages';
 
-const LOCAL_PROJECT = 'xsync_e2e_wl_src';
+const LOCAL_PROJECT = projectId('xsync_e2e_wl_src');
+// The remote side of a config is just an id on the destination server, which
+// setup never contacts, so no project is created for it.
 const REMOTE_PROJECT = 'xsync_e2e_wl_dest';
-const OFF_LIST_URL = 'https://xsync-e2e-not-approved.example.org';
+// Per run: configs orphaned by earlier runs' deleted projects stay on the
+// dashboard, so an absence assertion against a reused url would fail.
+const OFF_LIST_URL = fakeRemoteUrl('not-approved');
 
 test.describe('@admin XSync whitelist enforcement', () => {
     let api: XsyncApi;
@@ -42,14 +47,12 @@ test.describe('@admin XSync whitelist enforcement', () => {
             classification: 'RESEARCH',
         };
         await api.ensureProject(LOCAL_PROJECT);
-        await api.ensureProject(REMOTE_PROJECT);
     });
 
     test.afterAll(async () => {
         await api.deleteWhitelistSite(localSite);
         await api.setSitePreferences({ xsyncWhitelistEnabled: originalWhitelistEnabled });
         await api.deleteProject(LOCAL_PROJECT);
-        await api.deleteProject(REMOTE_PROJECT);
         await api.dispose();
     });
 

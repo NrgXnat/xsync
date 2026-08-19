@@ -7,6 +7,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { XsyncApi } from '../lib/api';
+import { fakeRemoteUrl, projectId } from '../lib/run';
 import {
     blacklistTable,
     BLACKLIST_PANEL,
@@ -19,13 +20,16 @@ import {
     XSYNC_TABS,
 } from '../lib/pages';
 
-const BLOCKED_PROJECT = 'xsync_e2e_blocked';
+const BLOCKED_PROJECT = projectId('xsync_e2e_blocked');
+// The remote side of a config is just an id on the destination server, which
+// setup never contacts, so no project is created for it.
 const REMOTE_PROJECT = 'xsync_e2e_bl_dest';
+// Per run, so configs orphaned by earlier runs cannot leak into assertions.
+const REMOTE_URL = fakeRemoteUrl('bl');
 
 test.describe('@admin XSync project blacklist', () => {
     let api: XsyncApi;
-    let siteUrl: string;
-    let originalWhitelistEnabled: boolean;
+        let originalWhitelistEnabled: boolean;
 
     test.beforeAll(async ({ baseURL }) => {
         api = await XsyncApi.create('admin-csrf.txt', '.auth/admin.json', baseURL!);
@@ -33,9 +37,7 @@ test.describe('@admin XSync project blacklist', () => {
         // Enforcement of the blacklist is what is under test here, so keep the
         // whitelist out of the way.
         await api.setSitePreferences({ xsyncWhitelistEnabled: false });
-        siteUrl = await api.getSiteUrl();
         await api.ensureProject(BLOCKED_PROJECT);
-        await api.ensureProject(REMOTE_PROJECT);
     });
 
     test.beforeEach(async () => {
@@ -46,7 +48,6 @@ test.describe('@admin XSync project blacklist', () => {
         await api.removeProjectFromBlacklist(BLOCKED_PROJECT);
         await api.setSitePreferences({ xsyncWhitelistEnabled: originalWhitelistEnabled });
         await api.deleteProject(BLOCKED_PROJECT);
-        await api.deleteProject(REMOTE_PROJECT);
         await api.dispose();
     });
 
@@ -68,17 +69,17 @@ test.describe('@admin XSync project blacklist', () => {
     test('a blacklisted project cannot create an XSync connection', async () => {
         await api.addProjectToBlacklist(BLOCKED_PROJECT);
 
-        const res = await api.setupProjectSyncRaw(BLOCKED_PROJECT, siteUrl, REMOTE_PROJECT);
+        const res = await api.setupProjectSyncRaw(BLOCKED_PROJECT, REMOTE_URL, REMOTE_PROJECT);
         expect(res.ok(), 'setup for a blacklisted project should have been refused').toBeFalsy();
 
-        const configs = await api.getConfigurationsForRemoteUrl(siteUrl);
+        const configs = await api.getConfigurationsForRemoteUrl(REMOTE_URL);
         expect(configs.map((c: any) => c.localProject)).not.toContain(BLOCKED_PROJECT);
     });
 
     test('blacklisting a project deactivates the connection it already had', async () => {
-        await api.setupProjectSync(BLOCKED_PROJECT, siteUrl, REMOTE_PROJECT);
+        await api.setupProjectSync(BLOCKED_PROJECT, REMOTE_URL, REMOTE_PROJECT);
 
-        const before = (await api.getConfigurationsForRemoteUrl(siteUrl))
+        const before = (await api.getConfigurationsForRemoteUrl(REMOTE_URL))
             .find((c: any) => c.localProject === BLOCKED_PROJECT);
         expect(before, 'the connection under test was not created').toBeDefined();
         expect(String(before.status)).toBe('true');
@@ -86,7 +87,7 @@ test.describe('@admin XSync project blacklist', () => {
         await api.addProjectToBlacklist(BLOCKED_PROJECT);
 
         await expect.poll(async () => {
-            const after = (await api.getConfigurationsForRemoteUrl(siteUrl))
+            const after = (await api.getConfigurationsForRemoteUrl(REMOTE_URL))
                 .find((c: any) => c.localProject === BLOCKED_PROJECT);
             return after ? String(after.status) : 'missing';
         }, { message: 'the existing connection should have been disabled' }).toBe('false');
@@ -123,8 +124,8 @@ test.describe('@admin XSync project blacklist', () => {
         expect(await api.isProjectBlacklisted(BLOCKED_PROJECT)).toBe(false);
 
         // The project can configure XSync again.
-        await api.setupProjectSync(BLOCKED_PROJECT, siteUrl, REMOTE_PROJECT);
-        const configs = await api.getConfigurationsForRemoteUrl(siteUrl);
+        await api.setupProjectSync(BLOCKED_PROJECT, REMOTE_URL, REMOTE_PROJECT);
+        const configs = await api.getConfigurationsForRemoteUrl(REMOTE_URL);
         expect(configs.map((c: any) => c.localProject)).toContain(BLOCKED_PROJECT);
     });
 });

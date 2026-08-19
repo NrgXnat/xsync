@@ -11,6 +11,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { XsyncApi } from '../lib/api';
+import { projectId } from '../lib/run';
 import {
     CONNECTION_TAB_READY,
     gotoPluginSettings,
@@ -22,7 +23,7 @@ import {
     XSYNC_TABS,
 } from '../lib/pages';
 
-const ASPERA_PROJECT = 'xsync_e2e_aspera';
+const ASPERA_PROJECT = projectId('xsync_e2e_aspera');
 
 test.describe('@admin XSync connection management', () => {
     let api: XsyncApi;

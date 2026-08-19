@@ -11,6 +11,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { XsyncApi, WhitelistSite } from '../lib/api';
+import { fakeRemoteUrl, projectId } from '../lib/run';
 import {
     columnLabels,
     dashboardTable,
@@ -24,41 +25,49 @@ import {
     XSYNC_TABS,
 } from '../lib/pages';
 
-const PROJECT_A = 'xsync_e2e_dash_a';
-const PROJECT_B = 'xsync_e2e_dash_b';
+const PROJECT_A = projectId('xsync_e2e_dash_a');
+const PROJECT_B = projectId('xsync_e2e_dash_b');
+// The remote side of a config is just an id on the destination server, which
+// setup never contacts, so no project is created for it.
 const REMOTE_PROJECT = 'xsync_e2e_dash_dest';
+// A per-run destination url. Assertions scoped to this url cannot be polluted
+// by configs orphaned when earlier runs deleted their projects; url-wide
+// enable also 500s when any config's source project is gone, so a shared url
+// would break the PLUGINS-314 tests forever after one run.
+const REMOTE_URL = fakeRemoteUrl('dash');
+const DASH_SITE: WhitelistSite = {
+    siteId: projectId('xsync_e2e_dash_site'),
+    siteName: 'XSync E2E Dashboard Site',
+    siteUrl: REMOTE_URL,
+    classification: 'RESEARCH',
+};
 
 test.describe('@admin XSync configuration dashboard', () => {
     let api: XsyncApi;
-    let siteUrl: string;
     let originalWhitelistEnabled: boolean;
-    let localSite: WhitelistSite;
 
     test.beforeAll(async ({ baseURL }) => {
         api = await XsyncApi.create('admin-csrf.txt', '.auth/admin.json', baseURL!);
         originalWhitelistEnabled = (await api.getSitePreferences()).xsyncWhitelistEnabled ?? false;
-        siteUrl = await api.getSiteUrl();
-        localSite = { siteId: 'xsync_e2e_dash_site', siteName: 'XSync E2E Dashboard Site', siteUrl, classification: 'RESEARCH' };
 
         await api.ensureProject(PROJECT_A);
         await api.ensureProject(PROJECT_B);
-        await api.ensureProject(REMOTE_PROJECT);
 
-        // Two local projects syncing to this same XNAT, which PLUGINS-228
-        // explicitly permits, so the dashboard has real rows to show without
-        // needing a second server.
+        // Two local projects configured to sync to the same destination, so
+        // the dashboard has one remote-url row with two project connections.
         await api.setSitePreferences({ xsyncWhitelistEnabled: false });
-        await api.setupProjectSync(PROJECT_A, siteUrl, REMOTE_PROJECT);
-        await api.setupProjectSync(PROJECT_B, siteUrl, REMOTE_PROJECT);
+        await api.setupProjectSync(PROJECT_A, REMOTE_URL, REMOTE_PROJECT);
+        await api.setupProjectSync(PROJECT_B, REMOTE_URL, REMOTE_PROJECT);
     });
 
     test.afterAll(async () => {
-        await api.setRemoteUrlEnabled(siteUrl, true);
-        await api.deleteWhitelistSite(localSite);
+        // Best-effort: a failed step must not stop the settings restore or
+        // the project deletions behind it.
+        await api.setRemoteUrlEnabled(REMOTE_URL, true).catch(() => {});
+        await api.deleteWhitelistSite(DASH_SITE);
         await api.setSitePreferences({ xsyncWhitelistEnabled: originalWhitelistEnabled });
         await api.deleteProject(PROJECT_A);
         await api.deleteProject(PROJECT_B);
-        await api.deleteProject(REMOTE_PROJECT);
         await api.dispose();
     });
 
@@ -67,11 +76,11 @@ test.describe('@admin XSync configuration dashboard', () => {
         await gotoPluginSettings(page);
         await openXsyncTab(page, XSYNC_TABS.configurationDashboard, DASHBOARD_PANEL);
 
-        const row = rowContaining(dashboardTable(page), siteUrl);
+        const row = rowContaining(dashboardTable(page), REMOTE_URL);
         await expect(row).toBeVisible();
 
-        const details = (await api.getDashboard()).find(d => d.remoteUrl === siteUrl);
-        expect(details, `${siteUrl} missing from the dashboard`).toBeDefined();
+        const details = (await api.getDashboard()).find(d => d.remoteUrl === REMOTE_URL);
+        expect(details, `${REMOTE_URL} missing from the dashboard`).toBeDefined();
         expect(details!.numberProjects).toBeGreaterThanOrEqual(2);
         await expect(row).toContainText(String(details!.numberProjects));
     });
@@ -87,8 +96,10 @@ test.describe('@admin XSync configuration dashboard', () => {
         expect(labels).not.toContain('Security Tier');
 
         // Those two columns are only meaningful once destinations are
-        // classified, which is what enabling the whitelist provides.
-        await api.addWhitelistSite(localSite);
+        // classified, which is what enabling the whitelist provides. Register
+        // this run's destination with a known name and tier, then confirm the
+        // dashboard resolves exactly that entry for the row.
+        await api.addWhitelistSite(DASH_SITE);
         await api.setSitePreferences({ xsyncWhitelistEnabled: true });
 
         await gotoPluginSettings(page);
@@ -98,9 +109,9 @@ test.describe('@admin XSync configuration dashboard', () => {
         expect(labels).toContain('Remote Site');
         expect(labels).toContain('Security Tier');
 
-        const row = rowContaining(dashboardTable(page), siteUrl);
-        await expect(row).toContainText(localSite.siteName);
-        await expect(row).toContainText(localSite.classification);
+        const row = rowContaining(dashboardTable(page), REMOTE_URL);
+        await expect(row).toContainText(DASH_SITE.siteName);
+        await expect(row).toContainText(DASH_SITE.classification);
     });
 
     test('the project count opens a per-project breakdown for that remote url', async ({ page }) => {
@@ -108,11 +119,11 @@ test.describe('@admin XSync configuration dashboard', () => {
         await gotoPluginSettings(page);
         await openXsyncTab(page, XSYNC_TABS.configurationDashboard, DASHBOARD_PANEL);
 
-        await rowContaining(dashboardTable(page), siteUrl).locator('a').first().click();
+        await rowContaining(dashboardTable(page), REMOTE_URL).locator('a').first().click();
 
         const details = openDialog(page);
         await details.waitFor({ state: 'visible', timeout: 15_000 });
-        await expect(details).toContainText(`Details for ${siteUrl}`);
+        await expect(details).toContainText(`Details for ${REMOTE_URL}`);
 
         expect(await columnLabels(details.locator('table.xsync-configuration-table'))).toEqual(
             expect.arrayContaining(['Local Project', 'Remote Project', 'Enabled', 'Frequency', 'Last Sync Status', 'Actions']),
@@ -125,12 +136,12 @@ test.describe('@admin XSync configuration dashboard', () => {
 
     test('PLUGINS-314: disabling a remote url disables every connection to it', async ({ page }) => {
         await api.setSitePreferences({ xsyncWhitelistEnabled: false });
-        await api.setRemoteUrlEnabled(siteUrl, true);
+        await api.setRemoteUrlEnabled(REMOTE_URL, true);
 
         await gotoPluginSettings(page);
         await openXsyncTab(page, XSYNC_TABS.configurationDashboard, DASHBOARD_PANEL);
 
-        await rowContaining(dashboardTable(page), siteUrl).locator('button', { hasText: 'Disable' }).click();
+        await rowContaining(dashboardTable(page), REMOTE_URL).locator('button', { hasText: 'Disable' }).click();
 
         const confirm = openXmodal(page);
         await confirm.waitFor({ state: 'visible' });
@@ -138,21 +149,21 @@ test.describe('@admin XSync configuration dashboard', () => {
         await confirm.locator('button', { hasText: /^\s*OK\s*$|^\s*Yes\s*$|Proceed/i }).first().click();
 
         await expect.poll(async () => {
-            const configs = await api.getConfigurationsForRemoteUrl(siteUrl);
+            const configs = await api.getConfigurationsForRemoteUrl(REMOTE_URL);
             return configs.map((c: any) => String(c.status));
         }, { message: 'every connection to this url should be disabled' }).not.toContain('true');
 
         // The button flips to the inverse action once the url is disabled.
-        await expect(rowContaining(dashboardTable(page), siteUrl).locator('button', { hasText: 'Enable' })).toBeVisible();
+        await expect(rowContaining(dashboardTable(page), REMOTE_URL).locator('button', { hasText: 'Enable' })).toBeVisible();
     });
 
     test('PLUGINS-314: a single project connection can be toggled from the breakdown', async ({ page }) => {
         await api.setSitePreferences({ xsyncWhitelistEnabled: false });
-        await api.setRemoteUrlEnabled(siteUrl, true);
+        await api.setRemoteUrlEnabled(REMOTE_URL, true);
 
         await gotoPluginSettings(page);
         await openXsyncTab(page, XSYNC_TABS.configurationDashboard, DASHBOARD_PANEL);
-        await rowContaining(dashboardTable(page), siteUrl).locator('a').first().click();
+        await rowContaining(dashboardTable(page), REMOTE_URL).locator('a').first().click();
 
         const details = openDialog(page);
         await details.waitFor({ state: 'visible', timeout: 15_000 });
@@ -165,12 +176,12 @@ test.describe('@admin XSync configuration dashboard', () => {
         await projectRow.locator('span.switchbox-outer').first().click();
 
         await expect.poll(async () => {
-            const config = (await api.getConfigurationsForRemoteUrl(siteUrl))
+            const config = (await api.getConfigurationsForRemoteUrl(REMOTE_URL))
                 .find((c: any) => c.localProject === PROJECT_A);
             return config ? String(config.status) : 'missing';
         }, { message: `${PROJECT_A} should be disabled and ${PROJECT_B} untouched` }).toBe('false');
 
-        const untouched = (await api.getConfigurationsForRemoteUrl(siteUrl))
+        const untouched = (await api.getConfigurationsForRemoteUrl(REMOTE_URL))
             .find((c: any) => c.localProject === PROJECT_B);
         expect(String(untouched.status)).toBe('true');
     });
@@ -179,7 +190,7 @@ test.describe('@admin XSync configuration dashboard', () => {
         await api.setSitePreferences({ xsyncWhitelistEnabled: false });
         await gotoPluginSettings(page);
         await openXsyncTab(page, XSYNC_TABS.configurationDashboard, DASHBOARD_PANEL);
-        await rowContaining(dashboardTable(page), siteUrl).locator('a').first().click();
+        await rowContaining(dashboardTable(page), REMOTE_URL).locator('a').first().click();
 
         const details = openDialog(page);
         await details.waitFor({ state: 'visible', timeout: 15_000 });
