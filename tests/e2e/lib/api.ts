@@ -240,7 +240,59 @@ export class XsyncApi {
         expect(res.ok(), `XSync setup for ${projectId} failed: HTTP ${res.status()} ${await res.text()}`).toBeTruthy();
     }
 
+    // ---------------------------------------------------------------- sync execution
+
+    /**
+     * Stores credentials the sender will use against the remote instance.
+     * The server validates them live against the remote before saving, so a
+     * failure here usually means the remote is unreachable or the account
+     * lacks access to the remote project.
+     */
+    async saveRemoteCredentials(localProject: string, creds: {
+        host: string;
+        remoteProject: string;
+        alias: string;
+        secret: string;
+        username: string;
+    }): Promise<void> {
+        const res = await this.request.post(`/xapi/xsync/credentials/save/projects/${encodeURIComponent(localProject)}`, {
+            headers: { ...this.headers(), 'Content-Type': 'application/json' },
+            data: { localProject, syncNewOnly: true, ...creds },
+        });
+        expect(res.ok(), `Save remote credentials for ${localProject} failed: HTTP ${res.status()} ${await res.text()}`).toBeTruthy();
+    }
+
+    /**
+     * Starts a sync of the project. The export runs on a server-side
+     * executor; this returns as soon as it is submitted, so callers poll
+     * history or the destination for the outcome. The endpoint answers 200
+     * both for "started" and for "already running", distinguished only by
+     * the response text.
+     */
+    async triggerProjectSync(projectId: string): Promise<string> {
+        const res = await this.request.post(`/xapi/xsync/projects/${encodeURIComponent(projectId)}`, {
+            headers: this.headers(),
+        });
+        expect(res.ok(), `Trigger sync for ${projectId} failed: HTTP ${res.status()} ${await res.text()}`).toBeTruthy();
+        return res.text();
+    }
+
+    /** Sync history entries for a project, newest last. */
+    async getProjectSyncHistory(projectId: string): Promise<any[]> {
+        const res = await this.request.get(`/xapi/xsync/history/projects/${encodeURIComponent(projectId)}/recentHistory`);
+        expect(res.ok(), `GET sync history for ${projectId} failed: HTTP ${res.status()}`).toBeTruthy();
+        return res.json();
+    }
+
     // ---------------------------------------------------------------- generic XNAT
+
+    /** Creates a subject in a project; returns the raw response. */
+    async putSubject(projectId: string, subjectLabel: string): Promise<APIResponse> {
+        return this.request.put(
+            `/data/projects/${encodeURIComponent(projectId)}/subjects/${encodeURIComponent(subjectLabel)}`,
+            { headers: this.headers(), params: { event_action: 'Added Subject' } },
+        );
+    }
 
     /** Creates a project if it does not already exist. Safe to call repeatedly. */
     async ensureProject(projectId: string): Promise<void> {

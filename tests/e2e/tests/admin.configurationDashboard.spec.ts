@@ -5,9 +5,10 @@
  * history) and PLUGINS-314 (disabling a single project sync or every sync to a
  * remote url).
  *
- * PLUGINS-313, the stack trace popup on a failed row, is not covered here. It
- * needs a connection that has actually failed a sync, which means a reachable
- * second XNAT and a real transfer. Flagged rather than faked.
+ * PLUGINS-313, the stack trace popup on a failed row, is a declared gap; see
+ * the README. Observed live: a sync that fails before transfer writes no
+ * history entry, so the failed link the popup hangs off never renders for
+ * that failure class.
  */
 import { test, expect } from '@playwright/test';
 import { XsyncApi, WhitelistSite } from '../lib/api';
@@ -207,4 +208,9 @@ test.describe('@admin XSync configuration dashboard', () => {
         await full.waitFor({ state: 'visible', timeout: 15_000 });
         await expect(full).toContainText(new RegExp(`Full history for project: ${PROJECT_A}`, 'i'));
     });
+
+    // PLUGINS-313, the stack trace popup on a failed row, is a declared gap;
+    // see the README. Observed live: a sync that fails before transfer, with
+    // or without valid credentials, writes no history entry at all, so the
+    // failed link the popup hangs off never renders for that failure class.
 });

@@ -6,10 +6,12 @@ exhaustive happy-path, negative and edge-case coverage.
 
 ## Status
 
-**Validated against a live 1.8.2-SNAPSHOT instance (2026-08-17), with two
-plugin defects found in the process.** Several iterations against a dedicated
-1.8.2 stack: 39 of 45 tests pass, and every remaining red traces to a
-confirmed plugin defect rather than to the tests.
+**Validated against a live 1.8.2-SNAPSHOT sender and, for the
+cross-instance transfer, a live receiving XNAT (2026-08-17 through
+2026-08-20), with two plugin defects found in the process.** 40 of 46 tests
+pass, and every remaining red traces to a confirmed plugin defect rather
+than to the tests. The cross-instance spec has moved a real subject between
+two instances and verified its arrival on the receiver.
 
 - The PLUGINS-332 REST-path test carries a `test.fail()` marker: the backend
   stores trailing slashes verbatim (confirmed live), the fix in the admin
@@ -52,12 +54,18 @@ on-demand is "on demand" with a space, and restricted XAPI endpoints return
 | PLUGINS-232 | `nonadmin.xsyncAdministratorRole.spec.ts` | Site admins hold the role after upgrade; a plain user is refused; granting the role opens the settings; revoking closes them |
 | (pre-existing settings) | `admin.sitePreferences.spec.ts` | Interval, retry and max-file-size settings persist through a save; malformed values are refused with 400 and the stored value survives |
 | (setup baseline) | `admin.projectSetup.spec.ts` | A stored configuration reads back with the values written; mismatched, blank and nonexistent source projects are refused with nothing stored |
+| (transfer) | `admin.crossXnatTransfer.spec.ts` | A subject transfers to a second, receiving XNAT; the sender's history and dashboard record the same outcome. Requires REMOTE_XNAT_URL; skips without it |
 
 ## What is not covered, and why
 
-- **PLUGINS-313**, the stack trace popup on a failed row, needs a connection
-  that has genuinely failed a sync, which means a reachable second XNAT and a
-  real transfer. Faking a failure would test the fake, not the feature.
+- **PLUGINS-313**, the stack trace popup on a failed row. Attempted against a
+  live receiver and removed on evidence: a sync that fails before the
+  transfer starts (no stored credentials, or valid credentials with a
+  destination project absent on the receiver) writes no history entry at
+  all, so the dashboard stays "Never Synced" and the failed link the popup
+  hangs off never renders. Reaching a failed row requires a mid-transfer
+  failure, which means receiver-side fault injection. The invisibility of
+  pre-flight failures is itself flagged for review on the PR.
 - **PLUGINS-312 pagination** is exercised only to the extent that the full
   history dialog opens. Proving pagination needs a connection with more history
   entries than one page holds.
@@ -83,6 +91,31 @@ on-demand is "on demand" with a space, and restricted XAPI endpoints return
    report whenever the `GET /xapi/xsync/dashboard/whitelist` call succeeds,
    including when it returns an empty list. The tests tolerate the empty-list
    dialog rather than asserting it, in case suppressing it was intended.
+
+## Cross-instance transfer tests
+
+`admin.crossXnatTransfer.spec.ts` covers the scenario XSync exists for: a real
+transfer from the instance under test to a second, receiving XNAT. A subject
+is created on the sender, synced, and its arrival is verified on the receiver
+over REST; the sender's history and dashboard are checked for the same
+transfer.
+
+Configuration is three environment variables, and nothing about them assumes
+a particular hostname, network, or CI system, so the same tests run against
+two development stacks today or two instances on a client's own network
+later:
+
+| Variable | Meaning |
+|---|---|
+| `REMOTE_XNAT_URL` | Base url of the receiving instance. Unset = the cross-instance tests skip and everything else runs. |
+| `REMOTE_ADMIN_USER` | Account on the receiver that can create a project and receive data. |
+| `REMOTE_ADMIN_PASS` | That account's password. Both credential values are required once `REMOTE_XNAT_URL` is set; a half-configured remote fails the run rather than silently skipping. |
+
+The tests create their own uniquely named project on the receiver and delete
+it when done. Existing data on the receiver is never read or modified. The
+sender authenticates to the receiver with an alias token issued for the
+configured account, never a raw password, matching how XSync works in
+production.
 
 ## Running
 
