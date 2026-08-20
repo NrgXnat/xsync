@@ -65,12 +65,17 @@ export class XsyncApi {
         return res.json();
     }
 
-    /** Partial update. Fields left out keep their current value. */
-    async setSitePreferences(prefs: SitePreferences): Promise<void> {
-        const res = await this.request.post('/xapi/xsyncSitePreferences', {
+    /** Raw response so a test can assert on a rejected value. */
+    async setSitePreferencesRaw(prefs: SitePreferences): Promise<APIResponse> {
+        return this.request.post('/xapi/xsyncSitePreferences', {
             headers: { ...this.headers(), 'Content-Type': 'application/json' },
             data: prefs,
         });
+    }
+
+    /** Partial update. Fields left out keep their current value. */
+    async setSitePreferences(prefs: SitePreferences): Promise<void> {
+        const res = await this.setSitePreferencesRaw(prefs);
         expect(res.ok(), `POST site preferences failed: HTTP ${res.status()} ${await res.text()}`).toBeTruthy();
     }
 
@@ -191,8 +196,20 @@ export class XsyncApi {
 
     // ---------------------------------------------------------------- project sync configuration
 
-    /** Raw response so a test can assert that setup was refused. */
-    async setupProjectSyncRaw(projectId: string, remoteUrl: string, remoteProjectId: string): Promise<APIResponse> {
+    /** The stored sync configuration for a project. */
+    async getProjectSyncConfig(projectId: string): Promise<any> {
+        const res = await this.request.get(`/xapi/xsync/setup/projects/${encodeURIComponent(projectId)}`);
+        expect(res.ok(), `GET sync config for ${projectId} failed: HTTP ${res.status()}`).toBeTruthy();
+        return res.json();
+    }
+
+    /**
+     * Raw response so a test can assert that setup was refused. `overrides`
+     * replaces individual fields of the default body, for malformed-input
+     * tests.
+     */
+    async setupProjectSyncRaw(projectId: string, remoteUrl: string, remoteProjectId: string,
+                              overrides: Record<string, unknown> = {}): Promise<APIResponse> {
         return this.request.post(`/xapi/xsync/setup/projects/${encodeURIComponent(projectId)}`, {
             headers: { ...this.headers(), 'Content-Type': 'application/json' },
             data: {
@@ -213,6 +230,7 @@ export class XsyncApi {
                 subject_resources: { sync_type: 'none' },
                 subject_assessors: { sync_type: 'none' },
                 imaging_sessions: { sync_type: 'all' },
+                ...overrides,
             },
         });
     }

@@ -14,8 +14,11 @@ import { XsyncApi, WhitelistSite } from '../lib/api';
 import { fakeRemoteUrl, projectId } from '../lib/run';
 import {
     clickDialogButton,
+    expandProjectXsyncSection,
     gotoPluginSettings,
+    gotoProjectXsyncTab,
     openDialog,
+    openXmodal,
     openXsyncTab,
     setSwitchbox,
     WHITELIST_TAB_READY,
@@ -106,5 +109,49 @@ test.describe('@admin XSync whitelist enforcement', () => {
         await expect(report).toContainText(/Remote urls not conforming to whitelist/i);
         await expect(report).toContainText(OFF_LIST_URL);
         await clickDialogButton(report, 'Close');
+    });
+
+    test('with the whitelist on, the project config offers only whitelisted destinations', async ({ page }) => {
+        // This is the user-facing half of the PHI control: a project owner
+        // must pick from the approved list instead of typing any url. The
+        // Destination XNAT field is a select of whitelist entries while the
+        // whitelist is on, and a free-text input while it is off.
+        // A configuration must exist for the Edit Configuration button to
+        // render, so store one first rather than relying on test order.
+        await api.setSitePreferences({ xsyncWhitelistEnabled: false });
+        await api.setupProjectSync(LOCAL_PROJECT, siteUrl, REMOTE_PROJECT);
+        await api.addWhitelistSite(localSite);
+        await api.setSitePreferences({ xsyncWhitelistEnabled: true });
+
+        // The destination field lives in the dialog behind the section's
+        // Edit Configuration button, so open that dialog to inspect it.
+        await gotoProjectXsyncTab(page, LOCAL_PROJECT);
+        await expandProjectXsyncSection(page);
+        await page.locator('#xsync-edit-config').click();
+
+        // The config editor is an xmodal, not an XNAT.ui.dialog.
+        let dialog = openXmodal(page);
+        await dialog.waitFor({ state: 'visible', timeout: 15_000 });
+        const select = dialog.locator('#site_select_menu');
+        await select.waitFor({ state: 'visible', timeout: 15_000 });
+        await expect(dialog.locator('#xsync-config-remote-url')).toHaveCount(0);
+
+        // The select keys its options by url, so whitelist entries sharing a
+        // url (the auto-registered local entry plus one an admin added)
+        // collapse into a single option. Compare unique urls.
+        const offered = (await select.locator('option').allTextContents()).map(o => o.trim()).sort();
+        const approved = [...new Set((await api.getWhitelistSites()).map(s => s.siteUrl))].sort();
+        expect(offered).toEqual(approved);
+
+        // And the free-text field returns when the whitelist goes off.
+        await api.setSitePreferences({ xsyncWhitelistEnabled: false });
+        await gotoProjectXsyncTab(page, LOCAL_PROJECT);
+        await expandProjectXsyncSection(page);
+        await page.locator('#xsync-edit-config').click();
+
+        dialog = openXmodal(page);
+        await dialog.waitFor({ state: 'visible', timeout: 15_000 });
+        await dialog.locator('#xsync-config-remote-url').waitFor({ state: 'visible', timeout: 15_000 });
+        await expect(dialog.locator('#site_select_menu')).toHaveCount(0);
     });
 });

@@ -97,13 +97,6 @@ export function openXmodal(page: Page): Locator {
     return page.locator('.xmodal.open').last();
 }
 
-export async function waitForDialogTitle(page: Page, title: string | RegExp): Promise<Locator> {
-    const dialog = openDialog(page);
-    await dialog.waitFor({ state: 'visible', timeout: 15_000 });
-    await expect(dialog.locator('.title, .xnat-dialog-title').first()).toContainText(title);
-    return dialog;
-}
-
 /** Click a dialog footer button by its label. */
 export async function clickDialogButton(dialog: Locator, label: string): Promise<void> {
     await dialog.locator('button', { hasText: new RegExp(`^\\s*${label}\\s*$`) }).first().click();
@@ -151,4 +144,17 @@ export async function gotoProjectXsyncTab(page: Page, projectId: string): Promis
     const manageTab = page.locator('#projectSummary ul.yui-nav li a em', { hasText: 'Manage' }).first();
     await manageTab.waitFor({ state: 'visible', timeout: 30_000 });
     await manageTab.click();
+}
+
+/**
+ * Expand the XSync Configuration section of the Manage tab. The Manage tab is
+ * an accordion of collapsed sections; the section header is visible from the
+ * start, but the configuration form inside only renders visibly after the
+ * section is expanded.
+ */
+export async function expandProjectXsyncSection(page: Page): Promise<void> {
+    const header = page.locator('#xsync_panel_header');
+    await header.waitFor({ state: 'visible', timeout: 30_000 });
+    await header.click();
+    await page.locator('#xsync-config').waitFor({ state: 'visible', timeout: 30_000 });
 }

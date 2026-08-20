@@ -14,8 +14,10 @@ import { XsyncApi } from '../lib/api';
 import { projectId } from '../lib/run';
 import {
     CONNECTION_TAB_READY,
+    expandProjectXsyncSection,
     gotoPluginSettings,
     gotoProjectXsyncTab,
+    openXmodal,
     openXsyncTab,
     setSwitchbox,
     switchbox,
@@ -94,10 +96,17 @@ test.describe('@admin XSync connection management', () => {
 
         await gotoProjectXsyncTab(page, ASPERA_PROJECT);
 
-        // Assert the panel rendered before asserting something is missing from
-        // it. Without this, a panel that failed to load would pass the
-        // absence check while covering nothing.
-        await expect(page.locator('#xsync_panel_header')).toBeVisible();
-        await expect(page.getByText(/NOTICE: Aspera transfers are now supported/i)).toHaveCount(0);
+        // The notice, when Aspera is on, renders inside the configuration
+        // dialog. Open that dialog (Begin Configuration, since this project
+        // has no config yet) so the absence check inspects the place the
+        // notice would actually appear.
+        await expandProjectXsyncSection(page);
+        await page.locator('#xsync-begin-config').click();
+        // The config editor is an xmodal, not an XNAT.ui.dialog.
+        const dialog = openXmodal(page);
+        await dialog.waitFor({ state: 'visible', timeout: 15_000 });
+        await dialog.locator('#site_select_menu, #xsync-config-remote-url').first()
+            .waitFor({ state: 'visible', timeout: 15_000 });
+        await expect(dialog.getByText(/NOTICE: Aspera transfers are now supported/i)).toHaveCount(0);
     });
 });

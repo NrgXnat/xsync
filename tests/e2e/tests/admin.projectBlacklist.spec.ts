@@ -29,7 +29,7 @@ const REMOTE_URL = fakeRemoteUrl('bl');
 
 test.describe('@admin XSync project blacklist', () => {
     let api: XsyncApi;
-        let originalWhitelistEnabled: boolean;
+    let originalWhitelistEnabled: boolean;
 
     test.beforeAll(async ({ baseURL }) => {
         api = await XsyncApi.create('admin-csrf.txt', '.auth/admin.json', baseURL!);

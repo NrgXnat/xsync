@@ -7,8 +7,8 @@ exhaustive happy-path, negative and edge-case coverage.
 ## Status
 
 **Validated against a live 1.8.2-SNAPSHOT instance (2026-08-17), with two
-plugin defects found in the process.** Three iterations against a dedicated
-1.8.2 stack: 31 of 37 tests pass, and every remaining red traces to a
+plugin defects found in the process.** Several iterations against a dedicated
+1.8.2 stack: 39 of 45 tests pass, and every remaining red traces to a
 confirmed plugin defect rather than to the tests.
 
 - The PLUGINS-332 REST-path test carries a `test.fail()` marker: the backend
@@ -46,10 +46,12 @@ on-demand is "on demand" with a space, and restricted XAPI endpoints return
 |---|---|---|
 | PLUGINS-234, PLUGINS-235 | `admin.connectionManagement.spec.ts` | HTTPS stays locked on while Aspera is off; enabling Aspera unlocks it and reveals the Aspera Server Defaults tab; the project panel shows no Aspera notice while Aspera is off |
 | PLUGINS-228, PLUGINS-229, PLUGINS-332 | `admin.whitelist.spec.ts` | Whitelist table appears with the toggle; add, edit and delete a site; required-field validation; classification is constrained; trailing slashes are stripped; this XNAT is always a permitted destination |
-| PLUGINS-228, PLUGINS-310 | `admin.whitelistEnforcement.spec.ts` | A destination off the whitelist is refused and one on it is accepted; with the whitelist off anything is accepted; existing non-conforming connections are reported when the whitelist is switched on |
+| PLUGINS-228, PLUGINS-310 | `admin.whitelistEnforcement.spec.ts` | A destination off the whitelist is refused and one on it is accepted; with the whitelist off anything is accepted; existing non-conforming connections are reported when the whitelist is switched on; with the whitelist on the project config dialog offers a dropdown of exactly the whitelisted urls, and free text returns when it is off |
 | PLUGINS-231 | `admin.projectBlacklist.spec.ts` | Add and remove through the admin tab; a blacklisted project cannot create a connection, has its existing connection deactivated, and shows no XSync panel; duplicates are refused |
 | PLUGINS-230, PLUGINS-312, PLUGINS-314 | `admin.configurationDashboard.spec.ts` | Dashboard rows and counts; site name and security tier appear only with the whitelist on; per-project breakdown; disable a whole remote url or a single connection; recent and full history |
 | PLUGINS-232 | `nonadmin.xsyncAdministratorRole.spec.ts` | Site admins hold the role after upgrade; a plain user is refused; granting the role opens the settings; revoking closes them |
+| (pre-existing settings) | `admin.sitePreferences.spec.ts` | Interval, retry and max-file-size settings persist through a save; malformed values are refused with 400 and the stored value survives |
+| (setup baseline) | `admin.projectSetup.spec.ts` | A stored configuration reads back with the values written; mismatched, blank and nonexistent source projects are refused with nothing stored |
 
 ## What is not covered, and why
 
