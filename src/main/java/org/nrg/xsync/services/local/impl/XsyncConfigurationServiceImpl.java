@@ -143,6 +143,12 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
     }
 
     @Override
+    public List<XsyncXsyncprojectdata> getAllXsyncElementsForProject(UserI user, String projectId) {
+        return getAllProjectsSetToBeSynced(user).stream()
+                .filter(x -> x.getSourceProjectId().equals(projectId)).toList();
+    }
+
+    @Override
     public boolean checkForWhitelistConformation(boolean whitelistEnabled, List<WhitelistSitePojo> whitelist, String url) {
         return whitelistEnabled && whitelist.stream().map(WhitelistSitePojo::getSiteUrl).toList().contains(url);
     }
