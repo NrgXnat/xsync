@@ -220,15 +220,10 @@ test.describe('@admin XSync destination whitelist', () => {
     });
 
     test('PLUGINS-332: a url posted with a trailing slash is stored without one', async () => {
-        // KNOWN GAP, confirmed live on 1.8.2-SNAPSHOT (2026-08-17): the
-        // PLUGINS-332 fix normalises the url in the admin dialog only, so this
-        // REST path stores the slash verbatim, and setup matches whitelist
-        // entries by exact string, leaving a slashed entry unmatchable. The
-        // startup bootstrap json loads through this same un-normalised path.
-        // test.fail() keeps the gap visible without failing the suite; when
-        // the backend normalises, this flips to an unexpected pass and the
-        // marker gets removed.
-        test.fail(true, 'Backend does not normalise trailing slashes; UI-only fix in PLUGINS-332');
+        // Originally a UI-only fix: this REST path stored the slash verbatim
+        // until the backend normalisation was deployed on 2026-08-26, at
+        // which point the expected-fail marker this test carried flipped to
+        // an unexpected pass and was removed.
         const trailing: WhitelistSite = {
             siteId: 'xsync_e2e_rest_trailing',
             siteName: 'XSync E2E REST Trailing Slash',
