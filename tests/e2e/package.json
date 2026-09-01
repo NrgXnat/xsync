@@ -1,0 +1,16 @@
+{
+  "name": "xsync-e2e",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:admin": "playwright test --project admin",
+    "test:nonadmin": "playwright test --project nonadmin"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.10.0",
+    "dotenv": "^17.3.1"
+  }
+}
