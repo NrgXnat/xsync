@@ -144,8 +144,12 @@ public class XsyncConfigurationServiceImpl implements XsyncConfigurationService 
 
     @Override
     public List<XsyncXsyncprojectdata> getAllXsyncElementsForProject(UserI user, String projectId) {
-        return getAllProjectsSetToBeSynced(user).stream()
-                .filter(x -> x.getSourceProjectId().equals(projectId)).toList();
+        //in some cases, the source project the id will be removed from the xsync element by the time we get here
+        //the fortunate thing is in that case, we certainly want that element cleaned up (as it doesn't have a
+        //source project and thus is only going to cause problems). so, we can delete it, and any elements that
+        //do have the correct project id.
+        return getAllProjectsSetToBeSynced(user).stream().filter(x -> x.getSourceProjectId() == null
+                || x.getSourceProjectId().equals(projectId)).toList();
     }
 
     @Override
