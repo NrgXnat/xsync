@@ -16,11 +16,10 @@ export function projectId(stem: string): string {
 
 /**
  * A per-run fake sync destination. Setup never contacts the remote server, so
- * the url only has to be well formed. Deleting a project leaves its XSync
- * configuration behind (observed live on 1.8.2-SNAPSHOT), and those orphans
- * poison url-scoped assertions and make the dashboard's site-wide
- * enable/disable return 500 for that url, so tests must never assert against
- * a url a previous run also used.
+ * the url only has to be well formed. Assertions here are scoped by remote
+ * url (dashboard rows, per-url enable/disable), so a url reused across runs
+ * would let one run's leftover state affect another's; a fresh url per run
+ * keeps every run's assertions independent.
  */
 export function fakeRemoteUrl(stem: string): string {
     return `https://xsync-e2e-${stem}-${RUN_ID}.example.org`;

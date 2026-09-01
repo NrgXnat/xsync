@@ -101,8 +101,9 @@ test.describe('@admin @crossxnat XSync transfer between two XNAT instances', () 
         }).toBe('arrived');
 
         // The sender's history records the same transfer. A completed
-        // project sync reports the status string "Complete [Verified]"
-        // (observed live; the SYNCED_* constants are per-experiment).
+        // project sync reports the status string "Complete [Verified]";
+        // the SYNCED_* constants in XsyncUtils are per-experiment, not
+        // per-project.
         await expect.poll(async () => (await api.getProjectSyncHistory(SOURCE_PROJECT)).length, {
             message: 'no history entry appeared for the completed sync',
         }).toBeGreaterThan(0);

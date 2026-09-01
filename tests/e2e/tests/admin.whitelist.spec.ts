@@ -220,10 +220,9 @@ test.describe('@admin XSync destination whitelist', () => {
     });
 
     test('PLUGINS-332: a url posted with a trailing slash is stored without one', async () => {
-        // Originally a UI-only fix: this REST path stored the slash verbatim
-        // until the backend normalisation was deployed on 2026-08-26, at
-        // which point the expected-fail marker this test carried flipped to
-        // an unexpected pass and was removed.
+        // This is the same normalisation as the admin dialog (trimUrl() in
+        // xsyncWhitelistManager.js), asserted at the REST layer so the
+        // startup bootstrap file and any other API client get it too.
         const trailing: WhitelistSite = {
             siteId: 'xsync_e2e_rest_trailing',
             siteName: 'XSync E2E REST Trailing Slash',
