@@ -10,8 +10,8 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
@@ -516,26 +516,24 @@ public class XsyncOperationsController extends AbstractXapiProjectRestController
         }
 
         final RestTemplate template = getRestTemplate(operation);
-        final HttpMethod method = HttpMethod.resolve(operation.getMethod());
+        // Spring 6: HttpMethod is a final class, not an enum — resolve() is gone and it
+        // can't be switch()ed on. valueOf() returns a non-constant for unknown methods,
+        // so an unsupported method falls through to the else (as resolve()->null did).
+        final HttpMethod method = HttpMethod.valueOf(operation.getMethod());
         log.debug("Attempting to {} {} as user {}", method, operation.getUrl(), username);
         final String value;
-        switch (method) {
-            case GET:
-                value = template.getForObject(operation.getUrl(), String.class);
-                break;
-            case PUT:
-                final ResponseEntity<String> response = template.exchange(operation.getUrl(), HttpMethod.PUT, HttpEntity.EMPTY, String.class);
-                value = response.getBody();
-                break;
-            case POST:
-                value = template.postForObject(operation.getUrl(), HttpEntity.EMPTY, String.class);
-                break;
-            case DELETE:
-                template.delete(operation.getUrl());
-                value = "";
-                break;
-            default:
-                throw new UnsupportedOperationException("The HTTP method " + operation.getMethod() + " is not supported by this API.");
+        if (HttpMethod.GET.equals(method)) {
+            value = template.getForObject(operation.getUrl(), String.class);
+        } else if (HttpMethod.PUT.equals(method)) {
+            final ResponseEntity<String> response = template.exchange(operation.getUrl(), HttpMethod.PUT, HttpEntity.EMPTY, String.class);
+            value = response.getBody();
+        } else if (HttpMethod.POST.equals(method)) {
+            value = template.postForObject(operation.getUrl(), HttpEntity.EMPTY, String.class);
+        } else if (HttpMethod.DELETE.equals(method)) {
+            template.delete(operation.getUrl());
+            value = "";
+        } else {
+            throw new UnsupportedOperationException("The HTTP method " + operation.getMethod() + " is not supported by this API.");
         }
 
         return new ResponseEntity<>(value, HttpStatus.OK);

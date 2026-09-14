@@ -9,10 +9,12 @@
 
 buildscript {
     ext {
-        vXnat = '1.10.1-SNAPSHOT'
+        vXnat = '1.11.0-SNAPSHOT'
     }
     repositories {
-        mavenLocal()
+        // Scope mavenLocal to org.nrg.* so a partial ~/.m2 can't shadow third-party
+        // classifier jars (must resolve from jfrog/Central). (plugin-migration-guide J1)
+        mavenLocal { content { includeGroupByRegex "org\\.nrg.*" } }
         maven { url "https://plugins.gradle.org/m2" }
         mavenCentral()
         maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
@@ -42,7 +44,7 @@ description "XNAT XSync Plugin"
 
 
 repositories {
-    mavenLocal()
+    mavenLocal { content { includeGroupByRegex "org\\.nrg.*" } }
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
     mavenCentral()
@@ -54,8 +56,18 @@ configurations {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    // Pin a JDK 21 toolchain: Lombok 1.18.34 dies on a too-new JDK
+    // (NoSuchFieldException TypeTag.UNKNOWN) and JDK 22+ refuses to read old jars
+    // the BOM still pins (aspectjweaver). fork=true runs javac in that toolchain JVM.
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.fork = true
+    // -parameters: Spring 6 xapi controller @RequestParam/@PathVariable binding needs real names
+    options.compilerArgs << "-parameters"
 }
 
 dependencyManagement.imports {
@@ -90,18 +102,18 @@ dependencies {
     implementation("org.nrg.dicom:mizer") { transitive = false }
     implementation("org.nrg:dicomtools") { transitive = false }
 
-    implementation("javax.servlet:javax.servlet-api") { transitive = false }
+    implementation("jakarta.servlet:jakarta.servlet-api") { transitive = false }
 
-    implementation("turbine:turbine") {
+    implementation("org.apache.turbine:turbine") {
         transitive = false
     }
-    implementation("org.apache.velocity:velocity") {
+    implementation("org.apache.velocity:velocity-engine-core") {
         transitive = false
     }
 
     implementation("org.restlet:org.restlet") { transitive = false }
     implementation("dcm4che:dcm4che-core") { transitive = false }
-    implementation("javax.mail:javax.mail-api") { transitive = false }
+    implementation("jakarta.mail:jakarta.mail-api") { transitive = false }
     implementation("com.google.code.gson:gson") { transitive = false }
 
     implementation("eu.bitwalker:UserAgentUtils") { transitive = false }
@@ -114,7 +126,6 @@ dependencies {
     implementation "commons-configuration:commons-configuration"
     implementation "commons-digester:commons-digester"
     implementation "commons-discovery:commons-discovery"
-    implementation "commons-fileupload:commons-fileupload"
     implementation "commons-net:commons-net"
 
     implementation "org.apache.commons:commons-configuration2"
@@ -126,7 +137,7 @@ dependencies {
 
     implementation "org.aspectj:aspectjweaver"
 
-    implementation "org.hibernate:hibernate-core"
+    implementation "org.hibernate:hibernate-core-jakarta"
 
     implementation "org.springframework:spring-webmvc"
 
@@ -134,8 +145,9 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-core"
     implementation "com.fasterxml.jackson.core:jackson-databind"
 
-    implementation "io.springfox:springfox-swagger2"
-    implementation "io.springfox:springfox-swagger-ui"
+    // springfox is dead on Spring 6; core's springdoc generates docs from the MVC
+    // mappings. Keep swagger-annotations so the legacy @Api/@ApiOperation still compile.
+    implementation "io.swagger:swagger-annotations:1.5.20"
 
     implementation "org.slf4j:slf4j-api"
     implementation "org.slf4j:log4j-over-slf4j"
@@ -146,7 +158,7 @@ dependencies {
     implementation "org.kohsuke.metainf-services:metainf-services"
 
     // JDK 11+ removed javax.annotation (JSR-250) — plugin uses PostConstruct/Nonnull/Nullable
-    compileOnly "javax.annotation:javax.annotation-api:1.3.2"
+    compileOnly "jakarta.annotation:jakarta.annotation-api"
 }
 
 configurations {

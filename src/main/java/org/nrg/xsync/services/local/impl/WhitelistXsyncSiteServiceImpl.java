@@ -12,7 +12,7 @@ import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
