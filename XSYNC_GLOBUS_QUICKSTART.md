@@ -23,6 +23,15 @@ go. Assumes XNAT data root `/opt/data`; adjust to yours.
 - A **Globus confidential client** (client ID + secret) for this node. Its
   **Client ID** is the application UUID (not a client secret). → Manual §1.3
 - Outbound HTTPS from the XNAT host to `https://auth.globus.org`.
+- **Firewall/security group:** inbound **443** and **50000–51000** open to
+  **`0.0.0.0/0`** on the GCS node — Globus's transfer servers use dynamic
+  source IPs, so these can't be scoped to specific addresses. (A node
+  reachable from your workstation can still be unreachable for Globus if 443
+  is IP-scoped; the endpoint Test then fails with a `502`/connect timeout.)
+  → Manual §11
+- **Topology:** use Globus for **cross-site** peers. For two XNATs on the
+  **same internal network**, prefer **HTTPS** — same-network Globus hits a
+  public-IP hairpin and needs advanced split-horizon setup. → Manual §1.5
 - You hold the **XsyncAdministrator** role in XNAT. → Manual §4
 
 ---

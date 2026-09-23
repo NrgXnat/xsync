@@ -84,6 +84,36 @@ A common deployment: one central "hub" XNAT receives data from many
 sources (scanners via the DICOM inbox, spokes via XSync) and redistributes
 it. The features below support that topology; nothing here requires it.
 
+### 1.5 Choosing a transport for a given network topology
+
+The transfer method is per destination (§1.2), and the right choice depends
+on where the two XNATs sit relative to each other:
+
+- **Cross-site (different networks or organizations) → Globus.** This is
+  what Globus is for: transfers across administrative and network
+  boundaries, with resumable, checksum-verified movement of large datasets.
+  Each node is reachable at its public address and the setup in §2.1
+  applies as written.
+- **Same internal network (e.g. two hosts in one cloud VPC/subnet) →
+  HTTPS.** Two XNATs on one internal network can sync directly over HTTPS
+  (the default transport) with none of the Globus NAT/firewall/guest-ACL
+  machinery. Globus adds cost here for no benefit, and worse, it hits a
+  networking snag: cloud providers generally **do not hairpin public/elastic
+  IPs within a network**, so the two GCS nodes cannot reach each other's
+  public address for the direct GridFTP data channel — each node's endpoint
+  Test can pass (Globus's cloud reaches each node) while an actual
+  node-to-node transfer fails.
+
+If a customer must use Globus even for same-network peers (standardized
+tooling, checksum/audit requirements, or a large segmented network), it is
+possible but **advanced**: configure **split-horizon** addressing so each
+node resolves the other's endpoint FQDN to its **private** IP (intra-network
+data channel) while Globus's cloud continues to use the **public** IP
+(control plane). Globus documents same-network/NATed multi-endpoint transfer
+as requiring advanced configuration with a reduced user experience
+([GCS troubleshooting guide](https://docs.globus.org/globus-connect-server/v5/troubleshooting-guide/)),
+so treat it as a deliberate exception, not the default.
+
 ---
 
 ## 2. Prerequisites and deployment
@@ -709,9 +739,11 @@ inbox, so an operator can see what is arriving and manage the import.
 |---|---|---|
 | Project config save rejected ("not an allowed destination") | Whitelist on; destination URL not approved | Add the site to the whitelist (§5.4) or correct the URL. |
 | Config save rejected ("project not allowed") | Project is blacklisted | Remove from the project blacklist (§5.5) if appropriate. |
-| Globus **Test connection** fails | Bad client credentials, or the client can't reach Globus Auth (network) | Re-enter the client ID/secret (the failing client ID is logged); confirm outbound HTTPS to `auth.globus.org`. Test is a pure auth check — it does *not* prove the collection UUIDs or ACLs are right. |
+| Globus **Test connection** fails | Bad client credentials (auth), a wrong collection UUID, or Globus can't reach the GCS node | Read the logged error. Auth failure → re-enter the client ID/secret (the failing client ID is logged) and confirm outbound HTTPS to `auth.globus.org`. `404`/`NotFound` → a wrong/nonexistent collection UUID (register the **guest** UUID). `502`/connect timeout → Globus can't reach the node (next row). A `403` on the inbox is *expected* and tolerated (the sender's ACL is scoped to a subpath, so the root isn't listable). Test proves the client authenticates and the UUIDs resolve; a subpath-scoped ACL still can't be fully verified until a real transfer. |
+| Test/transfer fails with `502 ExternalError.DirListingFailed` / "Error (connect) … timed out" | Globus's servers can't open a connection to the GCS node — a firewall/security-group or Network ACL is dropping it | Open inbound **443** and **50000–51000** to **`0.0.0.0/0`** on the node. Globus's transfer servers use **dynamic** source IPs, so these ports cannot be scoped to specific addresses — a *connect timeout* (vs. a protocol error) means the SYN is being dropped by a source-scoped rule. A node reachable from your workstation can still be blocked for Globus if 443 is IP-scoped. Also check the subnet's stateless **Network ACL**, not just the security group. |
 | `UNKNOWN_SCOPE_ERROR` on a token request | A `data_access` scope was requested for a *guest* collection (only valid for mapped collections) | Should not occur in the shipped build (guest collections use the base Transfer scope only); if seen, the collection registered is a mapped, not guest, UUID — register the guest UUID. |
-| Transfer submitted but never completes | Collection down, path wrong, quota, or a missing/incorrect guest-collection ACL | Check the Globus task in the dashboard/Globus; verify the inbox path exists and is writable and that the sender's ACL covers its subpath. |
+| Transfer between two nodes on the **same internal network** (e.g. one VPC) never completes, though each node's Test passes | Cloud networks don't hairpin public/elastic IPs: the two GCS nodes can't reach each other's *public* address for the direct data channel | Prefer **HTTPS** for same-network peers (see §1.5). If Globus is required, use split-horizon addressing so each node resolves the other's endpoint FQDN to its **private** IP (Globus's cloud still uses the public IP). This is an advanced Globus topology (per Globus's NAT guidance). |
+| Transfer submitted but never completes (cross-site) | Collection down, path wrong, quota, or a missing/incorrect guest-collection ACL | Check the Globus task in the dashboard/Globus; verify the inbox path exists and is writable and that the sender's ACL covers its subpath. |
 | XAR arrives in inbox but is not imported | Destination plugin/inbox watcher not running; inbox path mismatch | Confirm the destination XNAT runs the plugin and watches the configured inbox; check destination logs. |
 | Session transferred but status stuck pre-archive | Archiving pipeline stalled at destination | Check destination prearchive/pipeline; the archiving poll will report failure after timeout. |
 | Sync falls back to HTTPS unexpectedly | Globus misconfigured or unreachable; fallback enabled | Investigate the Globus error in the log; fix config, then retry. |
