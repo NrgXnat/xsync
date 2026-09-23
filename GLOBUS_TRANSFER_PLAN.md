@@ -271,17 +271,29 @@ Thin REST client over the Transfer API (bearer auth). Implemented so far:
   result does not by itself prove every ACL is correct. A per-collection
   result surfaced in the UI is a possible enhancement.
 
-Planned (with the send path):
+Transfer operations — implemented (request/response shapes verified against
+the Globus [task submission](https://docs.globus.org/api/transfer/task_submit/)
+and [task](https://docs.globus.org/api/transfer/task/) references):
 
-- `String getSubmissionId(token)` → `GET /submission_id`.
-- `String submitTransfer(token, srcColl, dstColl, srcPath, dstPath,
-  label, verifyChecksum)` → `POST /transfer`, returns `task_id`.
-- `TaskStatus getTaskStatus(token, taskId)` → `GET /task/{id}`.
-- `boolean waitForTask(token, taskId, timeout)` — block-poll to
-  `SUCCEEDED`/`FAILED` (first cut; matches Aspera's blocking
-  `proc.waitFor()` and the 2-hour poll cap in
-  `RemoteRESTServiceImpl.monitorAsyncImport`, line 342). Async task
+- `String getSubmissionId(token)` → `GET /submission_id` (reads `value`).
+- `String submitTransfer(token, TransferRequest)` → `POST /transfer`,
+  returns `task_id`. `TransferRequest` carries source/destination collection
+  UUIDs + paths, a label, and `verifyChecksum`; the document is a single
+  non-recursive `transfer_item` (one XAR file).
+- `TaskStatus getTaskStatus(token, taskId)` → `GET /task/{id}`, parsing
+  `status` / `nice_status` / `fatal_error.description`.
+- `TaskStatus waitForTask(token, taskId, timeoutMillis, pollIntervalMillis)`
+  — block-poll until terminal (`SUCCEEDED`/`FAILED`/`INACTIVE`) or timeout
+  (first cut; matches Aspera's blocking `proc.waitFor()` and the 2-hour poll
+  cap in `RemoteRESTServiceImpl.monitorAsyncImport`, line 342). Async task
   tracking is a later option (§10).
+
+HTTP failures are wrapped in `GlobusTransferException` with the Globus error
+body surfaced (as in `GlobusAuthService`). Unit-tested via the `getForBody`
+/ `postForBody` seams.
+
+Still planned (with the send path):
+
 - A `GlobusStatus` progress holder analogous to `AsperaStatus`.
 
 ### 6.3 Preferences: `globus/GlobusSitePrefs` + `globus/GlobusProjectPrefs`
