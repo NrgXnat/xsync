@@ -2,7 +2,6 @@ package org.nrg.xsync.globus;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -86,18 +85,16 @@ public class GlobusAuthService {
     }
 
     /**
-     * Get a valid Globus Transfer access token for the given credentials,
-     * scoped for {@code data_access} on the given collections. Returns a cached
-     * token when one is still valid; otherwise requests a new one.
+     * Get a valid Globus Transfer access token for the given credentials.
+     * Returns a cached token when one is still valid; otherwise requests a new
+     * one.
      *
-     * @param credentials             the confidential-client credentials
-     * @param dataAccessCollectionIds collection UUIDs the transfer will touch
-     *                                (source and destination); may be empty
+     * @param credentials the confidential-client credentials
      * @return a bearer access token for the Transfer API
      * @throws GlobusAuthException if a token cannot be obtained
      */
-    public String getTransferToken(final GlobusCredentials credentials, final Collection<String> dataAccessCollectionIds) {
-        return getTransferToken(credentials, dataAccessCollectionIds, false);
+    public String getTransferToken(final GlobusCredentials credentials) {
+        return getTransferToken(credentials, false);
     }
 
     /**
@@ -110,19 +107,16 @@ public class GlobusAuthService {
      * A successful forced fetch still updates the cache, replacing any stale
      * entry.</p>
      *
-     * @param credentials             the confidential-client credentials
-     * @param dataAccessCollectionIds collection UUIDs the transfer will touch
-     * @param forceRefresh            if {@code true}, ignore any cached token and
-     *                                request a new one
+     * @param credentials  the confidential-client credentials
+     * @param forceRefresh if {@code true}, ignore any cached token and request a
+     *                     new one
      * @return a bearer access token for the Transfer API
      * @throws GlobusAuthException if a token cannot be obtained
      */
-    public String getTransferToken(final GlobusCredentials credentials, final Collection<String> dataAccessCollectionIds,
-                                   final boolean forceRefresh) {
+    public String getTransferToken(final GlobusCredentials credentials, final boolean forceRefresh) {
         // Guest collections are authorized by ACL + the base Transfer scope; no
-        // per-collection data_access dependent scope (see class Javadoc). The
-        // collection ids are retained for a forthcoming reachability check (an
-        // ls in connection Test) and do not affect the requested scope.
+        // per-collection data_access dependent scope (see class Javadoc), so the
+        // scope is constant.
         final String scope = TRANSFER_SCOPE;
         final String cacheKey = credentials.clientId() + "|" + scope;
 
@@ -143,27 +137,6 @@ public class GlobusAuthService {
             final CachedToken fresh = parseTransferToken(postTokenRequest(credentials, scope));
             _cache.put(cacheKey, fresh);
             return fresh.accessToken();
-        }
-    }
-
-    /**
-     * Confirm that credentials can obtain a Transfer token (a lightweight
-     * "test connection" at the auth layer, without moving any data).
-     *
-     * <p>Always requests a fresh token ({@code forceRefresh}), so the result
-     * reflects the supplied credentials rather than a possibly-stale cached
-     * token from before a credential change.</p>
-     *
-     * @param credentials             the credentials to test
-     * @param dataAccessCollectionIds collections to include in the scope
-     * @return {@code true} if a token was obtained
-     */
-    public boolean verifyCredentials(final GlobusCredentials credentials, final Collection<String> dataAccessCollectionIds) {
-        try {
-            return StringUtils.isNotBlank(getTransferToken(credentials, dataAccessCollectionIds, true));
-        } catch (GlobusAuthException e) {
-            log.info("Globus credential verification failed for client {}: {}", credentials.clientId(), e.getMessage());
-            return false;
         }
     }
 

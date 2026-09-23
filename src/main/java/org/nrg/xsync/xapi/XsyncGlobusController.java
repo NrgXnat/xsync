@@ -1,8 +1,8 @@
 package org.nrg.xsync.xapi;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -19,7 +19,9 @@ import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
+import org.nrg.xsync.globus.GlobusAuthException;
 import org.nrg.xsync.globus.GlobusAuthService;
+import org.nrg.xsync.globus.GlobusClient;
 import org.nrg.xsync.globus.GlobusCredentials;
 import org.nrg.xsync.globus.entities.GlobusEndpoint;
 import org.nrg.xsync.globus.services.GlobusEndpointService;
@@ -54,13 +56,16 @@ public class XsyncGlobusController extends AbstractXapiRestController {
 
     private final GlobusEndpointService _endpointService;
     private final GlobusAuthService     _authService;
+    private final GlobusClient          _globusClient;
 
     @Autowired
     public XsyncGlobusController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder,
-                                 final GlobusEndpointService endpointService, final GlobusAuthService authService) {
+                                 final GlobusEndpointService endpointService, final GlobusAuthService authService,
+                                 final GlobusClient globusClient) {
         super(userManagementService, roleHolder);
         _endpointService = endpointService;
         _authService = authService;
+        _globusClient = globusClient;
     }
 
     @AuthDelegate(XsyncAdministratorUserAuthorization.class)
@@ -123,9 +128,8 @@ public class XsyncGlobusController extends AbstractXapiRestController {
             @ApiResponse(code = 500, message = "Unexpected error")})
     public boolean testEndpoint(@PathVariable("name") final String name) throws NotFoundException {
         final GlobusEndpoint endpoint = _endpointService.getByName(name);
-        return _authService.verifyCredentials(
-                new GlobusCredentials(endpoint.getClientId(), endpoint.getClientSecret()),
-                Arrays.asList(endpoint.getInboxCollectionId(), endpoint.getOutboxCollectionId()));
+        return testConnection(new GlobusCredentials(endpoint.getClientId(), endpoint.getClientSecret()),
+                endpoint.getInboxCollectionId(), endpoint.getOutboxCollectionId());
     }
 
     @AuthDelegate(XsyncAdministratorUserAuthorization.class)
@@ -144,9 +148,40 @@ public class XsyncGlobusController extends AbstractXapiRestController {
             throw new DataFormatException("Testing credentials requires a client id, client secret, and at least "
                     + "one collection id (inbox or outbox).");
         }
-        return _authService.verifyCredentials(
-                new GlobusCredentials(pojo.getClientId(), pojo.getClientSecret()),
-                Arrays.asList(pojo.getInboxCollectionId(), pojo.getOutboxCollectionId()));
+        return testConnection(new GlobusCredentials(pojo.getClientId(), pojo.getClientSecret()),
+                pojo.getInboxCollectionId(), pojo.getOutboxCollectionId());
+    }
+
+    /**
+     * Test a Globus connection: obtain a fresh Transfer token with the given
+     * credentials, then probe each supplied collection for reachability.
+     *
+     * <p>Returns {@code true} only if the token is obtained and no configured
+     * collection is {@link GlobusClient.Reachability#NOT_FOUND} (a bad UUID) or
+     * {@link GlobusClient.Reachability#ERROR}. A {@code FORBIDDEN} probe is
+     * tolerated: a collection reached over a per-peer subpath ACL (the normal
+     * inbox arrangement) legitimately denies a root listing, so it is not a
+     * failure. Because of that, a green result does not by itself prove every
+     * ACL is correct&mdash;only that the client authenticates and the UUIDs
+     * resolve.</p>
+     *
+     * @param credentials the confidential-client credentials
+     * @param inbox       the inbox collection UUID (may be blank)
+     * @param outbox      the outbox collection UUID (may be blank)
+     * @return {@code true} if the connection test passes
+     */
+    private boolean testConnection(final GlobusCredentials credentials, final String inbox, final String outbox) {
+        final String token;
+        try {
+            token = _authService.getTransferToken(credentials, true);
+        } catch (GlobusAuthException e) {
+            log.info("Globus connection test failed for client {}: {}", credentials.clientId(), e.getMessage());
+            return false;
+        }
+        return Stream.of(inbox, outbox)
+                .filter(StringUtils::isNotBlank)
+                .map(id -> _globusClient.probeCollection(token, id))
+                .noneMatch(r -> r == GlobusClient.Reachability.NOT_FOUND || r == GlobusClient.Reachability.ERROR);
     }
 
     private static GlobusEndpointPojo toPojo(final GlobusEndpoint endpoint) {

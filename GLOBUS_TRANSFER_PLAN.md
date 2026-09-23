@@ -243,13 +243,11 @@ Mirror the Aspera package (`org.nrg.xsync.aspera`) with a new
 
 ### 6.1 `globus/GlobusAuthService.java` (`@Service`) — implemented
 
-- `String getTransferToken(GlobusCredentials, Collection<String>
-  dataAccessCollectionIds)` — client-credentials token request for the base
-  Transfer scope (guest collections need no `data_access` dependent scope;
-  see §4.3). The collection-ids parameter is retained for a planned
-  collection-reachability check (an `ls` in connection Test) but does not
-  affect the requested scope. A `forceRefresh` overload bypasses the cache
-  for connection tests.
+- `String getTransferToken(GlobusCredentials)` — client-credentials token
+  request for the base Transfer scope (guest collections need no
+  `data_access` dependent scope; see §4.3). A `forceRefresh` overload
+  bypasses the cache for connection tests. No collection IDs are needed —
+  the scope is constant and reachability is checked separately (§6.2).
 - In-memory token cache keyed by `(client id + scope)`, with a 5-minute
   expiry margin; re-fetch on expiry (no refresh token). Since the scope is
   now the constant base Transfer scope, this is effectively one token per
@@ -260,7 +258,20 @@ Mirror the Aspera package (`org.nrg.xsync.aspera`) with a new
 
 ### 6.2 `globus/GlobusClient.java` (`@Component`)
 
-Thin REST client over the Transfer API (Apache HttpClient, bearer auth):
+Thin REST client over the Transfer API (bearer auth). Implemented so far:
+
+- `Reachability probeCollection(token, collectionId)` → `GET
+  /operation/endpoint/<id>/ls` on the collection root, classifying the
+  result as `REACHABLE` / `NOT_FOUND` (404, bad UUID) / `FORBIDDEN` (403) /
+  `ERROR`. Used by the endpoint connection test (§5.2). **`FORBIDDEN` is not
+  a failure:** a collection reached via a per-peer subpath ACL (the normal
+  inbox) legitimately denies a root listing, and the endpoint record does
+  not store the subpath, so the test tolerates 403. Consequently the test
+  reliably catches a bad/nonexistent UUID and an auth failure, but a green
+  result does not by itself prove every ACL is correct. A per-collection
+  result surfaced in the UI is a possible enhancement.
+
+Planned (with the send path):
 
 - `String getSubmissionId(token)` → `GET /submission_id`.
 - `String submitTransfer(token, srcColl, dstColl, srcPath, dstPath,
