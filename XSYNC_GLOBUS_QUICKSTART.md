@@ -30,8 +30,10 @@ go. Assumes XNAT data root `/opt/data`; adjust to yours.
   is IP-scoped; the endpoint Test then fails with a `502`/connect timeout.)
   → Manual §11
 - **Topology:** use Globus for **cross-site** peers. For two XNATs on the
-  **same internal network**, prefer **HTTPS** — same-network Globus hits a
-  public-IP hairpin and needs advanced split-horizon setup. → Manual §1.5
+  **same internal network**, use **HTTPS** — same-network Globus is untested
+  and not recommended (it hits a public-IP hairpin, and a DNS/`/etc/hosts`
+  fix can't solve it: the data channel uses each node's registered IP).
+  → Manual §1.5
 - You hold the **XsyncAdministrator** role in XNAT. → Manual §4
 
 ---

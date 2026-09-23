@@ -104,13 +104,28 @@ on where the two XNATs sit relative to each other:
   Test can pass (Globus's cloud reaches each node) while an actual
   node-to-node transfer fails.
 
-If a customer must use Globus even for same-network peers (standardized
-tooling, checksum/audit requirements, or a large segmented network), it is
-possible but **advanced**: configure **split-horizon** addressing so each
-node resolves the other's endpoint FQDN to its **private** IP (intra-network
-data channel) while Globus's cloud continues to use the **public** IP
-(control plane). Globus documents same-network/NATed multi-endpoint transfer
-as requiring advanced configuration with a reduced user experience
+Running Globus between same-network peers is **not a tested path here and is
+not recommended** — use HTTPS. If you nonetheless need to explore it, treat
+the following as an **untested hypothesis to validate with a spike, not a
+procedure**:
+
+- **What is certain (and rules out the obvious fix):** a DNS trick
+  (split-horizon or `/etc/hosts`) **cannot** redirect the transfer. The
+  GridFTP data channel connects to the peer node's **registered IP address**,
+  not a hostname resolved at connect time
+  (`globus-connect-server node setup --ip-address` = "IP Address of this Data
+  Transfer Node"; `--data-interface` = "the IP Address of the network
+  interface to use for GridFTP data transfers"). There is no hostname in that
+  path to override.
+- **The untested idea:** because addressing is by registered IP, the only
+  plausible lever is registering each node's **private** data-transfer
+  address at `node setup` while keeping Globus's cloud able to reach the
+  control interface. **Whether a single node can serve a public control path
+  and a private data path at once is unverified** — confirm it empirically
+  before relying on it.
+
+Globus itself documents same-network/NATed multi-endpoint transfer as
+requiring advanced configuration with a reduced user experience
 ([GCS troubleshooting guide](https://docs.globus.org/globus-connect-server/v5/troubleshooting-guide/)),
 so treat it as a deliberate exception, not the default.
 
@@ -742,7 +757,7 @@ inbox, so an operator can see what is arriving and manage the import.
 | Globus **Test connection** fails | Bad client credentials (auth), a wrong collection UUID, or Globus can't reach the GCS node | Read the logged error. Auth failure → re-enter the client ID/secret (the failing client ID is logged) and confirm outbound HTTPS to `auth.globus.org`. `404`/`NotFound` → a wrong/nonexistent collection UUID (register the **guest** UUID). `502`/connect timeout → Globus can't reach the node (next row). A `403` on the inbox is *expected* and tolerated (the sender's ACL is scoped to a subpath, so the root isn't listable). Test proves the client authenticates and the UUIDs resolve; a subpath-scoped ACL still can't be fully verified until a real transfer. |
 | Test/transfer fails with `502 ExternalError.DirListingFailed` / "Error (connect) … timed out" | Globus's servers can't open a connection to the GCS node — a firewall/security-group or Network ACL is dropping it | Open inbound **443** and **50000–51000** to **`0.0.0.0/0`** on the node. Globus's transfer servers use **dynamic** source IPs, so these ports cannot be scoped to specific addresses — a *connect timeout* (vs. a protocol error) means the SYN is being dropped by a source-scoped rule. A node reachable from your workstation can still be blocked for Globus if 443 is IP-scoped. Also check the subnet's stateless **Network ACL**, not just the security group. |
 | `UNKNOWN_SCOPE_ERROR` on a token request | A `data_access` scope was requested for a *guest* collection (only valid for mapped collections) | Should not occur in the shipped build (guest collections use the base Transfer scope only); if seen, the collection registered is a mapped, not guest, UUID — register the guest UUID. |
-| Transfer between two nodes on the **same internal network** (e.g. one VPC) never completes, though each node's Test passes | Cloud networks don't hairpin public/elastic IPs: the two GCS nodes can't reach each other's *public* address for the direct data channel | Prefer **HTTPS** for same-network peers (see §1.5). If Globus is required, use split-horizon addressing so each node resolves the other's endpoint FQDN to its **private** IP (Globus's cloud still uses the public IP). This is an advanced Globus topology (per Globus's NAT guidance). |
+| Transfer between two nodes on the **same internal network** (e.g. one VPC) never completes, though each node's Test passes | Cloud networks don't hairpin public/elastic IPs: the two GCS nodes can't reach each other's *public* address for the direct data channel | Use **HTTPS** for same-network peers — Globus here is untested/not recommended (see §1.5). Note a DNS/`/etc/hosts` fix *can't* work: the data channel uses each node's **registered IP** (`node setup --ip-address`/`--data-interface`), not a resolved hostname. |
 | Transfer submitted but never completes (cross-site) | Collection down, path wrong, quota, or a missing/incorrect guest-collection ACL | Check the Globus task in the dashboard/Globus; verify the inbox path exists and is writable and that the sender's ACL covers its subpath. |
 | XAR arrives in inbox but is not imported | Destination plugin/inbox watcher not running; inbox path mismatch | Confirm the destination XNAT runs the plugin and watches the configured inbox; check destination logs. |
 | Session transferred but status stuck pre-archive | Archiving pipeline stalled at destination | Check destination prearchive/pipeline; the archiving poll will report failure after timeout. |
