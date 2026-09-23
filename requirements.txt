@@ -1,0 +1,80 @@
+XNAT Data Import & Synchronization
+Proposal
+
+The customer’s network of XNAT instances and connected DICOM AEs has a
+broad spectrum of needs that require moving large quantities of imaging data from device to
+device. This proposal outlines a series of deliverables that would improve this service in a number
+of ways:
+● Improved governance and configurability of scheduled data synchronization between
+XNAT instances
+● Improved throughput via adoption of Globus as a configurable data transfer service
+between institutions
+● Enhancing data uploads via Globus integration
+Globus is a high-throughput transfer service popular with academic institutions and scientific
+centers. It allows researchers to create endpoints which large quantities of data can be
+transferred to or from. Many organizations could benefit from having Globus integrated with the
+XNAT platform.
+Among other benefits, adopting these changes would enable a “hub-and-spoke” model of managed
+data uploads and provisioning where a central XNAT instance receives all data from all DICOM
+devices, and then distributes those uploads within the network.
+1. Enhance XSync Management and Governance
+Add site-wide and network-wide administrative controls that govern the usage of the ability of
+XNAT project owners to copy data between XNATs using XSync.
+Requirements
+1. Create and enforce a whitelist of allowed XSync destinations and propagate that whitelist
+across the AIS (including via Helm charts)
+
+a. Add security classifications to sites in the whitelist and promote better handling of
+sensitive data in XSync configs
+b. Create and enforce a blacklist of projects that are disallowed from using XSync to
+migrate data
+
+2. Create an XSync Administrator user role that has access to XSync site-wide configs
+without requiring full Site Administration privileges
+3. Create an administrative dashboard view of all XSync configs and usage
+4. Hide references to Aspera throughout the XSync UI
+5. Add support for filtered XSync configurations and syncing of shared data, to only move
+data that is necessary to synchronize
+
+2. Add Globus integration to XNAT
+Allow integration of Globus with XNAT. Add the ability to authenticate with Globus and configure
+endpoints for XNAT projects.
+Requirements
+● Allow XNAT projects to configure particular Globus endpoints.
+● Add a Globus Management Interface at the Site level (Plugin Settings) which allows the
+configuration of relevant Globus endpoints. This should include the ability to test the
+connection to these endpoints, and create new endpoints for projects.
+● Allow XNAT to connect to multiple endpoints (with possibly different credentials)
+Note: This is a prerequisite for the other deliverables in this proposal.
+3. Add support for Globus to XSYNC
+Allow integration of Globus instead of Aspera as a backend for the XSYNC utility. XSYNC uses
+XAR (zips with a particular structure) to copy data from one XNAT to another. This integration will
+support configuring Globus endpoints as the sharing mechanism for the XAR files.
+Requirements
+● Add support for configuring a Globus “outbox” and “inbox” for configured projects
+
+● Modify XSYNC to support moving XAR files to the configured “outbox” and triggering the
+send to a configured remote “inbox”
+● Allow XNAT to ingest data automatically from a Globus “inbox” for the project.
+● Delete XAR files from local endpoint when files are successfully imported (if not done by
+Globus)
+● Modify XSYNC to allow the sync confirmation step to “poll” to monitor archiving status
+● A management view should be available for reviewing the status and history of transfers
+via globus.
+● Non-globus functionality shouldn’t be impacted by new functionality. Traditional XSYNC
+operations should operate on the same server and projects.
+● Add support for sending to multiple destinations from one project (via Globus or other
+method).
+● File names should be obfuscated during file transfer so that file names are not visible to the
+transfer service. Obfuscation could be via hashing or zip containment.
+4. Add support for Globus as an Upload Service
+When Globus is used for transferring huge files to a destination on the same network as an XNAT,
+XNAT should be able to import from that Globus destination.
+Requirements
+● Files uploaded to particular directory structures in the expected structure should be
+automatically imported.
+○ DICOM subdirectory in Globus project folder (acts like a DICOM Inbox)
+○ Add customizable import handler for defining new data format ingestion logic
+● Add a management interface for seeing when data is available and managing the import
+○ Includes status monitoring of data in transit and completed
+● Access permissions should be comparable to XNAT’s prearchive functionality

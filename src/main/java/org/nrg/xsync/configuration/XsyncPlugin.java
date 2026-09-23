@@ -32,7 +32,7 @@ import org.springframework.context.annotation.ComponentScan;
 									plural = "XSync Project Data"
 									)
 			},
-			entityPackages = {"org.nrg.xsync.remote.alias", "org.nrg.xsync.manifest"},
+			entityPackages = {"org.nrg.xsync.remote.alias", "org.nrg.xsync.manifest", "org.nrg.xsync.globus"},
 		    logConfigurationFile = "META-INF/resources/xsync_plugin-logback.xml")
 @ComponentScan({
 	"org.nrg.xsync.aspera",
@@ -47,6 +47,7 @@ import org.springframework.context.annotation.ComponentScan;
 	"org.nrg.xsync.xapi",
 	"org.nrg.xsync.utils",	
 	"org.nrg.xsync.connection",
+	"org.nrg.xsync.globus",
 	"org.nrg.xnat.xsync.transformer",
 	"org.nrg.xnat.xsync.generator",
 	"org.nrg.xsync.manifest"})

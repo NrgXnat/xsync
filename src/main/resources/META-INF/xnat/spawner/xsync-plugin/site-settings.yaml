@@ -39,6 +39,29 @@ siteSettings:
                                 Use Aspera for transfers?  This requires a valid Aspera server to receive files.
                         xsyncConnectionManagerScript:
                             tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncConnectionManager.js"
+        globusEndpoints:
+            kind: tab
+            label: Globus Endpoints
+            group: xsyncConfig
+            active: false
+            contents:
+                globusEndpointsPanel:
+                    kind: panel
+                    name: globusEndpointsPanel
+                    label: Globus Endpoints
+                    footer: false
+                    contents:
+                        globusEndpointsHelptext:
+                            tag: div.message
+                            content: >
+                                Configure the Globus endpoints XSync may transfer to and from, each with its
+                                confidential-client credentials. Client secrets are write-only: they are stored
+                                when you save an endpoint but never displayed again &mdash; leave the secret blank
+                                when editing to keep the stored value. Use Test to verify connectivity.
+                        xsyncGlobusEndpointsTable:
+                            tag: "div#xsync-globus-endpoints-table"
+                        xsyncGlobusScript:
+                            tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncGlobusManager.js"
         configurationDashboard:
             kind: tab
             label: Configuration Dashboard
