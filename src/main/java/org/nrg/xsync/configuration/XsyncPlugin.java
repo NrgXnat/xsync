@@ -48,6 +48,7 @@ import org.springframework.context.annotation.ComponentScan;
 	"org.nrg.xsync.utils",	
 	"org.nrg.xsync.connection",
 	"org.nrg.xsync.globus",
+	"org.nrg.xsync.transport",
 	"org.nrg.xnat.xsync.transformer",
 	"org.nrg.xnat.xsync.generator",
 	"org.nrg.xsync.manifest"})

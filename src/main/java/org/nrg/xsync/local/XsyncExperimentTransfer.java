@@ -20,8 +20,7 @@ import org.nrg.xnat.utils.CatalogUtils;
 import org.nrg.xnat.xsync.remote.verify.XsyncProjectVerifier;
 import org.nrg.xnat.xsync.transformer.TransformerHelper;
 import org.nrg.xnat.xsync.transformer.XsyncDataTypeSpecificTransformer;
-import org.nrg.xsync.aspera.AsperaClient;
-import org.nrg.xsync.aspera.AsperaProjectPrefs;
+import org.nrg.xsync.transport.XarSenderResolver;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.configuration.ProjectSyncConfiguration;
 import org.nrg.xsync.connection.RemoteConnection;
@@ -68,9 +67,7 @@ public class XsyncExperimentTransfer {
     private final SyncStatusService _syncStatusService;
     private final XnatProjectdata _localProject;
     private final boolean _syncIfNotSyncedInPast;
-    private final int _asperaRetry = 1;
-    final AsperaClient _aspera = XDAT.getContextService().getBean(AsperaClient.class);
-    final AsperaProjectPrefs _asperaProjectPrefs = XDAT.getContextService().getBean(AsperaProjectPrefs.class);
+    private final XarSenderResolver _xarSenderResolver = XDAT.getContextService().getBean(XarSenderResolver.class);
 
     public XsyncExperimentTransfer(final RemoteConnectionManager manager, final XsyncXnatInfo xnatInfo, final QueryResultUtil queryResultUtil, NamedParameterJdbcTemplate jdbcTemplate, ProjectSyncConfiguration projectSyncConfiguration, UserI user, SubjectSyncItem subjectSyncInfo, XnatSubjectdataI localSubject, SerializerService serializer, SyncStatusService syncStatusService, XnatProjectdata localProject, boolean syncIfNotSyncedInPast) {
         this.user = user;
@@ -334,8 +331,7 @@ public class XsyncExperimentTransfer {
             long endTime = System.currentTimeMillis();
             log.debug("Total Time to build XAR file :: {}", endTime - startTime);
 
-            final RemoteConnectionResponse connectionResponse =
-                    (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, xar) : _manager.importXar(connection, xar);
+            final RemoteConnectionResponse connectionResponse = sendXar(connection, xar);
 
             stored = connectionResponse.wasSuccessful();
             if (stored) {
@@ -397,8 +393,7 @@ public class XsyncExperimentTransfer {
 
                     if (scanXar != null) {
                         long xarProcStartTime = System.currentTimeMillis();
-                        final RemoteConnectionResponse scanConnectionResponse =
-                                (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, scanXar) : _manager.importXar(connection, scanXar);
+                        final RemoteConnectionResponse scanConnectionResponse = sendXar(connection, scanXar);
                         long xarProcEndTime = System.currentTimeMillis();
                         long xarProcTotalTime = xarProcEndTime - xarProcStartTime;
                         log.debug("Total Time to process XAR file for scan {} :: {}", scan.getId(), xarProcTotalTime);
@@ -447,8 +442,7 @@ public class XsyncExperimentTransfer {
                     final File assXar = buildxar(orig, origAss, targetAss);
 
                     if (assXar != null) {
-                        final RemoteConnectionResponse assConnectionResponse =
-                                (shouldUseAspera()) ? asperaXarSend(_localProject.getId(), connection, assXar) : _manager.importXar(connection, assXar);
+                        final RemoteConnectionResponse assConnectionResponse = sendXar(connection, assXar);
                         final boolean assStored = assConnectionResponse.wasSuccessful();
                         if (assStored) {
                             FileUtils.deleteDirectory(assXar.getParentFile());
@@ -509,50 +503,20 @@ public class XsyncExperimentTransfer {
         return stored;
     }
 
-    private boolean shouldUseAspera() {
+    /**
+     * Send a XAR to the destination using the transport method configured for
+     * the project (HTTPS by default; Aspera when enabled). Transport selection
+     * and any fallback are handled by the resolved
+     * {@link org.nrg.xsync.transport.XarSender}.
+     *
+     * @param connection the remote connection to the destination XNAT
+     * @param xar        the XAR file to send
+     * @return the destination's response
+     * @throws Exception if the transfer or import fails
+     */
+    private RemoteConnectionResponse sendXar(final RemoteConnection connection, final File xar) throws Exception {
         final String projectId = _localProject.getId();
-        final Boolean enabled = _asperaProjectPrefs.getAsperaEnabled(projectId);
-        if (enabled) {
-            final String node = _asperaProjectPrefs.getAsperaNodeUrl(projectId);
-            final String aUser = _asperaProjectPrefs.getAsperaNodeUser(projectId);
-            if (node == null || node.isEmpty() || aUser == null || aUser.isEmpty()) {
-                log.error("Aspera is enabled but not properly configured.  Using HTTPS transfers instead.");
-                return false;
-            }
-            log.info("Using Aspera for the data transfer method.");
-            return true;
-        }
-        log.info("Using HTTPS for the data transfer method.");
-        return false;
-    }
-
-    private RemoteConnectionResponse asperaXarSend(final String projectID, final RemoteConnection connection, final File xar) throws Exception {
-        int retryCount = 0;
-        boolean uploadSuccess = false;
-        boolean exceptionOnHttpSend = false;
-        try {
-            while (!uploadSuccess && retryCount <= _asperaRetry) {
-                uploadSuccess = _aspera.upload(projectID, xar);
-                retryCount += 1;
-            }
-            if (uploadSuccess) {
-                final String xarPath = _asperaProjectPrefs.getDestinationDirectory(_localProject.getId()) +
-                        File.separator + xar.getName();
-                return _manager.importXar(connection, xarPath);
-            } else {
-                log.warn("Aspera upload  and retries failed.  Failing over to standard http send.");
-                exceptionOnHttpSend = true;
-                return _manager.importXar(connection, xar);
-            }
-        } catch (Exception e) {
-            log.debug(ExceptionUtils.getStackTrace(e));
-            if (!exceptionOnHttpSend) {
-                log.warn("Aspera upload failed with an exception.  Failing over to standard http send.");
-                return _manager.importXar(connection, xar);
-            } else {
-                throw e;
-            }
-        }
+        return _xarSenderResolver.resolve(projectId).send(projectId, connection, xar);
     }
 
     private boolean lookForSessionAtDestination(XnatSubjectassessordata orig, ExperimentSyncItem expSyncItem) {
