@@ -172,9 +172,11 @@ dependencies {
     // it (the current tests use the classes' own protected seams, not mocks).
     testImplementation "org.junit.jupiter:junit-jupiter"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
-    // Compile-time only: some plugin classes reference framework types (e.g.
-    // SerializerService) in constructor signatures the tests must resolve.
-    testCompileOnly "org.nrg:framework"
+    // Tests reference framework types at compile time (e.g. SerializerService
+    // in constructor signatures) and load them at runtime (GlobusEndpoint
+    // extends framework's AbstractHibernateEntity), so this must be on the test
+    // runtime classpath, not compile-only.
+    testImplementation "org.nrg:framework"
 }
 
 test {

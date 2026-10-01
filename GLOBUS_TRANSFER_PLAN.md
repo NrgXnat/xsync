@@ -304,8 +304,16 @@ Still planned (with the send path):
 > holds `name`, `clientId`, `clientSecret`, and the node's
 > `inboxCollectionId` / `outboxCollectionId` (per-node inbox/outbox — the
 > abstraction arrived at in §5/§14.1 — superseding the earlier
-> `source`/`destination` framing below). The base-path / path-duality and
-> per-project toggle items are still open design.
+> `source`/`destination` framing below).
+>
+> **`GlobusProjectPrefs` is now implemented** (`@NrgPreferenceBean`,
+> project scope, mirroring `AsperaProjectPrefs`) with the minimal fields a
+> transfer needs: `globusEnabled`, `globusEndpointName` (which registered
+> endpoint), `outboxDirectory` (local staging dir backing the outbox
+> collection), `remoteInboxPath` (destination collection-relative path), and
+> `remoteInboxServerDirectory` (destination server-local path for
+> import-by-path — the §6.6 path duality, handled by carrying both). A
+> config **UI/XAPI** to set these per project is the next increment.
 
 Mirror `AsperaSitePrefs` / `AsperaProjectPrefs` (`@NrgPreferenceBean`,
 project-scope for project prefs). Fields:
@@ -335,27 +343,25 @@ surface it in the "Connection Management" admin tab
 (`site-settings.yaml`). Transfer-method selection becomes a 3-way
 resolution (HTTPS / Aspera / Globus), see §6.5.
 
-### 6.5 Integration into `XsyncExperimentTransfer`
+### 6.5 Integration into `XsyncExperimentTransfer` — implemented
 
-- Add `shouldUseGlobus()` mirroring `shouldUseAspera()` (line 512):
-  gate on project `globusEnabled` + required config present; log and fall
-  back if misconfigured.
-- Add `globusXarSend(projectId, connection, xar)` mirroring
-  `asperaXarSend` (line 529):
-  1. Translate the local XAR path to a **source collection-relative
-     path** (§6.6).
-  2. `token = authService.getTransferToken(src, dst)`.
-  3. `taskId = globusClient.submitTransfer(token, src, dst, srcPath,
-     dstPath, label, verifyChecksum)`; `waitForTask(...)`.
-  4. On success, call `_manager.importXar(connection,
-     destinationServerImportPath + xar.getName())` — the **existing
-     import-by-path REST call**, unchanged.
-  5. On failure, fall back to HTTPS `importXar(connection, xar)` (Aspera
-     already does this fallback), or fail the item per policy.
-- Replace the two-way ternaries at lines 338, 401, 451 with a small
-  **transfer-method selector** so HTTPS/Aspera/Globus resolve in one place
-  rather than nested ternaries. Suggest a private
-  `sendXar(projectId, connection, xar)` helper that picks the method.
+Done via a **`XarSender` strategy** (`org.nrg.xsync.transport`) rather than
+nested ternaries:
+
+- `XarSender` interface (`supports(projectId)` + `send(projectId,
+  connection, xar)`), with `HttpsXarSender` (default), `AsperaXarSender`,
+  and **`GlobusXarSender`**. `XarSenderResolver` picks the first configured
+  non-default sender (Globus, then Aspera), else HTTPS.
+- The three-site ternary in `XsyncExperimentTransfer` collapsed to one
+  `sendXar(connection, xar)` → `resolver.resolve(projectId).send(...)`.
+- **`GlobusXarSender`** stages the XAR into the outbox under an opaque
+  name, `submitTransfer` → `waitForTask`, then on success calls
+  `_manager.importXar(connection, remoteInboxServerDirectory/opaqueName)`
+  (the existing import-by-path REST call, unchanged) and cleans up the
+  staged file. On any Globus failure it **falls back to HTTPS**. Config
+  comes from `GlobusProjectPrefs` (§6.3) + the named `GlobusEndpoint`.
+  External interactions are behind `protected` seams and unit-tested
+  (`GlobusXarSenderTest`).
 
 ### 6.6 The "path duality" problem (highest-risk detail)
 
