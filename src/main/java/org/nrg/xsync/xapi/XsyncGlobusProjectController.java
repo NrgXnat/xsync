@@ -1,5 +1,8 @@
 package org.nrg.xsync.xapi;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -14,6 +17,8 @@ import org.nrg.xdat.security.helpers.AccessLevel;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xsync.globus.GlobusProjectPrefs;
+import org.nrg.xsync.globus.entities.GlobusEndpoint;
+import org.nrg.xsync.globus.services.GlobusEndpointService;
 import org.nrg.xsync.pojo.GlobusProjectConfigPojo;
 import org.nrg.xsync.security.XsyncDeleteProjectUserAuthority;
 import org.nrg.xsync.security.XsyncReadProjectUserAuthority;
@@ -43,12 +48,14 @@ import org.springframework.web.bind.annotation.RequestMethod;
 public class XsyncGlobusProjectController extends AbstractXapiProjectRestController {
 
     private final GlobusProjectPrefs _prefs;
+    private final GlobusEndpointService _endpointService;
 
     @Autowired
     public XsyncGlobusProjectController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder,
-                                        final GlobusProjectPrefs prefs) {
+                                        final GlobusProjectPrefs prefs, final GlobusEndpointService endpointService) {
         super(userManagementService, roleHolder);
         _prefs = prefs;
+        _endpointService = endpointService;
     }
 
     @AuthDelegate(XsyncReadProjectUserAuthority.class)
@@ -60,6 +67,20 @@ public class XsyncGlobusProjectController extends AbstractXapiProjectRestControl
             @ApiResponse(code = 500, message = "Unexpected error")})
     public ResponseEntity<GlobusProjectConfigPojo> getConfig(@PathVariable("projectId") final String projectId) {
         return new ResponseEntity<>(toPojo(projectId), HttpStatus.OK);
+    }
+
+    @AuthDelegate(XsyncReadProjectUserAuthority.class)
+    @XapiRequestMapping(value = "/projects/{projectId}/endpointNames", method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
+    @ApiOperation(value = "List the names of registered Globus endpoints, for a project owner to choose one. "
+            + "Returns names only (no client credentials).")
+    @ApiResponses({@ApiResponse(code = 200, message = "Endpoint names returned."),
+            @ApiResponse(code = 403, message = "Not authorized."),
+            @ApiResponse(code = 500, message = "Unexpected error")})
+    public List<String> getEndpointNames(@PathVariable("projectId") final String projectId) {
+        return _endpointService.getAllEndpoints().stream()
+                .map(GlobusEndpoint::getName)
+                .collect(Collectors.toList());
     }
 
     @AuthDelegate(XsyncDeleteProjectUserAuthority.class)

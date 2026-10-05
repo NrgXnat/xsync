@@ -132,25 +132,62 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
     /////////////////////////
 
     /*
-     * Load the project's Globus transfer configuration, then open a modal to edit it.
+     * Load the registered Globus endpoints and the project's Globus config, then
+     * open a modal to edit it.
      */
     XSYNC.xsyncConfig.configureGlobus = function(){
         var project = XNAT.data.context.project;
         $.ajax({
             type: 'GET',
-            url: XNAT.url.restUrl('/xapi/xsync/globus/projects/' + project + '/config'),
+            url: XNAT.url.restUrl('/xapi/xsync/globus/projects/' + project + '/endpointNames'),
             dataType: 'json',
-            success: function(cfg){
-                XSYNC.xsyncConfig.openGlobusConfigModal(project, cfg || {});
+            success: function(endpointNames){
+                XSYNC.xsyncConfig.loadGlobusConfigThenOpen(project, endpointNames || []);
             },
             error: function(){
-                XSYNC.xsyncConfig.openGlobusConfigModal(project, {});
+                XSYNC.xsyncConfig.loadGlobusConfigThenOpen(project, []);
             }
         });
     };
 
-    XSYNC.xsyncConfig.openGlobusConfigModal = function(project, cfg){
+    XSYNC.xsyncConfig.loadGlobusConfigThenOpen = function(project, endpointNames){
+        $.ajax({
+            type: 'GET',
+            url: XNAT.url.restUrl('/xapi/xsync/globus/projects/' + project + '/config'),
+            dataType: 'json',
+            success: function(cfg){
+                XSYNC.xsyncConfig.openGlobusConfigModal(project, cfg || {}, endpointNames);
+            },
+            error: function(){
+                XSYNC.xsyncConfig.openGlobusConfigModal(project, {}, endpointNames);
+            }
+        });
+    };
+
+    XSYNC.xsyncConfig.openGlobusConfigModal = function(project, cfg, endpointNames){
         function attr(v){ return (v == null) ? '' : String(v).replace(/"/g, '&quot;'); }
+        function esc(v){ return (v == null) ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+        var current = cfg.globusEndpointName || '';
+        var names = (endpointNames || []).filter(function(n){ return !!n; });
+
+        var endpointField;
+        if (names.length === 0) {
+            endpointField = '<em>No Globus endpoints are registered. Add one under Administer &rarr; ' +
+                'Plugin Settings &rarr; XSync &rarr; Globus Endpoints.</em>' +
+                '<input type="hidden" name="globusEndpointName" value="' + attr(current) + '">';
+        } else {
+            var options = '<option value=""' + (current === '' ? ' selected' : '') + '>-- Select an endpoint --</option>';
+            names.forEach(function(n){
+                options += '<option value="' + attr(n) + '"' + (n === current ? ' selected' : '') + '>' + esc(n) + '</option>';
+            });
+            if (current !== '' && names.indexOf(current) === -1) {
+                // preserve a previously-saved endpoint no longer registered, so editing doesn't drop it silently
+                options += '<option value="' + attr(current) + '" selected>' + esc(current) + ' (not registered)</option>';
+            }
+            endpointField = '<select name="globusEndpointName">' + options + '</select>';
+        }
+
         var checked = (cfg.globusEnabled === true) ? ' checked' : '';
         var content = '' +
             '<form id="xsync-globus-form" class="xnat-form-panel">' +
@@ -159,7 +196,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
             'If misconfigured, transfers fall back to HTTPS.</p>' +
             '<label style="display:block;margin:8px 0;"><input type="checkbox" name="globusEnabled"' + checked + '> Enable Globus Transfers</label>' +
             '<label style="display:block;margin:8px 0;">Globus Endpoint<br>' +
-            '<input type="text" name="globusEndpointName" size="40" value="' + attr(cfg.globusEndpointName) + '"></label>' +
+            endpointField + '</label>' +
             '<label style="display:block;margin:8px 0;">Outbox Directory<br>' +
             '<input type="text" name="outboxDirectory" size="40" value="' + attr(cfg.outboxDirectory) + '"></label>' +
             '<label style="display:block;margin:8px 0;">Remote Inbox Path<br>' +
