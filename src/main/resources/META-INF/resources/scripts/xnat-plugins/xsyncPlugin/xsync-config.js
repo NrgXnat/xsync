@@ -101,6 +101,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         $('#xsync-config').empty().append([
             '<button class="btn1 xsync-submit-button" id="xsync-edit-config" type="button">Edit Configuration</button>' +
             '<button class="btn1 xsync-submit-button" id="xsync-credentials" type="button">Remote Credentials</button>' +
+            '<button class="btn1 xsync-submit-button" id="xsync-globus-config" type="button">Configure Globus</button>' +
             '<button class="btn1 xsync-submit-button" id="xsync-upload-anonymization" type="button">Configure Anonymization</button>' +
             '<h2 id="xsync-history-header" style="">Sync History</h2>' +
             '<div id="xsync-history-table" style="max-height:300px;overflow-y:auto"></div>'
@@ -114,12 +115,98 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
             XSYNC.credentialsConfig.enterCredentials();
         });
 
+        $("#xsync-globus-config").on('click', function() {
+            XSYNC.xsyncConfig.configureGlobus();
+        });
+
         $("#xsync-upload-anonymization").prop('disabled', XSYNC.xsyncConfig.configuration.anonymize === false)
             .on('click', function(){
                 XSYNC.xsyncConfig.submitDICOMAnonymization();
         });
 
         XSYNC.reporting.showHistoryTable();
+    };
+
+    /////////////////////////
+    //Globus Configuration //
+    /////////////////////////
+
+    /*
+     * Load the project's Globus transfer configuration, then open a modal to edit it.
+     */
+    XSYNC.xsyncConfig.configureGlobus = function(){
+        var project = XNAT.data.context.project;
+        $.ajax({
+            type: 'GET',
+            url: XNAT.url.restUrl('/xapi/xsync/globus/projects/' + project + '/config'),
+            dataType: 'json',
+            success: function(cfg){
+                XSYNC.xsyncConfig.openGlobusConfigModal(project, cfg || {});
+            },
+            error: function(){
+                XSYNC.xsyncConfig.openGlobusConfigModal(project, {});
+            }
+        });
+    };
+
+    XSYNC.xsyncConfig.openGlobusConfigModal = function(project, cfg){
+        function attr(v){ return (v == null) ? '' : String(v).replace(/"/g, '&quot;'); }
+        var checked = (cfg.globusEnabled === true) ? ' checked' : '';
+        var content = '' +
+            '<form id="xsync-globus-form" class="xnat-form-panel">' +
+            '<p>Transfer this project\'s data over Globus. Requires Globus enabled at the site level ' +
+            '(Administer &rarr; Plugin Settings &rarr; XSync &rarr; Connection Management) and a registered Globus endpoint. ' +
+            'If misconfigured, transfers fall back to HTTPS.</p>' +
+            '<label style="display:block;margin:8px 0;"><input type="checkbox" name="globusEnabled"' + checked + '> Enable Globus Transfers</label>' +
+            '<label style="display:block;margin:8px 0;">Globus Endpoint<br>' +
+            '<input type="text" name="globusEndpointName" size="40" value="' + attr(cfg.globusEndpointName) + '"></label>' +
+            '<label style="display:block;margin:8px 0;">Outbox Directory<br>' +
+            '<input type="text" name="outboxDirectory" size="40" value="' + attr(cfg.outboxDirectory) + '"></label>' +
+            '<label style="display:block;margin:8px 0;">Remote Inbox Path<br>' +
+            '<input type="text" name="remoteInboxPath" size="40" value="' + attr(cfg.remoteInboxPath) + '"></label>' +
+            '<label style="display:block;margin:8px 0;">Remote Inbox Server Directory<br>' +
+            '<input type="text" name="remoteInboxServerDirectory" size="40" value="' + attr(cfg.remoteInboxServerDirectory) + '"></label>' +
+            '</form>';
+
+        xmodal.open({
+            width: 600,
+            height: 520,
+            id: 'xmodal-globus-config',
+            title: 'Configure Globus Transfer',
+            content: content,
+            ok: 'show',
+            okLabel: 'Save',
+            okClose: false,
+            okAction: function(modl){
+                var $form = modl.$modal.find('#xsync-globus-form');
+                var payload = {
+                    globusEnabled: $form.find('[name="globusEnabled"]').is(':checked'),
+                    globusEndpointName: $form.find('[name="globusEndpointName"]').val(),
+                    outboxDirectory: $form.find('[name="outboxDirectory"]').val(),
+                    remoteInboxPath: $form.find('[name="remoteInboxPath"]').val(),
+                    remoteInboxServerDirectory: $form.find('[name="remoteInboxServerDirectory"]').val()
+                };
+                xmodal.loading.open({ title: 'Saving Globus configuration...' });
+                var save = $.ajax({
+                    type: 'POST',
+                    url: XNAT.url.csrfUrl('/xapi/xsync/globus/projects/' + project + '/config'),
+                    data: JSON.stringify(payload),
+                    processData: false,
+                    contentType: 'application/json'
+                });
+                save.done(function(){
+                    xmodal.loading.close();
+                    modl.close();
+                    XNAT.ui.banner.top(2000, 'Globus configuration saved.', 'success');
+                });
+                save.fail(function(xhr){
+                    xmodal.loading.close();
+                    XNAT.ui.banner.top(4000, 'Could not save Globus configuration: ' + (xhr.responseText || ''), 'error');
+                });
+            },
+            cancel: 'Cancel',
+            cancelLabel: 'Cancel'
+        });
     };
 
     /////////////////////////

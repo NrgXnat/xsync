@@ -63,7 +63,7 @@ public class XsyncGlobusProjectController extends AbstractXapiProjectRestControl
     }
 
     @AuthDelegate(XsyncDeleteProjectUserAuthority.class)
-    @XapiRequestMapping(value = "/projects/{projectId}/config", method = RequestMethod.PUT,
+    @XapiRequestMapping(value = "/projects/{projectId}/config", method = {RequestMethod.POST, RequestMethod.PUT},
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE,
             restrictTo = AccessLevel.Authorizer)
     @ApiOperation(value = "Set a project's Globus transfer configuration; returns the saved configuration.")
