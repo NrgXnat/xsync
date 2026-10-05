@@ -37,6 +37,14 @@ siteSettings:
                             offText: Disabled
                             description: >
                                 Use Aspera for transfers?  This requires a valid Aspera server to receive files.
+                        globusEnabled:
+                            kind: panel.input.switchbox
+                            name: globusEnabled
+                            label: Enable Globus Transfers?
+                            onText: Enabled
+                            offText: Disabled
+                            description: >
+                                Allow projects to transfer over Globus. Requires a Globus Connect Server and registered Globus endpoints. When disabled, projects configured for Globus fall back to HTTPS.
                         xsyncConnectionManagerScript:
                             tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncConnectionManager.js"
         globusEndpoints:

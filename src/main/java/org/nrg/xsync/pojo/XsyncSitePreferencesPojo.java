@@ -17,7 +17,8 @@ public class XsyncSitePreferencesPojo {
                                    final String syncMaxUncompressedZipFileSize,
                                    final Boolean xsyncWhitelistEnabled,
                                    final Boolean httpsEnabled,
-                                   final Boolean asperaEnabled) {
+                                   final Boolean asperaEnabled,
+                                   final Boolean globusEnabled) {
          this.tokenRefreshInterval = tokenRefreshInterval;
          this.syncRetryInterval = syncRetryInterval;
          this.syncRetryCount = syncRetryCount;
@@ -25,6 +26,7 @@ public class XsyncSitePreferencesPojo {
          this.xsyncWhitelistEnabled = xsyncWhitelistEnabled;
          this.httpsEnabled = httpsEnabled;
          this.asperaEnabled = asperaEnabled;
+         this.globusEnabled = globusEnabled;
 
    }
 
@@ -35,4 +37,5 @@ public class XsyncSitePreferencesPojo {
    private Boolean xsyncWhitelistEnabled;
    private Boolean httpsEnabled;
    private Boolean asperaEnabled;
+   private Boolean globusEnabled;
 }

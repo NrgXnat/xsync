@@ -137,6 +137,15 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return prefs.getAsperaEnabled();
 	}
 
+	@XapiRequestMapping(value = "xsyncSitePreferences/globusEnabled", method =
+			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "Checks whether Globus is enabled on the site level.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Globus enabled returned."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public Boolean getGlobusEnabled() {
+		return prefs.getGlobusEnabled();
+	}
+
 	@AuthDelegate(XsyncReadProjectUserAuthority.class)
 	@XapiRequestMapping(value = "xsyncProjectPreferences/project/{projectId}/asperaEnabled", method =
 			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)

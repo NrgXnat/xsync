@@ -41,6 +41,7 @@ class GlobusXarSenderTest {
         RuntimeException submitError;
         GlobusClient.TaskStatus taskStatus = new GlobusClient.TaskStatus("SUCCEEDED", null, null);
 
+        boolean siteEnabled = true;
         GlobusClient.TransferRequest capturedRequest;
         String lastImportPath;
         boolean importCalled;
@@ -50,7 +51,11 @@ class GlobusXarSenderTest {
         final RemoteConnectionResponse fallbackResponse = ok();
 
         TestSender() {
-            super(null, null, null, null, null, null);
+            super(null, null, null, null, null, null, null);
+        }
+
+        @Override protected boolean siteGlobusEnabled() {
+            return siteEnabled;
         }
 
         @Override protected RouteConfig config(final String projectId) {
@@ -129,6 +134,13 @@ class GlobusXarSenderTest {
     }
 
     @Test
+    void doesNotSupportWhenGlobusDisabledSiteWide() {
+        final TestSender sender = new TestSender();
+        sender.siteEnabled = false;
+        assertFalse(sender.supports("proj1"), "a complete project config must still defer to the site toggle");
+    }
+
+    @Test
     void doesNotSupportWhenConfigIncomplete() {
         final TestSender sender = new TestSender();
         sender.config = new GlobusXarSender.RouteConfig(true, "ep", "/outbox", "  ", "/srv/peer");
@@ -204,7 +216,7 @@ class GlobusXarSenderTest {
 
     @Test
     void stageCopiesFileAndCleanupDeletesIt(@TempDir final Path tempDir) throws Exception {
-        final GlobusXarSender sender = new GlobusXarSender(null, null, null, null, null, null);
+        final GlobusXarSender sender = new GlobusXarSender(null, null, null, null, null, null, null);
 
         final File source = tempDir.resolve("orig.xar").toFile();
         Files.writeString(source.toPath(), "payload");

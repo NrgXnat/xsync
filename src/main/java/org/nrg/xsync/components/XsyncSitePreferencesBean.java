@@ -156,6 +156,19 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		}
 	}
 
+	@NrgPreference(defaultValue = "false")
+	public boolean getGlobusEnabled() {
+		return getBooleanValue("globusEnabled");
+	}
+
+	public void setGlobusEnabled(boolean globusEnabled) {
+		try {
+			set(String.valueOf(globusEnabled), "globusEnabled");
+		} catch (InvalidPreferenceName invalidPreferenceName) {
+			_log.error("Invalid preference name: globusEnabled");
+		}
+	}
+
 	/**
 	 * Sets the Max. Total Uncompressed File Size
 	 *
@@ -355,6 +368,9 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 		if (null != xsyncSitePreferencesPojo.getAsperaEnabled()) {
 			this.setAsperaEnabled(xsyncSitePreferencesPojo.getAsperaEnabled());
 		}
+		if (null != xsyncSitePreferencesPojo.getGlobusEnabled()) {
+			this.setGlobusEnabled(xsyncSitePreferencesPojo.getGlobusEnabled());
+		}
 	}
 
 	public XsyncSitePreferencesPojo toPojo() {
@@ -365,7 +381,8 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 				getSyncMaxUncompressedZipFileSize(),
 				getXsyncWhitelistEnabled(),
 				getHttpsEnabled(),
-				getAsperaEnabled()
+				getAsperaEnabled(),
+				getGlobusEnabled()
 		);
 	}
 }

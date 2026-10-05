@@ -10,6 +10,7 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.xapi.exceptions.NotFoundException;
+import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
@@ -46,6 +47,7 @@ public class GlobusXarSender implements XarSender {
     static final long TIMEOUT_MILLIS = 2L * 60L * 60L * 1000L;
 
     private final GlobusProjectPrefs _prefs;
+    private final XsyncSitePreferencesBean _sitePrefs;
     private final GlobusEndpointService _endpointService;
     private final GlobusAuthService _authService;
     private final GlobusClient _client;
@@ -53,10 +55,12 @@ public class GlobusXarSender implements XarSender {
     private final HttpsXarSender _httpsFallback;
 
     @Autowired
-    public GlobusXarSender(final GlobusProjectPrefs prefs, final GlobusEndpointService endpointService,
-                           final GlobusAuthService authService, final GlobusClient client,
-                           final RemoteConnectionManager manager, final HttpsXarSender httpsFallback) {
+    public GlobusXarSender(final GlobusProjectPrefs prefs, final XsyncSitePreferencesBean sitePrefs,
+                           final GlobusEndpointService endpointService, final GlobusAuthService authService,
+                           final GlobusClient client, final RemoteConnectionManager manager,
+                           final HttpsXarSender httpsFallback) {
         _prefs = prefs;
+        _sitePrefs = sitePrefs;
         _endpointService = endpointService;
         _authService = authService;
         _client = client;
@@ -81,6 +85,10 @@ public class GlobusXarSender implements XarSender {
      */
     @Override
     public boolean supports(final String projectId) {
+        if (!siteGlobusEnabled()) {
+            log.debug("Globus is disabled site-wide; project {} will use another transport.", projectId);
+            return false;
+        }
         final RouteConfig config = config(projectId);
         if (!config.enabled()) {
             return false;
@@ -162,6 +170,11 @@ public class GlobusXarSender implements XarSender {
     }
 
     // --- seams (overridable so the orchestration is unit-testable) ---------
+
+    /** @return whether Globus is enabled at the site level (governance gate). */
+    protected boolean siteGlobusEnabled() {
+        return _sitePrefs.getGlobusEnabled();
+    }
 
     /** @return the per-project route configuration read from preferences. */
     protected RouteConfig config(final String projectId) {

@@ -41,6 +41,10 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         xsyncConnectionManager.toggleAsperaEnabled($(this).val());
     });
 
+    $(document).on('change','#globus-enabled', function(){
+        xsyncConnectionManager.toggleGlobusEnabled($(this).val());
+    });
+
     xsyncConnectionManager.toggleHttpsEnabled = function(enabled) {
         let inputPrefs = {};
         if (enabled === "true") {
@@ -73,6 +77,12 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         }
     }
 
+    xsyncConnectionManager.toggleGlobusEnabled = function(enabled) {
+        let inputPrefs = {};
+        inputPrefs['globusEnabled'] = (enabled === "true");
+        xsyncConnectionManager.postSitePreferencesUpdate(inputPrefs, 'globus');
+    }
+
     xsyncConnectionManager.postSitePreferencesUpdate = function(inputPrefs, preferenceName) {
         XNAT.xhr.post({
             url: restUrl('/xapi/xsyncSitePreferences/'),
@@ -96,8 +106,12 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             success: function (data) {
                 let httpsEnabled = data['httpsEnabled'];
                 let asperaEnabled = data['asperaEnabled'];
+                let globusEnabled = data['globusEnabled'];
                 if (httpsEnabled == true) {
                     $('#https-enabled').prop("checked",true);
+                }
+                if (globusEnabled == true) {
+                    $('#globus-enabled').prop("checked",true);
                 }
                 if (asperaEnabled == true) {
                     $('#aspera-enabled').prop("checked",true);
