@@ -16,24 +16,26 @@ import org.nrg.xsync.connection.RemoteConnectionManager;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.globus.GlobusAuthService;
 import org.nrg.xsync.globus.GlobusClient;
-import org.nrg.xsync.globus.GlobusCredentials;
 import org.nrg.xsync.globus.GlobusProjectPrefs;
 import org.nrg.xsync.globus.entities.GlobusEndpoint;
+import org.nrg.xsync.globus.entities.GlobusNodeConfig;
 import org.nrg.xsync.globus.services.GlobusEndpointService;
+import org.nrg.xsync.globus.services.GlobusNodeConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Sends a XAR over Globus: stages it into the local outbox guest collection,
- * submits a Globus transfer to the destination inbox guest collection, waits
- * for the task to complete, then triggers a server-side import-by-path at the
- * destination. On any Globus failure it falls back to {@link HttpsXarSender}.
+ * Sends a XAR over Globus: stages it into this node's outbox, submits a Globus
+ * transfer to the destination's inbox guest collection, waits for the task to
+ * complete, then triggers a server-side import-by-path at the destination. On
+ * any Globus failure it falls back to {@link HttpsXarSender}.
  *
- * <p>Transport parameters come from {@link GlobusProjectPrefs} (per project)
- * plus the named {@link GlobusEndpoint} (client credentials + inbox/outbox
- * guest-collection UUIDs). The external interactions are isolated behind
- * {@code protected} seams so the orchestration can be unit-tested without
- * network or Globus access.</p>
+ * <p>Parameters come from three places: the node's {@link GlobusNodeConfig}
+ * (one service account + one outbox), the selected {@link GlobusEndpoint}
+ * destination (remote inbox + paths), and {@link GlobusProjectPrefs} (whether
+ * Globus is enabled and which destination).
+ * External interactions are isolated behind {@code protected} seams so the
+ * orchestration can be unit-tested without network or Globus access.</p>
  *
  * @author XSync
  */
@@ -48,6 +50,7 @@ public class GlobusXarSender implements XarSender {
 
     private final GlobusProjectPrefs _prefs;
     private final XsyncSitePreferencesBean _sitePrefs;
+    private final GlobusNodeConfigService _nodeConfigService;
     private final GlobusEndpointService _endpointService;
     private final GlobusAuthService _authService;
     private final GlobusClient _client;
@@ -56,11 +59,12 @@ public class GlobusXarSender implements XarSender {
 
     @Autowired
     public GlobusXarSender(final GlobusProjectPrefs prefs, final XsyncSitePreferencesBean sitePrefs,
-                           final GlobusEndpointService endpointService, final GlobusAuthService authService,
-                           final GlobusClient client, final RemoteConnectionManager manager,
-                           final HttpsXarSender httpsFallback) {
+                           final GlobusNodeConfigService nodeConfigService, final GlobusEndpointService endpointService,
+                           final GlobusAuthService authService, final GlobusClient client,
+                           final RemoteConnectionManager manager, final HttpsXarSender httpsFallback) {
         _prefs = prefs;
         _sitePrefs = sitePrefs;
+        _nodeConfigService = nodeConfigService;
         _endpointService = endpointService;
         _authService = authService;
         _client = client;
@@ -68,17 +72,14 @@ public class GlobusXarSender implements XarSender {
         _httpsFallback = httpsFallback;
     }
 
-    /** The per-project Globus route configuration, resolved from preferences. */
-    record RouteConfig(boolean enabled, String endpointName, String outboxDirectory,
-                       String remoteInboxPath, String remoteInboxServerDirectory) {
-        boolean pathsComplete() {
-            return StringUtils.isNoneBlank(endpointName, outboxDirectory, remoteInboxPath, remoteInboxServerDirectory);
-        }
+    /** The per-project Globus selection: whether enabled, and which destination. */
+    record RouteConfig(boolean enabled, String endpointName) {
     }
 
     /**
-     * Globus supports a project only when it is enabled, fully configured, and
-     * its named endpoint is registered; otherwise the project uses HTTPS.
+     * Globus supports a project only when it is enabled (site + project), a
+     * destination is selected and registered, and this node's Globus
+     * configuration exists; otherwise the project uses HTTPS.
      *
      * @param projectId the local (source) project id
      * @return {@code true} if Globus is usable for the project
@@ -93,15 +94,15 @@ public class GlobusXarSender implements XarSender {
         if (!config.enabled()) {
             return false;
         }
-        if (!config.pathsComplete()) {
-            log.error("Globus is enabled for project {} but not fully configured. Using HTTPS instead.", projectId);
+        if (StringUtils.isBlank(config.endpointName())) {
+            log.error("Globus is enabled for project {} but no destination is selected. Using HTTPS instead.", projectId);
             return false;
         }
         try {
             lookupEndpoint(config.endpointName());
+            nodeConfig();
         } catch (NotFoundException e) {
-            log.error("Globus endpoint '{}' for project {} is not registered. Using HTTPS instead.",
-                    config.endpointName(), projectId);
+            log.error("Globus route for project {} is not usable ({}). Using HTTPS instead.", projectId, e.getMessage());
             return false;
         }
         log.info("Using Globus for the data transfer method.");
@@ -113,24 +114,27 @@ public class GlobusXarSender implements XarSender {
             throws Exception {
         final RouteConfig config = config(projectId);
         final GlobusEndpoint endpoint;
+        final GlobusNodeConfig nodeConfig;
         try {
             endpoint = lookupEndpoint(config.endpointName());
+            nodeConfig = nodeConfig();
         } catch (NotFoundException e) {
-            log.warn("Globus endpoint '{}' not found; failing over to HTTPS.", config.endpointName());
+            log.warn("Globus route for project {} not fully configured ({}); failing over to HTTPS.",
+                    projectId, e.getMessage());
             return fallback(projectId, connection, xar);
         }
 
         final String opaqueName = opaqueName();
         File staged = null;
         try {
-            staged = stage(xar, config.outboxDirectory(), opaqueName);
+            staged = stage(xar, nodeConfig.getOutboxDirectory(), opaqueName);
             log.debug("Staged XAR for project {} in the Globus outbox as {}", projectId, opaqueName);
 
             final String sourcePath = "/" + opaqueName;
-            final String destinationPath = joinPath(config.remoteInboxPath(), opaqueName);
-            final String token = obtainToken(endpoint);
+            final String destinationPath = joinPath(endpoint.getRemoteInboxPath(), opaqueName);
+            final String token = obtainToken();
             final GlobusClient.TransferRequest request = new GlobusClient.TransferRequest(
-                    endpoint.getOutboxCollectionId(), sourcePath,
+                    nodeConfig.getOutboxCollectionId(), sourcePath,
                     endpoint.getInboxCollectionId(), destinationPath,
                     "XSync " + projectId, true);
 
@@ -144,7 +148,7 @@ public class GlobusXarSender implements XarSender {
             }
             log.info("Globus task {} succeeded; importing the transferred XAR at the destination.", taskId);
 
-            final String serverPath = joinPath(config.remoteInboxServerDirectory(), opaqueName);
+            final String serverPath = joinPath(endpoint.getRemoteInboxServerDirectory(), opaqueName);
             return importByPath(connection, serverPath);
         } catch (Exception e) {
             log.warn("Globus transfer for project {} failed ({}); failing over to HTTPS.", projectId, e.getMessage());
@@ -176,18 +180,21 @@ public class GlobusXarSender implements XarSender {
         return _sitePrefs.getGlobusEnabled();
     }
 
-    /** @return the per-project route configuration read from preferences. */
+    /** @return the per-project Globus selection (enabled + destination name). */
     protected RouteConfig config(final String projectId) {
         return new RouteConfig(Boolean.TRUE.equals(_prefs.getGlobusEnabled(projectId)),
-                _prefs.getGlobusEndpointName(projectId),
-                _prefs.getGlobusOutboxDirectory(projectId),
-                _prefs.getGlobusRemoteInboxPath(projectId),
-                _prefs.getGlobusRemoteInboxServerDirectory(projectId));
+                _prefs.getGlobusEndpointName(projectId));
     }
 
-    /** @return the registered endpoint, or throws if it is not registered. */
+    /** @return the registered destination, or throws if it is not registered. */
     protected GlobusEndpoint lookupEndpoint(final String endpointName) throws NotFoundException {
         return _endpointService.getByName(endpointName);
+    }
+
+    /** @return this node's Globus configuration, or throws if it is not set. */
+    protected GlobusNodeConfig nodeConfig() throws NotFoundException {
+        return _nodeConfigService.getConfig()
+                .orElseThrow(() -> new NotFoundException("Globus is not configured for this node."));
     }
 
     /** @return an opaque (non-identifying) file name for the staged XAR. */
@@ -204,9 +211,9 @@ public class GlobusXarSender implements XarSender {
         return target.toFile();
     }
 
-    /** @return a Transfer token for the endpoint's client credentials. */
-    protected String obtainToken(final GlobusEndpoint endpoint) {
-        return _authService.getTransferToken(new GlobusCredentials(endpoint.getClientId(), endpoint.getClientSecret()));
+    /** @return a Transfer token for this node's service account (the single credential-resolution seam). */
+    protected String obtainToken() throws NotFoundException {
+        return _authService.getTransferToken(_nodeConfigService.getServiceCredentials());
     }
 
     /** @return the submitted task id. */

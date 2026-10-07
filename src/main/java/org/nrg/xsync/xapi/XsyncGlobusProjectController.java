@@ -95,18 +95,12 @@ public class XsyncGlobusProjectController extends AbstractXapiProjectRestControl
                                                              @RequestBody final GlobusProjectConfigPojo config) {
         _prefs.setGlobusEnabled(projectId, Boolean.TRUE.equals(config.getGlobusEnabled()));
         _prefs.setGlobusEndpointName(projectId, StringUtils.defaultString(config.getGlobusEndpointName()));
-        _prefs.setGlobusOutboxDirectory(projectId, StringUtils.defaultString(config.getOutboxDirectory()));
-        _prefs.setGlobusRemoteInboxPath(projectId, StringUtils.defaultString(config.getRemoteInboxPath()));
-        _prefs.setGlobusRemoteInboxServerDirectory(projectId, StringUtils.defaultString(config.getRemoteInboxServerDirectory()));
         return new ResponseEntity<>(toPojo(projectId), HttpStatus.OK);
     }
 
     private GlobusProjectConfigPojo toPojo(final String projectId) {
         return new GlobusProjectConfigPojo(
                 _prefs.getGlobusEnabled(projectId),
-                _prefs.getGlobusEndpointName(projectId),
-                _prefs.getGlobusOutboxDirectory(projectId),
-                _prefs.getGlobusRemoteInboxPath(projectId),
-                _prefs.getGlobusRemoteInboxServerDirectory(projectId));
+                _prefs.getGlobusEndpointName(projectId));
     }
 }

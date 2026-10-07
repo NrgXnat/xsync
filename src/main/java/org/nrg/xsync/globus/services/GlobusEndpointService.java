@@ -4,13 +4,12 @@ import java.util.List;
 
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
-import org.nrg.xsync.globus.GlobusCredentials;
 import org.nrg.xsync.globus.entities.GlobusEndpoint;
 
 /**
- * Stores and retrieves configured {@link GlobusEndpoint}s and bridges them to
- * the {@link GlobusCredentials} consumed by
- * {@link org.nrg.xsync.globus.GlobusAuthService}.
+ * Stores and retrieves configured Globus transfer destinations
+ * ({@link GlobusEndpoint}). Service-account credentials are managed by
+ * {@link org.nrg.xsync.globus.services.GlobusNodeConfigService}.
  *
  * @author XSync
  */
@@ -46,14 +45,4 @@ public interface GlobusEndpointService {
      * @throws NotFoundException if no endpoint has that name
      */
     void delete(String name) throws NotFoundException;
-
-    /**
-     * Get the credentials for the named endpoint, ready for
-     * {@link org.nrg.xsync.globus.GlobusAuthService}.
-     *
-     * @param name the endpoint name
-     * @return the endpoint's credentials
-     * @throws NotFoundException if no endpoint has that name
-     */
-    GlobusCredentials credentialsFor(String name) throws NotFoundException;
 }

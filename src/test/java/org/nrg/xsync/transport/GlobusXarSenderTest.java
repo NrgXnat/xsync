@@ -16,6 +16,7 @@ import org.nrg.xsync.connection.RemoteConnection;
 import org.nrg.xsync.connection.RemoteConnectionResponse;
 import org.nrg.xsync.globus.GlobusClient;
 import org.nrg.xsync.globus.entities.GlobusEndpoint;
+import org.nrg.xsync.globus.entities.GlobusNodeConfig;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -34,14 +35,17 @@ class GlobusXarSenderTest {
 
     /** Configurable seam-overriding subclass; collaborators are unused (null). */
     private static final class TestSender extends GlobusXarSender {
-        GlobusXarSender.RouteConfig config =
-                new GlobusXarSender.RouteConfig(true, "ep", "/outbox", "/peer", "/srv/peer");
-        GlobusEndpoint endpoint = new GlobusEndpoint("ep", "client", "secret", "inboxColl", "outboxColl");
+        boolean siteEnabled = true;
+        GlobusXarSender.RouteConfig config = new GlobusXarSender.RouteConfig(true, "ep");
+        // destination: name, inboxCollectionId, remoteInboxPath, remoteInboxServerDirectory
+        GlobusEndpoint endpoint = new GlobusEndpoint("ep", "inboxColl", "/peer", "/srv/peer");
+        // node config: clientId, clientSecret, outboxCollectionId, outboxDirectory, inboxCollectionId
+        GlobusNodeConfig nodeConfig = new GlobusNodeConfig("client", "secret", "outboxColl", "/outbox", null);
         NotFoundException lookupError;
+        NotFoundException nodeConfigError;
         RuntimeException submitError;
         GlobusClient.TaskStatus taskStatus = new GlobusClient.TaskStatus("SUCCEEDED", null, null);
 
-        boolean siteEnabled = true;
         GlobusClient.TransferRequest capturedRequest;
         String lastImportPath;
         boolean importCalled;
@@ -51,7 +55,7 @@ class GlobusXarSenderTest {
         final RemoteConnectionResponse fallbackResponse = ok();
 
         TestSender() {
-            super(null, null, null, null, null, null, null);
+            super(null, null, null, null, null, null, null, null);
         }
 
         @Override protected boolean siteGlobusEnabled() {
@@ -69,6 +73,13 @@ class GlobusXarSenderTest {
             return endpoint;
         }
 
+        @Override protected GlobusNodeConfig nodeConfig() throws NotFoundException {
+            if (nodeConfigError != null) {
+                throw nodeConfigError;
+            }
+            return nodeConfig;
+        }
+
         @Override protected String opaqueName() {
             return "OPAQUE.xar";
         }
@@ -77,7 +88,7 @@ class GlobusXarSenderTest {
             return new File(outboxDirectory, opaqueName);
         }
 
-        @Override protected String obtainToken(final GlobusEndpoint endpoint) {
+        @Override protected String obtainToken() {
             return "token";
         }
 
@@ -122,14 +133,35 @@ class GlobusXarSenderTest {
     // --- supports ----------------------------------------------------------
 
     @Test
-    void supportsWhenEnabledConfiguredAndEndpointRegistered() {
+    void supportsWhenEnabledWithDestinationAndNodeConfig() {
         assertTrue(new TestSender().supports("proj1"));
     }
 
     @Test
     void doesNotSupportWhenDisabled() {
         final TestSender sender = new TestSender();
-        sender.config = new GlobusXarSender.RouteConfig(false, "ep", "/outbox", "/peer", "/srv/peer");
+        sender.config = new GlobusXarSender.RouteConfig(false, "ep");
+        assertFalse(sender.supports("proj1"));
+    }
+
+    @Test
+    void doesNotSupportWhenNoDestinationSelected() {
+        final TestSender sender = new TestSender();
+        sender.config = new GlobusXarSender.RouteConfig(true, "  ");
+        assertFalse(sender.supports("proj1"));
+    }
+
+    @Test
+    void doesNotSupportWhenDestinationMissing() {
+        final TestSender sender = new TestSender();
+        sender.lookupError = new NotFoundException("no such destination");
+        assertFalse(sender.supports("proj1"));
+    }
+
+    @Test
+    void doesNotSupportWhenNodeNotConfigured() {
+        final TestSender sender = new TestSender();
+        sender.nodeConfigError = new NotFoundException("Globus not configured for this node");
         assertFalse(sender.supports("proj1"));
     }
 
@@ -137,20 +169,6 @@ class GlobusXarSenderTest {
     void doesNotSupportWhenGlobusDisabledSiteWide() {
         final TestSender sender = new TestSender();
         sender.siteEnabled = false;
-        assertFalse(sender.supports("proj1"), "a complete project config must still defer to the site toggle");
-    }
-
-    @Test
-    void doesNotSupportWhenConfigIncomplete() {
-        final TestSender sender = new TestSender();
-        sender.config = new GlobusXarSender.RouteConfig(true, "ep", "/outbox", "  ", "/srv/peer");
-        assertFalse(sender.supports("proj1"));
-    }
-
-    @Test
-    void doesNotSupportWhenEndpointMissing() {
-        final TestSender sender = new TestSender();
-        sender.lookupError = new NotFoundException("no such endpoint");
         assertFalse(sender.supports("proj1"));
     }
 
@@ -166,9 +184,9 @@ class GlobusXarSenderTest {
         assertFalse(sender.fallbackCalled);
         assertTrue(sender.cleanupCalled, "the staged file must be cleaned up");
 
-        assertEquals("outboxColl", sender.capturedRequest.sourceCollectionId());
+        assertEquals("outboxColl", sender.capturedRequest.sourceCollectionId(), "source is the node outbox");
         assertEquals("/OPAQUE.xar", sender.capturedRequest.sourcePath());
-        assertEquals("inboxColl", sender.capturedRequest.destinationCollectionId());
+        assertEquals("inboxColl", sender.capturedRequest.destinationCollectionId(), "destination is the peer inbox");
         assertEquals("/peer/OPAQUE.xar", sender.capturedRequest.destinationPath());
         assertTrue(sender.capturedRequest.verifyChecksum());
         assertEquals("XSync proj1", sender.capturedRequest.label());
@@ -201,9 +219,21 @@ class GlobusXarSenderTest {
     }
 
     @Test
-    void sendFallsBackWhenEndpointMissing() throws Exception {
+    void sendFallsBackWhenDestinationMissing() throws Exception {
         final TestSender sender = new TestSender();
-        sender.lookupError = new NotFoundException("no such endpoint");
+        sender.lookupError = new NotFoundException("no such destination");
+
+        final RemoteConnectionResponse response = sender.send("proj1", null, new File("orig.xar"));
+
+        assertSame(sender.fallbackResponse, response);
+        assertTrue(sender.fallbackCalled);
+        assertFalse(sender.importCalled);
+    }
+
+    @Test
+    void sendFallsBackWhenNodeNotConfigured() throws Exception {
+        final TestSender sender = new TestSender();
+        sender.nodeConfigError = new NotFoundException("Globus not configured for this node");
 
         final RemoteConnectionResponse response = sender.send("proj1", null, new File("orig.xar"));
 
@@ -216,7 +246,7 @@ class GlobusXarSenderTest {
 
     @Test
     void stageCopiesFileAndCleanupDeletesIt(@TempDir final Path tempDir) throws Exception {
-        final GlobusXarSender sender = new GlobusXarSender(null, null, null, null, null, null, null);
+        final GlobusXarSender sender = new GlobusXarSender(null, null, null, null, null, null, null, null);
 
         final File source = tempDir.resolve("orig.xar").toFile();
         Files.writeString(source.toPath(), "payload");

@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
-import org.nrg.xsync.globus.GlobusCredentials;
 import org.nrg.xsync.globus.entities.GlobusEndpoint;
 import org.nrg.xsync.globus.repositories.GlobusEndpointRepository;
 import org.nrg.xsync.globus.services.GlobusEndpointService;
@@ -43,28 +42,17 @@ public class HibernateGlobusEndpointService
 
     @Override
     public GlobusEndpoint createOrUpdate(final GlobusEndpoint endpoint) throws DataFormatException {
-        if (StringUtils.isAnyBlank(endpoint.getName(), endpoint.getClientId())) {
-            throw new DataFormatException("A Globus endpoint requires a name and client id.");
-        }
-        if (StringUtils.isAllBlank(endpoint.getInboxCollectionId(), endpoint.getOutboxCollectionId())) {
-            throw new DataFormatException("A Globus endpoint requires an inbox and/or outbox collection id.");
+        if (StringUtils.isAnyBlank(endpoint.getName(), endpoint.getInboxCollectionId())) {
+            throw new DataFormatException("A Globus destination requires a name and an inbox collection id.");
         }
         final GlobusEndpoint existing = getDao().findByName(endpoint.getName());
         if (existing == null) {
-            if (StringUtils.isBlank(endpoint.getClientSecret())) {
-                throw new DataFormatException("A client secret is required when creating a new Globus endpoint.");
-            }
             getDao().saveOrUpdate(endpoint);
             return endpoint;
         }
-        existing.setClientId(endpoint.getClientId());
         existing.setInboxCollectionId(endpoint.getInboxCollectionId());
-        existing.setOutboxCollectionId(endpoint.getOutboxCollectionId());
-        // A blank secret on update leaves the stored secret unchanged (the API
-        // never returns it, so edits that don't re-enter it must not clear it).
-        if (StringUtils.isNotBlank(endpoint.getClientSecret())) {
-            existing.setClientSecret(endpoint.getClientSecret());
-        }
+        existing.setRemoteInboxPath(endpoint.getRemoteInboxPath());
+        existing.setRemoteInboxServerDirectory(endpoint.getRemoteInboxServerDirectory());
         getDao().saveOrUpdate(existing);
         return existing;
     }
@@ -72,11 +60,5 @@ public class HibernateGlobusEndpointService
     @Override
     public void delete(final String name) throws NotFoundException {
         getDao().delete(getByName(name));
-    }
-
-    @Override
-    public GlobusCredentials credentialsFor(final String name) throws NotFoundException {
-        final GlobusEndpoint endpoint = getByName(name);
-        return new GlobusCredentials(endpoint.getClientId(), endpoint.getClientSecret());
     }
 }

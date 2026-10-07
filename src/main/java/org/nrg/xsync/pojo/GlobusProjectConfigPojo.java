@@ -19,7 +19,4 @@ public class GlobusProjectConfigPojo {
 
     private Boolean globusEnabled;
     private String globusEndpointName;
-    private String outboxDirectory;
-    private String remoteInboxPath;
-    private String remoteInboxServerDirectory;
 }

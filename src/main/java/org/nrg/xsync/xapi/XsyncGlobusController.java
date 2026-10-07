@@ -24,8 +24,11 @@ import org.nrg.xsync.globus.GlobusAuthService;
 import org.nrg.xsync.globus.GlobusClient;
 import org.nrg.xsync.globus.GlobusCredentials;
 import org.nrg.xsync.globus.entities.GlobusEndpoint;
+import org.nrg.xsync.globus.entities.GlobusNodeConfig;
 import org.nrg.xsync.globus.services.GlobusEndpointService;
+import org.nrg.xsync.globus.services.GlobusNodeConfigService;
 import org.nrg.xsync.pojo.GlobusEndpointPojo;
+import org.nrg.xsync.pojo.GlobusNodeConfigPojo;
 import org.nrg.xsync.security.XsyncAdministratorUserAuthorization;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -54,16 +57,19 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Api("XSync Globus Endpoint Management API")
 public class XsyncGlobusController extends AbstractXapiRestController {
 
-    private final GlobusEndpointService _endpointService;
-    private final GlobusAuthService     _authService;
-    private final GlobusClient          _globusClient;
+    private final GlobusEndpointService   _endpointService;
+    private final GlobusNodeConfigService _nodeConfigService;
+    private final GlobusAuthService       _authService;
+    private final GlobusClient            _globusClient;
 
     @Autowired
     public XsyncGlobusController(final UserManagementServiceI userManagementService, final RoleHolder roleHolder,
-                                 final GlobusEndpointService endpointService, final GlobusAuthService authService,
-                                 final GlobusClient globusClient) {
+                                 final GlobusEndpointService endpointService,
+                                 final GlobusNodeConfigService nodeConfigService,
+                                 final GlobusAuthService authService, final GlobusClient globusClient) {
         super(userManagementService, roleHolder);
         _endpointService = endpointService;
+        _nodeConfigService = nodeConfigService;
         _authService = authService;
         _globusClient = globusClient;
     }
@@ -95,8 +101,7 @@ public class XsyncGlobusController extends AbstractXapiRestController {
     @XapiRequestMapping(value = "/endpoints", method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE,
             restrictTo = AccessLevel.Authorizer)
-    @ApiOperation(value = "Create a Globus endpoint, or update the one with the same name. "
-            + "On update, a blank secret leaves the stored secret unchanged.")
+    @ApiOperation(value = "Create a Globus destination, or update the one with the same name.")
     @ApiResponses({@ApiResponse(code = 200, message = "Endpoint saved."),
             @ApiResponse(code = 400, message = "Missing required fields."),
             @ApiResponse(code = 403, message = "Not authorized."),
@@ -120,57 +125,59 @@ public class XsyncGlobusController extends AbstractXapiRestController {
     @AuthDelegate(XsyncAdministratorUserAuthorization.class)
     @XapiRequestMapping(value = "/endpoints/{name}/test", method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
-    @ApiOperation(value = "Test connectivity for a stored endpoint by obtaining a Globus token with its "
-            + "stored credentials. Returns true if authentication succeeds.")
+    @ApiOperation(value = "Test a destination: obtain a Globus token with the node service account and probe the "
+            + "destination's inbox collection. Returns true if the token is obtained and the collection resolves.")
     @ApiResponses({@ApiResponse(code = 200, message = "Test performed; body is the boolean result."),
             @ApiResponse(code = 403, message = "Not authorized."),
-            @ApiResponse(code = 404, message = "Endpoint not found."),
+            @ApiResponse(code = 404, message = "Endpoint not found, or Globus not configured for this node."),
             @ApiResponse(code = 500, message = "Unexpected error")})
     public boolean testEndpoint(@PathVariable("name") final String name) throws NotFoundException {
         final GlobusEndpoint endpoint = _endpointService.getByName(name);
-        return testConnection(new GlobusCredentials(endpoint.getClientId(), endpoint.getClientSecret()),
-                endpoint.getInboxCollectionId(), endpoint.getOutboxCollectionId());
+        final GlobusCredentials credentials = _nodeConfigService.getServiceCredentials();
+        return testConnection(credentials, endpoint.getInboxCollectionId());
     }
 
     @AuthDelegate(XsyncAdministratorUserAuthorization.class)
-    @XapiRequestMapping(value = "/endpoints/test", method = RequestMethod.POST,
+    @XapiRequestMapping(value = "/node", method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
+    @ApiOperation(value = "Get this node's Globus configuration (service account + outbox); secret omitted. "
+            + "Returns an empty configuration if none is set yet.")
+    @ApiResponses({@ApiResponse(code = 200, message = "Node configuration returned."),
+            @ApiResponse(code = 403, message = "Not authorized."),
+            @ApiResponse(code = 500, message = "Unexpected error")})
+    public GlobusNodeConfigPojo getNodeConfig() {
+        return _nodeConfigService.getConfig().map(XsyncGlobusController::toNodePojo).orElseGet(GlobusNodeConfigPojo::new);
+    }
+
+    @AuthDelegate(XsyncAdministratorUserAuthorization.class)
+    @XapiRequestMapping(value = "/node", method = {RequestMethod.POST, RequestMethod.PUT},
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE,
             restrictTo = AccessLevel.Authorizer)
-    @ApiOperation(value = "Test connectivity for supplied credentials (before saving). Returns true if "
-            + "authentication succeeds.")
-    @ApiResponses({@ApiResponse(code = 200, message = "Test performed; body is the boolean result."),
+    @ApiOperation(value = "Set this node's Globus configuration. A blank secret on update leaves the stored one unchanged.")
+    @ApiResponses({@ApiResponse(code = 200, message = "Node configuration saved."),
             @ApiResponse(code = 400, message = "Missing required fields."),
             @ApiResponse(code = 403, message = "Not authorized."),
             @ApiResponse(code = 500, message = "Unexpected error")})
-    public boolean testCredentials(@RequestBody final GlobusEndpointPojo pojo) throws DataFormatException {
-        if (StringUtils.isAnyBlank(pojo.getClientId(), pojo.getClientSecret())
-                || StringUtils.isAllBlank(pojo.getInboxCollectionId(), pojo.getOutboxCollectionId())) {
-            throw new DataFormatException("Testing credentials requires a client id, client secret, and at least "
-                    + "one collection id (inbox or outbox).");
-        }
-        return testConnection(new GlobusCredentials(pojo.getClientId(), pojo.getClientSecret()),
-                pojo.getInboxCollectionId(), pojo.getOutboxCollectionId());
+    public GlobusNodeConfigPojo saveNodeConfig(@RequestBody final GlobusNodeConfigPojo pojo) throws DataFormatException {
+        return toNodePojo(_nodeConfigService.save(toNodeEntity(pojo)));
     }
 
     /**
-     * Test a Globus connection: obtain a fresh Transfer token with the given
-     * credentials, then probe each supplied collection for reachability.
+     * Test a Globus connection: obtain a fresh Transfer token with the node
+     * service credentials, then probe each supplied collection for reachability.
      *
-     * <p>Returns {@code true} only if the token is obtained and no configured
-     * collection is {@link GlobusClient.Reachability#NOT_FOUND} (a bad UUID) or
+     * <p>Returns {@code true} only if the token is obtained and no collection is
+     * {@link GlobusClient.Reachability#NOT_FOUND} (a bad UUID) or
      * {@link GlobusClient.Reachability#ERROR}. A {@code FORBIDDEN} probe is
-     * tolerated: a collection reached over a per-peer subpath ACL (the normal
-     * inbox arrangement) legitimately denies a root listing, so it is not a
-     * failure. Because of that, a green result does not by itself prove every
-     * ACL is correct&mdash;only that the client authenticates and the UUIDs
-     * resolve.</p>
+     * tolerated: a collection reached over a per-peer subpath ACL legitimately
+     * denies a root listing. So a green result shows the account authenticates
+     * and the UUIDs resolve, not that every ACL is correct.</p>
      *
-     * @param credentials the confidential-client credentials
-     * @param inbox       the inbox collection UUID (may be blank)
-     * @param outbox      the outbox collection UUID (may be blank)
+     * @param credentials   the node service-account credentials
+     * @param collectionIds collection UUIDs to probe (blanks ignored)
      * @return {@code true} if the connection test passes
      */
-    private boolean testConnection(final GlobusCredentials credentials, final String inbox, final String outbox) {
+    private boolean testConnection(final GlobusCredentials credentials, final String... collectionIds) {
         final String token;
         try {
             token = _authService.getTransferToken(credentials, true);
@@ -178,21 +185,30 @@ public class XsyncGlobusController extends AbstractXapiRestController {
             log.info("Globus connection test failed for client {}: {}", credentials.clientId(), e.getMessage());
             return false;
         }
-        return Stream.of(inbox, outbox)
+        return Stream.of(collectionIds)
                 .filter(StringUtils::isNotBlank)
                 .map(id -> _globusClient.probeCollection(token, id))
                 .noneMatch(r -> r == GlobusClient.Reachability.NOT_FOUND || r == GlobusClient.Reachability.ERROR);
     }
 
     private static GlobusEndpointPojo toPojo(final GlobusEndpoint endpoint) {
-        // Secret intentionally omitted (write-only in the pojo).
-        return new GlobusEndpointPojo(endpoint.getName(), endpoint.getClientId(), null,
-                endpoint.getInboxCollectionId(), endpoint.getOutboxCollectionId());
+        return new GlobusEndpointPojo(endpoint.getName(), endpoint.getInboxCollectionId(),
+                endpoint.getRemoteInboxPath(), endpoint.getRemoteInboxServerDirectory());
     }
 
     private static GlobusEndpoint toEntity(final GlobusEndpointPojo pojo) {
-        return new GlobusEndpoint(pojo.getName(), pojo.getClientId(), pojo.getClientSecret(),
-                pojo.getInboxCollectionId(), pojo.getOutboxCollectionId());
+        return new GlobusEndpoint(pojo.getName(), pojo.getInboxCollectionId(),
+                pojo.getRemoteInboxPath(), pojo.getRemoteInboxServerDirectory());
+    }
+
+    private static GlobusNodeConfigPojo toNodePojo(final GlobusNodeConfig config) {
+        return new GlobusNodeConfigPojo(config.getClientId(), null, config.getOutboxCollectionId(),
+                config.getOutboxDirectory(), config.getInboxCollectionId());
+    }
+
+    private static GlobusNodeConfig toNodeEntity(final GlobusNodeConfigPojo pojo) {
+        return new GlobusNodeConfig(pojo.getClientId(), pojo.getClientSecret(), pojo.getOutboxCollectionId(),
+                pojo.getOutboxDirectory(), pojo.getInboxCollectionId());
     }
 
     @ResponseStatus(value = HttpStatus.NOT_FOUND)

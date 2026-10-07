@@ -36,9 +36,6 @@ public class GlobusProjectPrefs extends AbstractPreferenceBean {
     public static final Scope SCOPE = Scope.Project;
     public static final String GLOBUS_ENABLED = "globusEnabled";
     public static final String GLOBUS_ENDPOINT_NAME = "globusEndpointName";
-    public static final String OUTBOX_DIRECTORY = "globusOutboxDirectory";
-    public static final String REMOTE_INBOX_PATH = "globusRemoteInboxPath";
-    public static final String REMOTE_INBOX_SERVER_DIRECTORY = "globusRemoteInboxServerDirectory";
 
     @Autowired
     protected GlobusProjectPrefs(final NrgPreferenceService preferenceService) {
@@ -86,75 +83,6 @@ public class GlobusProjectPrefs extends AbstractPreferenceBean {
             this.set(SCOPE, entityId, endpointName, GLOBUS_ENDPOINT_NAME);
         } catch (InvalidPreferenceName e) {
             _logger.error("Invalid Globus preference name: {}", GLOBUS_ENDPOINT_NAME);
-        }
-    }
-
-    @NrgPreference
-    public String getGlobusOutboxDirectory() {
-        return null;
-    }
-
-    /**
-     * @param entityId the project id
-     * @return the local filesystem directory backing this node's outbox guest
-     *         collection, into which a XAR is staged before transfer
-     */
-    public String getGlobusOutboxDirectory(final String entityId) {
-        return this.getValue(SCOPE, entityId, OUTBOX_DIRECTORY);
-    }
-
-    public void setGlobusOutboxDirectory(final String entityId, final String directory) {
-        try {
-            removeSiteLevelPreferenceIfExists(OUTBOX_DIRECTORY);
-            this.set(SCOPE, entityId, directory, OUTBOX_DIRECTORY);
-        } catch (InvalidPreferenceName e) {
-            _logger.error("Invalid Globus preference name: {}", OUTBOX_DIRECTORY);
-        }
-    }
-
-    @NrgPreference
-    public String getGlobusRemoteInboxPath() {
-        return null;
-    }
-
-    /**
-     * @param entityId the project id
-     * @return the collection-relative path within the destination inbox guest
-     *         collection that Globus writes to (e.g. this node's subpath)
-     */
-    public String getGlobusRemoteInboxPath(final String entityId) {
-        return this.getValue(SCOPE, entityId, REMOTE_INBOX_PATH);
-    }
-
-    public void setGlobusRemoteInboxPath(final String entityId, final String path) {
-        try {
-            removeSiteLevelPreferenceIfExists(REMOTE_INBOX_PATH);
-            this.set(SCOPE, entityId, path, REMOTE_INBOX_PATH);
-        } catch (InvalidPreferenceName e) {
-            _logger.error("Invalid Globus preference name: {}", REMOTE_INBOX_PATH);
-        }
-    }
-
-    @NrgPreference
-    public String getGlobusRemoteInboxServerDirectory() {
-        return null;
-    }
-
-    /**
-     * @param entityId the project id
-     * @return the destination host's local filesystem directory where the
-     *         transferred XAR lands, passed to the import-by-path call
-     */
-    public String getGlobusRemoteInboxServerDirectory(final String entityId) {
-        return this.getValue(SCOPE, entityId, REMOTE_INBOX_SERVER_DIRECTORY);
-    }
-
-    public void setGlobusRemoteInboxServerDirectory(final String entityId, final String directory) {
-        try {
-            removeSiteLevelPreferenceIfExists(REMOTE_INBOX_SERVER_DIRECTORY);
-            this.set(SCOPE, entityId, directory, REMOTE_INBOX_SERVER_DIRECTORY);
-        } catch (InvalidPreferenceName e) {
-            _logger.error("Invalid Globus preference name: {}", REMOTE_INBOX_SERVER_DIRECTORY);
         }
     }
 

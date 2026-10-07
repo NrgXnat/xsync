@@ -402,6 +402,11 @@ config (collection paths, toggles) can remain ordinary `@NrgPreference`s.
 **The secret is stored in plaintext for now** — matching the existing
 `RemoteAliasEntity`, which stores its alias secret in plaintext today.
 
+**Partly superseded by §6.9:** the per-endpoint credential layout is being
+refactored to a **single node-level service account** (one confidential client
++ one outbox per node). "Multiple endpoints" stays; "different credentials per
+endpoint" becomes an optional, additive override rather than the default.
+
 ### 6.8 Secret encryption (planned, not yet implemented)
 
 At-rest encryption of stored secrets is deferred pending team discussion.
@@ -423,6 +428,69 @@ Intended approach and constraints:
   encrypts existing rows and a way to tell encrypted from plaintext values
   (e.g. a version/prefix marker or a one-time "encrypt on next load"
   pass). Design this with the team before enabling encryption.
+
+### 6.9 Decision + refactor: one node service account, many destinations
+
+**Decision (2026-10):** a node has **one Globus service account** (one
+confidential client) and **one outbox**, stored **once at the node level** —
+not copied into every endpoint. Today a `GlobusEndpoint` row carries
+`clientId` / `clientSecret` / `outboxCollectionId` identically across all of a
+node's endpoints; only `inboxCollectionId` (the remote peer's inbox) actually
+varies. This refactor removes that redundancy.
+
+Rationale: a **single source for the secret** (one value to encrypt per §6.8
+and to rotate; no copy-drift) and alignment with the chosen "one confidential
+client per node" model (permissions design). The alternative — a distinct
+service account per destination (credential blast-radius isolation) — is
+**not** adopted; judged unlikely to be needed. It is preserved as an
+**additive future option** (below), not designed in now.
+
+**Target model — three layers, by what varies:**
+
+- **Node config (singleton per site):** `clientId`, `clientSecret`, the local
+  outbox collection id + outbox directory (and optionally this node's own
+  inbox collection id, for display/sharing). Home: `XsyncSitePreferencesBean`
+  or a dedicated single-row entity / preference bean.
+- **Destination (many):** `name`, remote `inboxCollectionId`,
+  `remoteInboxPath`, `remoteInboxServerDirectory` — everything about a peer we
+  send to. This is `GlobusEndpoint` minus the node-level fields (consider
+  renaming the type to `GlobusDestination`).
+- **Project config:** `globusEnabled` + which destination(s) to target. The
+  storage paths leave `GlobusProjectPrefs` — they are node/destination
+  properties, not project properties.
+
+**Forward compatibility (the escape hatch):** the per-destination credential
+override is a purely **additive** change — nullable `clientId` / `clientSecret`
+on the destination plus a fallback `destination.override().orElse(node
+account)`. No data migration, no behavior change for destinations without an
+override. The **one design rule that keeps it cheap:** route *all* credential
+lookups through a **single resolution method** (today it returns the node
+account); adding the override later is then a one-method change plus the
+additive fields. Scattered credential reads would make it an N-site change.
+
+**Refactor steps:**
+
+1. Introduce the **node config** (service account + outbox collection/dir);
+   decide home (fields on `XsyncSitePreferencesBean` vs. a single-row entity).
+2. Reduce `GlobusEndpoint` to a **destination**: drop `clientId`,
+   `clientSecret`, `outboxCollectionId`; add `remoteInboxPath`,
+   `remoteInboxServerDirectory` (moved from `GlobusProjectPrefs`).
+3. Add the **single credential-resolution seam** (e.g.
+   `nodeServiceCredentials()` / `credentialsFor(destination)`) and route
+   `GlobusXarSender.obtainToken`, the controller Test path, and
+   `GlobusEndpointService.credentialsFor` through it.
+4. Update `GlobusXarSender`: outbox + creds from node config; remote inbox +
+   paths from the destination; nothing storage-related from project prefs.
+5. Trim `GlobusProjectPrefs` to `globusEnabled` + destination selection.
+6. Update the admin UI (endpoint → destination form, plus a node-config panel
+   for service account + outbox) and the project modal (destination picker;
+   drop the path fields); update the `endpointNames` project endpoint if its
+   shape changes.
+7. Update unit tests and `XSYNC_GLOBUS_TEST_CONFIG.md`.
+
+**Migration:** cheap now — Globus is pre-production with likely no stored
+endpoint data; do it before it ships. The later override adds only nullable
+columns and needs no migration.
 
 ---
 
