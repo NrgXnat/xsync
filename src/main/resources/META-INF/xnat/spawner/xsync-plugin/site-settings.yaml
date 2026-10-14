@@ -47,6 +47,63 @@ siteSettings:
                                 Allow projects to transfer over Globus. Requires a Globus Connect Server and registered Globus endpoints. When disabled, projects configured for Globus fall back to HTTPS.
                         xsyncConnectionManagerScript:
                             tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncConnectionManager.js"
+        globusNode:
+            kind: tab
+            label: Globus Node
+            group: xsyncConfig
+            active: false
+            contents:
+                globusNodePanel:
+                    kind: panel.form
+                    name: globusNodePanel
+                    label: Globus Node Configuration
+                    method: POST
+                    url: /xapi/xsync/globus/node
+                    contentType: application/json
+                    contents:
+                        globusNodeHelptext:
+                            tag: div.message
+                            content: >
+                                This node's Globus service account and outbox, shared by every transfer it sends.
+                                The client secret is write-only: it is stored when you save but never displayed again
+                                &mdash; leave it blank to keep the stored value. Individual peers are configured on the
+                                Globus Endpoints tab.
+                        clientId:
+                            kind: panel.input.text
+                            name: clientId
+                            size: 40
+                            label: Client ID
+                            description: >
+                                The Globus confidential-client (application) id for this node's service account.
+                        clientSecret:
+                            kind: panel.input.password
+                            name: clientSecret
+                            size: 40
+                            label: Client Secret
+                            placeholder: Leave blank to keep the stored secret
+                            description: >
+                                The client secret. Stored on save but never displayed again.
+                        outboxCollectionId:
+                            kind: panel.input.text
+                            name: outboxCollectionId
+                            size: 40
+                            label: Outbox Collection ID
+                            description: >
+                                UUID of this node's outbox guest collection, from which staged XARs are sent.
+                        outboxDirectory:
+                            kind: panel.input.text
+                            name: outboxDirectory
+                            size: 40
+                            label: Outbox Directory
+                            description: >
+                                Collection-relative path within the outbox where XSync stages XARs before transfer.
+                        inboxCollectionId:
+                            kind: panel.input.text
+                            name: inboxCollectionId
+                            size: 40
+                            label: Inbox Collection ID
+                            description: >
+                                UUID of this node's inbox guest collection (receives XARs from peers). Optional for a send-only node.
         globusEndpoints:
             kind: tab
             label: Globus Endpoints
@@ -62,10 +119,10 @@ siteSettings:
                         globusEndpointsHelptext:
                             tag: div.message
                             content: >
-                                Configure the Globus endpoints XSync may transfer to and from, each with its
-                                confidential-client credentials. Client secrets are write-only: they are stored
-                                when you save an endpoint but never displayed again &mdash; leave the secret blank
-                                when editing to keep the stored value. Use Test to verify connectivity.
+                                Configure the Globus destinations XSync may transfer to. Each destination records a
+                                peer's inbox collection and the paths a transfer writes to. The service account and
+                                outbox this node sends with are configured on the Globus Node tab. Use Test to verify
+                                connectivity to a destination.
                         xsyncGlobusEndpointsTable:
                             tag: "div#xsync-globus-endpoints-table"
                         xsyncGlobusScript:

@@ -8,9 +8,10 @@
  */
 
 /*!
- * Manage the Globus endpoints (and their credentials) XSync can transfer with.
- * Client secrets are write-only: stored on save, never returned; leave the
- * secret blank when editing to keep the stored value.
+ * Manage the Globus transfer destinations XSync can send to. The node's own
+ * service account and outbox are configured on the Globus Node tab; a
+ * destination here records a peer's inbox collection and the paths a transfer
+ * writes to.
  */
 
 console.log('xsyncGlobusManager.js');
@@ -48,7 +49,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         if (data === true || data === 'true') {
             XNAT.ui.banner.top(3000, 'Globus connection succeeded.', 'success');
         } else {
-            XNAT.ui.banner.top(4000, 'Globus connection failed. Check the client id, secret, and collection ids.', 'warning');
+            XNAT.ui.banner.top(4000, 'Globus connection failed. Check the node service account (Globus Node tab) and the destination inbox collection id.', 'warning');
         }
     }
 
@@ -60,7 +61,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 xsyncGlobusManager.endpoints = data || [];
             },
             fail: function(e) {
-                XNAT.ui.banner.top(2000, 'Could not retrieve Globus endpoints: ' + e.responseText, 'error');
+                XNAT.ui.banner.top(2000, 'Could not retrieve Globus destinations: ' + e.responseText, 'error');
             }
         });
     };
@@ -73,23 +74,11 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             data: JSON.stringify(endpoint),
             success: function() {
                 xsyncGlobusManager.refreshTable();
-                XNAT.ui.banner.top(2000, 'Endpoint ' + (mode === 'create' ? 'created' : 'updated') + ' successfully.', 'success');
+                XNAT.ui.banner.top(2000, 'Destination ' + (mode === 'create' ? 'created' : 'updated') + ' successfully.', 'success');
                 XNAT.ui.dialog.closeAll();
             },
             fail: function(e) {
-                XNAT.ui.banner.top(3000, 'Could not save the endpoint: ' + e.responseText, 'error');
-            }
-        });
-    };
-
-    xsyncGlobusManager.testCredentials = function(endpoint) {
-        XNAT.xhr.post({
-            url: restUrl(apiBase + '/test'),
-            contentType: 'application/json',
-            data: JSON.stringify(endpoint),
-            success: bannerTestResult,
-            fail: function(e) {
-                XNAT.ui.banner.top(4000, 'Connection test error: ' + e.responseText, 'error');
+                XNAT.ui.banner.top(3000, 'Could not save the destination: ' + e.responseText, 'error');
             }
         });
     };
@@ -106,8 +95,8 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     xsyncGlobusManager.deleteEndpoint = function(endpoint) {
         xmodal.open({
-            title: 'Confirm Endpoint Deletion',
-            content: 'Are you sure you want to delete the Globus endpoint "' + endpoint.name + '"?',
+            title: 'Confirm Destination Deletion',
+            content: 'Are you sure you want to delete the Globus destination "' + endpoint.name + '"?',
             width: 400,
             height: 200,
             overflow: 'auto',
@@ -121,11 +110,11 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                             async: false,
                             success: function() {
                                 xmodal.closeAll();
-                                XNAT.ui.banner.top(2000, 'Endpoint deleted.', 'success');
+                                XNAT.ui.banner.top(2000, 'Destination deleted.', 'success');
                                 xsyncGlobusManager.refreshTable();
                             },
                             fail: function(e) {
-                                XNAT.ui.banner.top(3000, 'Could not delete the endpoint: ' + e.responseText, 'error');
+                                XNAT.ui.banner.top(3000, 'Could not delete the destination: ' + e.responseText, 'error');
                             }
                         });
                     }
@@ -167,29 +156,17 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         return spawn('div.element-wrapper', elements);
     }
 
-    function renderForm(endpoint, mode) {
+    function renderForm(endpoint) {
         var container = document.getElementById('globus-endpoint-details-body');
         container.innerHTML = '';
         var form = document.createElement('form');
         form.id = 'globus-endpoint-form';
         form.appendChild(spawn('div|class="warning"', {style: {visibility: 'hidden'}, id: 'globus-warning'}));
-        form.appendChild(inputRow('Endpoint Name', 'globus_name_input', endpoint.name, 'text', '', 'A unique name for this endpoint configuration.'));
-        form.appendChild(inputRow('Client ID', 'globus_clientid_input', endpoint.clientId, 'text', '', 'The Globus confidential-client (application) id.'));
-        var secretPlaceholder = (mode === 'create') ? '' : 'Leave blank to keep the stored secret';
-        form.appendChild(inputRow('Client Secret', 'globus_secret_input', '', 'password', secretPlaceholder, 'The client secret. Stored on save but never displayed again.'));
-        form.appendChild(inputRow('Inbox Collection ID', 'globus_inbox_input', endpoint.inboxCollectionId, 'text', '', 'UUID of this node\'s inbox collection (receives XARs/DICOM). Leave blank for a send-only node.'));
-        form.appendChild(inputRow('Outbox Collection ID', 'globus_outbox_input', endpoint.outboxCollectionId, 'text', '', 'UUID of this node\'s outbox collection (sends staged XARs). Leave blank for a receive-only node.'));
+        form.appendChild(inputRow('Destination Name', 'globus_name_input', endpoint.name, 'text', '', 'A unique name for this destination.'));
+        form.appendChild(inputRow('Inbox Collection ID', 'globus_inbox_input', endpoint.inboxCollectionId, 'text', '', 'UUID of the destination\'s inbox guest collection, where this node writes.'));
+        form.appendChild(inputRow('Remote Inbox Path', 'globus_remotepath_input', endpoint.remoteInboxPath, 'text', '', 'Collection-relative path in the destination inbox this node writes to (its subpath, e.g. /site1).'));
+        form.appendChild(inputRow('Remote Inbox Server Directory', 'globus_remoteserverdir_input', endpoint.remoteInboxServerDirectory, 'text', '', 'Destination host filesystem directory where the transferred XAR lands, for import (e.g. /opt/data/xsync-globus-inbox/site1).'));
         container.appendChild(form);
-    }
-
-    function gatherForm() {
-        return {
-            name: $('#globus_name_input').val(),
-            clientId: $('#globus_clientid_input').val(),
-            clientSecret: $('#globus_secret_input').val(),
-            inboxCollectionId: $('#globus_inbox_input').val(),
-            outboxCollectionId: $('#globus_outbox_input').val()
-        };
     }
 
     xsyncGlobusManager.addOrEditModal = function(endpoint, mode) {
@@ -198,7 +175,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         ]);
 
         XNAT.ui.dialog.open({
-            title: (mode === 'create') ? 'Add Globus Endpoint' : 'Edit Globus Endpoint',
+            title: (mode === 'create') ? 'Add Globus Destination' : 'Edit Globus Destination',
             width: 720,
             content: tmpl,
             isDraggable: true,
@@ -212,42 +189,17 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                     action: function() {
                         xsyncGlobusManager.validation = '';
                         var pojo = {};
-                        pojo.name = xsyncGlobusManager.validate($('#globus_name_input'), 'Endpoint Name', 'required');
-                        pojo.clientId = xsyncGlobusManager.validate($('#globus_clientid_input'), 'Client ID', 'required');
-                        pojo.inboxCollectionId = $('#globus_inbox_input').val();
-                        pojo.outboxCollectionId = $('#globus_outbox_input').val();
-                        if ((!pojo.inboxCollectionId || pojo.inboxCollectionId.trim() === '') &&
-                            (!pojo.outboxCollectionId || pojo.outboxCollectionId.trim() === '')) {
-                            xsyncGlobusManager.validation += 'An inbox and/or outbox collection ID is required.<br/>';
-                            $('#globus_inbox_input').css('border-color', 'red');
-                            $('#globus_outbox_input').css('border-color', 'red');
-                        }
-                        var secret = $('#globus_secret_input').val();
-                        if (mode === 'create') {
-                            pojo.clientSecret = xsyncGlobusManager.validate($('#globus_secret_input'), 'Client Secret', 'required');
-                        } else if (secret && secret.trim() !== '') {
-                            pojo.clientSecret = secret;
-                        }
+                        pojo.name = xsyncGlobusManager.validate($('#globus_name_input'), 'Destination Name', 'required');
+                        pojo.inboxCollectionId = xsyncGlobusManager.validate($('#globus_inbox_input'), 'Inbox Collection ID', 'required');
+                        pojo.remoteInboxPath = $('#globus_remotepath_input').val();
+                        pojo.remoteInboxServerDirectory = $('#globus_remoteserverdir_input').val();
                         if (xsyncGlobusManager.validation !== '') {
                             $('#globus-warning').html(xsyncGlobusManager.validation).css('visibility', 'visible');
-                            XNAT.ui.banner.top(2000, 'Failed to save endpoint.', 'error');
+                            XNAT.ui.banner.top(2000, 'Failed to save destination.', 'error');
                         } else {
                             $('#globus-warning').html('').css('visibility', 'hidden');
                             xsyncGlobusManager.createOrUpdate(pojo, mode);
                         }
-                    }
-                },
-                {
-                    label: 'Test',
-                    isDefault: false,
-                    close: false,
-                    action: function() {
-                        var pojo = gatherForm();
-                        if ((!pojo.clientSecret || pojo.clientSecret.trim() === '') && mode !== 'create') {
-                            XNAT.ui.banner.top(5000, 'Enter the secret to test it here, or use Test on the endpoint row to test the stored secret.', 'warning');
-                            return;
-                        }
-                        xsyncGlobusManager.testCredentials(pojo);
                     }
                 },
                 {
@@ -257,7 +209,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 }
             ],
             afterShow: function() {
-                renderForm(endpoint, mode);
+                renderForm(endpoint);
                 if (mode !== 'create') {
                     document.getElementById('globus_name_input').readOnly = true;
                 }
@@ -271,8 +223,8 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 e.preventDefault();
                 xsyncGlobusManager.addOrEditModal({}, 'create');
             },
-            title: 'Add a Globus endpoint'
-        }, 'Add Endpoint');
+            title: 'Add a Globus destination'
+        }, 'Add Destination');
     };
 
     xsyncGlobusManager.getEditButton = function(endpoint) {
@@ -281,7 +233,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 e.preventDefault();
                 xsyncGlobusManager.addOrEditModal(endpoint, 'update');
             },
-            title: 'Edit endpoint'
+            title: 'Edit destination'
         }, 'Edit');
     };
 
@@ -291,7 +243,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 e.preventDefault();
                 xsyncGlobusManager.testStored(endpoint.name);
             },
-            title: 'Test connectivity using the stored credentials'
+            title: 'Test connectivity to this destination using the node service account'
         }, 'Test');
     };
 
@@ -301,7 +253,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 e.preventDefault();
                 xsyncGlobusManager.deleteEndpoint(endpoint);
             },
-            title: 'Delete endpoint'
+            title: 'Delete destination'
         }, 'Delete');
     };
 
@@ -314,14 +266,14 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     xsyncGlobusManager.table = function() {
         xsyncGlobusManager.getEndpoints();
-        var DATA_FIELDS = 'name, clientId, inboxCollectionId, outboxCollectionId';
+        var DATA_FIELDS = 'name, inboxCollectionId, remoteInboxPath, remoteInboxServerDirectory';
         var tableData = [];
         (xsyncGlobusManager.endpoints || []).forEach(function(ep) {
             tableData.push({
                 name: ep.name,
-                clientId: ep.clientId,
                 inboxCollectionId: ep.inboxCollectionId,
-                outboxCollectionId: ep.outboxCollectionId,
+                remoteInboxPath: ep.remoteInboxPath,
+                remoteInboxServerDirectory: ep.remoteInboxServerDirectory,
                 actions: ep
             });
         });
@@ -339,9 +291,9 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
         var columns = {
             name: textCol('Name'),
-            clientId: textCol('Client ID'),
             inboxCollectionId: textCol('Inbox Collection'),
-            outboxCollectionId: textCol('Outbox Collection'),
+            remoteInboxPath: textCol('Remote Inbox Path'),
+            remoteInboxServerDirectory: textCol('Remote Inbox Server Directory'),
             actions: {
                 label: 'Actions',
                 td: {style: {verticalAlign: 'middle', width: '200px'}},

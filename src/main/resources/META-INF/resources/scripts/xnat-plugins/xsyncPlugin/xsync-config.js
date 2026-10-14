@@ -197,17 +197,11 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
             '<label style="display:block;margin:8px 0;"><input type="checkbox" name="globusEnabled"' + checked + '> Enable Globus Transfers</label>' +
             '<label style="display:block;margin:8px 0;">Globus Endpoint<br>' +
             endpointField + '</label>' +
-            '<label style="display:block;margin:8px 0;">Outbox Directory<br>' +
-            '<input type="text" name="outboxDirectory" size="40" value="' + attr(cfg.outboxDirectory) + '"></label>' +
-            '<label style="display:block;margin:8px 0;">Remote Inbox Path<br>' +
-            '<input type="text" name="remoteInboxPath" size="40" value="' + attr(cfg.remoteInboxPath) + '"></label>' +
-            '<label style="display:block;margin:8px 0;">Remote Inbox Server Directory<br>' +
-            '<input type="text" name="remoteInboxServerDirectory" size="40" value="' + attr(cfg.remoteInboxServerDirectory) + '"></label>' +
             '</form>';
 
         xmodal.open({
             width: 600,
-            height: 520,
+            height: 320,
             id: 'xmodal-globus-config',
             title: 'Configure Globus Transfer',
             content: content,
@@ -218,10 +212,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
                 var $form = modl.$modal.find('#xsync-globus-form');
                 var payload = {
                     globusEnabled: $form.find('[name="globusEnabled"]').is(':checked'),
-                    globusEndpointName: $form.find('[name="globusEndpointName"]').val(),
-                    outboxDirectory: $form.find('[name="outboxDirectory"]').val(),
-                    remoteInboxPath: $form.find('[name="remoteInboxPath"]').val(),
-                    remoteInboxServerDirectory: $form.find('[name="remoteInboxServerDirectory"]').val()
+                    globusEndpointName: $form.find('[name="globusEndpointName"]').val()
                 };
                 xmodal.loading.open({ title: 'Saving Globus configuration...' });
                 var save = $.ajax({
