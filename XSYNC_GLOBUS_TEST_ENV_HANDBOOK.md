@@ -38,8 +38,9 @@ paste an ID you haven't captured from your own environment.
                                           (checksummed, resumable, endpoint-to-endpoint)
 ```
 
-Two Globus confidential clients (different credentials) let QA prove the
-"multiple endpoints, distinct credentials" requirement.
+Each sending node has one **service-account** confidential client (one per
+node). A **bidirectional** bed uses two — Site A's and Site B's; a one-way
+A→B bed needs only Site A's.
 
 ### Tiers
 
@@ -113,30 +114,43 @@ run node setup as root.
    globus-connect-server storage-gateway create posix "XNAT-A Gateway" \
      --domain test
    ```
-   Record the **Storage Gateway ID**.
-5. **Create a mapped collection** rooted at the XSync outbox (Site A) or
-   the inbox (Site B):
+   Record the **Storage Gateway ID**. (For a realistic bed, add a path
+   restriction + identity mapping **at create time** — manual §2.1 step 2;
+   the toy `--domain test` gateway above will not map identities to a local
+   account.)
+5. **Create a mapped collection** (substrate) rooted at the XSync outbox
+   (Site A) or the inbox (Site B), allowing guest collections:
    ```bash
    # Site A (source): root at the XSync cache/outbox base
    globus-connect-server collection create <STORAGE_GATEWAY_ID> \
-     /data/xnat/cache/ "XNAT-A Outbox Collection"
+     /data/xnat/cache/ "XNAT-A Outbox (mapped)" --allow-guest-collections
    # Site B (destination): root at the inbox base
    globus-connect-server collection create <STORAGE_GATEWAY_ID> \
-     /data/xnat/inbox/ "XNAT-B Inbox Collection"
+     /data/xnat/inbox/ "XNAT-B Inbox (mapped)" --allow-guest-collections
    ```
-   Record each **Collection ID** and its **root path**.
-6. Record, for each site: **Endpoint ID, Collection ID, collection root
-   path, and the server-local path** it maps to. XNAT needs both the
+   Record each **mapped Collection ID** and its **root path**.
+6. **Layer a guest collection** on each mapped collection — the default-deny
+   access layer the node service accounts and peers transfer against (not the
+   mapped collection). See manual §2.1 step 4 for the one-time owner
+   prerequisites (`data_access` consent + user credential):
+   ```bash
+   globus collection create guest <MAPPED_COLLECTION_ID> / "XNAT-A Outbox"
+   ```
+   Record each **guest Collection ID** — these are the UUIDs XNAT (Part E)
+   and the ACLs (§6.2) use.
+7. Record, for each site: **Endpoint ID, guest Collection ID, collection
+   root path, and the server-local path** it maps to. XNAT needs both the
    collection-relative path (for transfers) and the server-local path (for
    import). This is the "path duality" the plan calls out — keep them
    straight. **[OPEN:** path config — plan §6.6.**]**
 
 ---
 
-## 5. Part C — Globus Auth: confidential clients
+## 5. Part C — Globus Auth: confidential clients (node service accounts)
 
-Create **two** clients so QA can register two endpoints with different
-credentials (checklist item 1).
+Each node drives Globus with **one service-account** confidential client.
+Create **one per sending node**: Site A's alone suffices for a one-way A→B
+bed; create Site B's too to test the reverse direction (bidirectional sync).
 
 1. Go to `https://app.globus.org/settings/developers` → **"Register a
    service account or application credential for automation."**
@@ -147,9 +161,10 @@ credentials (checklist item 1).
    ```
 4. **Add Client Secret** → name it → **copy it immediately** (it is shown
    once). Store securely.
-5. Repeat for a second client (`xsync-qa-client-2`) with its own secret.
-6. Keep a table: client name → Client ID → identity → which endpoint uses
-   it.
+5. Repeat for Site B's node service account (`xsync-qa-client-2`) with its
+   own secret, if testing the reverse direction.
+6. Keep a table: client name → Client ID → identity → which **site/node**
+   uses it.
 
 The only scope needed is the base Transfer scope
 `urn:globus:auth:scope:transfer.api.globus.org:all`. Because the QA bed
@@ -181,24 +196,27 @@ project outbox/inbox settings expect (manual §6.2, §8.1).
 
 ### 6.2 Grant the client identities access (ACLs)
 
-Give each client identity the right permission on the right collection.
-Source needs read; destination needs read-write.
+Grant on the **guest** collections (§6.1). Site A's node service account
+(Client 1) reads Site A's own outbox and writes Site B's inbox, scoped to
+Site A's own subpath (per-peer isolation — manual §2.1 step 5):
 
 ```bash
-# Client 1 gets READ on the Site A outbox collection
-globus endpoint permission create <SRC_COLLECTION_ID>:/xsync/outbox/ \
-  --permissions r --identity <CLIENT1_ID>@clients.auth.globus.org
+# Client 1 (Site A account) gets READ on the Site A outbox guest collection
+globus endpoint permission create <SRC_GUEST_COLLECTION_ID>:/xsync/outbox/ \
+  --permissions r --provision-identity <CLIENT1_ID>@clients.auth.globus.org
 
-# Client 1 gets READ/WRITE on the Site B inbox collection
-globus endpoint permission create <DST_COLLECTION_ID>:/ \
-  --permissions rw --identity <CLIENT1_ID>@clients.auth.globus.org
+# Client 1 gets READ/WRITE on the Site B inbox guest collection, scoped to
+# Site A's own subpath (not the root)
+globus endpoint permission create <DST_GUEST_COLLECTION_ID>:/A/ \
+  --permissions rw --provision-identity <CLIENT1_ID>@clients.auth.globus.org
 ```
 
-Repeat for Client 2 against a second endpoint if you are testing the
-distinct-credentials path. Verify with:
+For a **bidirectional** bed, add the opposite collections (an inbox on
+Site A, an outbox on Site B) and grant **Client 2** (Site B's account) the
+mirror ACLs. Verify any grant with:
 
 ```bash
-globus endpoint permission list <DST_COLLECTION_ID>
+globus endpoint permission list <DST_GUEST_COLLECTION_ID>
 ```
 
 ### 6.3 Prove a raw transfer works (before involving XNAT)
@@ -208,8 +226,8 @@ Sanity-check the plumbing with the CLI, acting as the client credentials
 
 ```bash
 echo hello > /data/xnat/cache/xsync/outbox/TEST/probe.txt
-globus transfer <SRC_COLLECTION_ID>:/xsync/outbox/TEST/probe.txt \
-  <DST_COLLECTION_ID>:/TEST/probe.txt
+globus transfer <SRC_GUEST_COLLECTION_ID>:/xsync/outbox/TEST/probe.txt \
+  <DST_GUEST_COLLECTION_ID>:/A/TEST/probe.txt
 globus task list        # watch it reach SUCCEEDED
 ```
 
@@ -218,21 +236,24 @@ and path-mapping unknowns (plan Phase 0).
 
 ---
 
-## 7. Part E — Wire XNAT to Globus  [TARGET]
+## 7. Part E — Wire XNAT to Globus
 
 Follow `XSYNC_GLOBUS_ADMIN_MANUAL.md` §5.2:
 
-1. On XNAT-A, Administer → Plugin Settings → XSync → **Globus Management
-   Interface** → register an endpoint: paste the **Site B Collection ID**,
-   its base path, and the server-local inbox path; attach **Client 1**
-   credentials.
-2. Register a **second** endpoint with **Client 2** credentials (for
-   checklist item 1).
-3. **Enable Globus** as an allowed transfer method (Connection Management,
+1. **Enable Globus** as an allowed transfer method (Connection Management,
    §5.1).
-4. **Test connection** on each endpoint; expect pass for good creds and a
-   clear failure for a deliberately-broken one.
-5. Associate the endpoint(s) with the source test project (Part F).
+2. On XNAT-A, Administer → Plugin Settings → XSync → **Globus Node** → enter
+   Site A's service account (**Client 1** ID + secret) and its **outbox
+   guest collection UUID** + outbox directory. One record per node; the
+   secret is write-only.
+3. **Globus Endpoints** → add a **destination** for Site B: a name, Site B's
+   **inbox guest collection UUID**, the **remote inbox path** (`/A`), and the
+   **remote inbox server directory** (Site B's server-local inbox path). No
+   credentials on the destination.
+4. **Test connection** on the destination; expect a pass for a good node
+   account + inbox UUID and a clear failure for a deliberately-broken one.
+5. (Bidirectional) repeat on XNAT-B with Site B's node account (**Client 2**)
+   and a destination pointing at Site A's inbox.
 
 ---
 
@@ -246,10 +267,11 @@ Follow `XSYNC_GLOBUS_ADMIN_MANUAL.md` §5.2:
    - Upload 2–3 small DICOM sessions (compressed uploader or DICOM SCP).
    - Add a project resource and a subject resource (to test resource
      sync).
-3. Configure XSync on `QA_SRC` **[TARGET]** (manual §6.2): destination =
-   `https://xnat-b.test` / `QA_DEST`; transfer method = **Globus**;
-   endpoint = the one from Part E; set the project **outbox** and remote
-   **inbox** paths to match Part D.
+3. Configure XSync on `QA_SRC` (manual §6.1–§6.2): destination =
+   `https://xnat-b.test` / `QA_DEST` with destination credentials; then
+   **Configure Globus** → enable Globus and pick the Site B **endpoint**
+   (destination) from Part E. The outbox and paths come from the node and
+   destination config, not the project.
 4. For multi-destination testing (item 9), add a **second** destination —
    one Globus, one HTTPS — to the same project.
 5. For anonymization tests, enable **Anonymize** and paste a simple Mizer
@@ -316,7 +338,7 @@ Document the exact reset for your build; the remote-map reset detail is
 |---|---|
 | `globus transfer` (Part D) fails auth | ACL identity string exact (`<CLIENTID>@clients.auth.globus.org`); permission on the right guest collection and subpath. (No `data_access` consent applies — guest collections use ACL + base Transfer scope.) |
 | `UNKNOWN_SCOPE_ERROR` on a token request | A `data_access` scope was requested for a guest collection — valid only for mapped collections. Register/transfer against the **guest** UUID with the base Transfer scope. |
-| Transfer OK by CLI but XNAT test-connection fails | Endpoint credentials in the Globus Management Interface; collection UUID; network from the XNAT host. |
+| Transfer OK by CLI but XNAT test-connection fails | Node service account on the **Globus Node** tab; the destination's inbox guest UUID on **Globus Endpoints**; network from the XNAT host. |
 | XAR lands in inbox but no import | Destination XNAT running the plugin; inbox path matches the collection root + project subpath; destination inbox watcher enabled. |
 | Import happens but status never verifies | Archiving poll target/timeout; destination pipeline stalled (check prearchive). |
 | Node services down | `sudo systemctl status globus-gridftp-server`; re-run `node setup`. |
@@ -328,7 +350,7 @@ Document the exact reset for your build; the remote-map reset detail is
 
 | Checklist items | Requires |
 |---|---|
-| 1–3 (foundation) | Parts B, C, E (two clients/endpoints, test connection, association) |
+| 1–3 (foundation) | Parts B, C, E (node service account + outbox, destination registration, test connection) |
 | 4–8 (XSync over Globus) | Parts D, F, H (outbox/inbox, project, smoke test) |
 | 9 (multi-destination) | Part F step 4 |
 | 10–11 (fallback / HTTPS regression) | Part F + a working HTTPS destination |
@@ -347,9 +369,10 @@ maps to a plan item (manual §14):
 - Globus **auth** for client-credential clients (plan §4.5) — **resolved:**
   guest collections use ACL + base Transfer scope, no `data_access`
   consent (confirmed against live Globus). No longer a gate on Parts C/D.
-- Plugin **Globus Management Interface**, **outbox/inbox** project
-  settings, **inbox watcher/auto-import**, **archiving poll**, and
-  **remote-map reset** — all **[TARGET]** (Parts E, F, H, §11).
+- Plugin config surface — the **Globus Node** + **Globus Endpoints** admin
+  tabs and the per-project destination selection — is **implemented**
+  (Parts E, F). The **inbox watcher/auto-import**, **archiving poll**, and
+  **remote-map reset** remain **[TARGET]** (Parts H, §11).
 - Guest collections + the subscription are a firm requirement, not an open
   question. (HA collections are out of scope — data is anonymized
   source-side; see plan §10 decision 4.)

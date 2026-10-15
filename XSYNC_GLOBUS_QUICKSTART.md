@@ -79,12 +79,15 @@ globus-connect-server storage-gateway create posix "XSync Gateway" \
 # record STORAGE_GATEWAY_ID   (--domain = your org/admin domain ONLY, not clients.auth.globus.org)
 ```
 
-**3. Two mapped collections** (substrate; not what peers transfer against):
+**3. Two mapped collections** (substrate; not what peers transfer against).
+Pass **`--allow-guest-collections`** — mapped collections disable sharing by
+default, and without it the guest-collection step fails with *"Sharing
+Disabled"* (→ Manual §2.1 step 3):
 ```bash
 globus-connect-server collection create <STORAGE_GATEWAY_ID> \
-  /opt/data/xsync-globus-inbox  "XNAT Inbox (mapped)"
+  /opt/data/xsync-globus-inbox  "XNAT Inbox (mapped)"  --allow-guest-collections
 globus-connect-server collection create <STORAGE_GATEWAY_ID> \
-  /opt/data/cache/xsync-globus-outbox "XNAT Outbox (mapped)"
+  /opt/data/cache/xsync-globus-outbox "XNAT Outbox (mapped)" --allow-guest-collections
 # record both MAPPED_COLLECTION_IDs
 ```
 
@@ -126,16 +129,21 @@ Record the two **guest** UUIDs — they go into XNAT next.
 
 ---
 
-## Part 2 — Register the endpoint in XNAT
+## Part 2 — Configure Globus in XNAT
 
 **Admin → Plugin Settings → XSync** (→ Manual §5):
 
 1. **Connection Management** — enable **Globus** as a transfer method. (§5.1)
-2. **Globus Endpoints** — add an endpoint: display name, the confidential
-   client ID + secret, and the **inbox** and **outbox _guest_ collection
-   UUIDs** (at least one; leave the other blank for a receive-only or
-   send-only node). (§5.2)
-3. Click **Test** on the endpoint to confirm auth + reachability.
+2. **Globus Node** — enter this node's service account (confidential client
+   ID + secret) and its **outbox _guest_ collection UUID** + outbox
+   directory (optionally this node's own inbox guest UUID). One record per
+   node; the secret is write-only. (§5.2)
+3. **Globus Endpoints** — add a **destination** for each peer you send to:
+   a display name, the peer's **inbox _guest_ collection UUID**, the
+   collection-relative **remote inbox path** (your subpath), and the peer's
+   **remote inbox server directory**. No credentials here. (§5.2)
+4. Click **Test connection** on a destination to confirm the node service
+   account authenticates and the peer inbox resolves.
 
 ---
 
@@ -145,9 +153,11 @@ On the project's **Manage → XSync Configuration** (→ Manual §6):
 
 1. Enable XSync; set the **destination XNAT URL + project** and
    **destination credentials**. (§6.1)
-2. Transfer method = **Globus**; pick the registered **endpoint**. (§6.2)
-3. Set the project **outbox** (this node) and remote **inbox** paths.
-4. Pick a **sync frequency** (or On Demand); enable **Anonymize** if
+2. Open **Configure Globus**: enable Globus and pick the registered
+   **endpoint** (destination) by name. The service account, outbox, and the
+   destination's paths all come from the Globus Node and Globus Endpoints
+   config (Part 2), not the project. (§6.2)
+3. Pick a **sync frequency** (or On Demand); enable **Anonymize** if
    needed. (§6.5–§6.6)
 
 ---
@@ -169,9 +179,11 @@ On the project's **Manage → XSync Configuration** (→ Manual §6):
 - **Auth model (confirmed):** guest collections are authorized by their
   **ACLs** plus the **base Transfer scope** — no `data_access` dependent
   scope or consent (that scope is mapped-collection-only and is rejected on
-  guest collections). The endpoint **Test** is therefore a pure auth check:
-  green means the client authenticated to Globus; it does **not** prove the
-  collection UUIDs or ACLs are correct. → Manual §14
+  guest collections). A destination's **Test connection** obtains a token
+  with the node service account and probes the peer inbox: green means the
+  service account authenticated and the inbox UUID resolves; it does **not**
+  prove the per-peer ACL subpath is correct (only a real transfer does).
+  → Manual §5.2, §14
 - Other open items (task/archiving poll settings, endpoint provisioning) —
   → Manual §14.
 

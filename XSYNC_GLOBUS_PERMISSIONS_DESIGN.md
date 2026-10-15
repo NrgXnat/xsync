@@ -166,8 +166,11 @@ required scope/consent before implementing.
 - **`RemoteAliasEntity`** (destination-issued alias tokens) — the existing
   destination-consent mechanism; the Globus ACL is its byte-movement
   parallel. A route needs *both*.
-- **`GlobusEndpoint`** (site-level: client id/secret + inbox/outbox guest
-  collection UUIDs) — the node's Globus binding that routes reference.
+- **`GlobusNodeConfig`** (site-level singleton: client id/secret + outbox
+  guest-collection UUID + optional own-inbox UUID) — the node's Globus
+  service account and outbox. **`GlobusEndpoint`** is now the per-destination
+  record (peer inbox UUID + remote paths) that routes reference. This split
+  matches §3's "one confidential client per node, destinations are coarse."
 - **`GlobusClient`** (Transfer API: probe + submit/status/wait) — the client
   the ACL-automation calls would extend.
 

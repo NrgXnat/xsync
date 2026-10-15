@@ -253,8 +253,9 @@ Mirror the Aspera package (`org.nrg.xsync.aspera`) with a new
   now the constant base Transfer scope, this is effectively one token per
   client, reused across every guest collection its ACLs cover. Analogous to
   the JSESSIONID cache in `RemoteConnectionManager` but for bearer tokens.
-- Storage-agnostic: credentials are supplied by the caller
-  (`GlobusEndpointService.credentialsFor(name)`), not read here (§6.7).
+- Storage-agnostic: credentials are supplied by the caller — the single
+  node service account from
+  `GlobusNodeConfigService.getServiceCredentials()` (§6.9), not read here.
 
 ### 6.2 `globus/GlobusClient.java` (`@Component`)
 
@@ -298,32 +299,33 @@ Still planned (with the send path):
 
 ### 6.3 Preferences: `globus/GlobusSitePrefs` + `globus/GlobusProjectPrefs`
 
-> **Implemented so far.** The credential + collection portion of this
-> sketch is realized by the `GlobusEndpoint` Hibernate entity (§6.7) and
-> its management API/UI, **not** a preference bean. A `GlobusEndpoint`
-> holds `name`, `clientId`, `clientSecret`, and the node's
-> `inboxCollectionId` / `outboxCollectionId` (per-node inbox/outbox — the
-> abstraction arrived at in §5/§14.1 — superseding the earlier
-> `source`/`destination` framing below).
+> **Implemented (refactored per §6.9).** Credentials and collections are
+> Hibernate entities, **not** preference beans, split across two by what
+> varies:
 >
-> **`GlobusProjectPrefs` is now implemented** (`@NrgPreferenceBean`,
-> project scope, mirroring `AsperaProjectPrefs`) with the minimal fields a
-> transfer needs: `globusEnabled`, `globusEndpointName` (which registered
-> endpoint), `outboxDirectory` (local staging dir backing the outbox
-> collection), `remoteInboxPath` (destination collection-relative path), and
-> `remoteInboxServerDirectory` (destination server-local path for
-> import-by-path — the §6.6 path duality, handled by carrying both). A
-> config **UI/XAPI** to set these per project is the next increment.
+> - **`GlobusNodeConfig`** (singleton per node): `clientId`,
+>   `clientSecret`, `outboxCollectionId`, `outboxDirectory`, and optionally
+>   this node's own `inboxCollectionId`. The single service account + outbox.
+> - **`GlobusEndpoint`** (one per destination): `name`, the peer's
+>   `inboxCollectionId`, `remoteInboxPath`, `remoteInboxServerDirectory`. No
+>   credentials.
+>
+> **`GlobusProjectPrefs`** (`@NrgPreferenceBean`, project scope) is trimmed
+> to `globusEnabled` + `globusEndpointName` (which destination to use); the
+> storage paths moved to the node/destination entities (§6.9). The config
+> UI/XAPI for all three layers is implemented — node and destination admin
+> tabs plus the project modal.
 
 Mirror `AsperaSitePrefs` / `AsperaProjectPrefs` (`@NrgPreferenceBean`,
 project-scope for project prefs). Fields:
 
 - `globusEnabled` (project) — the per-project toggle.
-- `clientId` / `clientSecret` — **now on `GlobusEndpoint`** (§6.7), not a
+- `clientId` / `clientSecret` — **now on `GlobusNodeConfig`** (§6.9), not a
   preference; secret never stored as a plain pref.
-- inbox / outbox collection UUIDs — **now `GlobusEndpoint.inboxCollectionId`
-  / `outboxCollectionId`** (§6.7). A given transfer reads the source's
-  outbox and writes the destination's inbox.
+- collection UUIDs — the node's **outbox** is
+  `GlobusNodeConfig.outboxCollectionId` and each peer's **inbox** is
+  `GlobusEndpoint.inboxCollectionId` (§6.9). A transfer reads the node
+  outbox and writes the destination inbox.
 - `sourceCollectionBasePath` / source filesystem root mapping.
 - `destinationCollectionBasePath` — Globus namespace dest dir.
 - `destinationServerImportPath` — the **server-local** path the
@@ -389,23 +391,26 @@ relative via `sourceCollectionBasePath`.
 
 ### 6.7 Credential storage (secrets)
 
-**Decided.** Globus endpoint credentials are stored in a **Hibernate
-entity**, `GlobusEndpoint` (one row per endpoint: `name`, `clientId`,
-`clientSecret`, and the node's `inboxCollectionId` / `outboxCollectionId`
-— at least one required), with a `GlobusEndpointRepository` and
-`GlobusEndpointService`. This keeps secrets off the XFT/queryable data
-model (Developer's Guide §3.3) and supports "multiple endpoints, different
-credentials" (WS2). `GlobusEndpointService.credentialsFor(name)` bridges
-to the `GlobusCredentials` that `GlobusAuthService` consumes. Non-secret
-config (collection paths, toggles) can remain ordinary `@NrgPreference`s.
+**Decided, and refactored per §6.9.** The Globus service-account credentials
+are stored in a **Hibernate entity** — now `GlobusNodeConfig` (one singleton
+row: `clientId`, `clientSecret`, `outboxCollectionId`, `outboxDirectory`, and
+optionally the node's own `inboxCollectionId`), with a
+`GlobusNodeConfigRepository` and `GlobusNodeConfigService`. (The credentials
+originally lived on each `GlobusEndpoint` row; §6.9 moved them to the node
+level so a node has a single service account.) A Hibernate entity keeps
+secrets off the XFT/queryable data model (Developer's Guide §3.3).
+`GlobusNodeConfigService.getServiceCredentials()` is the single bridge to the
+`GlobusCredentials` that `GlobusAuthService` consumes. Non-secret config
+(collection paths, toggles) remains ordinary `@NrgPreference`s / entity fields.
 
 **The secret is stored in plaintext for now** — matching the existing
 `RemoteAliasEntity`, which stores its alias secret in plaintext today.
+At-rest encryption is §6.8.
 
-**Partly superseded by §6.9:** the per-endpoint credential layout is being
-refactored to a **single node-level service account** (one confidential client
-+ one outbox per node). "Multiple endpoints" stays; "different credentials per
-endpoint" becomes an optional, additive override rather than the default.
+**On "multiple endpoints, different credentials" (WS2):** "multiple
+endpoints" stays (many `GlobusEndpoint` destinations); "different credentials
+per endpoint" is deliberately **not** the default — it becomes an optional,
+additive per-destination override (§6.9, the escape hatch).
 
 ### 6.8 Secret encryption (planned, not yet implemented)
 
@@ -420,23 +425,31 @@ Intended approach and constraints:
   that secrets are not readable by casual `SELECT` — a reader must take an
   explicit decrypt step. (So plain Base64 is insufficient; use real
   encryption.)
-- **Apply consistently:** encrypt both `GlobusEndpoint.clientSecret` and
+- **Apply consistently:** encrypt both `GlobusNodeConfig.clientSecret` and
   `RemoteAliasEntity`'s alias secret, so the codebase is uniform.
 - **Migration (the reason it's deferred):** existing XSync deployments
   hold **plaintext** secrets in `RemoteAliasEntity` (and, once shipped,
-  `GlobusEndpoint`). Turning on encryption needs an upgrade migration that
+  `GlobusNodeConfig`). Turning on encryption needs an upgrade migration that
   encrypts existing rows and a way to tell encrypted from plaintext values
   (e.g. a version/prefix marker or a one-time "encrypt on next load"
   pass). Design this with the team before enabling encryption.
 
 ### 6.9 Decision + refactor: one node service account, many destinations
 
+> **Status: implemented.** The refactor landed in full — node config,
+> destination, trimmed project prefs, the single credential seam, UI, and
+> tests. Three choices made during implementation: node config is a
+> **dedicated single-row entity `GlobusNodeConfig`** (not fields on
+> `XsyncSitePreferencesBean`); the type kept the name **`GlobusEndpoint`**
+> (not renamed to `GlobusDestination`); and the single credential-resolution
+> seam is `GlobusNodeConfigService.getServiceCredentials()`.
+
 **Decision (2026-10):** a node has **one Globus service account** (one
 confidential client) and **one outbox**, stored **once at the node level** —
-not copied into every endpoint. Today a `GlobusEndpoint` row carries
-`clientId` / `clientSecret` / `outboxCollectionId` identically across all of a
-node's endpoints; only `inboxCollectionId` (the remote peer's inbox) actually
-varies. This refactor removes that redundancy.
+not copied into every endpoint. Before this refactor a `GlobusEndpoint` row
+carried `clientId` / `clientSecret` / `outboxCollectionId` identically across
+all of a node's endpoints; only `inboxCollectionId` (the remote peer's inbox)
+actually varied. The refactor removed that redundancy.
 
 Rationale: a **single source for the secret** (one value to encrypt per §6.8
 and to rotate; no copy-drift) and alignment with the chosen "one confidential
@@ -449,12 +462,12 @@ service account per destination (credential blast-radius isolation) — is
 
 - **Node config (singleton per site):** `clientId`, `clientSecret`, the local
   outbox collection id + outbox directory (and optionally this node's own
-  inbox collection id, for display/sharing). Home: `XsyncSitePreferencesBean`
-  or a dedicated single-row entity / preference bean.
+  inbox collection id, for display/sharing). Home: a dedicated single-row
+  entity, `GlobusNodeConfig`.
 - **Destination (many):** `name`, remote `inboxCollectionId`,
   `remoteInboxPath`, `remoteInboxServerDirectory` — everything about a peer we
-  send to. This is `GlobusEndpoint` minus the node-level fields (consider
-  renaming the type to `GlobusDestination`).
+  send to. This is `GlobusEndpoint` minus the node-level fields (the type
+  kept the name `GlobusEndpoint`).
 - **Project config:** `globusEnabled` + which destination(s) to target. The
   storage paths leave `GlobusProjectPrefs` — they are node/destination
   properties, not project properties.
@@ -468,17 +481,18 @@ lookups through a **single resolution method** (today it returns the node
 account); adding the override later is then a one-method change plus the
 additive fields. Scattered credential reads would make it an N-site change.
 
-**Refactor steps:**
+**Refactor steps (completed):**
 
 1. Introduce the **node config** (service account + outbox collection/dir);
-   decide home (fields on `XsyncSitePreferencesBean` vs. a single-row entity).
+   landed as the single-row entity `GlobusNodeConfig`.
 2. Reduce `GlobusEndpoint` to a **destination**: drop `clientId`,
    `clientSecret`, `outboxCollectionId`; add `remoteInboxPath`,
    `remoteInboxServerDirectory` (moved from `GlobusProjectPrefs`).
-3. Add the **single credential-resolution seam** (e.g.
-   `nodeServiceCredentials()` / `credentialsFor(destination)`) and route
-   `GlobusXarSender.obtainToken`, the controller Test path, and
-   `GlobusEndpointService.credentialsFor` through it.
+3. Add the **single credential-resolution seam**
+   (`GlobusNodeConfigService.getServiceCredentials()`) and route
+   `GlobusXarSender.obtainToken` and the controller Test path through it;
+   `GlobusEndpointService.credentialsFor` was removed (credentials no longer
+   live on the destination).
 4. Update `GlobusXarSender`: outbox + creds from node config; remote inbox +
    paths from the destination; nothing storage-related from project prefs.
 5. Trim `GlobusProjectPrefs` to `globusEnabled` + destination selection.
@@ -488,9 +502,75 @@ additive fields. Scattered credential reads would make it an N-site change.
    shape changes.
 7. Update unit tests and `XSYNC_GLOBUS_TEST_CONFIG.md`.
 
-**Migration:** cheap now — Globus is pre-production with likely no stored
-endpoint data; do it before it ships. The later override adds only nullable
-columns and needs no migration.
+**Migration:** done pre-production, with no stored endpoint data to migrate.
+The later override adds only nullable columns and needs no migration.
+
+### 6.10 Potential refinement: destination-resolved inbox path (proposed)
+
+> **Status: proposed, not decided.** Raised 2026-10; pending team
+> discussion before any commitment. Captured here as the natural successor
+> to the §6.9 model.
+
+**Problem.** A destination record carries `remoteInboxServerDirectory` — the
+destination host's *absolute* filesystem path where the XAR lands — so the
+**source** must know the destination's internal filesystem layout. This both
+leaks destination-internal detail into every peer's config and is redundant
+with `remoteInboxPath` (`remoteInboxServerDirectory` ≈ inbox base +
+`remoteInboxPath`). Today it is unavoidable because the import handoff is
+**stock XNAT** on the destination: `GlobusXarSender` calls
+`/data/services/import?import-handler=XAR&localFilePath=<absolute>`
+(`RemoteRESTServiceImpl.importXar`), and XNAT core treats `localFilePath` as
+an absolute path with no notion of a "Globus inbox."
+
+**Idea.** Move the collection-root → filesystem mapping to the **destination**,
+so the source sends only the *collection-relative* path (exactly the
+`destinationPath` it already computes for the transfer) and the destination
+resolves it against its own inbox base. "This is a Globus send" is signalled
+by *which endpoint is called*, not a flag.
+
+**What would change:**
+
+- **Node config gains `inboxDirectory`** — the filesystem base backing this
+  node's inbox collection (the mapped-collection `base_path`). The symmetric
+  counterpart of the existing `outboxDirectory`; makes the inbox side
+  (`inboxCollectionId` + `inboxDirectory`) mirror the outbox side. Single
+  source of truth, owned by the receiver.
+- **New receive-side XSync endpoint** (destination), e.g.
+  `POST /xapi/xsync/globus/inbox/import` — alias-token auth and project
+  scope as today — that accepts the collection-relative path, resolves
+  `absolute = inboxDirectory + relativePath`, **validates it stays under
+  `inboxDirectory`** (reject `..`/traversal), then delegates to the same XNAT
+  XAR import (`import-handler=XAR`, `removeLocalFileAfterImport`).
+- **`GlobusEndpoint` drops `remoteInboxServerDirectory`** (the destination
+  form loses that field); it keeps `remoteInboxPath` (still needed to address
+  the transfer). `GlobusXarSender.send()` stops computing `serverPath` and
+  calls the new endpoint with the relative path — so the path it *writes*
+  via Globus and the path it asks the destination to *import* become the
+  same string. Only the Globus receive path changes; HTTPS/Aspera keep stock
+  import-by-absolute-path.
+
+**Upsides.** (1) Security: the destination confines Globus imports to under
+`inboxDirectory`, rather than importing whatever absolute path the source
+supplies — a tighter posture that matches "destination owns inbound." (2) No
+destination-internal layout in peer config; the receiver can relocate its
+inbox without every peer reconfiguring. (3) Removes the §6.9-era redundancy.
+
+**Costs / open points for the team.** (1) Makes the destination plugin
+**mandatory** for the Globus XAR path (today that path uses stock XNAT, so
+the destination did not strictly need XSync for this step — only for the
+DICOM upload inbox; the manual already states the plugin is needed on the
+destination for Globus ingest, so this aligns with intent but is a real new
+hard dependency). (2) Path-traversal validation on the receive endpoint
+becomes security-critical. (3) Migration is additive/cheap pre-production
+(add `inboxDirectory`, drop `remoteInboxServerDirectory`), but both nodes
+need the new build.
+
+**Heavier alternative.** A true **inbox watcher** / auto-ingest on the
+destination (watch `inboxDirectory`, import whatever lands) removes the
+source-triggered import entirely — the fullest "destination owns its inbox,"
+matching the aspirational §7 step 6. Larger build (scheduled watcher, dedup,
+mapping arrivals back to sync-confirmation/status), noted as the next step up
+if the team wants to drop the trigger too.
 
 ---
 
@@ -630,9 +710,10 @@ plan delivers; the two could coexist later.
    per project. So the model is **not** one global client — it is a set of
    configured endpoints, each with its own credential (client id/secret or
    token), any of which a project may target (WS3 also requires **multiple
-   destinations per project**). Decide whether credentials are per-endpoint
-   or shared where the same Globus identity spans endpoints (§14, §5).
-2. **Secret storage:** _Resolved_ — Hibernate entity (`GlobusEndpoint`),
+   destinations per project**). _Resolved (§6.9):_ credentials are
+   **shared** at the node level (one service account for all destinations);
+   a per-destination credential override is a deferred, additive option.
+2. **Secret storage:** _Resolved_ — Hibernate entity (`GlobusNodeConfig`),
    secret plaintext for now; at-rest encryption + migration deferred to
    team discussion (§6.7, §6.8).
 3. **Sync vs async task handling:** block-poll (recommended v1, matches

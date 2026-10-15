@@ -45,8 +45,8 @@ project (and per destination):
 | Method | Summary | Status |
 |---|---|---|
 | **HTTPS** | XAR streamed to the destination import service. Always available; the default and fallback. | Standard |
-| **Globus** | XAR placed in a project **outbox**, transferred by Globus to a remote **inbox**, and auto-ingested. New. | This integration |
-| **Aspera** | XAR sent via `ascp`. Legacy; its UI is being retired. | Deprecated (UI hidden) |
+| **Globus** | XAR placed in the node **outbox**, transferred by Globus to a remote **inbox**, and auto-ingested. New. | This integration |
+| **Aspera** | XAR sent via `ascp` to an Aspera server. | Supported |
 
 Non-Globus operation is unaffected by the Globus feature: traditional
 HTTPS syncs run on the same server and projects as before.
@@ -74,9 +74,14 @@ HTTPS syncs run on the same server and projects as before.
   inbox is normally the **only** collection a remote peer is given any
   access to. (Why the two are separate with asymmetric access — inbound
   vs. outbound workflows — is summarized in §2.1.)
-- **Confidential client** — the credential XSync uses to drive Globus
-  transfers unattended (OAuth2 client-credentials). Multiple endpoints
-  may use different credentials.
+- **Service account (confidential client)** — the single credential XSync
+  uses to drive Globus transfers unattended (OAuth2 client-credentials).
+  **One per node**, held in the node's Globus configuration (§5.2) and
+  shared by every transfer the node sends; it is not configured per
+  destination.
+- **Node config vs. destination** — a node has one service account and one
+  outbox (its **node configuration**), and many **destinations** (one per
+  peer it sends to). The two are configured separately in XNAT (§5.2).
 
 ### 1.4 The hub-and-spoke model
 
@@ -145,8 +150,9 @@ Before configuring anything in XNAT:
    collection (substrate) + a **guest collection** (access layer) for each
    direction. Record the two **guest collection UUIDs**; you enter them in
    XNAT later (§5.2).
-3. A **confidential client** registered in Globus (client ID + secret)
-   for each set of credentials XNAT will use.
+3. **One confidential client** (service account) registered in Globus
+   (client ID + secret) for this node — XSync uses a single service account
+   per node for all its Globus transfers (§5.2).
 4. **ACLs**: each registered client is granted a guest-collection ACL
    (§2.1 step 5 — outbox read for the local client; inbox read-write per
    remote sender; see §2.1 for the asymmetric access model). Guest
@@ -220,6 +226,23 @@ must be able to read/import and write here:
 sudo mkdir -p /opt/data/xsync-globus-inbox /opt/data/cache/xsync-globus-outbox
 sudo chown xnat:xnat /opt/data/xsync-globus-inbox /opt/data/cache/xsync-globus-outbox
 ```
+
+> **Host placement — co-located vs. separate hosts.** XNAT and GCS do **not**
+> have to run on the same host; they must only share the **same filesystem**
+> for these staging directories. Co-located on one host (sharing local disk)
+> is the simplest arrangement and the default here. If instead XNAT and GCS
+> run on **separate hosts** sharing the directories over **NFS** (or similar):
+>
+> - The staging directories live on the shared mount, exported **read-write**.
+> - The account the GCS gateway maps to (steps 2 and 4b) is a local account
+>   **on the GCS host** — that is where `getent passwd <account>` must resolve
+>   and from where it must be able to read/write the mounted directories.
+> - XNAT reads the inbox and writes the outbox as its Tomcat account **on the
+>   XNAT host**.
+> - Because NFS authorizes by **numeric UID/GID**, give the GCS-mapped account
+>   and XNAT's Tomcat account the **same UID/GID**, so a file written by one is
+>   readable and writable by the other. Confirm the export's root-squash and
+>   permission settings don't block the mapped account.
 
 **2. Create one storage gateway** with two policies: a **path restriction**
 (so no collection on it can reach `/opt/data/archive`) and an **identity
@@ -425,18 +448,27 @@ read access to the inbox root.
 Grant only clients you have registered with the local XNAT (§5.2); any
 client without an ACL is denied by default.
 
-**6. Register the GUEST collection UUIDs in XNAT.** Enter the
-**guest** UUIDs (not the mapped ones) as the endpoint's inbox/outbox
-collection IDs when registering the endpoint (§5.2) — the guest collections
-are what transfers run against, and the ACLs you granted in step 5 are what
-authorize them. A node may have only one direction (a pure hub only an
-inbox, a pure sender only an outbox); at least one is required.
+**6. Register the GUEST collection UUIDs in XNAT.** Use the **guest** UUIDs
+(not the mapped ones) — the guest collections are what transfers run
+against, and the ACLs from step 5 authorize them. They go in two places in
+XNAT (§5.2):
 
-> **[OPEN — XNAT↔Globus ACL sync].** Registering an endpoint in XNAT (§5.2)
-> and granting the matching guest-collection ACL (step 5) are today two
-> manual, separate steps, so the two can drift. A future enhancement could
-> have XNAT create/revoke the inbox ACL via the Transfer API when an
-> endpoint is added/removed — plan §14.1.
+- **This node's own** outbox guest UUID (and, optionally, its own inbox
+  guest UUID) go in the node's Globus configuration, alongside the service
+  account.
+- **Each peer's inbox** guest UUID goes in a **destination** record, with
+  the subpath this node writes to.
+
+An outbox is required in the node configuration to send; the own-inbox UUID
+is optional (a pure hub that only receives has no outbox to register, but
+still needs its inbox collection and the inbox watcher).
+
+> **[OPEN — XNAT↔Globus ACL sync].** Registering a destination in XNAT
+> (§5.2) and granting the matching inbox guest-collection ACL (step 5) are
+> today two manual, separate steps, so the two can drift. A future
+> enhancement could have XNAT create/revoke the inbox ACL via the Transfer
+> API when a destination is added/removed — see
+> `XSYNC_GLOBUS_PERMISSIONS_DESIGN.md` §4 and plan §14.1.
 
 References: Globus
 [Quickstart](https://docs.globus.org/globus-connect-server/v5.4/quickstart/),
@@ -486,31 +518,55 @@ Toggles for the site-allowed transfer methods:
 
 - **HTTPS** — on by default.
 - **Globus** — enable to allow projects to select Globus.
-- **Aspera** — legacy; its configuration UI is hidden. Existing Aspera
-  connections continue to function.
+- **Aspera** — enable to allow projects to select Aspera (`ascp` to an
+  Aspera server); site defaults are on the Aspera Server Defaults tab.
 
 Enabling Globus here does not force it; each project chooses its method.
 
-### 5.2 Globus Management Interface
+### 5.2 Globus configuration (Globus Node + Globus Endpoints tabs)
 
-The central place to manage Globus connectivity (site level):
+Globus connectivity is configured on two site-level tabs, reflecting that a
+node has a single service account and outbox but many destinations.
 
-- **Register endpoints** — give the endpoint a display name and its
-  confidential-client credentials, plus the **inbox** and **outbox guest**
-  collection UUIDs from §2.1 (the guest UUIDs, not the mapped ones; at least
-  one is required — leave the other blank for a receive-only or send-only
-  node).
-- **Credentials** — attach a confidential client (ID + secret) to an
-  endpoint. **Multiple endpoints may use different credentials.** Secrets
-  are stored securely and never displayed after entry. **[OPEN:** secret
-  storage mechanism — plan §6.7.**]**
-- **Test connection** — verifies auth + reachability for an endpoint
-  (a lightweight Globus call). Use after adding or editing an endpoint.
-- **Associate endpoints with projects** — make an endpoint selectable by
-  particular projects.
-- **Create endpoints for projects** — provision a guest collection for a
-  project. **[OPEN:** endpoint provisioning via the GCS Manager API is a
-  possible stretch item — plan §14.1.**]**
+**Globus Node tab — this node's service account + outbox (one record).**
+Backed by `/xapi/xsync/globus/node`:
+
+- **Client ID / Client Secret** — the node's single confidential-client
+  service account (§1.3). The secret is **write-only**: stored on save,
+  never returned, and a blank secret on update keeps the stored value.
+  Stored in plaintext for now. **[OPEN:** at-rest secret encryption — plan
+  §6.8.**]**
+- **Outbox Collection ID / Outbox Directory** — this node's outbox **guest**
+  collection UUID (§2.1) and the collection-relative path XSync stages XARs
+  under. Both are **required** to send (the save is rejected without them).
+- **Inbox Collection ID** — this node's own inbox **guest** collection UUID;
+  optional, held for reference/sharing with peers, not used when sending.
+
+**Globus Endpoints tab — the destinations this node sends to (one per
+peer).** Backed by `/xapi/xsync/globus/endpoints`. A destination carries
+**no credentials** — those come from the node service account above:
+
+- **Name** — a unique display name; this is what a project selects (§6.2).
+- **Inbox Collection ID** — the peer's inbox **guest** collection UUID
+  (§2.1), where this node writes.
+- **Remote Inbox Path** — the collection-relative subpath this node writes
+  to in the peer's inbox (its ACL subpath, e.g. `/site1`).
+- **Remote Inbox Server Directory** — the peer host's filesystem directory
+  where the XAR lands, used for the import-by-path call.
+- **Test connection** — obtains a Globus token with the **node** service
+  account and probes the destination's inbox collection (a lightweight `ls`).
+  A green result shows the service account authenticates and the inbox UUID
+  resolves; a subpath-scoped ACL is only fully exercised by a real transfer
+  (a `403` on the inbox root is expected and tolerated). Use after adding or
+  editing a destination.
+
+**[OPEN — per-project endpoint association.]** Today every registered
+destination is selectable by any project (§6.2). Restricting which
+destinations a given project may use is not yet built — plan §14.1.
+
+**[OPEN — endpoint provisioning.]** Provisioning a peer's guest collection
+from XNAT via the GCS Manager API is a possible stretch item — plan §14.1
+and `XSYNC_GLOBUS_PERMISSIONS_DESIGN.md` §4.
 
 ### 5.3 XSync site preferences
 
@@ -587,14 +643,20 @@ any project.
 
 ### 6.2 Choosing Globus as the transfer method
 
-If the site allows Globus (§5.1) and an endpoint is associated with the
-project (§5.2):
+If the site allows Globus (§5.1), the node's Globus configuration is set,
+and at least one destination is registered (both §5.2):
 
-1. Select **Globus** as the transfer method for the destination.
-2. Choose the **Globus endpoint** (credentials come from the endpoint).
-3. Configure the project **outbox** (source collection path) and the
-   remote **inbox** (destination collection path).
-4. Save. Use **Test connection** (§5.2) to confirm before relying on it.
+1. Open **Configure Globus** on the project's XSync page.
+2. **Enable Globus Transfers** and choose a **Globus endpoint** — one of the
+   registered destinations, by name. That is the whole project-level
+   configuration: the service account, outbox, and the destination's paths
+   all come from the node and destination records (§5.2), not the project.
+3. Save. A misconfiguration (incomplete node config, missing destination,
+   unreachable peer) **falls back to HTTPS** rather than failing the sync.
+
+Backed by `/xapi/xsync/globus/projects/{projectId}/config` (fields
+`globusEnabled`, `globusEndpointName`). Use the destination's **Test
+connection** (§5.2) to confirm connectivity before relying on it.
 
 ### 6.3 Multiple destinations
 
@@ -645,7 +707,7 @@ performs the following. Each step has an observable result useful for QA.
    optionally anonymizes, and builds a XAR. *Observe:* XAR built in the
    project cache.
 3. **Stage to outbox with obfuscated name.** The XAR is placed in the
-   project's Globus **outbox** under an **opaque (hashed) filename**, so
+   node's Globus **outbox** (§5.2) under an **opaque (hashed) filename**, so
    file names are not visible to the transfer service. *Observe:*
    opaque-named file in the outbox; real label recorded internally.
 4. **Submit Globus transfer.** XSync submits an endpoint-to-endpoint
@@ -754,7 +816,7 @@ inbox, so an operator can see what is arriving and manage the import.
 |---|---|---|
 | Project config save rejected ("not an allowed destination") | Whitelist on; destination URL not approved | Add the site to the whitelist (§5.4) or correct the URL. |
 | Config save rejected ("project not allowed") | Project is blacklisted | Remove from the project blacklist (§5.5) if appropriate. |
-| Globus **Test connection** fails | Bad client credentials (auth), a wrong collection UUID, or Globus can't reach the GCS node | Read the logged error. Auth failure → re-enter the client ID/secret (the failing client ID is logged) and confirm outbound HTTPS to `auth.globus.org`. `404`/`NotFound` → a wrong/nonexistent collection UUID (register the **guest** UUID). `502`/connect timeout → Globus can't reach the node (next row). A `403` on the inbox is *expected* and tolerated (the sender's ACL is scoped to a subpath, so the root isn't listable). Test proves the client authenticates and the UUIDs resolve; a subpath-scoped ACL still can't be fully verified until a real transfer. |
+| Globus **Test connection** fails | Bad client credentials (auth), a wrong collection UUID, or Globus can't reach the GCS node | Read the logged error. Auth failure → re-enter the node service account's client ID/secret (Globus Node tab, §5.2; the failing client ID is logged) and confirm outbound HTTPS to `auth.globus.org`. `404`/`NotFound` → a wrong/nonexistent collection UUID (register the **guest** UUID). `502`/connect timeout → Globus can't reach the node (next row). A `403` on the inbox is *expected* and tolerated (the sender's ACL is scoped to a subpath, so the root isn't listable). Test proves the client authenticates and the UUIDs resolve; a subpath-scoped ACL still can't be fully verified until a real transfer. |
 | Test/transfer fails with `502 ExternalError.DirListingFailed` / "Error (connect) … timed out" | Globus's servers can't open a connection to the GCS node — a firewall/security-group or Network ACL is dropping it | Open inbound **443** and **50000–51000** to **`0.0.0.0/0`** on the node. Globus's transfer servers use **dynamic** source IPs, so these ports cannot be scoped to specific addresses — a *connect timeout* (vs. a protocol error) means the SYN is being dropped by a source-scoped rule. A node reachable from your workstation can still be blocked for Globus if 443 is IP-scoped. Also check the subnet's stateless **Network ACL**, not just the security group. |
 | `UNKNOWN_SCOPE_ERROR` on a token request | A `data_access` scope was requested for a *guest* collection (only valid for mapped collections) | Should not occur in the shipped build (guest collections use the base Transfer scope only); if seen, the collection registered is a mapped, not guest, UUID — register the guest UUID. |
 | Transfer between two nodes on the **same internal network** (e.g. one VPC) never completes, though each node's Test passes | Cloud networks don't hairpin public/elastic IPs: the two GCS nodes can't reach each other's *public* address for the direct data channel | Use **HTTPS** for same-network peers — Globus here is untested/not recommended (see §1.5). Note a DNS/`/etc/hosts` fix *can't* work: the data channel uses each node's **registered IP** (`node setup --ip-address`/`--data-interface`), not a resolved hostname. |
@@ -779,7 +841,7 @@ On Demand.
 ### 12.2 Site preferences (defaults)
 
 Token Refresh 10 h · Retry Interval 2 h · Retry Count 2 · Max Uncompressed
-Zip -1 (off). Transfer-method toggles: HTTPS on, Globus off, Aspera hidden.
+Zip -1 (off). Transfer-method toggles: HTTPS on, Globus off, Aspera off.
 Globus task/archiving poll settings: **[OPEN]**.
 
 ### 12.3 Per-item sync statuses
@@ -794,8 +856,11 @@ Globus task/archiving poll settings: **[OPEN]**.
 start sync, OK-to-sync, progress) · `/xapi/xsync/dashboard/...` (admin
 dashboard) · `/xapi/xsyncSitePreferences/...` and
 `/xapi/xsyncProjectPreferences/...` (site/project prefs, whitelist,
-blacklist, Globus endpoints). Exact Globus endpoint/transfer routes:
-**[OPEN]** until built.
+blacklist). Globus: `/xapi/xsync/globus/node` (node service account +
+outbox), `/xapi/xsync/globus/endpoints` (destinations, with
+`/endpoints/{name}/test`), and
+`/xapi/xsync/globus/projects/{projectId}/config` (per-project enable +
+destination). Transfer-task routes: **[OPEN]** until built.
 
 ### 12.5 Locations
 
@@ -811,11 +876,14 @@ Run against a two-site test bed (source + destination) each with GCS and a
 POSIX collection. Each item is pass/fail.
 
 **Foundation (WS2)**
-1. Register two Globus endpoints with **different** credentials; both save.
-2. **Test connection** passes for a good endpoint and fails clearly for a
-   bad credential / wrong UUID.
-3. A project can select an associated endpoint; an unassociated endpoint
-   is not offered.
+1. Save the node's Globus configuration (service account + outbox); a blank
+   secret on re-save keeps the stored one. Register two destinations; both
+   save **without** credentials.
+2. A destination's **Test connection** passes for a good node service
+   account + inbox UUID and fails clearly for a bad credential / wrong UUID.
+3. A project can enable Globus and select a registered destination by name.
+   **[OPEN:** per-project endpoint association — restricting which
+   destinations a project may pick — is not yet built (§5.2).**]**
 
 **XSync over Globus (WS3)**
 4. With Globus enabled and configured, a scheduled sync builds a XAR and
@@ -868,9 +936,10 @@ a plan decision or `[VERIFY]`; resolving them lets QA write exact tests.
   XSync uses guest collections, authorized by ACL + the base Transfer
   scope; no `data_access` consent is involved (confirmed against live
   Globus, endpoint Test). See plan §4.3/§4.5.
-- **Secret storage** for Globus client secrets (plan §6.7). §5.2.
+- **Secret storage** — the node service-account secret is stored in
+  plaintext today; at-rest encryption is planned (plan §6.8). §5.2.
 - **New Globus preferences and defaults** — task poll interval, archiving
-  poll interval/timeout, per-endpoint settings (plan §6.3/§14.1). §5.3,
+  poll interval/timeout, per-destination settings (plan §6.3/§14.1). §5.3,
   §12.2.
 - **Endpoint provisioning** ("create endpoints for projects") via the GCS
   Manager API — possibly out of first scope (plan §14.1). §5.2.
@@ -884,8 +953,8 @@ a plan decision or `[VERIFY]`; resolving them lets QA write exact tests.
   status appears while a transfer is in flight (plan §6.2/§6.5). §7, §9.
 - **Import-handler SPI** for the upload service (plan §14.2). §8.2.
 - **WS1 governance gaps** not yet built — Helm/AIS whitelist propagation,
-  hiding Aspera UI, classification-driven constraints, filtered/shared-data
-  coverage (Dev Guide §10.7). §2, §5.1, §5.4, §6.4.
+  classification-driven constraints, filtered/shared-data coverage (Dev
+  Guide §10.7). §2, §5.1, §5.4, §6.4.
 
 ---
 
