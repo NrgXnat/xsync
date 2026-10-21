@@ -11,7 +11,7 @@ import org.nrg.xft.search.ItemSearch;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.utils.XsyncUtils;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 public class XsyncDeleteExperimentUserAuthorizer extends AbstractXapiAuthorization {
     //Experiment ID must be the first argument within the method signature for this to work correctly

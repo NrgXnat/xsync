@@ -9,7 +9,7 @@ import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xft.security.UserI;
 import org.nrg.xsync.utils.XsyncUtils;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 public class XsyncDeleteSubjectUserAuthorizer extends AbstractXapiAuthorization {
     //Subject ID must be the first argument within the method signature for this to work correctly

@@ -11,7 +11,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xsync.utils.XsyncUtils;
 import org.springframework.stereotype.Component;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Slf4j
 @Component
