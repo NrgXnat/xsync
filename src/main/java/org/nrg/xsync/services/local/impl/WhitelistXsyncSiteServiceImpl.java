@@ -44,9 +44,10 @@ public class WhitelistXsyncSiteServiceImpl extends AbstractHibernateEntityServic
         for (WhitelistSitePojo sitePojo: whitelistSitePojos) {
             if (getDao().findWhitelistSiteBySiteId(sitePojo.getSiteId()) == null) {
                 try {
+                    String trimmedUrl = sitePojo.getSiteUrl().replaceAll("/+$", "");
                     SiteClassification newSiteClassification = getSiteClassification(sitePojo);
                     WhitelistSite newSite = new WhitelistSite(sitePojo.getSiteId(), sitePojo.getSiteName(),
-                                                              sitePojo.getSiteUrl(), newSiteClassification);
+                                                              trimmedUrl, newSiteClassification);
                     getDao().saveOrUpdate(newSite);
                 } catch (DataFormatException e) {
                     log.error("Input whitelist listing with id {} uses an unknown site classification: {}. This site " +
@@ -60,13 +61,14 @@ public class WhitelistXsyncSiteServiceImpl extends AbstractHibernateEntityServic
     public List<WhitelistSitePojo> addOrUpdateWhitelistSiteFromSiteAdmin(WhitelistSitePojo whitelistSitePojo) throws DataFormatException {
         SiteClassification newSiteClassification = getSiteClassification(whitelistSitePojo);
         WhitelistSite newSite;
+        String trimmedUrl = whitelistSitePojo.getSiteUrl().replaceAll("/+$", "");
         if (getDao().findWhitelistSiteBySiteId(whitelistSitePojo.getSiteId()) == null) {
             newSite = new WhitelistSite(whitelistSitePojo.getSiteId(), whitelistSitePojo.getSiteName(),
-                                                      whitelistSitePojo.getSiteUrl(), newSiteClassification);
+                                        trimmedUrl, newSiteClassification);
         } else {
             newSite = getDao().findWhitelistSiteBySiteId(whitelistSitePojo.getSiteId());
             newSite.setSiteName(whitelistSitePojo.getSiteName());
-            newSite.setSiteUrl(whitelistSitePojo.getSiteUrl());
+            newSite.setSiteUrl(trimmedUrl);
             newSite.setClassification(newSiteClassification);
         }
 

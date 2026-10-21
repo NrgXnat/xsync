@@ -29,6 +29,8 @@ public interface XsyncConfigurationService {
 
     List<XsyncXsyncprojectdata> getAllProjectsForRemoteUrl(UserI user, String inputUrl);
 
+    List<XsyncXsyncprojectdata> getAllXsyncElementsForProject(UserI user, String projectId);
+
     boolean checkForWhitelistConformation(boolean whitelistEnabled, List<WhitelistSitePojo> whitelist, String url);
 
     List<XsyncXsyncprojectdata> getAllProjectsToBeSyncedDaily(UserI user);
