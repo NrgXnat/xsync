@@ -80,14 +80,15 @@ globus-connect-server storage-gateway create posix "XSync Gateway" \
 ```
 
 **3. Two mapped collections** (substrate; not what peers transfer against).
-Pass **`--allow-guest-collections`** — mapped collections disable sharing by
+Pass **`--allow-guest-collections`** (mapped collections disable sharing by
 default, and without it the guest-collection step fails with *"Sharing
-Disabled"* (→ Manual §2.1 step 3):
+Disabled"*) and **`--force-encryption`** (requires data-channel encryption for
+all transfers; propagates to the guest collections) (→ Manual §2.1 step 3):
 ```bash
 globus-connect-server collection create <STORAGE_GATEWAY_ID> \
-  /opt/data/xsync-globus-inbox  "XNAT Inbox (mapped)"  --allow-guest-collections
+  /opt/data/xsync-globus-inbox  "XNAT Inbox (mapped)"  --allow-guest-collections --force-encryption
 globus-connect-server collection create <STORAGE_GATEWAY_ID> \
-  /opt/data/cache/xsync-globus-outbox "XNAT Outbox (mapped)" --allow-guest-collections
+  /opt/data/cache/xsync-globus-outbox "XNAT Outbox (mapped)" --allow-guest-collections --force-encryption
 # record both MAPPED_COLLECTION_IDs
 ```
 

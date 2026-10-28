@@ -332,13 +332,15 @@ peers transfer against. Pass **`--allow-guest-collections`** so you can
 layer the guest collection on top in step 4 — a mapped collection has
 sharing **disabled by default**, and without this you'll hit *"Sharing
 Disabled — Guest Collection creation has been disabled on this mapped
-collection"* when you try:
+collection"* when you try. Also pass **`--force-encryption`**, which requires
+the data channel to be encrypted for every transfer to or from the collection
+and propagates to the guest collections layered on it:
 
 ```bash
 globus-connect-server collection create <STORAGE_GATEWAY_ID> \
-  /opt/data/xsync-globus-inbox  "XNAT Inbox (mapped)"  --allow-guest-collections
+  /opt/data/xsync-globus-inbox  "XNAT Inbox (mapped)"  --allow-guest-collections --force-encryption
 globus-connect-server collection create <STORAGE_GATEWAY_ID> \
-  /opt/data/cache/xsync-globus-outbox "XNAT Outbox (mapped)" --allow-guest-collections
+  /opt/data/cache/xsync-globus-outbox "XNAT Outbox (mapped)" --allow-guest-collections --force-encryption
 # record both MAPPED COLLECTION UUIDs (needed to create the guest collections)
 ```
 

@@ -177,6 +177,7 @@ class GlobusClientTest {
         assertEquals("src-coll", doc.get("source_endpoint").asText());
         assertEquals("dst-coll", doc.get("destination_endpoint").asText());
         assertTrue(doc.get("verify_checksum").asBoolean());
+        assertTrue(doc.get("encrypt_data").asBoolean(), "transfers must request data-channel encryption");
         assertEquals("XSync sync", doc.get("label").asText());
         final JsonNode item = doc.get("DATA").get(0);
         assertEquals("transfer_item", item.get("DATA_TYPE").asText());

@@ -262,6 +262,10 @@ public class GlobusClient {
         doc.put("source_endpoint", request.sourceCollectionId());
         doc.put("destination_endpoint", request.destinationCollectionId());
         doc.put("verify_checksum", request.verifyChecksum());
+        // Request data-channel encryption. The authoritative control is the
+        // collections' force_encryption setting; this is client-side belt-and-
+        // suspenders so a transfer is encrypted even if a collection lacks it.
+        doc.put("encrypt_data", true);
         if (StringUtils.isNotBlank(request.label())) {
             doc.put("label", request.label());
         }
