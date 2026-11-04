@@ -101,9 +101,16 @@ siteSettings:
                             kind: panel.input.text
                             name: inboxCollectionId
                             size: 40
-                            label: Inbox Collection ID
+                            label: Sync Inbox Collection ID
                             description: >
-                                UUID of this node's inbox guest collection (receives XARs from peers). Optional for a send-only node.
+                                UUID of this node's XSync sync inbox guest collection (receives XARs from peers). Optional for a send-only node.
+                        uploadInboxCollectionId:
+                            kind: panel.input.text
+                            name: uploadInboxCollectionId
+                            size: 40
+                            label: Upload Inbox Collection ID
+                            description: >
+                                UUID of this node's upload inbox guest collection, over XNAT's DICOM inbox path, that the Globus upload service monitors for user uploads. A separate collection from the sync inbox. Optional.
         globusEndpoints:
             kind: tab
             label: Globus Endpoints

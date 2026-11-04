@@ -260,6 +260,17 @@ read-write, all else denied — longest-prefix match wins):
 }
 ```
 
+`restrict_paths` must enumerate **every** directory this node exposes through
+Globus; with `none: ["*"]`, any path not listed is denied, and the symptom of
+a missing one is *"Path not allowed"* on a list or transfer (not an ACL
+error — the gateway's path restriction is a separate gate from the
+guest-collection ACLs in step 5). The two paths above are the XSync **sync**
+outbox and inbox. **If this node also runs the Globus upload service (§8), its
+XNAT DICOM inbox path is a third required `read_write` path** — but that path
+is normally served by a **separate** gateway, created the same way (see §8.1),
+because a gateway's paths can't be reliably extended after creation (next
+note).
+
 Identity mapping — `idmap.json`. The **default** POSIX mapping strips the
 `@domain` and uses the identity's local part as the local username, which
 usually isn't a real account (you'd get a 403 "does not map to a valid
@@ -315,15 +326,22 @@ registered service accounts get in through guest-collection ACLs (step 5),
 not the gateway domain, and admitting that domain would allow every Globus
 confidential client.
 
-> **Set the identity mapping — and every gateway policy — at `create`
-> time.** On GCS 5.4.x, `--identity-mapping` passed to `storage-gateway
-> update` does **not** reliably take effect: the mapping silently fails to
-> apply. Worse, `storage-gateway show` does **not** display identity
-> mappings at all, so its output can neither confirm nor deny that one is
-> in place. If you created the gateway *without* the mapping, **recreate**
-> it with `--identity-mapping` in the `create` command rather than trying
-> to add it afterward. Verify the mapping by **behavior** — a successful
-> user-credential / guest-collection creation below — never by `show`.
+> **Set every gateway policy — identity mapping *and* path restriction — at
+> `create` time.** On GCS 5.4.x, policy passed to `storage-gateway update`
+> does **not** reliably take effect: the change silently fails to apply.
+> Worse, `storage-gateway show` displays **neither** the identity mapping
+> **nor** `restrict_paths`, so its output can neither confirm nor deny
+> either. If you created the gateway *without* a needed policy (a missing
+> identity mapping, or a path you later need to expose), **recreate** it with
+> the full `--identity-mapping` and `--restrict-paths` in the `create`
+> command — do not try to add them afterward. Verify by **behavior** (a
+> successful user-credential / guest-collection creation, or a successful
+> list of the path), never by `show`.
+>
+> Because a gateway's paths can't be reliably extended, a node that **adds**
+> the upload service (§8) to an already-configured sync gateway should create
+> a **separate** upload gateway (§8.1) rather than recreate the sync gateway —
+> recreating the sync gateway would orphan its existing collections.
 
 **3. Create the two mapped collections (substrate), each rooted at its own
 directory** (the `base_path` becomes the collection's `/`, so neither can
@@ -745,11 +763,41 @@ Globus."
 
 ### 8.1 Configuration
 
-- Enable an **upload inbox** for the project and expose it through a Globus
-  collection.
-- The inbox uses **expected subdirectories** — e.g. a `DICOM/` folder acts
-  like XNAT's filesystem DICOM Inbox.
-- Grant the appropriate Globus identities write access to the collection.
+- **Storage gateway must permit the inbox path.** The gateway backing the
+  upload collection needs the XNAT DICOM inbox path (`getInboxPath()`, on a
+  default install `/opt/xnat/data/inbox`) as a `read_write` entry in its
+  `restrict_paths` (§2.1 step 2), plus the same identity mapping to the local
+  `xnat` account. The XSync **sync** gateway does **not** cover this path (it
+  is scoped to the sync outbox/inbox), and a gateway's paths can't be reliably
+  extended after creation — so create a **separate** upload gateway rather
+  than editing the sync one (editing/recreating the sync gateway would orphan
+  its collections). A missing path shows as *"Path not allowed"* on a list or
+  transfer, and `storage-gateway show` won't reveal the gap — verify by a
+  successful list.
+- **Inbox collection over XNAT's inbox path.** On that gateway, create a
+  mapped collection rooted at the DICOM inbox path and a guest collection on
+  top (§2.1 steps 3–4). This is a **separate** collection from the XSync sync
+  inbox (§2.1) — it uses the native DICOM inbox, so its first subdirectory
+  must be a **project id**.
+- **Layout `<inboxPath>/<PROJECT_ID>/<user>/`.** A user uploads into their own
+  subpath of a project they may edit; the import runs as that user, so XNAT's
+  project-edit permissions apply.
+- **Per-user write ACL.** Grant each uploading user `rw` on only their own
+  subpath (§2.1 step 5 pattern, scoped to `/<PROJECT_ID>/<user>/`).
+- **Detection role (`activity_monitor`).** For XNAT to detect completed
+  uploads via the Globus activity-monitor API, grant **this node's service
+  account** the read-only `activity_monitor` role on the inbox collection:
+
+  ```bash
+  globus-connect-server collection role create <INBOX_GUEST_COLLECTION_ID> \
+    activity_monitor <NODE_CLIENT_ID>@clients.auth.globus.org --principal-type identity
+  ```
+
+  `activity_monitor` lets the service account see transfers into the
+  collection (read-only; narrower than the `access_manager` ACL-management
+  role). The service-account identity must already exist — it does, from its
+  guest-collection ACL grant (§2.1 step 5); the identity's UUID works in place
+  of the `@clients.auth.globus.org` form.
 
 ### 8.2 Behavior
 

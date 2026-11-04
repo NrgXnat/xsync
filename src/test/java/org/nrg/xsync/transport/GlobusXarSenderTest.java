@@ -39,8 +39,8 @@ class GlobusXarSenderTest {
         GlobusXarSender.RouteConfig config = new GlobusXarSender.RouteConfig(true, "ep");
         // destination: name, inboxCollectionId, remoteInboxPath, remoteInboxServerDirectory
         GlobusEndpoint endpoint = new GlobusEndpoint("ep", "inboxColl", "/peer", "/srv/peer");
-        // node config: clientId, clientSecret, outboxCollectionId, outboxDirectory, inboxCollectionId
-        GlobusNodeConfig nodeConfig = new GlobusNodeConfig("client", "secret", "outboxColl", "/outbox", null);
+        // node config: clientId, clientSecret, outboxCollectionId, outboxDirectory, inboxCollectionId, uploadInboxCollectionId
+        GlobusNodeConfig nodeConfig = new GlobusNodeConfig("client", "secret", "outboxColl", "/outbox", null, null);
         NotFoundException lookupError;
         NotFoundException nodeConfigError;
         RuntimeException submitError;

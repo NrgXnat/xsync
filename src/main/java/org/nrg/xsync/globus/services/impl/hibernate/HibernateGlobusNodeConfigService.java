@@ -54,6 +54,7 @@ public class HibernateGlobusNodeConfigService
         existing.setOutboxCollectionId(config.getOutboxCollectionId());
         existing.setOutboxDirectory(config.getOutboxDirectory());
         existing.setInboxCollectionId(config.getInboxCollectionId());
+        existing.setUploadInboxCollectionId(config.getUploadInboxCollectionId());
         // A blank secret on update leaves the stored secret unchanged.
         if (StringUtils.isNotBlank(config.getClientSecret())) {
             existing.setClientSecret(config.getClientSecret());

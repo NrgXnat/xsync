@@ -203,12 +203,12 @@ public class XsyncGlobusController extends AbstractXapiRestController {
 
     private static GlobusNodeConfigPojo toNodePojo(final GlobusNodeConfig config) {
         return new GlobusNodeConfigPojo(config.getClientId(), null, config.getOutboxCollectionId(),
-                config.getOutboxDirectory(), config.getInboxCollectionId());
+                config.getOutboxDirectory(), config.getInboxCollectionId(), config.getUploadInboxCollectionId());
     }
 
     private static GlobusNodeConfig toNodeEntity(final GlobusNodeConfigPojo pojo) {
         return new GlobusNodeConfig(pojo.getClientId(), pojo.getClientSecret(), pojo.getOutboxCollectionId(),
-                pojo.getOutboxDirectory(), pojo.getInboxCollectionId());
+                pojo.getOutboxDirectory(), pojo.getInboxCollectionId(), pojo.getUploadInboxCollectionId());
     }
 
     @ResponseStatus(value = HttpStatus.NOT_FOUND)

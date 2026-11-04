@@ -39,8 +39,17 @@ public class GlobusNodeConfig extends AbstractHibernateEntity {
     private String outboxDirectory;
 
     /**
-     * UUID of this node's own inbox collection (where peers send to it). Not used
-     * when sending; held for display/sharing with peers. Optional.
+     * UUID of this node's own XSync <strong>sync</strong> inbox collection (where
+     * peers send XARs). Not used when sending; held for display/sharing with
+     * peers. Optional.
      */
     private String inboxCollectionId;
+
+    /**
+     * UUID of this node's <strong>upload</strong> inbox collection — the guest
+     * collection over XNAT's DICOM inbox path that the upload service monitors
+     * for user uploads (see {@code GLOBUS_UPLOAD_SERVICE_SPIKE_PLAN.md}). A
+     * separate collection from {@link #inboxCollectionId}. Optional.
+     */
+    private String uploadInboxCollectionId;
 }

@@ -30,4 +30,5 @@ public class GlobusNodeConfigPojo {
     private String outboxCollectionId;
     private String outboxDirectory;
     private String inboxCollectionId;
+    private String uploadInboxCollectionId;
 }

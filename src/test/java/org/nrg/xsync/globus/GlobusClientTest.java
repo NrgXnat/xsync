@@ -259,4 +259,108 @@ class GlobusClientTest {
         client.onGet = url -> "{\"status\":\"ACTIVE\"}";
         assertThrows(GlobusTransferException.class, () -> client.waitForTask("token", "task-9", 0, 5));
     }
+
+    // --- endpoint-manager activity monitoring (upload-service detection) ---
+
+    @Test
+    void listCompletedTransfersBuildsFilteredUrlAndParsesTasks() {
+        final TransferStub client = new TransferStub();
+        final String[] seenUrl = {null};
+        client.onGet = url -> {
+            seenUrl[0] = url;
+            return "{\"DATA_TYPE\":\"task_list\",\"DATA\":["
+                    + "{\"task_id\":\"t-1\",\"status\":\"SUCCEEDED\",\"completion_time\":\"2026-10-28T00:00:00Z\"},"
+                    + "{\"task_id\":\"t-2\",\"status\":\"SUCCEEDED\",\"completion_time\":\"2026-10-28T01:00:00Z\"}]}";
+        };
+
+        final java.util.List<GlobusClient.CompletedTask> tasks =
+                client.listCompletedTransfersTo("token", "inbox-coll", java.time.Instant.parse("2026-10-27T00:00:00Z"));
+
+        assertEquals(2, tasks.size());
+        assertEquals("t-1", tasks.get(0).taskId());
+        assertEquals("2026-10-28T01:00:00Z", tasks.get(1).completionTime());
+        assertTrue(seenUrl[0].contains("/endpoint_manager/task_list"), seenUrl[0]);
+        assertTrue(seenUrl[0].contains("filter_endpoint=inbox-coll"), seenUrl[0]);
+        assertTrue(seenUrl[0].contains("filter_endpoint_use=destination"), seenUrl[0]);
+        assertTrue(seenUrl[0].contains("filter_status=SUCCEEDED"), seenUrl[0]);
+        // Literal (unencoded) datetime + comma: Globus rejects percent-encoded
+        // colons/comma in filter_completion_time.
+        assertTrue(seenUrl[0].contains("filter_completion_time=2026-10-27T00:00:00Z,"),
+                "completion-time filter must use a literal ISO datetime and open-ended comma: " + seenUrl[0]);
+    }
+
+    @Test
+    void listCompletedTransfersTruncatesSubSecondPrecision() {
+        // Globus rejects filter_completion_time with fractional seconds
+        // ("Invalid date in filter_completion_time"); the client must truncate.
+        final TransferStub client = new TransferStub();
+        final String[] seenUrl = {null};
+        client.onGet = url -> {
+            seenUrl[0] = url;
+            return "{\"DATA\":[]}";
+        };
+
+        client.listCompletedTransfersTo("token", "inbox-coll",
+                java.time.Instant.parse("2026-10-28T20:51:44.709287542Z"));
+
+        assertTrue(seenUrl[0].contains("filter_completion_time=2026-10-28T20:51:44Z,"),
+                "sub-second precision must be truncated to seconds: " + seenUrl[0]);
+        assertFalse(seenUrl[0].contains("709287542"), "nanoseconds must not appear in the filter: " + seenUrl[0]);
+    }
+
+    @Test
+    void listCompletedTransfersOmitsTimeFilterWhenSinceNull() {
+        final TransferStub client = new TransferStub();
+        final String[] seenUrl = {null};
+        client.onGet = url -> {
+            seenUrl[0] = url;
+            return "{\"DATA\":[]}";
+        };
+
+        final java.util.List<GlobusClient.CompletedTask> tasks =
+                client.listCompletedTransfersTo("token", "inbox-coll", null);
+
+        assertTrue(tasks.isEmpty());
+        assertFalse(seenUrl[0].contains("filter_completion_time"),
+                "no completion-time filter when 'since' is null: " + seenUrl[0]);
+    }
+
+    @Test
+    void listCompletedTransfersSkipsEntriesWithoutTaskId() {
+        final TransferStub client = new TransferStub();
+        client.onGet = url -> "{\"DATA\":[{\"status\":\"SUCCEEDED\"},{\"task_id\":\"t-9\"}]}";
+        final java.util.List<GlobusClient.CompletedTask> tasks =
+                client.listCompletedTransfersTo("token", "inbox-coll", null);
+        assertEquals(1, tasks.size());
+        assertEquals("t-9", tasks.get(0).taskId());
+    }
+
+    @Test
+    void successfulDestinationPathsParsesAndBuildsUrl() {
+        final TransferStub client = new TransferStub();
+        final String[] seenUrl = {null};
+        client.onGet = url -> {
+            seenUrl[0] = url;
+            return "{\"DATA_TYPE\":\"successful_transfers\",\"DATA\":["
+                    + "{\"DATA_TYPE\":\"successful_transfer\",\"source_path\":\"/a\",\"destination_path\":\"/PRJ/alice/study.tgz\"}]}";
+        };
+
+        final java.util.List<String> paths = client.successfulDestinationPaths("token", "t-1");
+
+        assertEquals(1, paths.size());
+        assertEquals("/PRJ/alice/study.tgz", paths.get(0));
+        assertTrue(seenUrl[0].endsWith("/endpoint_manager/task/t-1/successful_transfers"), seenUrl[0]);
+    }
+
+    @Test
+    void successfulDestinationPathsHandlesEmptyAndSurfacesErrors() {
+        final TransferStub empty = new TransferStub();
+        empty.onGet = url -> "{\"DATA\":[]}";
+        assertTrue(empty.successfulDestinationPaths("token", "t-1").isEmpty());
+
+        final TransferStub failing = new TransferStub();
+        failing.getError = HttpClientErrorException.create(HttpStatus.BAD_REQUEST, "Bad Request",
+                HttpHeaders.EMPTY, "{\"code\":\"BadRequest\"}".getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+        assertThrows(GlobusTransferException.class, () -> failing.successfulDestinationPaths("token", "t-1"));
+    }
 }

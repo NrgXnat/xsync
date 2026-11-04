@@ -1,6 +1,7 @@
 package org.nrg.xsync.scheduler;
 
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
+import org.nrg.xsync.globus.upload.GlobusUploadInboxMonitor;
 import org.nrg.xsync.services.local.DailySyncService;
 import org.nrg.xsync.services.local.HourlySyncService;
 import org.nrg.xsync.services.local.MonthlySyncService;
@@ -25,6 +26,8 @@ import org.springframework.scheduling.support.PeriodicTrigger;
 public class XsyncScheduler {
 	
 	private static final Logger _logger = LoggerFactory.getLogger(XsyncScheduler.class);
+	/** Interval in ms between Globus upload-inbox polls. Spike default; a real build will make this configurable. */
+	private static final long GLOBUS_UPLOAD_POLL_INTERVAL_MILLIS = 60000;
 
 	@Bean(name = "xsyncThreadPoolExecutorFactoryBean")
 	public ThreadPoolExecutorFactoryBean xsyncThreadPoolExecutorFactoryBean() {
@@ -72,5 +75,14 @@ public class XsyncScheduler {
         _logger.debug("Initializing MontlySync TriggerTask:  {}", monthlySyncService);
         return new TriggerTask(monthlySyncService, new CronTrigger("0 0 2 1 * *"));
     }
-	
+
+    @Bean
+    // Poll Globus for completed DICOM uploads into this node's inbox collection
+    // (spike interval; the monitor is a no-op off the primary node or when
+    // Globus is not configured).
+    public TriggerTask pollGlobusUploadInbox(final GlobusUploadInboxMonitor uploadInboxMonitor) {
+        _logger.debug("Initializing Globus upload inbox monitor TriggerTask:  {}", uploadInboxMonitor);
+        return new TriggerTask(uploadInboxMonitor, new PeriodicTrigger(GLOBUS_UPLOAD_POLL_INTERVAL_MILLIS));
+    }
+
 }

@@ -1,5 +1,10 @@
 package org.nrg.xsync.globus;
 
+import java.net.URI;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -119,6 +124,16 @@ public class GlobusClient {
         public boolean isTerminal() {
             return !isActive();
         }
+    }
+
+    /**
+     * A completed transfer task landing in a monitored collection, as returned
+     * by the endpoint-manager {@code task_list} (the activity-monitor view).
+     *
+     * @param taskId         the Globus task id
+     * @param completionTime the task's completion time (ISO-8601, as reported by Globus; may be null)
+     */
+    public record CompletedTask(String taskId, String completionTime) {
     }
 
     /**
@@ -249,6 +264,90 @@ public class GlobusClient {
     }
 
     /**
+     * List successfully-completed transfers whose destination is the given
+     * collection, using the endpoint-manager (activity-monitor) task list.
+     *
+     * <p>This is the upload service's completion signal: a transfer a user
+     * pushed into the inbox is detected here only once it has reached
+     * {@code SUCCEEDED}. The caller (the node service account) must hold the
+     * {@code activity_monitor} effective role on the collection, or the list
+     * comes back empty (Globus filters by privilege rather than erroring).</p>
+     *
+     * @param accessToken  a Transfer API bearer token for the node service account
+     * @param collectionId the inbox collection UUID to monitor (as destination)
+     * @param since        lower bound on completion time; {@code null} omits the
+     *                     time filter and returns all SUCCEEDED tasks
+     * @return the completed tasks, newest first as Globus returns them
+     * @throws GlobusTransferException if the request fails or the response is unparseable
+     */
+    public List<CompletedTask> listCompletedTransfersTo(final String accessToken,
+                                                                  final String collectionId, final Instant since) {
+        // Values are URL-safe as-is (a collection UUID; an ISO-8601 datetime).
+        // Do NOT percent-encode: filter_completion_time's separator comma and the
+        // time's colons must reach Globus as literal characters — encoded forms
+        // (%2C/%3A) are rejected with "Invalid date in filter_completion_time".
+        // getForBody hands RestTemplate a URI so it won't re-encode them either.
+        final StringBuilder url = new StringBuilder(TRANSFER_API_BASE)
+                .append("/endpoint_manager/task_list")
+                .append("?filter_endpoint=").append(collectionId)
+                .append("&filter_endpoint_use=destination")
+                .append("&filter_status=SUCCEEDED");
+        if (since != null) {
+            // filter_completion_time wants ISO-8601 at SECONDS precision; Instant's
+            // default rendering carries nanoseconds, which Globus also rejects.
+            // Truncate, then use an open-ended "start," window (blank end = no upper bound).
+            final String start = since.truncatedTo(ChronoUnit.SECONDS).toString();
+            url.append("&filter_completion_time=").append(start).append(',');
+        }
+        final String body = call("endpoint-manager task list", () -> getForBody(url.toString(), accessToken));
+        try {
+            final JsonNode data = _objectMapper.readTree(body).path("DATA");
+            final List<CompletedTask> tasks = new ArrayList<>();
+            for (final JsonNode task : data) {
+                final String taskId = task.path("task_id").asText(null);
+                if (StringUtils.isNotBlank(taskId)) {
+                    tasks.add(new CompletedTask(taskId, task.path("completion_time").asText(null)));
+                }
+            }
+            return tasks;
+        } catch (JsonProcessingException e) {
+            throw new GlobusTransferException("Could not parse Globus endpoint-manager task list", e);
+        }
+    }
+
+    /**
+     * Get the destination paths a completed task wrote, using the
+     * endpoint-manager {@code successful_transfers} sub-resource. Each path is a
+     * file the task delivered into the destination collection.
+     *
+     * <p>Returns the first page only; a very large task may paginate via a
+     * {@code next_marker} (not handled here — a spike single-archive upload is a
+     * single transfer item, so one page suffices).</p>
+     *
+     * @param accessToken a Transfer API bearer token for the node service account
+     * @param taskId      the completed task id (from {@link #listCompletedTransfersTo})
+     * @return the collection-relative destination paths the task wrote
+     * @throws GlobusTransferException if the request fails or the response is unparseable
+     */
+    public List<String> successfulDestinationPaths(final String accessToken, final String taskId) {
+        final String url = TRANSFER_API_BASE + "/endpoint_manager/task/" + taskId + "/successful_transfers";
+        final String body = call("endpoint-manager successful transfers", () -> getForBody(url, accessToken));
+        try {
+            final JsonNode data = _objectMapper.readTree(body).path("DATA");
+            final List<String> paths = new ArrayList<>();
+            for (final JsonNode item : data) {
+                final String path = item.path("destination_path").asText(null);
+                if (StringUtils.isNotBlank(path)) {
+                    paths.add(path);
+                }
+            }
+            return paths;
+        } catch (JsonProcessingException e) {
+            throw new GlobusTransferException("Could not parse Globus successful-transfers response", e);
+        }
+    }
+
+    /**
      * Build the {@code transfer} submission document for a single file.
      *
      * @param submissionId the one-time submission id
@@ -327,8 +426,11 @@ public class GlobusClient {
      * @return the response body
      */
     protected String getForBody(final String url, final String accessToken) {
+        // Pass a URI, not a String: RestTemplate treats a String as a URI template
+        // and would re-encode it, double-escaping query values we already built
+        // with the exact literal characters Globus requires.
         return new RestTemplate()
-                .exchange(url, HttpMethod.GET, new HttpEntity<>(bearer(accessToken)), String.class)
+                .exchange(URI.create(url), HttpMethod.GET, new HttpEntity<>(bearer(accessToken)), String.class)
                 .getBody();
     }
 
@@ -344,7 +446,7 @@ public class GlobusClient {
         final HttpHeaders headers = bearer(accessToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
         return new RestTemplate()
-                .exchange(url, HttpMethod.POST, new HttpEntity<>(jsonBody, headers), String.class)
+                .exchange(URI.create(url), HttpMethod.POST, new HttpEntity<>(jsonBody, headers), String.class)
                 .getBody();
     }
 
