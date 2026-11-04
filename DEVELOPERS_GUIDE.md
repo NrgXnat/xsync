@@ -47,7 +47,7 @@ de-identified replication:
   assessors are eligible, by label / xsiType / scan-type.
 - **Scheduled** — hourly / daily / weekly / monthly cron triggers, plus
   on-demand pushes of a project, subject, or single experiment.
-- **De-identified** — DICOM can be run through a project-scoped Mizer
+- **De-identified** — DICOM can be run through a project-scoped DicomEdit
   anonymization script immediately before transfer.
 - **Incremental** — "new data only" mode uses the database change log to
   transfer only what changed since the last successful sync.

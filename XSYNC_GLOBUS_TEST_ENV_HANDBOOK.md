@@ -274,7 +274,7 @@ Follow `XSYNC_GLOBUS_ADMIN_MANUAL.md` §5.2:
    destination config, not the project.
 4. For multi-destination testing (item 9), add a **second** destination —
    one Globus, one HTTPS — to the same project.
-5. For anonymization tests, enable **Anonymize** and paste a simple Mizer
+5. For anonymization tests, enable **Anonymize** and paste a simple DicomEdit
    script.
 
 ---

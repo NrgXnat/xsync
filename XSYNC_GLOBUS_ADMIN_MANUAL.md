@@ -708,7 +708,7 @@ coverage vs. requirement WS1.5 — Dev Guide §10.7.**]**
 
 ### 6.6 Anonymization
 
-If **Anonymize** is enabled, DICOM is run through the project's Mizer
+If **Anonymize** is enabled, DICOM is run through the project's DicomEdit
 anonymization script **before** transfer. Enter/maintain the script via
 the project's XSync setup. De-identification runs source-side, so data is
 already anonymized before it reaches any Globus endpoint.
