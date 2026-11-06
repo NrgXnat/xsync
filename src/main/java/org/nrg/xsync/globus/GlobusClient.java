@@ -5,6 +5,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -134,6 +137,127 @@ public class GlobusClient {
      * @param completionTime the task's completion time (ISO-8601, as reported by Globus; may be null)
      */
     public record CompletedTask(String taskId, String completionTime) {
+    }
+
+    /**
+     * The kind of principal a Globus access rule grants to — the values
+     * documented for the Transfer
+     * <a href="https://docs.globus.org/api/transfer/permissions/">permissions</a>
+     * API. An unrecognized value is rejected by {@link #fromWire} rather than
+     * modeled, so this type cannot represent an invalid state. The API is
+     * external and versioned, so a future principal type is possible; it surfaces
+     * as a parse failure ({@code listAccessRules} wraps it and the reconciling
+     * caller degrades to stored records), not as a silently-accepted sentinel.
+     */
+    public enum PrincipalType {
+        IDENTITY("identity"),
+        GROUP("group"),
+        ALL_AUTHENTICATED_USERS("all_authenticated_users"),
+        ANONYMOUS("anonymous");
+
+        private final String wire;
+
+        PrincipalType(final String wire) {
+            this.wire = wire;
+        }
+
+        /** @return the Globus wire value. */
+        public String wire() {
+            return wire;
+        }
+
+        /**
+         * @param wire the Globus {@code principal_type} string
+         * @return the matching constant
+         * @throws IllegalArgumentException if {@code wire} matches no known type
+         *         (consistent with {@link Permission#fromWire}; the external API is versioned)
+         */
+        public static PrincipalType fromWire(final String wire) {
+            for (final PrincipalType type : values()) {
+                if (type.wire.equals(wire)) {
+                    return type;
+                }
+            }
+            throw new IllegalArgumentException("Unknown Globus principal_type value: " + wire);
+        }
+    }
+
+    /** The permission level a Globus access rule grants: read-only or read-write. */
+    public enum Permission {
+        READ("r"),
+        READ_WRITE("rw");
+
+        private final String wire;
+
+        Permission(final String wire) {
+            this.wire = wire;
+        }
+
+        /** @return the Globus wire value ({@code r} or {@code rw}). */
+        public String wire() {
+            return wire;
+        }
+
+        /**
+         * @param wire the Globus {@code permissions} string
+         * @return the matching constant
+         * @throws IllegalArgumentException if {@code wire} is not {@code r} or {@code rw}
+         *         (this is a closed two-value set; an unrecognized value is a real anomaly)
+         */
+        public static Permission fromWire(final String wire) {
+            for (final Permission permission : values()) {
+                if (permission.wire.equals(wire)) {
+                    return permission;
+                }
+            }
+            throw new IllegalArgumentException("Unknown Globus permission value: " + wire);
+        }
+    }
+
+    /**
+     * A guest-collection access-control rule, as returned by
+     * {@code GET /endpoint/<id>/access_list} (Globus Transfer
+     * <a href="https://docs.globus.org/api/transfer/permissions/">permissions</a>).
+     *
+     * <p>Invariant (enforced in the constructor): {@code principalType} and
+     * {@code permissions} are non-null. {@code principal} is kept as the raw wire
+     * value because its form varies by principal type — a Globus identity UUID
+     * for {@link PrincipalType#IDENTITY} and {@link PrincipalType#GROUP}, but
+     * empty/absent for {@link PrincipalType#ALL_AUTHENTICATED_USERS} and
+     * {@link PrincipalType#ANONYMOUS} — so it cannot be an unconditional
+     * {@link UUID}. Use {@link #identityId()} for the type-safe UUID view.</p>
+     *
+     * @param id            the access-rule id ({@code null} for implicit role-based rules)
+     * @param principalType the kind of principal (never {@code null})
+     * @param principal     the raw principal id (a Globus identity UUID for identity rules)
+     * @param path          the collection-relative path the rule grants on
+     * @param permissions   the permission level (never {@code null})
+     */
+    public record AccessRule(String id, PrincipalType principalType, String principal, String path,
+                             Permission permissions) {
+
+        /** Enforces the non-null invariants that make a rule well-formed. */
+        public AccessRule {
+            Objects.requireNonNull(principalType, "principalType");
+            Objects.requireNonNull(permissions, "permissions");
+        }
+
+        /**
+         * The principal as a Globus identity UUID, present only for an
+         * {@link PrincipalType#IDENTITY} rule whose principal parses as a UUID.
+         *
+         * @return the identity UUID, or empty for non-identity rules or an unparseable principal
+         */
+        public Optional<UUID> identityId() {
+            if (principalType != PrincipalType.IDENTITY || principal == null) {
+                return Optional.empty();
+            }
+            try {
+                return Optional.of(UUID.fromString(principal));
+            } catch (IllegalArgumentException e) {
+                return Optional.empty();
+            }
+        }
     }
 
     /**
@@ -348,6 +472,88 @@ public class GlobusClient {
     }
 
     /**
+     * List the access-control rules on a guest collection
+     * ({@code GET /endpoint/<id>/access_list}). The caller's identity must hold
+     * an {@code access_manager}, {@code administrator}, or
+     * {@code restricted_administrator} effective role on the collection, or
+     * Globus returns a permission error.
+     *
+     * @param accessToken  a Transfer API bearer token
+     * @param collectionId the guest-collection UUID
+     * @return the collection's access rules (identity rules carry a UUID {@code principal})
+     * @throws GlobusTransferException if the request fails or the response is unparseable
+     */
+    public List<AccessRule> listAccessRules(final String accessToken, final String collectionId) {
+        final String url = TRANSFER_API_BASE + "/endpoint/" + collectionId + "/access_list";
+        final String body = call("list access rules", () -> getForBody(url, accessToken));
+        try {
+            final JsonNode data = _objectMapper.readTree(body).path("DATA");
+            final List<AccessRule> rules = new ArrayList<>();
+            for (final JsonNode rule : data) {
+                rules.add(new AccessRule(
+                        rule.path("id").asText(null),
+                        PrincipalType.fromWire(rule.path("principal_type").asText(null)),
+                        rule.path("principal").asText(null),
+                        rule.path("path").asText(null),
+                        Permission.fromWire(rule.path("permissions").asText(null))));
+            }
+            return rules;
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            // IllegalArgumentException covers an unrecognized permissions value (Permission.fromWire);
+            // callers that reconcile (GlobusUploadPermissionManager.list) degrade to stored records.
+            throw new GlobusTransferException("Could not parse Globus access_list response", e);
+        }
+    }
+
+    /**
+     * Create an identity access rule on a guest collection
+     * ({@code POST /endpoint/<id>/access}). The caller's identity must hold an
+     * {@code access_manager} or {@code administrator} role on the collection.
+     *
+     * @param accessToken      a Transfer API bearer token
+     * @param collectionId     the guest-collection UUID
+     * @param identityId       the Globus identity UUID to grant to
+     * @param path             the collection-relative path to grant on (e.g. {@code /PROJECT/user/})
+     * @param permissions      the permission level to grant
+     * @return the created access-rule id ({@code access_id})
+     * @throws GlobusTransferException if the request fails or the response has no id
+     */
+    public String createAccessRule(final String accessToken, final String collectionId, final UUID identityId,
+                                   final String path, final Permission permissions) {
+        final ObjectNode doc = _objectMapper.createObjectNode();
+        doc.put("DATA_TYPE", "access");
+        doc.put("principal_type", PrincipalType.IDENTITY.wire());
+        doc.put("principal", identityId.toString());
+        doc.put("path", path);
+        doc.put("permissions", permissions.wire());
+        final String body;
+        try {
+            body = _objectMapper.writeValueAsString(doc);
+        } catch (JsonProcessingException e) {
+            throw new GlobusTransferException("Could not build Globus access-rule document", e);
+        }
+        final String url = TRANSFER_API_BASE + "/endpoint/" + collectionId + "/access";
+        final String response = call("create access rule", () -> postForBody(url, accessToken, body));
+        return requireField(response, "access_id", "access rule id");
+    }
+
+    /**
+     * Delete an access rule from a guest collection
+     * ({@code DELETE /endpoint/<id>/access/<rule_id>}). The caller's identity
+     * must hold an {@code access_manager}, {@code administrator}, or
+     * {@code restricted_administrator} role on the collection.
+     *
+     * @param accessToken  a Transfer API bearer token
+     * @param collectionId the guest-collection UUID
+     * @param ruleId       the access-rule id to delete
+     * @throws GlobusTransferException if the request fails
+     */
+    public void deleteAccessRule(final String accessToken, final String collectionId, final String ruleId) {
+        final String url = TRANSFER_API_BASE + "/endpoint/" + collectionId + "/access/" + ruleId;
+        call("delete access rule", () -> deleteForBody(url, accessToken));
+    }
+
+    /**
      * Build the {@code transfer} submission document for a single file.
      *
      * @param submissionId the one-time submission id
@@ -447,6 +653,19 @@ public class GlobusClient {
         headers.setContentType(MediaType.APPLICATION_JSON);
         return new RestTemplate()
                 .exchange(URI.create(url), HttpMethod.POST, new HttpEntity<>(jsonBody, headers), String.class)
+                .getBody();
+    }
+
+    /**
+     * Issue a DELETE and return the raw body. HTTP seam: overridable in tests.
+     *
+     * @param url the fully-formed URL
+     * @param accessToken the bearer token
+     * @return the response body
+     */
+    protected String deleteForBody(final String url, final String accessToken) {
+        return new RestTemplate()
+                .exchange(URI.create(url), HttpMethod.DELETE, new HttpEntity<>(bearer(accessToken)), String.class)
                 .getBody();
     }
 
