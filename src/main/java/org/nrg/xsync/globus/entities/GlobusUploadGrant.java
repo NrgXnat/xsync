@@ -4,8 +4,6 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,20 +13,24 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 /**
  * The XNAT-owned record binding a Globus identity to the XNAT user whose
- * uploads it may submit, for one project (design
- * {@code XSYNC_GLOBUS_UPLOAD_ACL_UI_DESIGN.md} §4). It is the authoritative
- * record of a per-user upload grant; the matching Globus ACL on the upload
- * collection is provisioned from it.
+ * uploads it may submit, for one project. It is the authoritative record of a
+ * per-user upload grant; the matching Globus ACL on the upload collection is
+ * provisioned from it.
  *
  * <p>The durable key is {@link #globusIdentityId} (a Globus identity UUID), not
  * the username: an identity provider may reuse a username over time, so the UUID
  * is what the Globus ACL's {@code principal} is matched against during
  * reconciliation. {@link #globusUsername} is display only.</p>
  *
+ * <p>Uniqueness of {@code (projectId, globusIdentityId)} is enforced in the
+ * service layer ({@code GlobusUploadPermissionManager.add} rejects a duplicate
+ * before inserting), not by a database constraint: a JPA {@code @UniqueConstraint}
+ * here must name columns by XNAT's naming strategy, which is brittle and has
+ * failed session-factory initialization, so it is deliberately omitted.</p>
+ *
  * @author XSync
  */
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"projectId", "globusIdentityId"}))
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

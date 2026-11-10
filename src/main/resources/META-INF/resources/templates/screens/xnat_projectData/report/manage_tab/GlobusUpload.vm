@@ -1,0 +1,13 @@
+
+#set ($SITE_ROOT = $content.getURI(''))
+
+<script type="text/javascript" src="${SITE_ROOT}/scripts/xnat-plugins/xsyncPlugin/xsyncUploadPermissions.js"></script>
+
+<h3 id="xsync_globus_upload_header">Globus Upload</h3>
+<div>
+    <p class="hint">
+        Globus identities that may upload studies to this project, and the XNAT
+        user each uploads as.
+    </p>
+    <div id="xsync-globus-upload-table"></div>
+</div>

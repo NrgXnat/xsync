@@ -1,5 +1,9 @@
 package org.nrg.xsync.globus.upload;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -12,6 +16,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
+import org.nrg.xdat.XDAT;
+import org.nrg.xdat.security.helpers.Permissions;
+import org.nrg.xdat.security.helpers.Users;
+import org.nrg.xft.security.UserI;
 import org.nrg.xsync.globus.GlobusClient;
 import org.nrg.xsync.globus.GlobusClient.AccessRule;
 import org.nrg.xsync.globus.GlobusClient.Permission;
@@ -32,13 +40,12 @@ import org.springframework.stereotype.Component;
 /**
  * Orchestrates per-user Globus upload-permission management for a project: it
  * ties the XNAT-owned {@link GlobusUploadGrant} records to the Globus ACLs on
- * the node's upload collection (design
- * {@code XSYNC_GLOBUS_UPLOAD_ACL_UI_DESIGN.md} §5&ndash;§8).
+ * the node's upload collection.
  *
- * <p>Per the §8 decision (option 1), all Globus ACL calls run under the node
- * service account's Transfer token, which must hold the {@code access_manager}
- * role on the upload collection; authorization over <em>who</em> may invoke
- * these operations is enforced by the controller's XNAT project-role check.</p>
+ * <p>All Globus ACL calls run under the node service account's Transfer token,
+ * which must hold the {@code access_manager} role on the upload collection;
+ * authorization over <em>who</em> may invoke these operations is enforced by the
+ * controller's XNAT project-role check.</p>
  *
  * @author XSync
  */
@@ -113,6 +120,10 @@ public class GlobusUploadPermissionManager {
         if (StringUtils.isAnyBlank(projectId, globusUsername, xnatUsername)) {
             throw new DataFormatException("A Globus username and an XNAT user are both required.");
         }
+        if (!canEditProject(xnatUsername, projectId)) {
+            throw new DataFormatException("XNAT user '" + xnatUsername + "' must be a project member with edit "
+                    + "access to receive upload permission.");
+        }
         final Context ctx = context();
         final GlobusIdentity identity = _identityService.resolveByUsername(ctx.credentials(), globusUsername)
                 .orElseThrow(() -> new DataFormatException("No Globus identity found for '" + globusUsername + "'."));
@@ -127,6 +138,9 @@ public class GlobusUploadPermissionManager {
             throw new DataFormatException("Globus returned a non-UUID identity id for '" + globusUsername
                     + "': " + identity.id());
         }
+        // The ACL only grants access to the path; the directory must exist on disk
+        // for the user to see and upload to it in the Globus File Manager.
+        ensureUploadDirectory(projectId, xnatUsername);
         final String subpath = subpath(projectId, xnatUsername);
         final String aclId = _client.createAccessRule(ctx.token(), ctx.collectionId(), identityId,
                 subpath, Permission.READ_WRITE);
@@ -145,8 +159,9 @@ public class GlobusUploadPermissionManager {
 
     /**
      * Revoke an upload grant: delete its Globus ACL (if provisioned) and remove
-     * the XNAT record. Removing a grant cuts future access; it does not affect
-     * already-imported data.
+     * the XNAT record, then remove the user's upload directory if it is empty.
+     * Removing a grant cuts future access; it does not affect already-imported
+     * data, and a non-empty directory (e.g. an in-flight upload) is left in place.
      *
      * @param projectId        the XNAT project id
      * @param globusIdentityId the Globus identity UUID whose grant to remove
@@ -163,6 +178,7 @@ public class GlobusUploadPermissionManager {
             _client.deleteAccessRule(ctx.token(), ctx.collectionId(), grant.getGlobusAclId());
         }
         _grants.delete(grant);
+        removeUploadDirectoryIfEmpty(projectId, grant.getXnatUsername());
     }
 
     /**
@@ -211,6 +227,98 @@ public class GlobusUploadPermissionManager {
     private GlobusUploadGrantPojo toPojo(final GlobusUploadGrant grant, final GlobusUploadGrantState state) {
         return new GlobusUploadGrantPojo(grant.getProjectId(), grant.getGlobusUsername(), grant.getGlobusIdentityId(),
                 grant.getXnatUsername(), PERMISSION_RW, state.name(), grant.getGlobusAclId());
+    }
+
+    /**
+     * Whether an XNAT user exists and has edit access to the project — the gate
+     * on who may be granted upload permission (only edit-capable project
+     * members). A seam so the add path is unit-testable without a live XNAT
+     * security context.
+     *
+     * @param username  the candidate XNAT username
+     * @param projectId the project
+     * @return {@code true} if the user exists and can edit the project
+     */
+    protected boolean canEditProject(final String username, final String projectId) {
+        try {
+            final UserI user = Users.getUser(username);
+            return user != null && Permissions.canEditProject(user, projectId);
+        } catch (Exception e) {
+            log.debug("Edit-access check failed for user {} on project {}: {}", username, projectId, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Create the per-user upload directory on disk ({@code <inboxPath>/<project>/<user>})
+     * if it does not already exist, so the user can see and upload to their subpath
+     * in the Globus File Manager — granting the ACL alone does not create the path.
+     * XNAT runs as the identity-mapped account and shares the staging filesystem
+     * with GCS, so the directory is created with the right ownership. A seam:
+     * overridable for tests, and the single place the on-disk creation policy lives.
+     *
+     * @param projectId    the project
+     * @param xnatUsername the XNAT user (the subpath segment)
+     * @throws DataFormatException if the resolved path escapes the inbox root
+     */
+    protected void ensureUploadDirectory(final String projectId, final String xnatUsername)
+            throws DataFormatException {
+        final String inboxPath = inboxPath();
+        if (StringUtils.isBlank(inboxPath)) {
+            throw new DataFormatException("XNAT inbox path is not configured; cannot create the upload directory.");
+        }
+        final Path base = Paths.get(inboxPath).normalize();
+        final Path dir = base.resolve(projectId).resolve(xnatUsername).normalize();
+        if (!dir.startsWith(base)) {
+            throw new DataFormatException("Invalid project/user path for upload directory.");
+        }
+        try {
+            Files.createDirectories(dir);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not create upload directory " + dir + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Remove the per-user upload directory ({@code <inboxPath>/<project>/<user>})
+     * on grant revocation, but <strong>only if it is empty</strong> — a directory
+     * holding files (e.g. an in-flight or not-yet-imported upload) is left alone.
+     * Best-effort: a failure is logged, not propagated, so it never blocks the
+     * revocation. A seam: overridable for tests.
+     *
+     * @param projectId    the project
+     * @param xnatUsername the XNAT user (the subpath segment)
+     */
+    protected void removeUploadDirectoryIfEmpty(final String projectId, final String xnatUsername) {
+        final String inboxPath = inboxPath();
+        if (StringUtils.isBlank(inboxPath)) {
+            return;
+        }
+        final Path base = Paths.get(inboxPath).normalize();
+        final Path dir = base.resolve(projectId).resolve(xnatUsername).normalize();
+        if (!dir.startsWith(base) || !Files.isDirectory(dir)) {
+            return;
+        }
+        try (var entries = Files.list(dir)) {
+            if (entries.findAny().isPresent()) {
+                log.debug("Upload directory {} is not empty; leaving it in place on grant revocation.", dir);
+                return;
+            }
+        } catch (IOException e) {
+            log.warn("Could not inspect upload directory {} on grant revocation: {}", dir, e.getMessage());
+            return;
+        }
+        try {
+            Files.delete(dir);
+        } catch (IOException e) {
+            // e.g. a DirectoryNotEmptyException from a concurrent upload between the check and the delete.
+            log.warn("Could not remove empty upload directory {} on grant revocation: {}", dir, e.getMessage());
+        }
+    }
+
+    /** @return XNAT's site-configured inbox path (the upload collection's on-disk root). A seam for tests. */
+    protected String inboxPath() {
+        return XDAT.getSiteConfigPreferences().getInboxPath();
     }
 
     /** The collection-relative subpath a grant writes to: {@code /<projectId>/<xnatUsername>/}. */

@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +15,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xsync.globus.GlobusClient.AccessRule;
@@ -160,6 +163,62 @@ class GlobusUploadPermissionManagerTest {
         }
     }
 
+    /** Manager with the XNAT-dependent seams overridden (no live security context or filesystem in unit tests). */
+    private static final class TestManager extends GlobusUploadPermissionManager {
+        private boolean editable = true;
+        private String dirProject;
+        private String dirUser;
+
+        TestManager(final GlobusUploadGrantService grants, final GlobusClient client, final GlobusAuthService auth,
+                    final GlobusIdentityService identity, final GlobusNodeConfigService node) {
+            super(grants, client, auth, identity, node);
+        }
+
+        @Override
+        protected boolean canEditProject(final String username, final String projectId) {
+            return editable;
+        }
+
+        @Override
+        protected void ensureUploadDirectory(final String projectId, final String xnatUsername) {
+            dirProject = projectId;
+            dirUser = xnatUsername;
+        }
+
+        @Override
+        protected void removeUploadDirectoryIfEmpty(final String projectId, final String xnatUsername) {
+            removedDirProject = projectId;
+            removedDirUser = xnatUsername;
+        }
+
+        private String removedDirProject;
+        private String removedDirUser;
+    }
+
+    /** Manager exercising the real on-disk seams against a temp inbox root. */
+    private static final class FsManager extends GlobusUploadPermissionManager {
+        private final String inbox;
+
+        FsManager(final String inbox) {
+            super(null, null, null, null, null);
+            this.inbox = inbox;
+        }
+
+        @Override
+        protected String inboxPath() {
+            return inbox;
+        }
+
+        // Package-visible wrappers so the enclosing test can drive the protected seams.
+        void ensure(final String projectId, final String xnatUsername) throws DataFormatException {
+            ensureUploadDirectory(projectId, xnatUsername);
+        }
+
+        void removeIfEmpty(final String projectId, final String xnatUsername) {
+            removeUploadDirectoryIfEmpty(projectId, xnatUsername);
+        }
+    }
+
     private static GlobusUploadGrant grant(final String identityId, final String xnatUser, final String aclId) {
         final GlobusUploadGrant g = new GlobusUploadGrant();
         g.setProjectId(PROJECT);
@@ -178,7 +237,7 @@ class GlobusUploadPermissionManagerTest {
         final FakeClient client = new FakeClient();
         final FakeIdentity identity = new FakeIdentity(
                 Map.of("alice@inst.edu", new GlobusIdentity(UUID_A, "alice@inst.edu")), Map.of());
-        final GlobusUploadPermissionManager mgr = new GlobusUploadPermissionManager(
+        final GlobusUploadPermissionManager mgr = new TestManager(
                 grants, client, new FakeAuth(), identity, new FakeNodeConfig(UPLOAD_COLL));
 
         final GlobusUploadGrantPojo pojo = mgr.add(PROJECT, "alice@inst.edu", "alice");
@@ -194,7 +253,7 @@ class GlobusUploadPermissionManagerTest {
 
     @Test
     void addRejectsUnresolvableIdentity() {
-        final GlobusUploadPermissionManager mgr = new GlobusUploadPermissionManager(
+        final GlobusUploadPermissionManager mgr = new TestManager(
                 new FakeGrants(), new FakeClient(), new FakeAuth(),
                 new FakeIdentity(Map.of(), Map.of()), new FakeNodeConfig(UPLOAD_COLL));
         assertThrows(DataFormatException.class, () -> mgr.add(PROJECT, "ghost@inst.edu", "ghost"));
@@ -204,7 +263,7 @@ class GlobusUploadPermissionManagerTest {
     void addRejectsNonUuidIdentityId() {
         final FakeIdentity identity = new FakeIdentity(
                 Map.of("alice@inst.edu", new GlobusIdentity("not-a-uuid", "alice@inst.edu")), Map.of());
-        final GlobusUploadPermissionManager mgr = new GlobusUploadPermissionManager(
+        final GlobusUploadPermissionManager mgr = new TestManager(
                 new FakeGrants(), new FakeClient(), new FakeAuth(), identity, new FakeNodeConfig(UPLOAD_COLL));
         assertThrows(DataFormatException.class, () -> mgr.add(PROJECT, "alice@inst.edu", "alice"));
     }
@@ -213,7 +272,7 @@ class GlobusUploadPermissionManagerTest {
     void addRejectsDuplicateGrant() {
         final FakeGrants grants = new FakeGrants();
         grants.save(grant(UUID_A, "alice", "acl-0"));
-        final GlobusUploadPermissionManager mgr = new GlobusUploadPermissionManager(
+        final GlobusUploadPermissionManager mgr = new TestManager(
                 grants, new FakeClient(), new FakeAuth(),
                 new FakeIdentity(Map.of("alice@inst.edu", new GlobusIdentity(UUID_A, "alice@inst.edu")), Map.of()),
                 new FakeNodeConfig(UPLOAD_COLL));
@@ -222,7 +281,7 @@ class GlobusUploadPermissionManagerTest {
 
     @Test
     void addRejectsBlankInput() {
-        final GlobusUploadPermissionManager mgr = new GlobusUploadPermissionManager(
+        final GlobusUploadPermissionManager mgr = new TestManager(
                 new FakeGrants(), new FakeClient(), new FakeAuth(),
                 new FakeIdentity(Map.of(), Map.of()), new FakeNodeConfig(UPLOAD_COLL));
         assertThrows(DataFormatException.class, () -> mgr.add(PROJECT, "  ", "alice"));
@@ -230,21 +289,42 @@ class GlobusUploadPermissionManagerTest {
 
     @Test
     void addFailsWhenNoUploadCollectionConfigured() {
-        final GlobusUploadPermissionManager mgr = new GlobusUploadPermissionManager(
+        final GlobusUploadPermissionManager mgr = new TestManager(
                 new FakeGrants(), new FakeClient(), new FakeAuth(),
                 new FakeIdentity(Map.of("alice@inst.edu", new GlobusIdentity(UUID_A, "alice@inst.edu")), Map.of()),
                 new FakeNodeConfig("  "));
         assertThrows(DataFormatException.class, () -> mgr.add(PROJECT, "alice@inst.edu", "alice"));
     }
 
+    @Test
+    void addCreatesThePerUserUploadDirectory() throws Exception {
+        final TestManager mgr = new TestManager(new FakeGrants(), new FakeClient(), new FakeAuth(),
+                new FakeIdentity(Map.of("alice@inst.edu", new GlobusIdentity(UUID_A, "alice@inst.edu")), Map.of()),
+                new FakeNodeConfig(UPLOAD_COLL));
+
+        mgr.add(PROJECT, "alice@inst.edu", "alice");
+
+        assertEquals(PROJECT, mgr.dirProject, "the per-user upload directory must be created on add");
+        assertEquals("alice", mgr.dirUser);
+    }
+
+    @Test
+    void addRejectsXnatUserWithoutProjectEditAccess() {
+        final TestManager mgr = new TestManager(new FakeGrants(), new FakeClient(), new FakeAuth(),
+                new FakeIdentity(Map.of("alice@inst.edu", new GlobusIdentity(UUID_A, "alice@inst.edu")), Map.of()),
+                new FakeNodeConfig(UPLOAD_COLL));
+        mgr.editable = false;
+        assertThrows(DataFormatException.class, () -> mgr.add(PROJECT, "alice@inst.edu", "alice"));
+    }
+
     // --- remove ------------------------------------------------------------
 
     @Test
-    void removeDeletesAclAndRecord() throws Exception {
+    void removeDeletesAclAndRecordAndCleansDirectory() throws Exception {
         final FakeGrants grants = new FakeGrants();
         grants.save(grant(UUID_A, "alice", "acl-7"));
         final FakeClient client = new FakeClient();
-        final GlobusUploadPermissionManager mgr = new GlobusUploadPermissionManager(
+        final TestManager mgr = new TestManager(
                 grants, client, new FakeAuth(), new FakeIdentity(Map.of(), Map.of()),
                 new FakeNodeConfig(UPLOAD_COLL));
 
@@ -252,11 +332,12 @@ class GlobusUploadPermissionManagerTest {
 
         assertEquals(List.of("acl-7"), client.deleted);
         assertTrue(grants.getByProject(PROJECT).isEmpty());
+        assertEquals("alice", mgr.removedDirUser, "revocation must attempt to clean the user's upload directory");
     }
 
     @Test
     void removeMissingGrantThrowsNotFound() {
-        final GlobusUploadPermissionManager mgr = new GlobusUploadPermissionManager(
+        final GlobusUploadPermissionManager mgr = new TestManager(
                 new FakeGrants(), new FakeClient(), new FakeAuth(), new FakeIdentity(Map.of(), Map.of()),
                 new FakeNodeConfig(UPLOAD_COLL));
         assertThrows(NotFoundException.class, () -> mgr.remove(PROJECT, UUID_X));
@@ -277,7 +358,7 @@ class GlobusUploadPermissionManagerTest {
         final FakeIdentity identity = new FakeIdentity(Map.of(),
                 Map.of(UUID_X, new GlobusIdentity(UUID_X, "carol@inst.edu")));
 
-        final GlobusUploadPermissionManager mgr = new GlobusUploadPermissionManager(
+        final GlobusUploadPermissionManager mgr = new TestManager(
                 grants, client, new FakeAuth(), identity, new FakeNodeConfig(UPLOAD_COLL));
 
         final List<GlobusUploadGrantPojo> list = mgr.list(PROJECT);
@@ -298,7 +379,7 @@ class GlobusUploadPermissionManagerTest {
         final FakeClient client = new FakeClient();
         client.listError = new GlobusTransferException("boom");
 
-        final GlobusUploadPermissionManager mgr = new GlobusUploadPermissionManager(
+        final GlobusUploadPermissionManager mgr = new TestManager(
                 grants, client, new FakeAuth(), new FakeIdentity(Map.of(), Map.of()),
                 new FakeNodeConfig(UPLOAD_COLL));
 
@@ -307,6 +388,29 @@ class GlobusUploadPermissionManagerTest {
         assertEquals(1, list.size());
         assertEquals(GlobusUploadGrantState.ACTIVE.name(), list.get(0).getState(), "stored state is returned");
         assertFalse(client.deleted.contains("acl-a"));
+    }
+
+    // --- on-disk directory seams (real filesystem) -------------------------
+
+    @Test
+    void ensureUploadDirectoryCreatesThePerUserPath(@TempDir final Path tmp) throws Exception {
+        new FsManager(tmp.toString()).ensure(PROJECT, "alice");
+        assertTrue(Files.isDirectory(tmp.resolve(PROJECT).resolve("alice")));
+    }
+
+    @Test
+    void removeUploadDirectoryDeletesWhenEmpty(@TempDir final Path tmp) throws Exception {
+        final Path dir = Files.createDirectories(tmp.resolve(PROJECT).resolve("alice"));
+        new FsManager(tmp.toString()).removeIfEmpty(PROJECT, "alice");
+        assertFalse(Files.exists(dir), "an empty upload directory should be removed on revocation");
+    }
+
+    @Test
+    void removeUploadDirectoryKeepsWhenNonEmpty(@TempDir final Path tmp) throws Exception {
+        final Path dir = Files.createDirectories(tmp.resolve(PROJECT).resolve("bob"));
+        Files.writeString(dir.resolve("study.tgz"), "data");
+        new FsManager(tmp.toString()).removeIfEmpty(PROJECT, "bob");
+        assertTrue(Files.isDirectory(dir), "a non-empty upload directory must be preserved");
     }
 
     private static String stateOf(final List<GlobusUploadGrantPojo> list, final String identityId) {

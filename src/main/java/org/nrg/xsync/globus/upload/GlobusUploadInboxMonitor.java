@@ -40,9 +40,9 @@ import org.springframework.stereotype.Component;
  * needed (that is the documented fallback, not implemented here). The user
  * only runs a Globus transfer; XNAT never exposes an upload API.</p>
  *
- * <p>Expected inbox layout is {@code <inboxPath>/<PROJECT_ID>/<user>/<archive>}
- * (spike plan §5): the first path segment is the destination project and the
- * second is the uploading user. The import runs as that XNAT user, so XNAT's
+ * <p>Expected inbox layout is {@code <inboxPath>/<PROJECT_ID>/<user>/<archive>}:
+ * the first path segment is the destination project and the second is the
+ * uploading user. The import runs as that XNAT user, so XNAT's
  * normal project-edit permissions apply. Mapping the Globus upload identity to
  * an XNAT username (here: same name) is a real-build design point.</p>
  *

@@ -32,14 +32,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * Project-scoped XAPI for managing per-user Globus upload permissions — the
- * backend for the project's "Globus Upload" management tab (design
- * {@code XSYNC_GLOBUS_UPLOAD_ACL_UI_DESIGN.md} §7).
+ * backend for the project's "Globus Upload" management tab.
  *
  * <p>Listing requires project read access; add/remove requires project edit
- * access (design §8.4 intends owner-level for mutations; this prototype uses the
- * project-edit authority XSync already defines, which can be tightened later).
- * All Globus ACL changes run under the node service account (§8.1), so XNAT
- * admins do not need Globus identities.</p>
+ * access (the project-edit authority XSync already defines, which can be
+ * tightened to owner-level later). All Globus ACL changes run under the node
+ * service account, so XNAT admins do not need Globus identities.</p>
  *
  * @author XSync
  */

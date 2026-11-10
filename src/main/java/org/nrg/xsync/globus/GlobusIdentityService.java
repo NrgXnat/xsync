@@ -26,13 +26,12 @@ import org.springframework.web.util.UriComponentsBuilder;
  * <a href="https://docs.globus.org/api/auth/reference/">Get Identities</a>
  * endpoint ({@code GET /v2/api/identities}): username &rarr; UUID when adding a
  * grant, and UUID &rarr; username when displaying a Globus ACL that has no XNAT
- * record (design {@code XSYNC_GLOBUS_UPLOAD_ACL_UI_DESIGN.md} §6).
+ * record.
  *
  * <p>The lookup requires no special OAuth scope ("available with any
  * authentication/client type"), so this calls the endpoint with HTTP Basic
  * authentication using the node's confidential-client credentials, avoiding any
- * token-audience question. Whether that returns the needed fields is the §10
- * build-time confirmation; the HTTP call is isolated in {@link #get(String,
+ * token-audience question. The HTTP call is isolated in {@link #get(String,
  * GlobusCredentials)} so it can be exercised in tests without network access.</p>
  *
  * <p>Username lookups pass {@code provision=false}: the Globus default is

@@ -14,8 +14,7 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
  * these (a singleton row); per-destination routing lives in {@link GlobusEndpoint}.
  *
  * <p>The {@link #clientSecret} is stored <strong>in plaintext for now</strong>;
- * at-rest encryption is a planned follow-up — see {@code GLOBUS_TRANSFER_PLAN.md}
- * §6.8.</p>
+ * at-rest encryption is a planned follow-up.</p>
  *
  * @author XSync
  */
@@ -29,7 +28,7 @@ public class GlobusNodeConfig extends AbstractHibernateEntity {
     /** Globus confidential-client (application) id — this node's service account. */
     private String clientId;
 
-    /** Globus confidential-client secret. Plaintext for now (see §6.8). */
+    /** Globus confidential-client secret. Plaintext for now. */
     private String clientSecret;
 
     /** UUID of this node's outbox collection, which XSync sends staged XARs from. */
