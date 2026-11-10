@@ -161,9 +161,10 @@ public class GlobusUploadInboxMonitor implements Runnable {
                 continue;
             }
             final ResolvedUpload upload = resolved.get();
-            if (!isAuthorizedUpload(upload.projectId(), upload.username())) {
-                log.warn("Skipping Globus upload {} (task {}): no XNAT upload grant authorizes imports as user '{}' "
-                        + "in project '{}'.", upload.absolutePath(), task.taskId(), upload.username(), upload.projectId());
+            if (!isAuthorizedUpload(upload.projectId(), upload.username(), task.ownerId())) {
+                log.warn("Skipping Globus upload {} (task {}): no XNAT upload grant binds submitting identity '{}' "
+                        + "to user '{}' in project '{}'.", upload.absolutePath(), task.taskId(), task.ownerId(),
+                        upload.username(), upload.projectId());
                 continue;
             }
             try {
@@ -230,20 +231,30 @@ public class GlobusUploadInboxMonitor implements Runnable {
     }
 
     /**
-     * Whether an incoming upload is authorized by an XNAT-side grant record: a
-     * delivered path names only the project and the XNAT user, so this checks
-     * that a grant in that project imports as that user. Without it the importer
-     * would trust the on-disk subpath alone; requiring a record makes XNAT, not
-     * the on-disk layout, the authority on who may import as whom (and an upload
-     * whose grant was revoked, or an out-of-band subpath never granted in XNAT,
-     * is skipped rather than imported).
+     * Whether an incoming upload is authorized by an XNAT-side grant record. The
+     * check is per-identity: the grant for the <em>submitting</em> Globus identity
+     * ({@code owner_id} of the transfer task) must exist in the destination
+     * project and bind that identity to exactly the XNAT user named by the
+     * delivered subpath. This makes XNAT — not the on-disk layout — the authority
+     * on who may import as whom, and additionally pins the import to the real
+     * uploader rather than any grant that merely maps to the same XNAT user. An
+     * upload whose grant was revoked, submitted by an un-granted identity, or
+     * landing under a different user's subpath than its grant specifies, is
+     * skipped. Fails closed when the submitting identity is unknown.
      *
-     * @param projectId    the destination project
-     * @param xnatUsername the XNAT user the upload would import as
-     * @return whether a matching grant exists
+     * @param projectId      the destination project
+     * @param xnatUsername   the XNAT user named by the delivered subpath
+     * @param ownerIdentityId the Globus identity id that submitted the transfer
+     * @return whether a grant binds {@code ownerIdentityId} to {@code xnatUsername} in the project
      */
-    protected boolean isAuthorizedUpload(final String projectId, final String xnatUsername) {
-        return !_grantService.getByProjectAndXnatUser(projectId, xnatUsername).isEmpty();
+    protected boolean isAuthorizedUpload(final String projectId, final String xnatUsername,
+                                         final String ownerIdentityId) {
+        if (StringUtils.isBlank(ownerIdentityId)) {
+            return false;
+        }
+        return _grantService.getByProjectAndIdentity(projectId, ownerIdentityId)
+                .map(grant -> xnatUsername.equals(grant.getXnatUsername()))
+                .orElse(false);
     }
 
     /** @return completed transfers into the inbox collection since the given time. */

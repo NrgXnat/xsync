@@ -61,13 +61,6 @@ class GlobusUploadPermissionManagerTest {
         }
 
         @Override
-        public List<GlobusUploadGrant> getByProjectAndXnatUser(final String projectId, final String xnatUsername) {
-            return store.stream()
-                    .filter(g -> projectId.equals(g.getProjectId()) && xnatUsername.equals(g.getXnatUsername()))
-                    .toList();
-        }
-
-        @Override
         public GlobusUploadGrant save(final GlobusUploadGrant grant) {
             store.add(grant);
             return grant;

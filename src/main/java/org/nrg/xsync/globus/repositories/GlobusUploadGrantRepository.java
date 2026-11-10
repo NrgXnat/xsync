@@ -35,15 +35,4 @@ public class GlobusUploadGrantRepository extends AbstractHibernateDAO<GlobusUplo
     public GlobusUploadGrant findByProjectAndIdentity(final String projectId, final String globusIdentityId) {
         return findByUniqueProperties(Map.of("projectId", projectId, "globusIdentityId", globusIdentityId));
     }
-
-    /**
-     * Find the grants in a project that import as a given XNAT user.
-     *
-     * @param projectId    the XNAT project id
-     * @param xnatUsername the XNAT user the uploads import as
-     * @return the matching grants (possibly empty)
-     */
-    public List<GlobusUploadGrant> findByProjectAndXnatUser(final String projectId, final String xnatUsername) {
-        return findByProperties(Map.of("projectId", projectId, "xnatUsername", xnatUsername));
-    }
 }

@@ -30,18 +30,6 @@ public interface GlobusUploadGrantService {
     Optional<GlobusUploadGrant> getByProjectAndIdentity(String projectId, String globusIdentityId);
 
     /**
-     * Grants in a project that import as a given XNAT user. Used to authorize an
-     * incoming upload: a delivered path names the project and XNAT user, and a
-     * matching grant is the XNAT-side record that the upload is authorized.
-     *
-     * @param projectId    the XNAT project id
-     * @param xnatUsername the XNAT user the uploads import as
-     * @return the matching grants (possibly empty; more than one Globus identity
-     *         may be bound to the same XNAT user)
-     */
-    List<GlobusUploadGrant> getByProjectAndXnatUser(String projectId, String xnatUsername);
-
-    /**
      * Persist (create or update) a grant record.
      *
      * @param grant the record to save

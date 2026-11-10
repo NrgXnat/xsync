@@ -134,9 +134,10 @@ public class GlobusClient {
      * by the endpoint-manager {@code task_list} (the activity-monitor view).
      *
      * @param taskId         the Globus task id
+     * @param ownerId        the identity id ({@code owner_id}) that submitted the task (may be null)
      * @param completionTime the task's completion time (ISO-8601, as reported by Globus; may be null)
      */
-    public record CompletedTask(String taskId, String completionTime) {
+    public record CompletedTask(String taskId, String ownerId, String completionTime) {
     }
 
     /**
@@ -430,7 +431,8 @@ public class GlobusClient {
             for (final JsonNode task : data) {
                 final String taskId = task.path("task_id").asText(null);
                 if (StringUtils.isNotBlank(taskId)) {
-                    tasks.add(new CompletedTask(taskId, task.path("completion_time").asText(null)));
+                    tasks.add(new CompletedTask(taskId, task.path("owner_id").asText(null),
+                            task.path("completion_time").asText(null)));
                 }
             }
             return tasks;

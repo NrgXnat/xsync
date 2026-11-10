@@ -13,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.jupiter.api.Test;
 import org.nrg.xsync.globus.GlobusClient;
+import org.nrg.xsync.globus.entities.GlobusUploadGrant;
+import org.nrg.xsync.globus.services.GlobusUploadGrantService;
 
 /**
  * Unit tests for {@link GlobusUploadInboxMonitor}: path resolution (including
@@ -51,7 +53,7 @@ class GlobusUploadInboxMonitorTest {
         @Override protected String token() { tokenCalls++; return "token"; }
 
         @Override
-        protected boolean isAuthorizedUpload(final String projectId, final String xnatUsername) {
+        protected boolean isAuthorizedUpload(final String projectId, final String xnatUsername, final String ownerId) {
             return authorizedUsers == null || authorizedUsers.contains(xnatUsername);
         }
 
@@ -79,7 +81,45 @@ class GlobusUploadInboxMonitorTest {
     }
 
     private static GlobusClient.CompletedTask task(final String id) {
-        return new GlobusClient.CompletedTask(id, "2026-10-28T00:00:00Z");
+        return new GlobusClient.CompletedTask(id, "owner-1", "2026-10-28T00:00:00Z");
+    }
+
+    /** Minimal grant store for exercising the real {@code isAuthorizedUpload} logic. */
+    private static final class FakeGrants implements GlobusUploadGrantService {
+        private final List<GlobusUploadGrant> store;
+
+        FakeGrants(final GlobusUploadGrant... grants) {
+            store = List.of(grants);
+        }
+
+        @Override
+        public List<GlobusUploadGrant> getByProject(final String projectId) {
+            return store.stream().filter(g -> projectId.equals(g.getProjectId())).toList();
+        }
+
+        @Override
+        public Optional<GlobusUploadGrant> getByProjectAndIdentity(final String projectId, final String identityId) {
+            return store.stream()
+                    .filter(g -> projectId.equals(g.getProjectId()) && identityId.equals(g.getGlobusIdentityId()))
+                    .findFirst();
+        }
+
+        @Override
+        public GlobusUploadGrant save(final GlobusUploadGrant grant) {
+            return grant;
+        }
+
+        @Override
+        public void delete(final GlobusUploadGrant grant) {
+        }
+    }
+
+    private static GlobusUploadGrant grant(final String projectId, final String identityId, final String xnatUser) {
+        final GlobusUploadGrant g = new GlobusUploadGrant();
+        g.setProjectId(projectId);
+        g.setGlobusIdentityId(identityId);
+        g.setXnatUsername(xnatUser);
+        return g;
     }
 
     // --- path resolution --------------------------------------------------
@@ -159,6 +199,25 @@ class GlobusUploadInboxMonitorTest {
         m.poll();   // must NOT retry (at-most-once)
 
         assertTrue(m.imported.isEmpty(), "a failed task is handled once, not retried in-process");
+    }
+
+    // --- per-identity authorization (real isAuthorizedUpload logic) --------
+
+    @Test
+    void authorizesOnlyWhenGrantBindsSubmitterToTheSubpathUser() {
+        final GlobusUploadInboxMonitor m = new GlobusUploadInboxMonitor(
+                null, null, null, null, new FakeGrants(grant("PRJ", "id-alice", "alice")));
+
+        assertTrue(m.isAuthorizedUpload("PRJ", "alice", "id-alice"),
+                "submitter is granted and the subpath user matches the grant");
+        assertFalse(m.isAuthorizedUpload("PRJ", "alice", "id-bob"),
+                "a different submitting identity has no grant");
+        assertFalse(m.isAuthorizedUpload("PRJ", "bob", "id-alice"),
+                "the grant binds id-alice to alice, not to the bob subpath");
+        assertFalse(m.isAuthorizedUpload("OTHER", "alice", "id-alice"),
+                "the grant is scoped to project PRJ");
+        assertFalse(m.isAuthorizedUpload("PRJ", "alice", ""),
+                "fail closed when the submitting identity is unknown");
     }
 
     @Test

@@ -35,11 +35,6 @@ public class HibernateGlobusUploadGrantService
     }
 
     @Override
-    public List<GlobusUploadGrant> getByProjectAndXnatUser(final String projectId, final String xnatUsername) {
-        return getDao().findByProjectAndXnatUser(projectId, xnatUsername);
-    }
-
-    @Override
     public GlobusUploadGrant save(final GlobusUploadGrant grant) {
         getDao().saveOrUpdate(grant);
         return grant;

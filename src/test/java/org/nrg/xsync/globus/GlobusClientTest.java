@@ -269,7 +269,8 @@ class GlobusClientTest {
         client.onGet = url -> {
             seenUrl[0] = url;
             return "{\"DATA_TYPE\":\"task_list\",\"DATA\":["
-                    + "{\"task_id\":\"t-1\",\"status\":\"SUCCEEDED\",\"completion_time\":\"2026-10-28T00:00:00Z\"},"
+                    + "{\"task_id\":\"t-1\",\"owner_id\":\"id-1\",\"status\":\"SUCCEEDED\","
+                    + "\"completion_time\":\"2026-10-28T00:00:00Z\"},"
                     + "{\"task_id\":\"t-2\",\"status\":\"SUCCEEDED\",\"completion_time\":\"2026-10-28T01:00:00Z\"}]}";
         };
 
@@ -278,6 +279,7 @@ class GlobusClientTest {
 
         assertEquals(2, tasks.size());
         assertEquals("t-1", tasks.get(0).taskId());
+        assertEquals("id-1", tasks.get(0).ownerId());
         assertEquals("2026-10-28T01:00:00Z", tasks.get(1).completionTime());
         assertTrue(seenUrl[0].contains("/endpoint_manager/task_list"), seenUrl[0]);
         assertTrue(seenUrl[0].contains("filter_endpoint=inbox-coll"), seenUrl[0]);
