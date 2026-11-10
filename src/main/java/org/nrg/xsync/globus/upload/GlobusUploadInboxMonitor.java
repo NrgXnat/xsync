@@ -24,6 +24,7 @@ import org.nrg.xsync.globus.GlobusAuthService;
 import org.nrg.xsync.globus.GlobusClient;
 import org.nrg.xsync.globus.entities.GlobusNodeConfig;
 import org.nrg.xsync.globus.services.GlobusNodeConfigService;
+import org.nrg.xsync.globus.services.GlobusUploadGrantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -60,6 +61,7 @@ public class GlobusUploadInboxMonitor implements Runnable {
     private final GlobusAuthService _authService;
     private final GlobusClient _client;
     private final XnatAppInfo _appInfo;
+    private final GlobusUploadGrantService _grantService;
 
     /**
      * Task ids already handled this process lifetime (at-most-once per task).
@@ -77,11 +79,12 @@ public class GlobusUploadInboxMonitor implements Runnable {
     @Autowired
     public GlobusUploadInboxMonitor(final GlobusNodeConfigService nodeConfigService,
                                     final GlobusAuthService authService, final GlobusClient client,
-                                    final XnatAppInfo appInfo) {
+                                    final XnatAppInfo appInfo, final GlobusUploadGrantService grantService) {
         _nodeConfigService = nodeConfigService;
         _authService = authService;
         _client = client;
         _appInfo = appInfo;
+        _grantService = grantService;
     }
 
     /** A resolved upload: the destination project, uploading user, and absolute archive path. */
@@ -158,6 +161,11 @@ public class GlobusUploadInboxMonitor implements Runnable {
                 continue;
             }
             final ResolvedUpload upload = resolved.get();
+            if (!isAuthorizedUpload(upload.projectId(), upload.username())) {
+                log.warn("Skipping Globus upload {} (task {}): no XNAT upload grant authorizes imports as user '{}' "
+                        + "in project '{}'.", upload.absolutePath(), task.taskId(), upload.username(), upload.projectId());
+                continue;
+            }
             try {
                 importArchive(upload);
                 log.info("Imported Globus upload {} for project {} (user {}, task {}).",
@@ -219,6 +227,23 @@ public class GlobusUploadInboxMonitor implements Runnable {
     /** @return a Transfer token for this node's service account. */
     protected String token() throws NotFoundException {
         return _authService.getTransferToken(_nodeConfigService.getServiceCredentials());
+    }
+
+    /**
+     * Whether an incoming upload is authorized by an XNAT-side grant record: a
+     * delivered path names only the project and the XNAT user, so this checks
+     * that a grant in that project imports as that user. Without it the importer
+     * would trust the on-disk subpath alone; requiring a record makes XNAT, not
+     * the on-disk layout, the authority on who may import as whom (and an upload
+     * whose grant was revoked, or an out-of-band subpath never granted in XNAT,
+     * is skipped rather than imported).
+     *
+     * @param projectId    the destination project
+     * @param xnatUsername the XNAT user the upload would import as
+     * @return whether a matching grant exists
+     */
+    protected boolean isAuthorizedUpload(final String projectId, final String xnatUsername) {
+        return !_grantService.getByProjectAndXnatUser(projectId, xnatUsername).isEmpty();
     }
 
     /** @return completed transfers into the inbox collection since the given time. */

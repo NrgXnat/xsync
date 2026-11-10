@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.jupiter.api.Test;
@@ -37,15 +38,22 @@ class GlobusUploadInboxMonitorTest {
 
         final List<ResolvedUpload> imported = new ArrayList<>();
         int tokenCalls;
+        // Usernames with an XNAT grant; null authorizes all (so pre-existing tests import).
+        Set<String> authorizedUsers;
 
         TestMonitor() {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
         }
 
         @Override protected boolean isPrimaryNode() { return primary; }
         @Override protected Optional<String> inboxCollectionId() { return inboxColl; }
         @Override protected String inboxPath() { return inboxPath; }
         @Override protected String token() { tokenCalls++; return "token"; }
+
+        @Override
+        protected boolean isAuthorizedUpload(final String projectId, final String xnatUsername) {
+            return authorizedUsers == null || authorizedUsers.contains(xnatUsername);
+        }
 
         @Override
         protected List<GlobusClient.CompletedTask> completedTasks(final String token, final String collectionId,
@@ -151,6 +159,19 @@ class GlobusUploadInboxMonitorTest {
         m.poll();   // must NOT retry (at-most-once)
 
         assertTrue(m.imported.isEmpty(), "a failed task is handled once, not retried in-process");
+    }
+
+    @Test
+    void skipsUploadWithNoMatchingGrantButImportsAuthorizedSibling() {
+        final TestMonitor m = new TestMonitor();
+        m.authorizedUsers = Set.of("alice"); // bob has no XNAT upload grant
+        m.tasks = List.of(task("t-1"));
+        m.deliveredByTask.put("t-1", List.of("/PRJ/alice/ok.tgz", "/PRJ/bob/denied.tgz"));
+
+        m.poll();
+
+        assertEquals(1, m.imported.size(), "only the upload with a matching grant imports");
+        assertEquals("alice", m.imported.get(0).username());
     }
 
     @Test
