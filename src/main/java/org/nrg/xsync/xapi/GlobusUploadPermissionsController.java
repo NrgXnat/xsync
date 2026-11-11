@@ -70,6 +70,18 @@ public class GlobusUploadPermissionsController extends AbstractXapiProjectRestCo
     }
 
     @AuthDelegate(XsyncEditProjectUserAuthority.class)
+    @XapiRequestMapping(value = "/projects/{projectId}/eligible-users", method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
+    @ApiOperation(value = "List the project's edit-capable users (owners and members) — the candidates who may be "
+            + "granted Globus upload permission.")
+    @ApiResponses({@ApiResponse(code = 200, message = "Usernames returned."),
+            @ApiResponse(code = 403, message = "Not authorized."),
+            @ApiResponse(code = 500, message = "Unexpected error")})
+    public List<String> getEligibleUsers(@PathVariable("projectId") final String projectId) {
+        return _manager.eligibleUsers(projectId);
+    }
+
+    @AuthDelegate(XsyncEditProjectUserAuthority.class)
     @XapiRequestMapping(value = "/projects/{projectId}/upload-grants", method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE,
             restrictTo = AccessLevel.Authorizer)

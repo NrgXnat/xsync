@@ -2,6 +2,7 @@ package org.nrg.xsync.globus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -191,8 +192,14 @@ class GlobusUploadPermissionManagerTest {
             removedDirUser = xnatUsername;
         }
 
+        @Override
+        protected List<String> projectEditUsernames(final String projectId) {
+            return editUsernames;
+        }
+
         private String removedDirProject;
         private String removedDirUser;
+        private List<String> editUsernames = List.of();
     }
 
     /** Manager exercising the real on-disk seams against a temp inbox root. */
@@ -317,6 +324,19 @@ class GlobusUploadPermissionManagerTest {
         assertThrows(DataFormatException.class, () -> mgr.add(PROJECT, "alice@inst.edu", "alice"));
     }
 
+    @Test
+    void eligibleUsersAreDistinctAndBlankFree() {
+        final TestManager mgr = new TestManager(new FakeGrants(), new FakeClient(), new FakeAuth(),
+                new FakeIdentity(Map.of(), Map.of()), new FakeNodeConfig(UPLOAD_COLL));
+        mgr.editUsernames = List.of("bob", "alice", "bob", "  ", "carol");
+
+        final List<String> result = mgr.eligibleUsers(PROJECT);
+
+        assertEquals(3, result.size(), "duplicates and blanks are removed");
+        assertEquals(List.of("alice", "bob", "carol"), result.stream().sorted().toList(),
+                "contains exactly the distinct non-blank usernames (order unspecified)");
+    }
+
     // --- remove ------------------------------------------------------------
 
     @Test
@@ -333,6 +353,23 @@ class GlobusUploadPermissionManagerTest {
         assertEquals(List.of("acl-7"), client.deleted);
         assertTrue(grants.getByProject(PROJECT).isEmpty());
         assertEquals("alice", mgr.removedDirUser, "revocation must attempt to clean the user's upload directory");
+    }
+
+    @Test
+    void revokeKeepsSharedDirectoryUntilTheLastGrantForTheUserIsRemoved() throws Exception {
+        final FakeGrants grants = new FakeGrants();
+        grants.save(grant("id-1", "alice", "acl-1"));
+        grants.save(grant("id-2", "alice", "acl-2")); // two identities -> same XNAT user, shared subpath
+        final FakeClient client = new FakeClient();
+        final TestManager mgr = new TestManager(grants, client, new FakeAuth(),
+                new FakeIdentity(Map.of(), Map.of()), new FakeNodeConfig(UPLOAD_COLL));
+
+        mgr.remove(PROJECT, "id-1");
+        assertEquals(List.of("acl-1"), client.deleted, "only the revoked identity's ACL is deleted");
+        assertNull(mgr.removedDirUser, "the shared directory is kept while another grant for the user remains");
+
+        mgr.remove(PROJECT, "id-2");
+        assertEquals("alice", mgr.removedDirUser, "the directory is cleaned once the last grant is removed");
     }
 
     @Test

@@ -17,6 +17,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.XDAT;
+import org.nrg.xdat.security.UserGroupI;
+import org.nrg.xdat.security.helpers.Groups;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xft.security.UserI;
@@ -158,10 +160,12 @@ public class GlobusUploadPermissionManager {
     }
 
     /**
-     * Revoke an upload grant: delete its Globus ACL (if provisioned) and remove
-     * the XNAT record, then remove the user's upload directory if it is empty.
-     * Removing a grant cuts future access; it does not affect already-imported
-     * data, and a non-empty directory (e.g. an in-flight upload) is left in place.
+     * Revoke a single grant (the one for {@code globusIdentityId}): delete its
+     * Globus ACL (if provisioned) and remove the XNAT record. If no other grant
+     * binds a different identity to the same XNAT user, also remove that user's
+     * upload directory if it is empty. Removing a grant cuts future access; it
+     * does not affect already-imported data, and a non-empty directory (e.g. an
+     * in-flight upload) is left in place.
      *
      * @param projectId        the XNAT project id
      * @param globusIdentityId the Globus identity UUID whose grant to remove
@@ -178,7 +182,12 @@ public class GlobusUploadPermissionManager {
             _client.deleteAccessRule(ctx.token(), ctx.collectionId(), grant.getGlobusAclId());
         }
         _grants.delete(grant);
-        removeUploadDirectoryIfEmpty(projectId, grant.getXnatUsername());
+        // Another grant may bind a different Globus identity to the same XNAT user
+        // and share the on-disk subpath; only clean it up once the last one is gone.
+        if (_grants.getByProject(projectId).stream()
+                .noneMatch(other -> grant.getXnatUsername().equals(other.getXnatUsername()))) {
+            removeUploadDirectoryIfEmpty(projectId, grant.getXnatUsername());
+        }
     }
 
     /**
@@ -227,6 +236,46 @@ public class GlobusUploadPermissionManager {
     private GlobusUploadGrantPojo toPojo(final GlobusUploadGrant grant, final GlobusUploadGrantState state) {
         return new GlobusUploadGrantPojo(grant.getProjectId(), grant.getGlobusUsername(), grant.getGlobusIdentityId(),
                 grant.getXnatUsername(), PERMISSION_RW, state.name(), grant.getGlobusAclId());
+    }
+
+    /**
+     * The project's edit-capable users — the candidates who may be granted upload
+     * permission (owners and members, not read-only collaborators). Populates the
+     * add dialog's user picker. Users who already have a grant are still listed:
+     * more than one Globus identity may be granted as the same XNAT user.
+     *
+     * @param projectId the XNAT project id
+     * @return the distinct usernames (order unspecified; the UI sorts for display)
+     */
+    public List<String> eligibleUsers(final String projectId) {
+        return projectEditUsernames(projectId).stream()
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * Raw usernames in the project's edit-capable groups (owner and member). A
+     * seam so {@link #eligibleUsers} is unit-testable without a live XNAT group
+     * store; {@code eligibleUsers} de-duplicates the result.
+     *
+     * <p>Enumerates the project's groups and keeps the owner and member groups by
+     * access level; the collaborator group (read-only) is excluded.</p>
+     *
+     * @param projectId the XNAT project id
+     * @return usernames (may contain duplicates or blanks)
+     */
+    protected List<String> projectEditUsernames(final String projectId) {
+        return Groups.getGroupsAndPermissionsCache().getGroupsForProject(projectId).stream()
+                .filter(GlobusUploadPermissionManager::isEditAccessGroup)
+                .flatMap(group -> group.getUsernames().stream())
+                .toList();
+    }
+
+    /** @return whether a project group confers edit access (owner or member, not collaborator). */
+    private static boolean isEditAccessGroup(final UserGroupI group) {
+        final String access = Groups.getProjectIdAndAccessFromGroupId(group.getId()).getRight();
+        return Groups.OWNER_GROUP.equals(access) || Groups.MEMBER_GROUP.equals(access);
     }
 
     /**

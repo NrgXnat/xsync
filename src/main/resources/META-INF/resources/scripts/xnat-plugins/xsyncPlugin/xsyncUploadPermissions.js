@@ -45,8 +45,12 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         return XNAT.data.context.project;
     }
 
+    function projectBase() {
+        return '/xapi/xsync/globus/projects/' + encodeURIComponent(projectId());
+    }
+
     function apiBase() {
-        return '/xapi/xsync/globus/projects/' + encodeURIComponent(projectId()) + '/upload-grants';
+        return projectBase() + '/upload-grants';
     }
 
     function spacer(width) {
@@ -96,6 +100,21 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 XNAT.ui.banner.top(3000, 'Could not retrieve Globus upload permissions: ' + e.responseText, 'error');
             }
         });
+    };
+
+    uploadPermissions.getEligibleUsers = function() {
+        var users = [];
+        XNAT.xhr.get({
+            url: restUrl(projectBase() + '/eligible-users'),
+            async: false,
+            success: function(data) {
+                users = data || [];
+            },
+            fail: function(e) {
+                XNAT.ui.banner.top(3000, 'Could not load the project user list: ' + e.responseText, 'error');
+            }
+        });
+        return users;
     };
 
     uploadPermissions.add = function(grant) {
@@ -161,7 +180,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     function inputRow(label, id, value, placeholder, tooltip) {
         var elements = [
-            spawn('label.element-label', label),
+            spawn('label.element-label', {style: {display: 'block', marginBottom: '5px'}}, label),
             spawn('input', {
                 addClass: 'upload_grant_input',
                 type: 'text',
@@ -169,6 +188,36 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 value: value == null ? '' : value,
                 placeholder: placeholder || ''
             })
+        ];
+        if (tooltip) {
+            elements.push(spawn('a.infoLink', {
+                title: tooltip,
+                html: '<i class="fa fa-question-circle"></i>',
+                style: {position: 'relative', top: '0px', left: '5px'}
+            }));
+        }
+        return spawn('div.element-wrapper', elements);
+    }
+
+    function selectRow(label, id, options, selected, tooltip) {
+        var optionEls;
+        if (!options || !options.length) {
+            optionEls = [spawn('option', {value: ''}, 'No eligible users')];
+        } else {
+            optionEls = [spawn('option', {value: ''}, 'Select a project user')];
+            options.slice().sort(function(a, b) {
+                return a.toLowerCase().localeCompare(b.toLowerCase());
+            }).forEach(function(u) {
+                var attrs = {value: u};
+                if (u === selected) {
+                    attrs.selected = true;
+                }
+                optionEls.push(spawn('option', attrs, u));
+            });
+        }
+        var elements = [
+            spawn('label.element-label', {style: {display: 'block', marginBottom: '5px'}}, label),
+            spawn('select', {addClass: 'upload_grant_input', id: id}, optionEls)
         ];
         if (tooltip) {
             elements.push(spawn('a.infoLink', {
@@ -188,8 +237,8 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         form.appendChild(spawn('div|class="warning"', {style: {visibility: 'hidden'}, id: 'upload-grant-warning'}));
         form.appendChild(inputRow('Globus identity', 'upload_globus_input', prefill.globusUsername,
             'username or email', null));
-        form.appendChild(inputRow('XNAT user', 'upload_xnat_input', prefill.xnatUsername,
-            'XNAT username', 'Must be a project member with edit access.'));
+        form.appendChild(selectRow('XNAT user', 'upload_xnat_input', uploadPermissions.getEligibleUsers(),
+            prefill.xnatUsername, 'Must be a project member with edit access.'));
         container.appendChild(form);
     }
 
