@@ -134,6 +134,28 @@ siteSettings:
                             tag: "div#xsync-globus-endpoints-table"
                         xsyncGlobusScript:
                             tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncGlobusManager.js"
+        globusSyncInboxAccess:
+            kind: tab
+            label: Globus Sync Inbox Access
+            group: xsyncConfig
+            active: false
+            contents:
+                globusSyncInboxAccessPanel:
+                    kind: panel
+                    name: globusSyncInboxAccessPanel
+                    label: Globus Sync Inbox Access
+                    footer: false
+                    contents:
+                        globusSyncInboxHelptext:
+                            tag: div.message
+                            content: >
+                                Peer nodes allowed to send XARs to this node's Globus sync inbox. Each entry grants a
+                                peer's Globus client write access to its own subpath of the inbox. The sync inbox
+                                collection and this node's service account are configured on the Globus Node tab.
+                        xsyncSyncInboxGrantsTable:
+                            tag: "div#xsync-sync-inbox-grants-table"
+                        xsyncSyncInboxGrantsScript:
+                            tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncSyncPeerGrantManager.js"
         configurationDashboard:
             kind: tab
             label: Configuration Dashboard
