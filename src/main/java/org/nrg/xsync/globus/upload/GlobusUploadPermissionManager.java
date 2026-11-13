@@ -31,7 +31,7 @@ import org.nrg.xsync.globus.GlobusIdentityService;
 import org.nrg.xsync.globus.GlobusIdentityService.GlobusIdentity;
 import org.nrg.xsync.globus.entities.GlobusNodeConfig;
 import org.nrg.xsync.globus.entities.GlobusUploadGrant;
-import org.nrg.xsync.globus.entities.GlobusUploadGrantState;
+import org.nrg.xsync.globus.entities.GlobusGrantState;
 import org.nrg.xsync.globus.services.GlobusNodeConfigService;
 import org.nrg.xsync.globus.services.GlobusUploadGrantService;
 import org.nrg.xsync.pojo.GlobusUploadGrantPojo;
@@ -154,9 +154,9 @@ public class GlobusUploadPermissionManager {
         grant.setXnatUsername(xnatUsername);
         grant.setSubpath(subpath);
         grant.setGlobusAclId(aclId);
-        grant.setState(GlobusUploadGrantState.ACTIVE);
+        grant.setState(GlobusGrantState.ACTIVE);
         _grants.save(grant);
-        return toPojo(grant, GlobusUploadGrantState.ACTIVE);
+        return toPojo(grant, GlobusGrantState.ACTIVE);
     }
 
     /**
@@ -217,7 +217,7 @@ public class GlobusUploadPermissionManager {
         final List<GlobusUploadGrantPojo> pojos = new ArrayList<>();
         for (final GlobusUploadGrant record : records) {
             final boolean active = projectRules.stream().anyMatch(rule -> matchesRecord(record, rule));
-            pojos.add(toPojo(record, active ? GlobusUploadGrantState.ACTIVE : GlobusUploadGrantState.PENDING));
+            pojos.add(toPojo(record, active ? GlobusGrantState.ACTIVE : GlobusGrantState.PENDING));
         }
         for (final AccessRule rule : projectRules) {
             if (records.stream().noneMatch(record -> matchesRecord(record, rule))) {
@@ -242,10 +242,10 @@ public class GlobusUploadPermissionManager {
                 .map(GlobusIdentity::username).orElse(null);
         return new GlobusUploadGrantPojo(projectId, globusUsername, rule.principal(),
                 usernameFromPath(rule.path()), rule.permissions().wire(),
-                GlobusUploadGrantState.ORPHANED.name(), rule.id());
+                GlobusGrantState.ORPHANED.name(), rule.id());
     }
 
-    private GlobusUploadGrantPojo toPojo(final GlobusUploadGrant grant, final GlobusUploadGrantState state) {
+    private GlobusUploadGrantPojo toPojo(final GlobusUploadGrant grant, final GlobusGrantState state) {
         return new GlobusUploadGrantPojo(grant.getProjectId(), grant.getGlobusUsername(), grant.getGlobusIdentityId(),
                 grant.getXnatUsername(), Permission.READ_WRITE.wire(), state.name(), grant.getGlobusAclId());
     }

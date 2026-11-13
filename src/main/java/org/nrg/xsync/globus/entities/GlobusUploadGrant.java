@@ -60,5 +60,5 @@ public class GlobusUploadGrant extends AbstractHibernateEntity {
 
     /** Reconciliation state relative to the live Globus ACL. */
     @Enumerated(EnumType.STRING)
-    private GlobusUploadGrantState state;
+    private GlobusGrantState state;
 }

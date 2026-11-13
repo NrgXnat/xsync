@@ -1,12 +1,12 @@
 package org.nrg.xsync.globus.entities;
 
 /**
- * Reconciliation state of a {@link GlobusUploadGrant} relative to the live
- * Globus ACL on the upload collection.
+ * Reconciliation state of a Globus ACL grant record (upload or sync peer)
+ * relative to the live Globus ACL on its collection.
  *
  * @author XSync
  */
-public enum GlobusUploadGrantState {
+public enum GlobusGrantState {
     /** An XNAT record and a matching Globus ACL both exist. */
     ACTIVE,
     /** An XNAT record exists but no matching Globus ACL was found (or provisioning has not completed). */

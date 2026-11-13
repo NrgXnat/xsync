@@ -25,7 +25,7 @@ import org.nrg.xsync.globus.GlobusClient.PrincipalType;
 import org.nrg.xsync.globus.GlobusIdentityService.GlobusIdentity;
 import org.nrg.xsync.globus.entities.GlobusNodeConfig;
 import org.nrg.xsync.globus.entities.GlobusUploadGrant;
-import org.nrg.xsync.globus.entities.GlobusUploadGrantState;
+import org.nrg.xsync.globus.entities.GlobusGrantState;
 import org.nrg.xsync.globus.services.GlobusNodeConfigService;
 import org.nrg.xsync.globus.services.GlobusUploadGrantService;
 import org.nrg.xsync.globus.upload.GlobusUploadPermissionManager;
@@ -232,7 +232,7 @@ class GlobusUploadPermissionManagerTest {
         g.setGlobusIdentityId(identityId);
         g.setXnatUsername(xnatUser);
         g.setGlobusAclId(aclId);
-        g.setState(GlobusUploadGrantState.ACTIVE);
+        g.setState(GlobusGrantState.ACTIVE);
         return g;
     }
 
@@ -251,7 +251,7 @@ class GlobusUploadPermissionManagerTest {
 
         assertEquals(UUID_A, pojo.getGlobusIdentityId());
         assertEquals("alice", pojo.getXnatUsername());
-        assertEquals(GlobusUploadGrantState.ACTIVE.name(), pojo.getState());
+        assertEquals(GlobusGrantState.ACTIVE.name(), pojo.getState());
         assertEquals("acl-1", pojo.getGlobusAclId());
         assertEquals("/PRJ/alice/", client.lastCreatePath, "ACL must be on the per-user subpath");
         assertEquals(UUID_A, client.lastCreatePrincipal);
@@ -401,9 +401,9 @@ class GlobusUploadPermissionManagerTest {
         final List<GlobusUploadGrantPojo> list = mgr.list(PROJECT);
 
         assertEquals(3, list.size());
-        assertEquals(GlobusUploadGrantState.ACTIVE.name(), stateOf(list, UUID_A));
-        assertEquals(GlobusUploadGrantState.PENDING.name(), stateOf(list, UUID_B));
-        assertEquals(GlobusUploadGrantState.ORPHANED.name(), stateOf(list, UUID_X));
+        assertEquals(GlobusGrantState.ACTIVE.name(), stateOf(list, UUID_A));
+        assertEquals(GlobusGrantState.PENDING.name(), stateOf(list, UUID_B));
+        assertEquals(GlobusGrantState.ORPHANED.name(), stateOf(list, UUID_X));
         final GlobusUploadGrantPojo orphan = find(list, UUID_X);
         assertEquals("carol", orphan.getXnatUsername(), "orphan xnat user is derived from the ACL path");
         assertEquals("carol@inst.edu", orphan.getGlobusUsername(), "orphan username resolved from the UUID");
@@ -423,7 +423,7 @@ class GlobusUploadPermissionManagerTest {
         final List<GlobusUploadGrantPojo> list = mgr.list(PROJECT);
 
         assertEquals(1, list.size(), "the other-project ACL is not in this project and yields no orphan");
-        assertEquals(GlobusUploadGrantState.PENDING.name(), stateOf(list, UUID_A),
+        assertEquals(GlobusGrantState.PENDING.name(), stateOf(list, UUID_A),
                 "a cross-project ACL for the same identity must not mark the record ACTIVE");
     }
 
@@ -444,11 +444,11 @@ class GlobusUploadPermissionManagerTest {
 
         final GlobusUploadGrantPojo aliceRecord = list.stream()
                 .filter(p -> "alice".equals(p.getXnatUsername())).findFirst().orElseThrow();
-        assertEquals(GlobusUploadGrantState.PENDING.name(), aliceRecord.getState(),
+        assertEquals(GlobusGrantState.PENDING.name(), aliceRecord.getState(),
                 "an ACL for a different user must not mark alice's record ACTIVE");
         final GlobusUploadGrantPojo bobOrphan = list.stream()
                 .filter(p -> "bob".equals(p.getXnatUsername())).findFirst().orElseThrow();
-        assertEquals(GlobusUploadGrantState.ORPHANED.name(), bobOrphan.getState(),
+        assertEquals(GlobusGrantState.ORPHANED.name(), bobOrphan.getState(),
                 "the unrecorded /PRJ/bob/ ACL is an orphan even though the identity has a record for another user");
     }
 
@@ -466,7 +466,7 @@ class GlobusUploadPermissionManagerTest {
         final List<GlobusUploadGrantPojo> list = mgr.list(PROJECT);
 
         assertEquals(1, list.size());
-        assertEquals(GlobusUploadGrantState.ACTIVE.name(), list.get(0).getState(), "stored state is returned");
+        assertEquals(GlobusGrantState.ACTIVE.name(), list.get(0).getState(), "stored state is returned");
         assertFalse(client.deleted.contains("acl-a"));
     }
 
