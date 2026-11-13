@@ -61,9 +61,21 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     var STATE_COLORS = {
         ACTIVE: '#3f7f3f',
         PENDING: '#b8860b',
-        ERROR: '#a94442',
         ORPHANED: '#8a6d3b'
     };
+
+    // Plain-language meaning of each state, shown as the badge tooltip and in the
+    // legend under the table.
+    function stateTooltip(state) {
+        switch (state) {
+            case 'ACTIVE':   return 'Upload access is set up and active.';
+            case 'PENDING':  return 'Recorded here, but the Globus permission is missing. '
+                                  + 'Uploads will not work until it is restored (remove and re-add, or check Globus).';
+            case 'ORPHANED': return 'A Globus permission exists that XNAT is not managing '
+                                  + '(created outside XNAT, e.g. via the Globus CLI).';
+            default:         return '';
+        }
+    }
 
     function stateBadge(state) {
         return spawn('span', {
@@ -77,16 +89,6 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             },
             title: stateTooltip(state)
         }, state || 'UNKNOWN');
-    }
-
-    function stateTooltip(state) {
-        switch (state) {
-            case 'ACTIVE':   return 'An XNAT record and a matching Globus ACL both exist.';
-            case 'PENDING':  return 'An XNAT record exists but no matching Globus ACL was found.';
-            case 'ERROR':    return 'Provisioning the Globus ACL failed.';
-            case 'ORPHANED': return 'A Globus ACL exists with no XNAT record (e.g. a hand-made CLI grant).';
-            default:         return '';
-        }
     }
 
     uploadPermissions.getGrants = function() {
@@ -319,7 +321,6 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
             tableData.push({
                 identity: grant,
                 xnatUsername: grant.xnatUsername || '',
-                permissions: grant.permissions || '',
                 state: grant.state || '',
                 actions: grant
             });
@@ -338,11 +339,6 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 td: {style: {verticalAlign: 'middle'}},
                 apply: function(value) { return spawn('span', {html: value}); }
             },
-            permissions: {
-                label: 'Access',
-                td: {style: {verticalAlign: 'middle'}},
-                apply: function(value) { return spawn('span', {html: value}); }
-            },
             state: {
                 label: 'State',
                 sortable: true,
@@ -353,12 +349,12 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 label: 'Actions',
                 td: {style: {verticalAlign: 'middle', width: '160px'}},
                 apply: function(grant) {
-                    // Orphaned ACLs have no XNAT record to revoke; shown read-only for now.
+                    // Orphaned permissions aren't managed by XNAT; shown read-only for now.
                     if (grant.state === 'ORPHANED') {
                         return spawn('span', {
                             style: {color: '#777', fontStyle: 'italic'},
-                            title: 'This Globus ACL has no XNAT record; manage it via the Globus CLI.'
-                        }, 'no XNAT record');
+                            title: 'This Globus permission was created outside XNAT; manage or remove it in Globus.'
+                        }, 'not managed here');
                     }
                     return [uploadPermissions.getRemoveButton(grant)];
                 }
