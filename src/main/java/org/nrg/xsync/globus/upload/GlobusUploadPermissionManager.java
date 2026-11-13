@@ -1,6 +1,7 @@
 package org.nrg.xsync.globus.upload;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,6 +21,7 @@ import org.nrg.xdat.security.helpers.Groups;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xft.security.UserI;
+import org.nrg.xsync.globus.GlobusAuthService;
 import org.nrg.xsync.globus.GlobusClient;
 import org.nrg.xsync.globus.GlobusClient.AccessRule;
 import org.nrg.xsync.globus.GlobusClient.Permission;
@@ -27,7 +29,6 @@ import org.nrg.xsync.globus.GlobusClient.PrincipalType;
 import org.nrg.xsync.globus.GlobusCredentials;
 import org.nrg.xsync.globus.GlobusIdentityService;
 import org.nrg.xsync.globus.GlobusIdentityService.GlobusIdentity;
-import org.nrg.xsync.globus.GlobusAuthService;
 import org.nrg.xsync.globus.entities.GlobusNodeConfig;
 import org.nrg.xsync.globus.entities.GlobusUploadGrant;
 import org.nrg.xsync.globus.entities.GlobusUploadGrantState;
@@ -52,8 +53,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class GlobusUploadPermissionManager {
-
-    private static final String PERMISSION_RW = "rw";
 
     private final GlobusUploadGrantService _grants;
     private final GlobusClient _client;
@@ -127,16 +126,19 @@ public class GlobusUploadPermissionManager {
         final Context ctx = context();
         final GlobusIdentity identity = _identityService.resolveByUsername(ctx.credentials(), globusUsername)
                 .orElseThrow(() -> new DataFormatException("No Globus identity found for '" + globusUsername + "'."));
-        if (_grants.getByProjectAndIdentity(projectId, identity.id()).isPresent()) {
-            throw new DataFormatException("An upload grant for Globus identity '" + globusUsername
-                    + "' already exists in this project.");
-        }
         final UUID identityId;
         try {
             identityId = UUID.fromString(identity.id());
         } catch (IllegalArgumentException | NullPointerException e) {
             throw new DataFormatException("Globus returned a non-UUID identity id for '" + globusUsername
                     + "': " + identity.id());
+        }
+        // Use the canonical UUID string throughout, so the stored id is byte-identical
+        // to the ACL principal that reconciliation matches against.
+        final String canonicalId = identityId.toString();
+        if (_grants.getByProjectAndIdentity(projectId, canonicalId).isPresent()) {
+            throw new DataFormatException("An upload grant for Globus identity '" + globusUsername
+                    + "' already exists in this project.");
         }
         // The ACL only grants access to the path; the directory must exist on disk
         // for the user to see and upload to it in the Globus File Manager.
@@ -148,7 +150,7 @@ public class GlobusUploadPermissionManager {
         final GlobusUploadGrant grant = new GlobusUploadGrant();
         grant.setProjectId(projectId);
         grant.setGlobusUsername(StringUtils.defaultString(identity.username(), globusUsername));
-        grant.setGlobusIdentityId(identity.id());
+        grant.setGlobusIdentityId(canonicalId);
         grant.setXnatUsername(xnatUsername);
         grant.setSubpath(subpath);
         grant.setGlobusAclId(aclId);
@@ -245,7 +247,7 @@ public class GlobusUploadPermissionManager {
 
     private GlobusUploadGrantPojo toPojo(final GlobusUploadGrant grant, final GlobusUploadGrantState state) {
         return new GlobusUploadGrantPojo(grant.getProjectId(), grant.getGlobusUsername(), grant.getGlobusIdentityId(),
-                grant.getXnatUsername(), PERMISSION_RW, state.name(), grant.getGlobusAclId());
+                grant.getXnatUsername(), Permission.READ_WRITE.wire(), state.name(), grant.getGlobusAclId());
     }
 
     /**
@@ -334,7 +336,7 @@ public class GlobusUploadPermissionManager {
         try {
             Files.createDirectories(dir);
         } catch (IOException e) {
-            throw new RuntimeException("Could not create upload directory " + dir + ": " + e.getMessage(), e);
+            throw new UncheckedIOException("Could not create upload directory " + dir, e);
         }
     }
 

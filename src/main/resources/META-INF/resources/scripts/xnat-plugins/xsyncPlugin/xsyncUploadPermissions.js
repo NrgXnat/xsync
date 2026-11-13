@@ -304,7 +304,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     function identityCell(grant) {
         var label = grant.globusUsername || grant.globusIdentityId || '(unknown)';
-        return spawn('span', {title: grant.globusIdentityId || '', html: label});
+        return spawn('span', {title: grant.globusIdentityId || ''}, label);
     }
 
     uploadPermissions.refreshTable = function() {
@@ -337,7 +337,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 label: 'XNAT user',
                 sortable: true,
                 td: {style: {verticalAlign: 'middle'}},
-                apply: function(value) { return spawn('span', {html: value}); }
+                apply: function(value) { return spawn('span', {}, value); }
             },
             state: {
                 label: 'State',
