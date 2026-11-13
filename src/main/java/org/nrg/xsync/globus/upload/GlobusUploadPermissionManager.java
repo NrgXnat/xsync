@@ -6,10 +6,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
@@ -192,6 +190,12 @@ public class GlobusUploadPermissionManager {
 
     /**
      * Reconcile stored records against the live ACLs for this project's subpaths.
+     * A record is ACTIVE when an identity ACL under this project binds the same
+     * Globus identity to the same XNAT user; otherwise PENDING. An identity ACL
+     * under this project with no matching record is ORPHANED. Matching on both
+     * identity and user (not identity alone) keeps a grant from reading ACTIVE on
+     * the strength of the same identity's ACL in another project or for another
+     * user.
      *
      * @param projectId the XNAT project id
      * @param records   the project's stored grant records
@@ -203,25 +207,31 @@ public class GlobusUploadPermissionManager {
             throws NotFoundException, DataFormatException {
         final Context ctx = context();
         final String prefix = "/" + projectId + "/";
-        final List<AccessRule> rules = _client.listAccessRules(ctx.token(), ctx.collectionId());
+        final List<AccessRule> projectRules = _client.listAccessRules(ctx.token(), ctx.collectionId()).stream()
+                .filter(rule -> rule.principalType() == PrincipalType.IDENTITY
+                        && rule.path() != null && rule.path().startsWith(prefix))
+                .toList();
 
-        final Set<String> grantedPrincipals = new HashSet<>();
         final List<GlobusUploadGrantPojo> pojos = new ArrayList<>();
         for (final GlobusUploadGrant record : records) {
-            final boolean active = rules.stream().anyMatch(r -> r.principalType() == PrincipalType.IDENTITY
-                    && record.getGlobusIdentityId().equals(r.principal()));
+            final boolean active = projectRules.stream().anyMatch(rule -> matchesRecord(record, rule));
             pojos.add(toPojo(record, active ? GlobusUploadGrantState.ACTIVE : GlobusUploadGrantState.PENDING));
-            grantedPrincipals.add(record.getGlobusIdentityId());
         }
-
-        for (final AccessRule rule : rules) {
-            if (rule.principalType() != PrincipalType.IDENTITY || rule.path() == null || !rule.path().startsWith(prefix)
-                    || grantedPrincipals.contains(rule.principal())) {
-                continue;
+        for (final AccessRule rule : projectRules) {
+            if (records.stream().noneMatch(record -> matchesRecord(record, rule))) {
+                pojos.add(orphanPojo(projectId, rule, ctx));
             }
-            pojos.add(orphanPojo(projectId, rule, ctx));
         }
         return pojos;
+    }
+
+    /**
+     * Whether an identity ACL (already confined to this project's subpaths)
+     * corresponds to a grant record: same Globus identity and same XNAT user.
+     */
+    private static boolean matchesRecord(final GlobusUploadGrant record, final AccessRule rule) {
+        return record.getGlobusIdentityId().equals(rule.principal())
+                && record.getXnatUsername().equals(usernameFromPath(rule.path()));
     }
 
     /** Build a pojo for an ACL that has no XNAT record (ORPHANED). */

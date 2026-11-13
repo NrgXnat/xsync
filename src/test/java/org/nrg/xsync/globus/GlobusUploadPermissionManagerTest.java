@@ -410,6 +410,49 @@ class GlobusUploadPermissionManagerTest {
     }
 
     @Test
+    void recordStaysPendingWhenTheIdentitysOnlyAclIsInAnotherProject() {
+        final FakeGrants grants = new FakeGrants();
+        grants.save(grant(UUID_A, "alice", "acl-a")); // PRJ/alice, whose own ACL is gone
+        final FakeClient client = new FakeClient();
+        // Same identity, but the only live ACL is for a different project.
+        client.rules = List.of(
+                new AccessRule("acl-other", PrincipalType.IDENTITY, UUID_A, "/OTHER/alice/", Permission.READ_WRITE));
+        final GlobusUploadPermissionManager mgr = new TestManager(
+                grants, client, new FakeAuth(), new FakeIdentity(Map.of(), Map.of()), new FakeNodeConfig(UPLOAD_COLL));
+
+        final List<GlobusUploadGrantPojo> list = mgr.list(PROJECT);
+
+        assertEquals(1, list.size(), "the other-project ACL is not in this project and yields no orphan");
+        assertEquals(GlobusUploadGrantState.PENDING.name(), stateOf(list, UUID_A),
+                "a cross-project ACL for the same identity must not mark the record ACTIVE");
+    }
+
+    @Test
+    void recordStaysPendingWhenTheIdentitysAclIsForAnotherUserInTheSameProject() {
+        final FakeGrants grants = new FakeGrants();
+        grants.save(grant(UUID_A, "alice", "acl-a")); // PRJ/alice
+        final FakeClient client = new FakeClient();
+        // Same identity, same project, but the ACL is on a different user's subpath.
+        client.rules = List.of(
+                new AccessRule("acl-bob", PrincipalType.IDENTITY, UUID_A, "/PRJ/bob/", Permission.READ_WRITE));
+        final FakeIdentity identity = new FakeIdentity(Map.of(),
+                Map.of(UUID_A, new GlobusIdentity(UUID_A, "a@inst.edu")));
+        final GlobusUploadPermissionManager mgr = new TestManager(
+                grants, client, new FakeAuth(), identity, new FakeNodeConfig(UPLOAD_COLL));
+
+        final List<GlobusUploadGrantPojo> list = mgr.list(PROJECT);
+
+        final GlobusUploadGrantPojo aliceRecord = list.stream()
+                .filter(p -> "alice".equals(p.getXnatUsername())).findFirst().orElseThrow();
+        assertEquals(GlobusUploadGrantState.PENDING.name(), aliceRecord.getState(),
+                "an ACL for a different user must not mark alice's record ACTIVE");
+        final GlobusUploadGrantPojo bobOrphan = list.stream()
+                .filter(p -> "bob".equals(p.getXnatUsername())).findFirst().orElseThrow();
+        assertEquals(GlobusUploadGrantState.ORPHANED.name(), bobOrphan.getState(),
+                "the unrecorded /PRJ/bob/ ACL is an orphan even though the identity has a record for another user");
+    }
+
+    @Test
     void listFallsBackToStoredRecordsWhenGlobusUnreachable() {
         final FakeGrants grants = new FakeGrants();
         grants.save(grant(UUID_A, "alice", "acl-a"));
