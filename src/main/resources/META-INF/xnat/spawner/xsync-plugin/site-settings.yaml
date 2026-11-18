@@ -126,7 +126,7 @@ siteSettings:
                         globusEndpointsHelptext:
                             tag: div.message
                             content: >
-                                Configure the Globus destinations XSync may transfer to. Each destination records a
+                                The Globus destinations this node may transfer to. Each destination records a
                                 peer's inbox collection and the paths a transfer writes to. The service account and
                                 outbox this node sends with are configured on the Globus Node tab. Use Test to verify
                                 connectivity to a destination.
@@ -150,8 +150,7 @@ siteSettings:
                             tag: div.message
                             content: >
                                 Peer nodes allowed to send XARs to this node's Globus sync inbox. Each entry grants a
-                                peer's Globus client write access to its own subpath of the inbox. The sync inbox
-                                collection and this node's service account are configured on the Globus Node tab.
+                                peer's Globus client write access to its own subpath of the inbox.
                         xsyncSyncInboxGrantsTable:
                             tag: "div#xsync-sync-inbox-grants-table"
                         xsyncSyncInboxGrantsScript:

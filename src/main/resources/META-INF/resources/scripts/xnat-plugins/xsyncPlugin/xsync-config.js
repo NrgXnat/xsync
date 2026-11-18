@@ -96,12 +96,30 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
         });
     };
 
+    // Whether Globus is enabled site-wide. The getter has no role restriction, so a
+    // project owner can read it; used to reveal the Globus controls only when in use.
+    XSYNC.xsyncConfig.isSiteWideGlobusEnabled = function(){
+        var enabled = false;
+        XNAT.xhr.get({
+            url: restUrl('/xapi/xsyncSitePreferences/globusEnabled'),
+            async: false,
+            success: function(data){ enabled = (data === true); },
+            fail: function(){ enabled = false; }
+        });
+        return enabled;
+    };
+
     XSYNC.xsyncConfig.showConfigPanel = function(){
+
+        // Reveal-on-enable: only offer the Globus config when Globus is enabled site-wide.
+        var globusButton = XSYNC.xsyncConfig.isSiteWideGlobusEnabled()
+            ? '<button class="btn1 xsync-submit-button" id="xsync-globus-config" type="button">Configure Globus</button>'
+            : '';
 
         $('#xsync-config').empty().append([
             '<button class="btn1 xsync-submit-button" id="xsync-edit-config" type="button">Edit Configuration</button>' +
             '<button class="btn1 xsync-submit-button" id="xsync-credentials" type="button">Remote Credentials</button>' +
-            '<button class="btn1 xsync-submit-button" id="xsync-globus-config" type="button">Configure Globus</button>' +
+            globusButton +
             '<button class="btn1 xsync-submit-button" id="xsync-upload-anonymization" type="button">Configure Anonymization</button>' +
             '<h2 id="xsync-history-header" style="">Sync History</h2>' +
             '<div id="xsync-history-table" style="max-height:300px;overflow-y:auto"></div>'

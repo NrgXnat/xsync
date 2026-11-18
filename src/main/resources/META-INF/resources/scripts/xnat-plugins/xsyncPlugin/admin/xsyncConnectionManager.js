@@ -81,6 +81,25 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         let inputPrefs = {};
         inputPrefs['globusEnabled'] = (enabled === "true");
         xsyncConnectionManager.postSitePreferencesUpdate(inputPrefs, 'globus');
+        xsyncConnectionManager.setGlobusTabsVisible(enabled === "true");
+    }
+
+    // The admin tabs that only matter when Globus is in use. Keyed by tab label,
+    // which the spawner renders as the nav anchor's title (same idiom used above
+    // for the Aspera Server Defaults tab).
+    xsyncConnectionManager.globusTabTitles = ['Globus Node', 'Globus Endpoints', 'Globus Sync Inbox Access'];
+
+    // Reveal-on-enable: show the Globus admin tabs only when Globus is enabled
+    // site-wide, so sites that don't use Globus aren't cluttered with its settings.
+    xsyncConnectionManager.setGlobusTabsVisible = function(visible) {
+        xsyncConnectionManager.globusTabTitles.forEach(function(title) {
+            var $tab = $("a[title='" + title + "']").parent();
+            if (visible) {
+                $tab.removeClass('hidden');
+            } else {
+                $tab.addClass('hidden');
+            }
+        });
     }
 
     xsyncConnectionManager.postSitePreferencesUpdate = function(inputPrefs, preferenceName) {
@@ -100,6 +119,9 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     }
 
     xsyncConnectionManager.init = function() {
+        // Reveal-on-enable + fail-closed: keep the Globus tabs hidden until we
+        // confirm Globus is enabled (if the fetch below fails, they stay hidden).
+        xsyncConnectionManager.setGlobusTabsVisible(false);
         XNAT.xhr.get({
             url: restUrl('/xapi/xsyncSitePreferences/'),
             async: false,
@@ -113,6 +135,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
                 if (globusEnabled == true) {
                     $('#globus-enabled').prop("checked",true);
                 }
+                xsyncConnectionManager.setGlobusTabsVisible(globusEnabled == true);
                 if (asperaEnabled == true) {
                     $('#aspera-enabled').prop("checked",true);
                 } else {

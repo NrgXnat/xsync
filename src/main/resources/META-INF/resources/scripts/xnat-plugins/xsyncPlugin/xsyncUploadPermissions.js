@@ -382,8 +382,31 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         $div.append(uploadPermissions.getAddButton());
     };
 
+    // Whether Globus is enabled site-wide. Readable by any authenticated user
+    // (the getter has no role restriction), so project owners can call it.
+    function siteGlobusEnabled() {
+        var enabled = false;
+        XNAT.xhr.get({
+            url: restUrl('/xapi/xsyncSitePreferences/globusEnabled'),
+            async: false,
+            success: function(data) { enabled = (data === true); },
+            fail: function() { enabled = false; }
+        });
+        return enabled;
+    }
+
     $(document).ready(function() {
-        if ($('div#xsync-globus-upload-table').length) {
+        if (!$('div#xsync-globus-upload-table').length) {
+            return;
+        }
+        // Reveal-on-enable: show the Globus Upload section only when Globus is enabled
+        // site-wide. Hide it first (fail-closed), then build and reveal it if enabled.
+        var $header = $('#xsync_globus_upload_header');
+        var $content = $header.next('div');
+        $header.hide();
+        $content.hide();
+        if (siteGlobusEnabled()) {
+            $header.show();
             uploadPermissions.init();
         }
     });
