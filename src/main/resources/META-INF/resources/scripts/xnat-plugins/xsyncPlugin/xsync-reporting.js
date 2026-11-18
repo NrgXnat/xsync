@@ -38,6 +38,11 @@ window.XSYNC = getObject(window.XSYNC);
 
 		getSyncHistory.done(function(data) {
 
+			// Most recent first.
+			data.sort(function(a, b){
+				return new Date(b.startDate) - new Date(a.startDate);
+			});
+
 			var allHistory = data.map(function(item, i){
 
 				var date = new Date(item.startDate);
@@ -66,7 +71,7 @@ window.XSYNC = getObject(window.XSYNC);
 				];
 			});
 
-			xsyncHistory.tbody().rows(allHistory.reverse());
+			xsyncHistory.tbody().rows(allHistory);
 
 			if (data.length) {
 				$("#xsync-history-header").show();
