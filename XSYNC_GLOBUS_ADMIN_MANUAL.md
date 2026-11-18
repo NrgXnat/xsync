@@ -436,24 +436,35 @@ globus collection create guest <OUTBOX_MAPPED_COLLECTION_ID> / "XNAT Outbox"
 #   OUTBOX_GUEST_COLLECTION_ID.
 ```
 
-**5. Grant ACLs on the guest collections — least-privilege and asymmetric.**
-Guest collections start with no access, so only the identities you grant
-here can transfer. The identity is the client's **Client ID (application
-UUID, *not* a client secret)** formed into a username
-`<CLIENT_ID>@clients.auth.globus.org`; use `--provision-identity` (which
-creates the identity if it doesn't exist yet):
+**5. Grant collection access — least-privilege and asymmetric.** Guest
+collections start with no access, so only the identities you grant can
+transfer. A client's identity is its **Client ID (application UUID, *not* a
+client secret)** as the username `<CLIENT_ID>@clients.auth.globus.org`.
 
-- **Outbox guest** — one ACL: *this node's own* confidential client,
-  **read**. Grant no remote any access.
+- **Inbox guest (per-peer, read-write) — manage from XNAT.** Each peer gets
+  `rw` on only its **own subpath** (`/<peer>/`) of this node's inbox; nothing
+  broader. Manage these from the site-admin **Globus Sync Inbox Access** panel:
+  it creates and revokes the per-peer ACLs through the Transfer API and
+  reconciles against the live ACLs, flagging any out-of-band grant as
+  *orphaned*. One-time prerequisite — grant the node service account the
+  `access_manager` role on the **sync inbox** guest collection so the panel can
+  manage ACLs under it:
   ```bash
-  globus endpoint permission create <OUTBOX_GUEST_COLLECTION_ID>:/ \
-    --permissions r --provision-identity <LOCAL_CLIENT_ID>@clients.auth.globus.org
+  globus-connect-server collection role create <INBOX_GUEST_COLLECTION_ID> \
+    access_manager <LOCAL_CLIENT_ID>@clients.auth.globus.org --principal-type identity
   ```
-- **Inbox guest** — one ACL *per registered service account*, **read-write**,
-  scoped to that peer's **own subpath** (`/<peer>/`); nothing broader:
+  *CLI fallback* (equivalent to one panel grant; `--provision-identity` creates
+  the identity if it doesn't exist yet):
   ```bash
   globus endpoint permission create <INBOX_GUEST_COLLECTION_ID>:/<peer>/ \
     --permissions rw --provision-identity <PEER_CLIENT_ID>@clients.auth.globus.org
+  ```
+- **Outbox guest (this node's own client, read) — CLI, one-time.** Grant this
+  node's own confidential client **read** on the outbox, and grant no remote any
+  access. There is no XNAT panel for the outbox; set it once:
+  ```bash
+  globus endpoint permission create <OUTBOX_GUEST_COLLECTION_ID>:/ \
+    --permissions r --provision-identity <LOCAL_CLIENT_ID>@clients.auth.globus.org
   ```
 
 **Per-peer inbox isolation is required, not optional.** Globus has only
@@ -463,23 +474,11 @@ from seeing data node C dropped, grant each peer `rw` on **only its own
 subpath**; a peer then has *no* permission (not even read) on another
 peer's subpath. This still works because node A imports by reading the
 inbox **locally** (as the collection's owning account), so peers never need
-read access to the inbox root.
+read access to the inbox root. The Sync Inbox Access panel (and the CLI
+fallback) applies exactly this per-peer-subpath scoping.
 
 Grant only clients you have registered with the local XNAT (§5.2); any
 client without an ACL is denied by default.
-
-**Managing these inbox ACLs from XNAT.** The per-peer inbox ACLs above can be
-created and revoked from the site-admin **Globus Sync Inbox Access** panel
-instead of the CLI. For that, grant the node service account the
-`access_manager` role on the **sync inbox** guest collection:
-
-```bash
-globus-connect-server collection role create <INBOX_GUEST_COLLECTION_ID> \
-  access_manager <LOCAL_CLIENT_ID>@clients.auth.globus.org --principal-type identity
-```
-
-The panel lists, adds, and removes peer grants under that role and reconciles
-against the live ACLs, flagging any out-of-band CLI grant as *orphaned*.
 
 **6. Register the GUEST collection UUIDs in XNAT.** Use the **guest** UUIDs
 (not the mapped ones) — the guest collections are what transfers run
@@ -496,12 +495,13 @@ An outbox is required in the node configuration to send; the own-inbox UUID
 is optional (a pure hub that only receives has no outbox to register, but
 still needs its inbox collection and the inbox watcher).
 
-> **Managing inbox ACLs from XNAT.** The per-peer inbox ACL (step 5) can now be
-> created and revoked from the site-admin **Globus Sync Inbox Access** panel —
-> and per-user upload ACLs from the project **Globus Upload** tab — via the
-> Transfer API, under the service account's `access_manager` role (above). Those
-> panels reconcile against the live ACLs, so a hand-made CLI grant with no XNAT
-> record is shown as *orphaned*, reducing the drift the pure-CLI flow risked.
+> **Managing inbox ACLs from XNAT is the default path.** Manage the per-peer
+> inbox ACL (step 5) from the site-admin **Globus Sync Inbox Access** panel, and
+> per-user upload ACLs from the project **Globus Upload** tab. Both drive the
+> Transfer API under the service account's `access_manager` role (above) and
+> reconcile against the live ACLs, so a hand-made CLI grant with no XNAT record
+> is shown as *orphaned*. The `globus endpoint permission create` CLI is the
+> fallback when a panel is unavailable; prefer the panels to avoid drift.
 > Registering the destination in XNAT (§5.2) remains a separate step from
 > granting its ACL. See `XSYNC_GLOBUS_PERMISSIONS_DESIGN.md` §4.
 
@@ -797,17 +797,24 @@ Globus."
 - **Layout `<inboxPath>/<PROJECT_ID>/<user>/`.** A user uploads into their own
   subpath of a project they may edit; the import runs as that user, so XNAT's
   project-edit permissions apply.
-- **Per-user write ACL — managed from XNAT.** Each uploading user gets `rw` on
+- **Per-user write ACL — manage from XNAT.** Each uploading user gets `rw` on
   only their own subpath (`/<PROJECT_ID>/<user>/`). Create and revoke these from
-  the project's **Globus Upload** management tab rather than by hand; a hand-made
-  CLI ACL with no XNAT record shows there as *orphaned*.
-- **ACL-management role (`access_manager`).** For XNAT to create/revoke those
-  per-user ACLs under the node service account, grant the service account the
-  `access_manager` role on the upload inbox collection:
+  the project's **Globus Upload** management tab: it drives the ACLs through the
+  Transfer API and reconciles against the live ACLs, flagging any out-of-band
+  grant as *orphaned*. One-time prerequisite — grant the node service account the
+  `access_manager` role on the upload inbox collection so the tab can manage ACLs
+  under it:
 
   ```bash
   globus-connect-server collection role create <UPLOAD_INBOX_GUEST_COLLECTION_ID> \
     access_manager <NODE_CLIENT_ID>@clients.auth.globus.org --principal-type identity
+  ```
+
+  *CLI fallback* (equivalent to one tab grant):
+
+  ```bash
+  globus endpoint permission create <UPLOAD_INBOX_GUEST_COLLECTION_ID>:/<PROJECT_ID>/<user>/ \
+    --permissions rw --provision-identity <USER_GLOBUS_ID>
   ```
 
 - **Detection role (`activity_monitor`).** For XNAT to detect completed
