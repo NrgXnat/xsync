@@ -274,6 +274,30 @@ class GlobusSyncPeerGrantManagerTest {
     }
 
     @Test
+    void listIgnoresCollectionRootPermissionsSoTheyAreNotOrphaned() {
+        final FakeGrants grants = new FakeGrants();
+        grants.save(grant("site1", PEER_A, "acl-a")); // matching ACL -> ACTIVE
+
+        final FakeClient client = new FakeClient();
+        // The peer grant, plus three collection-level permissions at the root (service
+        // account, collection owner, owning user) that XNAT does not manage.
+        client.rules = List.of(
+                new AccessRule("acl-a", PrincipalType.IDENTITY, PEER_A, "/site1/", Permission.READ_WRITE),
+                new AccessRule("acl-svc", PrincipalType.IDENTITY, "svc-id", "/", Permission.READ_WRITE),
+                new AccessRule("acl-own", PrincipalType.IDENTITY, "owner-id", "/", Permission.READ_WRITE),
+                new AccessRule("acl-usr", PrincipalType.IDENTITY, "user-id", "/", Permission.READ_WRITE));
+        final GlobusSyncPeerGrantManager mgr = new GlobusSyncPeerGrantManager(
+                grants, client, new FakeAuth(), identityFor(), new FakeNodeConfig(SYNC_COLL));
+
+        final List<GlobusSyncPeerGrantPojo> list = mgr.list();
+
+        assertEquals(1, list.size(), "only the managed peer grant is listed; root permissions are ignored");
+        assertEquals(GlobusGrantState.ACTIVE.name(), stateOf(list, PEER_A));
+        assertFalse(list.stream().anyMatch(p -> GlobusGrantState.ORPHANED.name().equals(p.getState())),
+                "collection-root permissions must not appear as ORPHANED");
+    }
+
+    @Test
     void recordIsPendingWhenTheIdentitysAclIsForAnotherSubpath() {
         final FakeGrants grants = new FakeGrants();
         grants.save(grant("site1", PEER_A, "acl-a")); // expects /site1/

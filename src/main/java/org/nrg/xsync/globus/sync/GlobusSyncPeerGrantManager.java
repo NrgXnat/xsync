@@ -163,28 +163,36 @@ public class GlobusSyncPeerGrantManager {
 
     /**
      * Reconcile stored records against the live ACLs on the sync inbox collection.
-     * A record is ACTIVE when an identity ACL binds the same peer identity to the
-     * same subpath; otherwise PENDING. An identity ACL with no matching record is
-     * ORPHANED.
+     * Only ACLs on a {@code /<peer>/} subpath are considered — the per-peer grants
+     * this panel manages. A record is ACTIVE when such an ACL binds the same peer
+     * identity to the same subpath; otherwise PENDING. A peer-subpath ACL with no
+     * matching record is ORPHANED.
+     *
+     * <p>Collection-level permissions (the node service account, the collection
+     * owner, the owning user) live at the collection root, not a peer subpath, so
+     * they are excluded here and never appear as ORPHANED.</p>
      *
      * @param records the stored peer-grant records
-     * @return records (as ACTIVE/PENDING) plus any ORPHANED ACLs
+     * @return records (as ACTIVE/PENDING) plus any ORPHANED peer-subpath ACLs
      * @throws NotFoundException   if Globus is not configured
      * @throws DataFormatException if the sync inbox collection is not configured
      */
     private List<GlobusSyncPeerGrantPojo> reconcile(final List<GlobusSyncPeerGrant> records)
             throws NotFoundException, DataFormatException {
         final Context ctx = context();
-        final List<AccessRule> identityRules = _client.listAccessRules(ctx.token(), ctx.collectionId()).stream()
-                .filter(rule -> rule.principalType() == PrincipalType.IDENTITY && rule.path() != null)
+        // Only identity ACLs on a /<peer>/ subpath are peer grants this panel manages;
+        // labelFromPath is null exactly for collection-root ACLs, which we drop so the
+        // owner/service-account/owning-user permissions never surface as ORPHANED.
+        final List<AccessRule> peerSubpathRules = _client.listAccessRules(ctx.token(), ctx.collectionId()).stream()
+                .filter(rule -> rule.principalType() == PrincipalType.IDENTITY && labelFromPath(rule.path()) != null)
                 .toList();
 
         final List<GlobusSyncPeerGrantPojo> pojos = new ArrayList<>();
         for (final GlobusSyncPeerGrant record : records) {
-            final boolean active = identityRules.stream().anyMatch(rule -> matchesRecord(record, rule));
+            final boolean active = peerSubpathRules.stream().anyMatch(rule -> matchesRecord(record, rule));
             pojos.add(toPojo(record, active ? GlobusGrantState.ACTIVE : GlobusGrantState.PENDING));
         }
-        for (final AccessRule rule : identityRules) {
+        for (final AccessRule rule : peerSubpathRules) {
             if (records.stream().noneMatch(record -> matchesRecord(record, rule))) {
                 pojos.add(orphanPojo(rule));
             }
