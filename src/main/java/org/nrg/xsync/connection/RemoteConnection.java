@@ -26,6 +26,10 @@ public class RemoteConnection {
 	String username;
 	String password;
 	String localProject;
+	/** The destination's remote project id; set per-send so a transport can
+	 *  resolve per-destination config keyed on (url, remoteProjectId). May be
+	 *  null for connections not built for a XAR send. */
+	String remoteProjectId;
 	Date acquiredDate;
 	long remoteAliasId;
 

@@ -1,5 +1,6 @@
 package org.nrg.xsync.components;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +15,7 @@ import org.nrg.xft.exception.InvalidValueException;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
 import org.nrg.xsync.services.local.WhitelistXsyncSiteService;
+import org.nrg.xsync.transport.SiteTransportPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -29,7 +33,7 @@ import java.util.List;
  */
 @Component
 @NrgPreferenceBean(toolId = XsyncSitePreferencesBean.XSYNC_TOOL_ID, toolName = "XSync Site Preferences")
-public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
+public class XsyncSitePreferencesBean extends AbstractPreferenceBean implements SiteTransportPolicy {
 	@Autowired
 	public XsyncSitePreferencesBean(final NrgPreferenceService preferenceService, final ConfigPaths configFolderPaths, SerializerService serializerService, WhitelistXsyncSiteService whitelistXsyncSitesService) {
 		super(preferenceService, configFolderPaths);
@@ -153,6 +157,65 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean {
 			set(String.valueOf(asperaEnabled), "asperaEnabled");
 		} catch (InvalidPreferenceName invalidPreferenceName) {
 			_log.error("Invalid preference name: asperaEnabled");
+		}
+	}
+
+	/**
+	 * The transport ids an admin has explicitly disabled site-wide, as a JSON
+	 * array. Backing store for {@link #isTransportEnabled(String)}; enablement is
+	 * opt-out, so the default (empty array) means every transport is enabled.
+	 *
+	 * @return the disabled transport ids as a JSON array string
+	 */
+	@NrgPreference(defaultValue = "[]")
+	public String getDisabledTransports() {
+		return getValue("disabledTransports");
+	}
+
+	public void setDisabledTransports(final String disabledTransportsJson) {
+		try {
+			set(disabledTransportsJson, "disabledTransports");
+		} catch (InvalidPreferenceName invalidPreferenceName) {
+			_log.error("Invalid preference name: disabledTransports");
+		}
+	}
+
+	@Override
+	public boolean isTransportEnabled(final String transportId) {
+		return !disabledTransportIds().contains(transportId);
+	}
+
+	/**
+	 * Enable or disable a transport site-wide (opt-out: absence from the disabled
+	 * set means enabled).
+	 *
+	 * @param transportId the transport id (see {@code XarSender.transportId()})
+	 * @param enabled     {@code true} to enable, {@code false} to disable
+	 */
+	public void setTransportEnabled(final String transportId, final boolean enabled) {
+		final List<String> disabled = new ArrayList<>(disabledTransportIds());
+		if (enabled) {
+			disabled.removeIf(id -> id.equals(transportId));
+		} else if (!disabled.contains(transportId)) {
+			disabled.add(transportId);
+		}
+		try {
+			setDisabledTransports(serializerService.getObjectMapper().writeValueAsString(disabled));
+		} catch (JsonProcessingException e) {
+			_log.error("Could not serialize disabled transports", e);
+		}
+	}
+
+	private List<String> disabledTransportIds() {
+		final String json = getDisabledTransports();
+		if (json == null || json.isBlank()) {
+			return Collections.emptyList();
+		}
+		try {
+			return serializerService.getObjectMapper().readValue(json, new TypeReference<List<String>>() {});
+		} catch (JsonProcessingException e) {
+			_log.error("Could not parse disabled transports '{}'; treating all transports as enabled.", json, e);
+			return Collections.emptyList();
 		}
 	}
 
