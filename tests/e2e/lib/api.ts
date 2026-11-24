@@ -30,8 +30,6 @@ export interface SitePreferences {
     syncRetryCount?: string;
     syncMaxUncompressedZipFileSize?: string;
     xsyncWhitelistEnabled?: boolean;
-    httpsEnabled?: boolean;
-    asperaEnabled?: boolean;
 }
 
 export class XsyncApi {
@@ -79,16 +77,20 @@ export class XsyncApi {
         expect(res.ok(), `POST site preferences failed: HTTP ${res.status()} ${await res.text()}`).toBeTruthy();
     }
 
-    async isHttpsEnabled(): Promise<boolean> {
-        const res = await this.request.get('/xapi/xsyncSitePreferences/httpsEnabled');
+    /** Whether a named transport is enabled site-wide (the gate the resolver consults). */
+    async isTransportEnabled(transport: string): Promise<boolean> {
+        const res = await this.request.get(`/xapi/xsyncSitePreferences/transportEnabled/${transport}`);
         expect(res.ok()).toBeTruthy();
         return res.json();
     }
 
-    async isAsperaEnabled(): Promise<boolean> {
-        const res = await this.request.get('/xapi/xsyncSitePreferences/asperaEnabled');
-        expect(res.ok()).toBeTruthy();
-        return res.json();
+    /** Enable or disable a named transport site-wide (site admin). */
+    async setTransportEnabled(transport: string, enabled: boolean): Promise<void> {
+        const res = await this.request.put(`/xapi/xsyncSitePreferences/transportEnabled/${transport}`, {
+            headers: { ...this.headers(), 'Content-Type': 'application/json' },
+            data: enabled,
+        });
+        expect(res.ok(), `PUT transportEnabled/${transport} failed: HTTP ${res.status()} ${await res.text()}`).toBeTruthy();
     }
 
     async isWhitelistEnabled(): Promise<boolean> {

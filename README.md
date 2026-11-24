@@ -10,6 +10,12 @@ For the latest version, see the [XNAT Download Page](https://download.xnat.org).
 # ChangeLog #
 
 
+## Unreleased
+
+* [PLUGINS-337](https://radiologics.atlassian.net/browse/PLUGINS-337): XAR transport selection is now driven by a single site-wide transport-enablement gate (`/xapi/xsyncSitePreferences/transportEnabled/{transport}`). HTTPS is the always-on baseline; optional transports (e.g. Aspera) are opt-in and disabled by default. The legacy site `httpsEnabled`/`asperaEnabled` preferences and their `/xapi/xsyncSitePreferences/{https,aspera}Enabled` endpoints have been removed.
+  * **Upgrade note:** Aspera transfers now require Aspera to be enabled site-wide as well as configured per project. Any site using Aspera must turn on **Enable Aspera Transfers** on the **Connection Management** tab (or `PUT /xapi/xsyncSitePreferences/transportEnabled/aspera true`) after upgrading. Until then, projects configured for Aspera transfer over HTTPS. Per-project Aspera settings are kept and need no changes.
+
+
 ## Version 1.8.1 as of November 23, 2024
 
 * Updated OpenCSV version to 5.9

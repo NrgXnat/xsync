@@ -2,7 +2,9 @@ package org.nrg.xsync.transport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.List;
@@ -105,6 +107,17 @@ class XarSenderResolverTest {
         assertSame(fast, new XarSenderResolver(List.of(fast, aspera, HTTPS), ALL_ENABLED).resolve("p", null));
         assertSame(fast, new XarSenderResolver(List.of(HTTPS, aspera, fast), ALL_ENABLED).resolve("p", null));
         assertSame(fast, new XarSenderResolver(List.of(aspera, fast, HTTPS), ALL_ENABLED).resolve("p", null));
+    }
+
+    @Test
+    void isRegisteredMatchesOnlyRegisteredTransportIds() {
+        final XarSenderResolver resolver = new XarSenderResolver(
+                List.of(new FakeSender("aspera", 100, true), HTTPS), ALL_ENABLED);
+
+        assertTrue(resolver.isRegistered("aspera"));
+        assertTrue(resolver.isRegistered("https"));
+        assertFalse(resolver.isRegistered("asprea"), "an unknown (e.g. misspelled) id is not registered");
+        assertFalse(resolver.isRegistered(null));
     }
 
     @Test

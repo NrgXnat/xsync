@@ -18,15 +18,14 @@ import org.springframework.stereotype.Component;
  * the guaranteed fallback.</p>
  *
  * <p>This is the transport SPI: a transport contributed by <em>another plugin</em>
- * (e.g. a Globus plugin) registers its {@code XarSender} into the shared XNAT
- * Spring context and is discovered here automatically, with no change to this
- * class. Ordering is by explicit priority, not plugin load order (which XNAT
- * leaves unspecified).</p>
+ * registers its {@code XarSender} into the shared XNAT Spring context and is
+ * discovered here automatically, with no change to this class. Ordering is by
+ * explicit priority, not plugin load order (which XNAT leaves unspecified).</p>
  *
  * <p>Selection is also gated by site-level governance: a transport is
  * considered only when {@link SiteTransportPolicy#isTransportEnabled} allows it,
- * so an admin can disable a transport (e.g. Globus) site-wide. HTTPS is the
- * baseline transport and is expected to remain enabled; it is the fallback.</p>
+ * so an admin can disable a transport site-wide. HTTPS is the baseline transport
+ * and is expected to remain enabled; it is the fallback.</p>
  */
 @Component
 public class XarSenderResolver {
@@ -44,11 +43,22 @@ public class XarSenderResolver {
     }
 
     /**
+     * Whether a transport with the given id is registered, i.e. some
+     * {@link XarSender} bean reports it as its {@link XarSender#transportId()}.
+     *
+     * @param transportId the transport id to look up
+     * @return {@code true} if a registered sender has this id
+     */
+    public boolean isRegistered(final String transportId) {
+        return _senders.stream().anyMatch(sender -> sender.transportId().equals(transportId));
+    }
+
+    /**
      * Resolve the sender for a destination: the highest-priority registered
      * sender that is enabled site-wide and whose {@code supports} is true for
-     * this project and destination. Globus (if present, enabled, and configured
-     * for the destination) outranks Aspera, which outranks HTTPS; HTTPS is the
-     * enabled baseline that always supports, so a sender is always found.
+     * this project and destination. A higher-priority transport (e.g. Aspera)
+     * outranks HTTPS; HTTPS is the enabled baseline that always supports, so a
+     * sender is always found.
      *
      * @param projectId  the local (source) project id
      * @param connection the remote connection to the destination XNAT

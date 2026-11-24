@@ -36,7 +36,7 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
 
     xsyncProjectPreferenceManager.init = function() {
         XNAT.xhr.get({
-            url: restUrl('/xapi/xsyncSitePreferences/asperaEnabled/'),
+            url: restUrl('/xapi/xsyncSitePreferences/transportEnabled/aspera'),
             async: false,
             success: function (data) {
                 xsyncProjectPreferenceManager.siteWideAsperaEnabled = data;

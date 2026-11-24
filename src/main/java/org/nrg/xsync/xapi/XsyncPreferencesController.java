@@ -29,6 +29,7 @@ import org.nrg.xsync.aspera.AsperaSitePrefs;
 import org.nrg.xsync.aspera.AsperaSitePrefsInfo;
 import org.nrg.xsync.components.XsyncSitePreferencesBean;
 import org.nrg.xsync.services.local.XsyncConfigurationService;
+import org.nrg.xsync.transport.XarSenderResolver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -58,13 +59,15 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	@Autowired
 	public XsyncPreferencesController(final XsyncSitePreferencesBean prefs, final AsperaSitePrefs asperaSitePrefs,
                                       final AsperaProjectPrefs asperaProjectPrefs, final UserManagementServiceI userManagementService,
-                                      final RoleHolder roleHolder, final WhitelistXsyncSiteService whitelistXsyncSiteService, XsyncConfigurationService configurationService) {
+                                      final RoleHolder roleHolder, final WhitelistXsyncSiteService whitelistXsyncSiteService, XsyncConfigurationService configurationService,
+                                      final XarSenderResolver xarSenderResolver) {
 		super(userManagementService, roleHolder);
 		this.prefs = prefs;
 		this.asperaSitePrefs = asperaSitePrefs;
 		this.asperaProjectPrefs = asperaProjectPrefs;
 		this.whitelistXsyncSiteService = whitelistXsyncSiteService;
         this.configurationService = configurationService;
+        this.xarSenderResolver = xarSenderResolver;
     }
 
 	@AuthDelegate(XsyncAdministratorUserAuthorization.class)
@@ -119,22 +122,32 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 		return new ResponseEntity<>(new AsperaSitePrefsInfo(asperaSitePrefs), HttpStatus.OK);
 	}
 
-	@XapiRequestMapping(value = "xsyncSitePreferences/httpsEnabled", method =
+	@XapiRequestMapping(value = "xsyncSitePreferences/transportEnabled/{transport}", method =
 			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE)
-	@ApiOperation(value = "Checks whether Https connection is enabled on the site level.")
-	@ApiResponses({ @ApiResponse(code = 200, message = "Https enabled returned."),
+	@ApiOperation(value = "Whether a named transport (e.g. 'aspera') is permitted site-wide for transfer "
+			+ "selection — the authoritative gate the XSync transport resolver consults. Opt-in: optional transports "
+			+ "are disabled until an admin enables them; the baseline HTTPS transport is always enabled.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Transport enablement returned."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
-	public Boolean getHttpsEnabled() {
-		return prefs.getHttpsEnabled();
+	public boolean getTransportEnabled(@PathVariable("transport") final String transportId) {
+		return prefs.isTransportEnabled(transportId);
 	}
 
-	@XapiRequestMapping(value = "xsyncSitePreferences/asperaEnabled", method =
-			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE)
-	@ApiOperation(value = "Checks whether Aspera is enabled on the site level.")
-	@ApiResponses({ @ApiResponse(code = 200, message = "Aspera enabled returned."),
+	@AuthDelegate(XsyncAdministratorUserAuthorization.class)
+	@XapiRequestMapping(value = "xsyncSitePreferences/transportEnabled/{transport}", method = RequestMethod.PUT,
+			consumes = MediaType.APPLICATION_JSON_VALUE, restrictTo = AccessLevel.Authorizer)
+	@ApiOperation(value = "Enable or disable a named transport site-wide. Optional transports (e.g. 'aspera') "
+			+ "are opt-in (disabled by default); this is how an admin turns one on.")
+	@ApiResponses({ @ApiResponse(code = 200, message = "Transport enablement set."),
+			@ApiResponse(code = 404, message = "No registered transport has the given id."),
+			@ApiResponse(code = 403, message = "Not authorized."),
 			@ApiResponse(code = 500, message = "Unexpected error") })
-	public Boolean getAsperaEnabled() {
-		return prefs.getAsperaEnabled();
+	public void setTransportEnabled(@PathVariable("transport") final String transportId,
+			@RequestBody final boolean enabled) throws NotFoundException {
+		if (!xarSenderResolver.isRegistered(transportId)) {
+			throw new NotFoundException("No registered transport has id '" + transportId + "'.");
+		}
+		prefs.setTransportEnabled(transportId, enabled);
 	}
 
 	@AuthDelegate(XsyncReadProjectUserAuthority.class)
@@ -309,6 +322,7 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 	private final AsperaProjectPrefs asperaProjectPrefs;
 	private final WhitelistXsyncSiteService whitelistXsyncSiteService;
 	private final XsyncConfigurationService configurationService;
+	private final XarSenderResolver xarSenderResolver;
 
 	@ResponseStatus(value = HttpStatus.BAD_REQUEST)
 	@ExceptionHandler(value = {InvalidValueException.class})

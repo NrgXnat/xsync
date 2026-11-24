@@ -1,6 +1,5 @@
 package org.nrg.xsync.components;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,8 +23,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The Class XsyncSitePreferencesBean.
@@ -134,89 +133,54 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean implements 
 		}
 	}
 
-	@NrgPreference(defaultValue = "true")
-	public boolean getHttpsEnabled() {
-		return getBooleanValue("httpsEnabled");
-	}
-
-	public void setHttpsEnabled(boolean httpsEnabled) {
-		try {
-			set(String.valueOf(httpsEnabled), "httpsEnabled");
-		} catch (InvalidPreferenceName invalidPreferenceName) {
-			_log.error("Invalid preference name: httpsEnabled");
-		}
-	}
-
-	@NrgPreference(defaultValue = "false")
-	public boolean getAsperaEnabled() {
-		return getBooleanValue("asperaEnabled");
-	}
-
-	public void setAsperaEnabled(boolean asperaEnabled) {
-		try {
-			set(String.valueOf(asperaEnabled), "asperaEnabled");
-		} catch (InvalidPreferenceName invalidPreferenceName) {
-			_log.error("Invalid preference name: asperaEnabled");
-		}
-	}
+	/** Transport id of the always-on baseline transport; others are opt-in. */
+	static final String BASELINE_TRANSPORT = "https";
 
 	/**
-	 * The transport ids an admin has explicitly disabled site-wide, as a JSON
-	 * array. Backing store for {@link #isTransportEnabled(String)}; enablement is
-	 * opt-out, so the default (empty array) means every transport is enabled.
+	 * Transports enabled site-wide, as a JSON array of transport ids, e.g.
+	 * {@code ["aspera"]}. Backing store for {@link #isTransportEnabled(String)}.
+	 * Optional transports are opt-in: a transport is disabled unless its id
+	 * appears here. The baseline ({@value #BASELINE_TRANSPORT}) is always enabled
+	 * regardless of this list.
 	 *
-	 * @return the disabled transport ids as a JSON array string
+	 * @return the enabled transport ids
 	 */
 	@NrgPreference(defaultValue = "[]")
-	public String getDisabledTransports() {
-		return getValue("disabledTransports");
+	public List<String> getEnabledTransports() {
+		return Optional.ofNullable(this.<String>getListValue("enabledTransports")).orElseGet(List::of);
 	}
 
-	public void setDisabledTransports(final String disabledTransportsJson) {
+	public void setEnabledTransports(final List<String> enabledTransports) {
 		try {
-			set(disabledTransportsJson, "disabledTransports");
-		} catch (InvalidPreferenceName invalidPreferenceName) {
-			_log.error("Invalid preference name: disabledTransports");
+			setListValue("enabledTransports", enabledTransports);
+		} catch (InvalidPreferenceName e) {
+			_log.error("Invalid preference name: enabledTransports");
 		}
 	}
 
 	@Override
 	public boolean isTransportEnabled(final String transportId) {
-		return !disabledTransportIds().contains(transportId);
+		return BASELINE_TRANSPORT.equals(transportId) || getEnabledTransports().contains(transportId);
 	}
 
 	/**
-	 * Enable or disable a transport site-wide (opt-out: absence from the disabled
-	 * set means enabled).
+	 * Enable or disable a transport site-wide. Optional transports (e.g. Aspera)
+	 * are opt-in — disabled until enabled here. The baseline HTTPS transport is
+	 * always enabled; a request to disable it has no effect.
 	 *
 	 * @param transportId the transport id (see {@code XarSender.transportId()})
 	 * @param enabled     {@code true} to enable, {@code false} to disable
 	 */
 	public void setTransportEnabled(final String transportId, final boolean enabled) {
-		final List<String> disabled = new ArrayList<>(disabledTransportIds());
+		final List<String> enabledTransports = new ArrayList<>(getEnabledTransports());
 		if (enabled) {
-			disabled.removeIf(id -> id.equals(transportId));
-		} else if (!disabled.contains(transportId)) {
-			disabled.add(transportId);
+			if (!enabledTransports.contains(transportId)) {
+				enabledTransports.add(transportId);
+			}
+		} else {
+			enabledTransports.remove(transportId);
 		}
-		try {
-			setDisabledTransports(serializerService.getObjectMapper().writeValueAsString(disabled));
-		} catch (JsonProcessingException e) {
-			_log.error("Could not serialize disabled transports", e);
-		}
-	}
-
-	private List<String> disabledTransportIds() {
-		final String json = getDisabledTransports();
-		if (json == null || json.isBlank()) {
-			return Collections.emptyList();
-		}
-		try {
-			return serializerService.getObjectMapper().readValue(json, new TypeReference<List<String>>() {});
-		} catch (JsonProcessingException e) {
-			_log.error("Could not parse disabled transports '{}'; treating all transports as enabled.", json, e);
-			return Collections.emptyList();
-		}
+		setEnabledTransports(enabledTransports);
 	}
 
 	/**
@@ -412,12 +376,6 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean implements 
 		if (null != xsyncSitePreferencesPojo.getXsyncWhitelistEnabled()) {
 			this.setXsyncWhitelistEnabled(xsyncSitePreferencesPojo.getXsyncWhitelistEnabled());
 		}
-		if (null != xsyncSitePreferencesPojo.getHttpsEnabled()) {
-			this.setHttpsEnabled(xsyncSitePreferencesPojo.getHttpsEnabled());
-		}
-		if (null != xsyncSitePreferencesPojo.getAsperaEnabled()) {
-			this.setAsperaEnabled(xsyncSitePreferencesPojo.getAsperaEnabled());
-		}
 	}
 
 	public XsyncSitePreferencesPojo toPojo() {
@@ -426,9 +384,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean implements 
 				getSyncRetryInterval(),
 				getSyncRetryCount(),
 				getSyncMaxUncompressedZipFileSize(),
-				getXsyncWhitelistEnabled(),
-				getHttpsEnabled(),
-				getAsperaEnabled()
+				getXsyncWhitelistEnabled()
 		);
 	}
 }

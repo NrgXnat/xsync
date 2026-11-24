@@ -551,7 +551,7 @@ if (typeof XSYNC.credentialsConfig === 'undefined') {
 
         function configPanel() {
             XNAT.xhr.get({
-                url: restUrl('/xapi/xsyncSitePreferences/asperaEnabled/'),
+                url: restUrl('/xapi/xsyncSitePreferences/transportEnabled/aspera'),
                 async: false,
                 success: function (data) {
                     XSYNC.xsyncConfig.isSiteWideAsperaEnabled = data;

@@ -43,7 +43,7 @@ setup('target instance carries the XSync features under test', async ({ baseURL 
         ['/xapi/xsync/dashboard', 'configuration dashboard (PLUGINS-230)'],
         ['/xapi/xsyncSitePreferences/whitelistSites', 'site whitelist (PLUGINS-228)'],
         ['/xapi/xsyncSitePreferences/blacklistProjects', 'project blacklist (PLUGINS-231)'],
-        ['/xapi/xsyncSitePreferences/asperaEnabled', 'connection management (PLUGINS-234)'],
+        ['/xapi/xsyncSitePreferences/transportEnabled/aspera', 'connection management (PLUGINS-234)'],
     ];
 
     const missing: string[] = [];

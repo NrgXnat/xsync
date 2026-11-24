@@ -33,79 +33,46 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     var xsyncConnectionManager;
     XNAT.plugin.xsync.xsyncConnectionManager = xsyncConnectionManager = getObject(XNAT.plugin.xsync.xsyncConnectionManager || {});
 
-    $(document).on('change','#https-enabled', function(){
-        xsyncConnectionManager.toggleHttpsEnabled($(this).val());
-    });
+    // The Aspera toggle drives the site-wide transport enablement gate the resolver
+    // consults: .../xsyncSitePreferences/transportEnabled/aspera. HTTPS is the always-on
+    // baseline and has no toggle.
+    var ASPERA_TRANSPORT_URL = '/xapi/xsyncSitePreferences/transportEnabled/aspera';
 
     $(document).on('change','#aspera-enabled', function(){
-        xsyncConnectionManager.toggleAsperaEnabled($(this).val());
+        xsyncConnectionManager.toggleAsperaEnabled($(this).val() === 'true');
     });
 
-    xsyncConnectionManager.toggleHttpsEnabled = function(enabled) {
-        let inputPrefs = {};
-        if (enabled === "true") {
-            inputPrefs['httpsEnabled'] = true;
-        } else {
-            inputPrefs['httpsEnabled'] = false;
-        }
-
-        xsyncConnectionManager.postSitePreferencesUpdate(inputPrefs, 'https');
-    }
-
     xsyncConnectionManager.toggleAsperaEnabled = function(enabled) {
-        let inputPrefs = {};
-        if (enabled === "true") {
-            inputPrefs['asperaEnabled'] = true;
-        } else {
-            inputPrefs['asperaEnabled'] = false;
-            inputPrefs['httpsEnabled'] = true;
-        }
-
-        xsyncConnectionManager.postSitePreferencesUpdate(inputPrefs, 'aspera');
-        if ($('#aspera-enabled').val() === 'false') {
-            $("#https-enabled").parent().parent().parent().parent().addClass('disabled');
-            $("#https-enabled").prop('disabled', true);
-            $("a[title='Aspera Server Defaults']").parent().addClass('hidden');
-        } else {
-            $("#https-enabled").parent().parent().parent().parent().removeClass('disabled');
-            $("#https-enabled").prop('disabled', false);
-            $("a[title='Aspera Server Defaults']").parent().removeClass('hidden');
-        }
-    }
-
-    xsyncConnectionManager.postSitePreferencesUpdate = function(inputPrefs, preferenceName) {
-        XNAT.xhr.post({
-            url: restUrl('/xapi/xsyncSitePreferences/'),
+        XNAT.xhr.put({
+            url: restUrl(ASPERA_TRANSPORT_URL),
             async: false,
             contentType: 'application/json',
-            data: JSON.stringify(inputPrefs),
+            data: JSON.stringify(enabled),
             success: function () {
-                console.log('Updated ' + preferenceName + ' preference.');
-                XNAT.ui.banner.top(2000, 'Updated ' + preferenceName + ' enabled preference.', 'success');
+                XNAT.ui.banner.top(2000, 'Updated Aspera enabled preference.', 'success');
             },
             fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not update ' + preferenceName + ' enabled preference: ' +  e.responseText, 'error');
+                XNAT.ui.banner.top(2000, 'Could not update Aspera enabled preference: ' +  e.responseText, 'error');
             }
         });
+        xsyncConnectionManager.setAsperaDefaultsVisibility(enabled);
+    }
+
+    xsyncConnectionManager.setAsperaDefaultsVisibility = function(enabled) {
+        if (enabled) {
+            $("a[title='Aspera Server Defaults']").parent().removeClass('hidden');
+        } else {
+            $("a[title='Aspera Server Defaults']").parent().addClass('hidden');
+        }
     }
 
     xsyncConnectionManager.init = function() {
         XNAT.xhr.get({
-            url: restUrl('/xapi/xsyncSitePreferences/'),
+            url: restUrl(ASPERA_TRANSPORT_URL),
             async: false,
-            success: function (data) {
-                let httpsEnabled = data['httpsEnabled'];
-                let asperaEnabled = data['asperaEnabled'];
-                if (httpsEnabled == true) {
-                    $('#https-enabled').prop("checked",true);
-                }
-                if (asperaEnabled == true) {
-                    $('#aspera-enabled').prop("checked",true);
-                } else {
-                    $("#https-enabled").parent().parent().parent().parent().addClass('disabled');
-                    $("#https-enabled").prop('disabled', true);
-                    $("a[title='Aspera Server Defaults']").parent().addClass('hidden');
-                }
+            success: function (asperaEnabled) {
+                $('#aspera-enabled').prop("checked", asperaEnabled === true);
+                xsyncConnectionManager.setAsperaDefaultsVisibility(asperaEnabled === true);
             },
             fail: function (e) {
                 XNAT.ui.banner.top(2000, 'Could not retrieve connection information: ' + e.responseText, 'error');

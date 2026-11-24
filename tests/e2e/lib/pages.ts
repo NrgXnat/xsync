@@ -58,7 +58,7 @@ export const DASHBOARD_PANEL = 'div#xsync-configuration-dashboard-panel';
 // bounding box, so Playwright treats it as hidden; the checkbox inputs are
 // display:none always. The switchbox labels are rendered unconditionally, so
 // they are what openXsyncTab should wait for on these two tabs.
-export const CONNECTION_TAB_READY = 'label.switchbox:has(#https-enabled)';
+export const CONNECTION_TAB_READY = 'label.switchbox:has(#aspera-enabled)';
 export const WHITELIST_TAB_READY = 'label.switchbox:has(#limit-to-whitelist)';
 
 export function whitelistTable(page: Page): Locator {
