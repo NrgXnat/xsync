@@ -42,6 +42,16 @@ public class AsperaXarSender implements XarSender {
         return "aspera";
     }
 
+    @Override
+    public String displayName() {
+        return "Aspera";
+    }
+
+    @Override
+    public String description() {
+        return "Use Aspera for transfers. Requires a valid Aspera server to receive files, and Aspera must also be configured and enabled for each project.";
+    }
+
     /** When enabled, preferred over the HTTPS fallback; a higher value than HTTPS's minimum. */
     @Override
     public int priority() {

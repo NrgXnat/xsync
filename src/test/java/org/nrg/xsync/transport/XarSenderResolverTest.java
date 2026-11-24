@@ -25,7 +25,7 @@ import org.nrg.xsync.connection.RemoteConnectionResponse;
  */
 class XarSenderResolverTest {
 
-    /** Policy that permits every transport (the opt-out default). */
+    /** Policy that permits every transport (all transports enabled). */
     private static final SiteTransportPolicy ALL_ENABLED = transportId -> true;
 
     /** A fake transport with a fixed id, priority, and supports() answer. */
@@ -118,6 +118,25 @@ class XarSenderResolverTest {
         assertTrue(resolver.isRegistered("https"));
         assertFalse(resolver.isRegistered("asprea"), "an unknown (e.g. misspelled) id is not registered");
         assertFalse(resolver.isRegistered(null));
+    }
+
+    @Test
+    void registeredReturnsSendersHighestPriorityFirst() {
+        final FakeSender aspera = new FakeSender("aspera", 100, true);
+        final FakeSender fast = new FakeSender("fast", 200, true);
+        final XarSenderResolver resolver = new XarSenderResolver(List.of(aspera, HTTPS, fast), ALL_ENABLED);
+
+        assertEquals(List.of("fast", "aspera", "https"),
+                resolver.registered().stream().map(XarSender::transportId).toList(),
+                "registered() is ordered by priority, highest first");
+    }
+
+    @Test
+    void displayNameAndDescriptionDefaultToIdAndEmpty() {
+        final XarSender sender = new FakeSender("aspera", 100, true);
+
+        assertEquals("aspera", sender.displayName(), "displayName defaults to the transport id");
+        assertEquals("", sender.description(), "description defaults to empty");
     }
 
     @Test

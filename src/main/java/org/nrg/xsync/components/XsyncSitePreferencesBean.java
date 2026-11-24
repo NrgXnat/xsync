@@ -133,14 +133,12 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean implements 
 		}
 	}
 
-	/** Transport id of the always-on baseline transport; others are opt-in. */
-	static final String BASELINE_TRANSPORT = "https";
-
 	/**
 	 * Transports enabled site-wide, as a JSON array of transport ids, e.g.
 	 * {@code ["aspera"]}. Backing store for {@link #isTransportEnabled(String)}.
 	 * Optional transports are opt-in: a transport is disabled unless its id
-	 * appears here. The baseline ({@value #BASELINE_TRANSPORT}) is always enabled
+	 * appears here. The baseline transport
+	 * ({@value SiteTransportPolicy#BASELINE_TRANSPORT_ID}) is always enabled
 	 * regardless of this list.
 	 *
 	 * @return the enabled transport ids
@@ -160,7 +158,7 @@ public class XsyncSitePreferencesBean extends AbstractPreferenceBean implements 
 
 	@Override
 	public boolean isTransportEnabled(final String transportId) {
-		return BASELINE_TRANSPORT.equals(transportId) || getEnabledTransports().contains(transportId);
+		return BASELINE_TRANSPORT_ID.equals(transportId) || getEnabledTransports().contains(transportId);
 	}
 
 	/**

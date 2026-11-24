@@ -9,6 +9,12 @@ package org.nrg.xsync.transport;
 public interface SiteTransportPolicy {
 
     /**
+     * Id of the always-on baseline transport (HTTPS): it is enabled regardless
+     * of any per-transport setting and cannot be disabled.
+     */
+    String BASELINE_TRANSPORT_ID = "https";
+
+    /**
      * Whether a transport is permitted site-wide. Enablement is opt-in: an
      * optional transport is disabled until an admin enables it. The baseline
      * HTTPS transport is always enabled.

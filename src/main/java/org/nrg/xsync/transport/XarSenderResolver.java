@@ -54,6 +54,16 @@ public class XarSenderResolver {
     }
 
     /**
+     * The registered senders, highest priority first. Intended for admin UI that
+     * presents a per-transport enable control; selection uses {@link #resolve}.
+     *
+     * @return an unmodifiable, priority-ordered view of the registered senders
+     */
+    public List<XarSender> registered() {
+        return _senders;
+    }
+
+    /**
      * Resolve the sender for a destination: the highest-priority registered
      * sender that is enabled site-wide and whose {@code supports} is true for
      * this project and destination. A higher-priority transport (e.g. Aspera)

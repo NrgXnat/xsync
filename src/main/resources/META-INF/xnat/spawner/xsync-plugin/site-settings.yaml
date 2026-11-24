@@ -21,18 +21,12 @@ siteSettings:
                     label: Connection Management
                     footer: false
                     contents:
-                        httpsInfo:
+                        connectionManagementHelptext:
                             tag: div.message
                             content: >
-                                HTTPS is the default transfer method and is always enabled. Enable additional transports below.
-                        asperaEnabled:
-                            kind: panel.input.switchbox
-                            name: asperaEnabled
-                            label: Enable Aspera Transfers?
-                            onText: Enabled
-                            offText: Disabled
-                            description: >
-                                Enable Aspera as a transfer method site-wide? This requires a valid Aspera server to receive files, and Aspera must also be configured and enabled for each project.
+                                Enable or disable each transfer method site-wide. HTTPS is the default method and is always enabled; other methods are off until you enable them here.
+                        xsyncTransportsContainer:
+                            tag: "div#xsync-transports"
                         xsyncConnectionManagerScript:
                             tag: script|src="~/scripts/xnat-plugins/xsyncPlugin/admin/xsyncConnectionManager.js"
         configurationDashboard:

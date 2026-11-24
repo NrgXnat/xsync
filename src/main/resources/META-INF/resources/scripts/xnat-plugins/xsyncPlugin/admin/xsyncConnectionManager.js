@@ -33,31 +33,20 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
     var xsyncConnectionManager;
     XNAT.plugin.xsync.xsyncConnectionManager = xsyncConnectionManager = getObject(XNAT.plugin.xsync.xsyncConnectionManager || {});
 
-    // The Aspera toggle drives the site-wide transport enablement gate the resolver
-    // consults: .../xsyncSitePreferences/transportEnabled/aspera. HTTPS is the always-on
-    // baseline and has no toggle.
-    var ASPERA_TRANSPORT_URL = '/xapi/xsyncSitePreferences/transportEnabled/aspera';
+    // The panel is data-driven: it fetches the registered transports and renders a
+    // switchbox per transport, each wired to the site-wide enablement gate the
+    // resolver consults (.../xsyncSitePreferences/transportEnabled/{id}). A new
+    // transport plugin gets its toggle automatically, with no change here. The
+    // baseline transport (HTTPS) is rendered checked and disabled.
+    var TRANSPORTS_URL = '/xapi/xsyncSitePreferences/transports';
+    var ASPERA_TRANSPORT_ID = 'aspera';
 
-    $(document).on('change','#aspera-enabled', function(){
-        xsyncConnectionManager.toggleAsperaEnabled($(this).val() === 'true');
-    });
-
-    xsyncConnectionManager.toggleAsperaEnabled = function(enabled) {
-        XNAT.xhr.put({
-            url: restUrl(ASPERA_TRANSPORT_URL),
-            async: false,
-            contentType: 'application/json',
-            data: JSON.stringify(enabled),
-            success: function () {
-                XNAT.ui.banner.top(2000, 'Updated Aspera enabled preference.', 'success');
-            },
-            fail: function (e) {
-                XNAT.ui.banner.top(2000, 'Could not update Aspera enabled preference: ' +  e.responseText, 'error');
-            }
-        });
-        xsyncConnectionManager.setAsperaDefaultsVisibility(enabled);
+    function transportEnabledUrl(transportId) {
+        return '/xapi/xsyncSitePreferences/transportEnabled/' + transportId;
     }
 
+    // Aspera-specific: the Aspera Server Defaults tab is only relevant when Aspera
+    // is enabled, so it is revealed/hidden with the Aspera toggle.
     xsyncConnectionManager.setAsperaDefaultsVisibility = function(enabled) {
         if (enabled) {
             $("a[title='Aspera Server Defaults']").parent().removeClass('hidden');
@@ -66,13 +55,62 @@ XNAT.plugin.xsync = getObject(XNAT.plugin.xsync || {});
         }
     }
 
+    xsyncConnectionManager.setTransportEnabled = function(transportId, enabled) {
+        XNAT.xhr.put({
+            url: restUrl(transportEnabledUrl(transportId)),
+            async: false,
+            contentType: 'application/json',
+            data: JSON.stringify(enabled),
+            success: function () {
+                XNAT.ui.banner.top(2000, 'Updated ' + transportId + ' enabled preference.', 'success');
+            },
+            fail: function (e) {
+                XNAT.ui.banner.top(2000, 'Could not update ' + transportId + ' enabled preference: ' + e.responseText, 'error');
+            }
+        });
+        if (transportId === ASPERA_TRANSPORT_ID) {
+            xsyncConnectionManager.setAsperaDefaultsVisibility(enabled);
+        }
+    }
+
+    xsyncConnectionManager.renderTransports = function(transports) {
+        var $container = $('#xsync-transports').empty();
+        (transports || []).forEach(function(transport) {
+            var inputId = transport.id + '-enabled';
+            // $.append accepts an element or an HTML string, so this is robust to
+            // what the switchbox spawner returns.
+            $container.append(XNAT.ui.panel.input.switchbox({
+                id: inputId,
+                name: transport.id + 'Enabled',
+                label: transport.displayName,
+                description: transport.description,
+                onText: 'Enabled',
+                offText: 'Disabled'
+            }));
+
+            var $input = $('#' + inputId);
+            $input.prop('checked', transport.enabled === true);
+            if (transport.baseline) {
+                // The baseline transport is always on and cannot be disabled.
+                $input.prop('disabled', true);
+            } else {
+                $input.on('change', function() {
+                    xsyncConnectionManager.setTransportEnabled(transport.id, this.checked);
+                });
+            }
+
+            if (transport.id === ASPERA_TRANSPORT_ID) {
+                xsyncConnectionManager.setAsperaDefaultsVisibility(transport.enabled === true);
+            }
+        });
+    }
+
     xsyncConnectionManager.init = function() {
         XNAT.xhr.get({
-            url: restUrl(ASPERA_TRANSPORT_URL),
+            url: restUrl(TRANSPORTS_URL),
             async: false,
-            success: function (asperaEnabled) {
-                $('#aspera-enabled').prop("checked", asperaEnabled === true);
-                xsyncConnectionManager.setAsperaDefaultsVisibility(asperaEnabled === true);
+            success: function (transports) {
+                xsyncConnectionManager.renderTransports(transports);
             },
             fail: function (e) {
                 XNAT.ui.banner.top(2000, 'Could not retrieve connection information: ' + e.responseText, 'error');

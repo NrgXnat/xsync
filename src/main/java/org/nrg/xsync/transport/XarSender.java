@@ -53,6 +53,28 @@ public interface XarSender {
     }
 
     /**
+     * A human-readable name for this transport, used to label its site-wide
+     * enable control in the admin UI (e.g. {@code "Aspera"}). Defaults to the
+     * {@link #transportId()} so a transport that does not supply one still
+     * renders.
+     *
+     * @return the display name
+     */
+    default String displayName() {
+        return transportId();
+    }
+
+    /**
+     * Optional help text shown beside this transport's enable control in the
+     * admin UI. Defaults to empty.
+     *
+     * @return the description, or an empty string
+     */
+    default String description() {
+        return "";
+    }
+
+    /**
      * Deliver a XAR to the destination identified by the connection.
      *
      * @param projectId  the local (source) project id

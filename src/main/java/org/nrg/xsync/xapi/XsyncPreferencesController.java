@@ -10,6 +10,7 @@ import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xft.exception.InvalidValueException;
+import org.nrg.xsync.pojo.TransportInfo;
 import org.nrg.xsync.pojo.WhitelistSitePojo;
 import org.nrg.xsync.pojo.XsyncSitePreferencesPojo;
 import org.nrg.xsync.security.XsyncAdministratorUserAuthorization;
@@ -120,6 +121,19 @@ public class XsyncPreferencesController extends AbstractXapiRestController {
 			@ApiResponse(code = 500, message = "Unexpected error") })
 	public ResponseEntity<AsperaSitePrefsInfo> getAsperaPreferences() {
 		return new ResponseEntity<>(new AsperaSitePrefsInfo(asperaSitePrefs), HttpStatus.OK);
+	}
+
+	@XapiRequestMapping(value = "xsyncSitePreferences/transports", method =
+			RequestMethod.GET,	produces = MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "The registered XAR transports and their site-wide enablement, for the admin UI that "
+			+ "presents a per-transport enable control. The baseline transport (HTTPS) is flagged and is always "
+			+ "enabled.", responseContainer = "List", response = TransportInfo.class)
+	@ApiResponses({ @ApiResponse(code = 200, message = "Transports returned."),
+			@ApiResponse(code = 500, message = "Unexpected error") })
+	public List<TransportInfo> getTransports() {
+		return xarSenderResolver.registered().stream()
+				.map(sender -> new TransportInfo(sender, prefs.isTransportEnabled(sender.transportId())))
+				.toList();
 	}
 
 	@XapiRequestMapping(value = "xsyncSitePreferences/transportEnabled/{transport}", method =

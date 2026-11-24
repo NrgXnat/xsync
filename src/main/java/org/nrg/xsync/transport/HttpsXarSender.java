@@ -28,6 +28,16 @@ public class HttpsXarSender implements XarSender {
         return "https";
     }
 
+    @Override
+    public String displayName() {
+        return "HTTPS";
+    }
+
+    @Override
+    public String description() {
+        return "Standard HTTPS transfer. Always enabled; the fallback for every destination.";
+    }
+
     /** The guaranteed fallback: lowest possible priority, so every other sender is tried first. */
     @Override
     public int priority() {
